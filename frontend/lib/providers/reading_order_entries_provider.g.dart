@@ -6,175 +6,119 @@ part of 'reading_order_entries_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$entriesForReadingOrderHash() =>
-    r'5fa8eb1b9c64f277cf55dc6b3bda367394d2bd88';
-
-/// Copied from Dart SDK
-class _SystemHash {
-  _SystemHash._();
-
-  static int combine(int hash, int value) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + value);
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-    return hash ^ (hash >> 6);
-  }
-
-  static int finish(int hash) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    // ignore: parameter_assignments
-    hash = hash ^ (hash >> 11);
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-}
-
-abstract class _$EntriesForReadingOrder
-    extends BuildlessAutoDisposeNotifier<PagingState<int, ReadingOrderEntry>> {
-  late final String readingOrderId;
-
-  PagingState<int, ReadingOrderEntry> build(String readingOrderId);
-}
-
-/// See also [EntriesForReadingOrder].
 @ProviderFor(EntriesForReadingOrder)
-const entriesForReadingOrderProvider = EntriesForReadingOrderFamily();
+const entriesForReadingOrderProvider = EntriesForReadingOrderFamily._();
 
-/// See also [EntriesForReadingOrder].
-class EntriesForReadingOrderFamily
-    extends Family<PagingState<int, ReadingOrderEntry>> {
-  /// See also [EntriesForReadingOrder].
-  const EntriesForReadingOrderFamily();
-
-  /// See also [EntriesForReadingOrder].
-  EntriesForReadingOrderProvider call(String readingOrderId) {
-    return EntriesForReadingOrderProvider(readingOrderId);
-  }
-
-  @override
-  EntriesForReadingOrderProvider getProviderOverride(
-    covariant EntriesForReadingOrderProvider provider,
-  ) {
-    return call(provider.readingOrderId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'entriesForReadingOrderProvider';
-}
-
-/// See also [EntriesForReadingOrder].
-class EntriesForReadingOrderProvider
+final class EntriesForReadingOrderProvider
     extends
-        AutoDisposeNotifierProviderImpl<
+        $NotifierProvider<
           EntriesForReadingOrder,
           PagingState<int, ReadingOrderEntry>
         > {
-  /// See also [EntriesForReadingOrder].
-  EntriesForReadingOrderProvider(String readingOrderId)
-    : this._internal(
-        () => EntriesForReadingOrder()..readingOrderId = readingOrderId,
-        from: entriesForReadingOrderProvider,
-        name: r'entriesForReadingOrderProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$entriesForReadingOrderHash,
-        dependencies: EntriesForReadingOrderFamily._dependencies,
-        allTransitiveDependencies:
-            EntriesForReadingOrderFamily._allTransitiveDependencies,
-        readingOrderId: readingOrderId,
-      );
-
-  EntriesForReadingOrderProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.readingOrderId,
-  }) : super.internal();
-
-  final String readingOrderId;
+  const EntriesForReadingOrderProvider._({
+    required EntriesForReadingOrderFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'entriesForReadingOrderProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
-  PagingState<int, ReadingOrderEntry> runNotifierBuild(
-    covariant EntriesForReadingOrder notifier,
-  ) {
-    return notifier.build(readingOrderId);
+  String debugGetCreateSourceHash() => _$entriesForReadingOrderHash();
+
+  @override
+  String toString() {
+    return r'entriesForReadingOrderProvider'
+        ''
+        '($argument)';
   }
 
+  @$internal
   @override
-  Override overrideWith(EntriesForReadingOrder Function() create) {
-    return ProviderOverride(
+  EntriesForReadingOrder create() => EntriesForReadingOrder();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PagingState<int, ReadingOrderEntry> value) {
+    return $ProviderOverride(
       origin: this,
-      override: EntriesForReadingOrderProvider._internal(
-        () => create()..readingOrderId = readingOrderId,
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        readingOrderId: readingOrderId,
+      providerOverride: $SyncValueProvider<PagingState<int, ReadingOrderEntry>>(
+        value,
       ),
     );
   }
 
   @override
-  AutoDisposeNotifierProviderElement<
-    EntriesForReadingOrder,
-    PagingState<int, ReadingOrderEntry>
-  >
-  createElement() {
-    return _EntriesForReadingOrderProviderElement(this);
-  }
-
-  @override
   bool operator ==(Object other) {
     return other is EntriesForReadingOrderProvider &&
-        other.readingOrderId == readingOrderId;
+        other.argument == argument;
   }
 
   @override
   int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, readingOrderId.hashCode);
-
-    return _SystemHash.finish(hash);
+    return argument.hashCode;
   }
 }
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin EntriesForReadingOrderRef
-    on AutoDisposeNotifierProviderRef<PagingState<int, ReadingOrderEntry>> {
-  /// The parameter `readingOrderId` of this provider.
-  String get readingOrderId;
-}
+String _$entriesForReadingOrderHash() =>
+    r'beb0113e08c19f09528878f6d04c31739607a949';
 
-class _EntriesForReadingOrderProviderElement
-    extends
-        AutoDisposeNotifierProviderElement<
+final class EntriesForReadingOrderFamily extends $Family
+    with
+        $ClassFamilyOverride<
           EntriesForReadingOrder,
-          PagingState<int, ReadingOrderEntry>
-        >
-    with EntriesForReadingOrderRef {
-  _EntriesForReadingOrderProviderElement(super.provider);
+          PagingState<int, ReadingOrderEntry>,
+          PagingState<int, ReadingOrderEntry>,
+          PagingState<int, ReadingOrderEntry>,
+          String
+        > {
+  const EntriesForReadingOrderFamily._()
+    : super(
+        retry: null,
+        name: r'entriesForReadingOrderProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  EntriesForReadingOrderProvider call(String readingOrderId) =>
+      EntriesForReadingOrderProvider._(argument: readingOrderId, from: this);
 
   @override
-  String get readingOrderId =>
-      (origin as EntriesForReadingOrderProvider).readingOrderId;
+  String toString() => r'entriesForReadingOrderProvider';
+}
+
+abstract class _$EntriesForReadingOrder
+    extends $Notifier<PagingState<int, ReadingOrderEntry>> {
+  late final _$args = ref.$arg as String;
+  String get readingOrderId => _$args;
+
+  PagingState<int, ReadingOrderEntry> build(String readingOrderId);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build(_$args);
+    final ref =
+        this.ref
+            as $Ref<
+              PagingState<int, ReadingOrderEntry>,
+              PagingState<int, ReadingOrderEntry>
+            >;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                PagingState<int, ReadingOrderEntry>,
+                PagingState<int, ReadingOrderEntry>
+              >,
+              PagingState<int, ReadingOrderEntry>,
+              Object?,
+              Object?
+            >;
+    element.handleValue(ref, created);
+  }
 }
 
 // ignore_for_file: type=lint

@@ -6,155 +6,82 @@ part of 'reading_order_progress_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$readingOrderProgressHash() =>
-    r'5b4eeea4564d3853637eedcaf2802de05215f618';
-
-/// Copied from Dart SDK
-class _SystemHash {
-  _SystemHash._();
-
-  static int combine(int hash, int value) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + value);
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
-    return hash ^ (hash >> 6);
-  }
-
-  static int finish(int hash) {
-    // ignore: parameter_assignments
-    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
-    // ignore: parameter_assignments
-    hash = hash ^ (hash >> 11);
-    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
-  }
-}
-
-/// See also [readingOrderProgress].
 @ProviderFor(readingOrderProgress)
-const readingOrderProgressProvider = ReadingOrderProgressFamily();
+const readingOrderProgressProvider = ReadingOrderProgressFamily._();
 
-/// See also [readingOrderProgress].
-class ReadingOrderProgressFamily
-    extends Family<AsyncValue<ReadingOrderProgress>> {
-  /// See also [readingOrderProgress].
-  const ReadingOrderProgressFamily();
+final class ReadingOrderProgressProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<ReadingOrderProgress>,
+          ReadingOrderProgress,
+          FutureOr<ReadingOrderProgress>
+        >
+    with
+        $FutureModifier<ReadingOrderProgress>,
+        $FutureProvider<ReadingOrderProgress> {
+  const ReadingOrderProgressProvider._({
+    required ReadingOrderProgressFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'readingOrderProgressProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
-  /// See also [readingOrderProgress].
-  ReadingOrderProgressProvider call(String readingOrderId) {
-    return ReadingOrderProgressProvider(readingOrderId);
+  @override
+  String debugGetCreateSourceHash() => _$readingOrderProgressHash();
+
+  @override
+  String toString() {
+    return r'readingOrderProgressProvider'
+        ''
+        '($argument)';
   }
 
+  @$internal
   @override
-  ReadingOrderProgressProvider getProviderOverride(
-    covariant ReadingOrderProgressProvider provider,
-  ) {
-    return call(provider.readingOrderId);
-  }
-
-  static const Iterable<ProviderOrFamily>? _dependencies = null;
+  $FutureProviderElement<ReadingOrderProgress> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
 
   @override
-  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
-
-  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
-
-  @override
-  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
-      _allTransitiveDependencies;
-
-  @override
-  String? get name => r'readingOrderProgressProvider';
-}
-
-/// See also [readingOrderProgress].
-class ReadingOrderProgressProvider
-    extends AutoDisposeFutureProvider<ReadingOrderProgress> {
-  /// See also [readingOrderProgress].
-  ReadingOrderProgressProvider(String readingOrderId)
-    : this._internal(
-        (ref) => readingOrderProgress(
-          ref as ReadingOrderProgressRef,
-          readingOrderId,
-        ),
-        from: readingOrderProgressProvider,
-        name: r'readingOrderProgressProvider',
-        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-            ? null
-            : _$readingOrderProgressHash,
-        dependencies: ReadingOrderProgressFamily._dependencies,
-        allTransitiveDependencies:
-            ReadingOrderProgressFamily._allTransitiveDependencies,
-        readingOrderId: readingOrderId,
-      );
-
-  ReadingOrderProgressProvider._internal(
-    super._createNotifier, {
-    required super.name,
-    required super.dependencies,
-    required super.allTransitiveDependencies,
-    required super.debugGetCreateSourceHash,
-    required super.from,
-    required this.readingOrderId,
-  }) : super.internal();
-
-  final String readingOrderId;
-
-  @override
-  Override overrideWith(
-    FutureOr<ReadingOrderProgress> Function(ReadingOrderProgressRef provider)
-    create,
-  ) {
-    return ProviderOverride(
-      origin: this,
-      override: ReadingOrderProgressProvider._internal(
-        (ref) => create(ref as ReadingOrderProgressRef),
-        from: from,
-        name: null,
-        dependencies: null,
-        allTransitiveDependencies: null,
-        debugGetCreateSourceHash: null,
-        readingOrderId: readingOrderId,
-      ),
-    );
-  }
-
-  @override
-  AutoDisposeFutureProviderElement<ReadingOrderProgress> createElement() {
-    return _ReadingOrderProgressProviderElement(this);
+  FutureOr<ReadingOrderProgress> create(Ref ref) {
+    final argument = this.argument as String;
+    return readingOrderProgress(ref, argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is ReadingOrderProgressProvider &&
-        other.readingOrderId == readingOrderId;
+    return other is ReadingOrderProgressProvider && other.argument == argument;
   }
 
   @override
   int get hashCode {
-    var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, readingOrderId.hashCode);
-
-    return _SystemHash.finish(hash);
+    return argument.hashCode;
   }
 }
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-mixin ReadingOrderProgressRef
-    on AutoDisposeFutureProviderRef<ReadingOrderProgress> {
-  /// The parameter `readingOrderId` of this provider.
-  String get readingOrderId;
-}
+String _$readingOrderProgressHash() =>
+    r'5b4eeea4564d3853637eedcaf2802de05215f618';
 
-class _ReadingOrderProgressProviderElement
-    extends AutoDisposeFutureProviderElement<ReadingOrderProgress>
-    with ReadingOrderProgressRef {
-  _ReadingOrderProgressProviderElement(super.provider);
+final class ReadingOrderProgressFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<ReadingOrderProgress>, String> {
+  const ReadingOrderProgressFamily._()
+    : super(
+        retry: null,
+        name: r'readingOrderProgressProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ReadingOrderProgressProvider call(String readingOrderId) =>
+      ReadingOrderProgressProvider._(argument: readingOrderId, from: this);
 
   @override
-  String get readingOrderId =>
-      (origin as ReadingOrderProgressProvider).readingOrderId;
+  String toString() => r'readingOrderProgressProvider';
 }
 
 // ignore_for_file: type=lint

@@ -43,8 +43,8 @@ dependencies:
   intl: ^0.20.2
   file_picker: ^10.2.0
   csv: ^6.0.0
-  flutter_riverpod: ^2.6.1
-  riverpod_annotation: ^2.6.1
+  flutter_riverpod: ^3.0.0-dev.17
+  riverpod_annotation: ^3.0.0-dev.17
   infinite_scroll_pagination: ^5.1.0
 
 dev_dependencies:
@@ -57,10 +57,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  riverpod_generator: ^2.6.5
+  riverpod_generator: ^3.0.0-dev.17
   build_runner: ^2.5.4
-  custom_lint: ^0.7.6
-  riverpod_lint: ^2.6.5
+  custom_lint: ^0.8.0
+  riverpod_lint: ^3.0.0-dev.17
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
