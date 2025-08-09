@@ -1,0 +1,38 @@
+services:
+  metron-proxy:
+    build:
+      context: ./metron_proxy
+      dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: rebuild
+          path: ./metron_proxy
+    container_name: metron-proxy
+    ports:
+      - "8080:8080"
+    environment:
+      - METRON_USERNAME=${METRON_USERNAME}
+      - METRON_PASSWORD=${METRON_PASSWORD}      
+      - BASEURL=${PROXY_BASEURL}
+      - PORT=${PROXY_PORT}
+  
+  pocketbase:
+    build:
+      context: ./pocketbase
+      dockerfile: Dockerfile
+    container_name: pocketbase
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./pocketbase/pb_data:/pb/pb_data
+      - ./pocketbase/pb_migrations:/pb/pb_migrations
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8070:80"
+    volumes:
+      - ./config:/config
