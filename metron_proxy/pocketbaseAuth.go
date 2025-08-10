@@ -86,6 +86,7 @@ func checkAuthMiddleware(next http.Handler) http.Handler {
 
 			statusMessage := pbResponseData["message"].(string)
 			http.Error(w, statusMessage, authResponse.StatusCode)
+			log.Printf("Unauthorized request to %s. Pocketbase response status: %s", r.URL, authResponse.Status)
 			return
 		} else {
 			cacheToken(pbAuthToken, tokenCacheTTL)
