@@ -3,10 +3,6 @@ services:
     build:
       context: ./metron_proxy
       dockerfile: Dockerfile
-    develop:
-      watch:
-        - action: rebuild
-          path: ./metron_proxy
     container_name: metron-proxy
     ports:
       - "8080:8080"
@@ -35,4 +31,10 @@ services:
     ports:
       - "8070:80"
     volumes:
-      - ./config:/config
+      - ./config:/webconfig
+
+# TODO: https://hub.docker.com/_/caddy
+# This image provides for two mount-points for volumes: /data and /config.
+#
+# In the examples below, a named volume⁠ caddy_data is mounted to /data, so that data will be persisted.
+
