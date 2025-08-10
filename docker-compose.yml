@@ -9,8 +9,9 @@ services:
     environment:
       - METRON_USERNAME=${METRON_USERNAME}
       - METRON_PASSWORD=${METRON_PASSWORD}      
-      - BASEURL=${PROXY_BASEURL}
-      - PORT=${PROXY_PORT}
+      - METRON_PROXY_BASEURL=${PROXY_BASEURL}
+      - METRON_PROXY_PORT=${PROXY_PORT}
+      - POCKETBASE_BASEURL=${POCKETBASE_BASEURL}
   
   pocketbase:
     build:
