@@ -1,3 +1,4 @@
+import 'package:comichero_frontend/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loader_overlay/loader_overlay.dart';
@@ -8,6 +9,9 @@ import 'package:comichero_frontend/ui/ui.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AppConfig.load();
+  await initPocketBase();
+
+
   runApp(ProviderScope(child: const MyApp()));
 }
 
