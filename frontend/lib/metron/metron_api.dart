@@ -14,12 +14,15 @@ import 'package:comichero_frontend/metron/metron.dart';
 class MetronApi {
   final String baseUrl;
 
+  final Map<String, String>? customHeaders;
+
   late final String basicAuthHash;
 
   MetronApi({
     String? username,
     String? password,
     this.baseUrl = "https://metron.cloud/api",
+    this.customHeaders,
   }) {
     basicAuthHash = base64Encode(utf8.encode('$username:$password'));
   }
@@ -84,6 +87,10 @@ class MetronApi {
   }
 
   Future<http.Response> _get(Uri uri) {
-    return http.get(uri, headers: {'Authorization': 'Basic $basicAuthHash'});
+    return http.get(
+      uri,
+      headers: {'Authorization': 'Basic $basicAuthHash'}
+        ..addAll(customHeaders ?? {}),
+    );
   }
 }

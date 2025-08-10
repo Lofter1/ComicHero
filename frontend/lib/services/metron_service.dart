@@ -1,12 +1,16 @@
 import 'package:comichero_frontend/app_config.dart';
 import 'package:comichero_frontend/metron/metron.dart';
 import 'package:comichero_frontend/models/models.dart';
+import 'package:comichero_frontend/services/services.dart';
 
 class MetronService {
   late MetronApi _metronClient;
 
   MetronService() {
-    _metronClient = MetronApi(baseUrl: AppConfig.metronProxyUrl);
+    _metronClient = MetronApi(
+      baseUrl: AppConfig.metronProxyUrl,
+      customHeaders: <String, String>{"pb_auth": pb.authStore.token},
+    );
   }
   Future<PaginatedSeriesListList> searchSeries(String query) {
     final (seriesName, startingYear) = _splitSeriesName(query);

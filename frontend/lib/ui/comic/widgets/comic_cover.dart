@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/models/comic.dart';
 
 class ComicCover extends StatelessWidget {
@@ -12,7 +13,11 @@ class ComicCover extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(rounding),
-      child: Image.network(comic.coverUrl!, fit: BoxFit.scaleDown),
+      child: Image.network(
+        comic.coverUrl!,
+        fit: BoxFit.scaleDown,
+        headers: {"pb_auth": pb.authStore.token},
+      ),
     );
   }
 }

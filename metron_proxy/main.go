@@ -28,14 +28,14 @@ var (
 )
 
 var (
-	username string = os.Getenv("METRON_USERNAME")
-	password string = os.Getenv("METRON_PASSWORD")
-	proxyBaseURL string = os.Getenv("BASEURL")
-	port string = os.Getenv("PORT")
+	username          string = os.Getenv("METRON_USERNAME")
+	password          string = os.Getenv("METRON_PASSWORD")
+	proxyBaseURL      string = os.Getenv("METRON_PROXY_BASEURL")
+	port              string = os.Getenv("METRON_PROXY_PORT")
+	pocketbaseBaseURL string = os.Getenv("POCKETBASE_BASEURL")
 )
 
 var mu sync.RWMutex
-
 
 func init() {
 	if username == "" || password == "" {
@@ -44,14 +44,17 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/media/", handleMediaProxy)
-	http.HandleFunc("/", handleProxy)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/media/", handleMediaProxy)
+	mux.HandleFunc("/", handleProxy)
 
 	fmt.Printf("Listening on %s:%s\n", proxyBaseURL, port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+
+	log.Fatal(http.ListenAndServe(":"+port, checkAuthMiddleware(mux)))
 }
 
 func enableCors(w http.ResponseWriter) {
+	// TODO: set allowed origins
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")

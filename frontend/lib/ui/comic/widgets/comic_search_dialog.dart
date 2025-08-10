@@ -101,12 +101,15 @@ class _SearchViewState extends State<SearchView> {
       return;
     }
 
-    context.loaderOverlay.show();
-    final result = await _searchComics(query);
+    try {
+      context.loaderOverlay.show();
+      final result = await _searchComics(query);
 
-    if (mounted) {
-      context.loaderOverlay.hide();
       setState(() => _searchResults = result);
+    } finally {
+      if (mounted) {
+        context.loaderOverlay.hide();
+      }
     }
   }
 

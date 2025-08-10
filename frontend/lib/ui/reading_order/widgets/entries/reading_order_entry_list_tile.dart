@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/ui/ui.dart';
 
@@ -31,7 +32,10 @@ class ReadingOrderEntryListTile extends StatelessWidget {
 
     return ListTile(
       leading: entry.comic!.coverUrl != null
-          ? Image.network(entry.comic!.coverUrl!)
+          ? Image.network(
+              entry.comic!.coverUrl!,
+              headers: {"pb_auth": pb.authStore.token},
+            )
           : null,
       title: Text(entry.comic!.title),
       subtitle: entry.comic!.releaseDate != null
