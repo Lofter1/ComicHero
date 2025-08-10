@@ -17,11 +17,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'ComicHero',
       debugShowCheckedModeBanner: false,
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.dark,
-      home: ComicHeroHomePage(title: 'Flutter Demo Home Page'),
+      home: ComicHeroHomePage(),
       builder: (context, child) => LoaderOverlay(
         overlayWidgetBuilder: (_) => Center(child: CircularProgressIndicator()),
         child: child ?? const SizedBox(),
