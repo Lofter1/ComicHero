@@ -50,14 +50,7 @@ func main() {
 
 	fmt.Printf("Listening on %s:%s\n", proxyBaseURL, port)
 
-	log.Fatal(http.ListenAndServe(":"+port, checkAuthMiddleware(mux)))
-}
-
-func enableCors(w http.ResponseWriter) {
-	// TODO: set allowed origins
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(checkAuthMiddleware(mux))))
 }
 
 func rewriteImageURLs(data []byte) []byte {
@@ -68,7 +61,6 @@ func rewriteImageURLs(data []byte) []byte {
 }
 
 func handleProxy(w http.ResponseWriter, r *http.Request) {
-	enableCors(w)
 
 	cacheKey := r.URL.Path + "?" + r.URL.RawQuery
 
@@ -131,7 +123,6 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleMediaProxy(w http.ResponseWriter, r *http.Request) {
-	enableCors(w)
 
 	path := r.URL.Path
 	if path == "" {
