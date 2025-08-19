@@ -10,7 +10,7 @@ updates:
       include: "scope"
 
   # Pocketbase
-  - package-ecosystem: "go"
+  - package-ecosystem: "gomod"
     directory: "/pocketbase"
     schedule:
       interval: "weekly"
@@ -19,7 +19,7 @@ updates:
       include: "scope"
 
   # Go  metron_proxy
-  - package-ecosystem: "go"
+  - package-ecosystem: "gomod"
     directory: "/metron_proxy"
     schedule:
       interval: "weekly"
