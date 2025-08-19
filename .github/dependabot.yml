@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # Flutter frontend
+  - package-ecosystem: "pub"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Pocketbase
+  - package-ecosystem: "go"
+    directory: "/pocketbase"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Go  metron_proxy
+  - package-ecosystem: "go"
+    directory: "/metron_proxy"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
