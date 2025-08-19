@@ -52,7 +52,10 @@ class ComicService {
   }
 
   Future<Comic> create(Comic comic) async {
-    final response = await http.get(Uri.parse(comic.coverUrl!));
+    final response = await http.get(
+      Uri.parse(comic.coverUrl!),
+      headers: {"pb_auth": pb.authStore.token},
+    );
     final bytes = response.bodyBytes;
     final filename = path.basename(comic.coverUrl!);
 
