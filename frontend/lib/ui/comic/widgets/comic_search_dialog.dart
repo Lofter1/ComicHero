@@ -54,9 +54,11 @@ class _SearchViewState extends State<SearchView> {
             autofocus: true,
             decoration: InputDecoration(
               labelText: 'Search Comics',
-              suffixIcon: IconButton(
-                icon: Icon(Icons.search),
-                onPressed: () => _onSearchComics(_searchController.text),
+              suffixIcon: ExcludeFocus(
+                child: IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: () => _onSearchComics(_searchController.text),
+                ),
               ),
             ),
             onSubmitted: _onSearchComics,
