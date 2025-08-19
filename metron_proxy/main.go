@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"sync"
 	"time"
 )
@@ -56,8 +55,8 @@ func main() {
 
 func rewriteImageURLs(data []byte) []byte {
 	return bytes.ReplaceAll(data,
-		[]byte(path.Join(metronMediaURL, "media/")),
-		[]byte(path.Join(proxyBaseURL, "media/")),
+		[]byte(metronMediaURL),
+		[]byte(proxyBaseURL),
 	)
 }
 
