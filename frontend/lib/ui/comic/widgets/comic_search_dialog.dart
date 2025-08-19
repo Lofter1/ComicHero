@@ -51,6 +51,7 @@ class _SearchViewState extends State<SearchView> {
         children: [
           TextField(
             controller: _searchController,
+            autofocus: true,
             decoration: InputDecoration(
               labelText: 'Search Comics',
               suffixIcon: IconButton(
