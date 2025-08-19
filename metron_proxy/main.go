@@ -8,12 +8,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"sync"
 	"time"
 )
 
 const metronBaseURL = "https://metron.cloud/api"
 const metronMediaURL = "https://static.metron.cloud"
+const port = "8080"
 
 type cacheEntry struct {
 	data      []byte
@@ -28,11 +30,10 @@ var (
 )
 
 var (
-	username          string = os.Getenv("METRON_USERNAME")
-	password          string = os.Getenv("METRON_PASSWORD")
-	proxyBaseURL      string = os.Getenv("METRON_PROXY_BASEURL")
-	port              string = os.Getenv("METRON_PROXY_PORT")
-	pocketbaseBaseURL string = os.Getenv("POCKETBASE_BASEURL")
+	username      string = os.Getenv("METRON_USERNAME")
+	password      string = os.Getenv("METRON_PASSWORD")
+	proxyBaseURL  string = os.Getenv("METRON_PROXY_URL")
+	pocketbaseURL string = os.Getenv("POCKETBASE_URL")
 )
 
 var mu sync.RWMutex
@@ -48,15 +49,15 @@ func main() {
 	mux.HandleFunc("/media/", handleMediaProxy)
 	mux.HandleFunc("/", handleProxy)
 
-	fmt.Printf("Listening on %s:%s\n", proxyBaseURL, port)
+	fmt.Printf("Listening on port %s\n", port)
 
 	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(checkAuthMiddleware(mux))))
 }
 
 func rewriteImageURLs(data []byte) []byte {
 	return bytes.ReplaceAll(data,
-		[]byte("https://static.metron.cloud/media/"),
-		[]byte("http://"+proxyBaseURL+":"+port+"/media/"),
+		[]byte(path.Join(metronMediaURL, "media/")),
+		[]byte(path.Join(proxyBaseURL, "media/")),
 	)
 }
 

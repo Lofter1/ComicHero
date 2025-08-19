@@ -9,9 +9,8 @@ services:
     environment:
       - METRON_USERNAME=${METRON_USERNAME}
       - METRON_PASSWORD=${METRON_PASSWORD}      
-      - METRON_PROXY_BASEURL=${PROXY_BASEURL}
-      - METRON_PROXY_PORT=${PROXY_PORT}
-      - POCKETBASE_BASEURL=${POCKETBASE_BASEURL}
+      - METRON_PROXY_URL=${PROXY_URL}
+      - POCKETBASE_URL=http://pocketbase:8080/
   
   pocketbase:
     build:

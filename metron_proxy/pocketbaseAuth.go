@@ -45,7 +45,7 @@ func checkAuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		pbServerURL, err := url.Parse(pocketbaseBaseURL)
+		pbServerURL, err := url.Parse(pocketbaseURL)
 		if err != nil {
 			log.Printf("Pocketbase Auth Check - Error parsing pocketbase url: %s", err)
 			http.Error(w, "Something went wrong", http.StatusInternalServerError)
