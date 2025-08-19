@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:comichero_frontend/models/models.dart';
+import 'package:flutter/services.dart';
 
 class EntryEditDialog extends StatefulWidget {
   final ReadingOrderEntry entry;
@@ -42,6 +43,12 @@ class _EntryEditDialogState extends State<EntryEditDialog> {
           TextField(
             controller: positionController,
             decoration: InputDecoration(labelText: 'Position'),
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onSubmitted: (value) {
+              _onSave();
+            },
           ),
           TextField(
             controller: notesController,
