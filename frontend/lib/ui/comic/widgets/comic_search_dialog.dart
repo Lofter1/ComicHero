@@ -70,6 +70,7 @@ class _SearchViewState extends State<SearchView> {
                     setState(() {
                       searchMetron = val;
                     });
+                    _onSearchComics(_searchController.text);
                   },
                 ),
                 Text("Search Metron"),
