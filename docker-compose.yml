@@ -11,7 +11,7 @@ services:
       - METRON_PASSWORD=${METRON_PASSWORD}      
       - METRON_PROXY_URL=${PROXY_URL}
       - POCKETBASE_URL=http://pocketbase:8080/
-        - REDIS_ADDR=redis-metron-cache:6379
+      - REDIS_ADDR=redis-metron-cache:6379
     depends_on:
       - redis-metron-cache
     restart: unless-stopped
@@ -35,9 +35,14 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     ports:
-      - "8070:80"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./config:/webconfig
+      - ./config/web:/webconfig
+      - ./config/caddy:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
     restart: unless-stopped
 
   redis-metron-cache:
@@ -48,8 +53,5 @@ services:
       
 volumes:
   redis-metron-cache-data:
-# TODO: https://hub.docker.com/_/caddy
-# This image provides for two mount-points for volumes: /data and /config.
-#
-# In the examples below, a named volume⁠ caddy_data is mounted to /data, so that data will be persisted.
-
+  caddy_data:
+  caddy_config:
