@@ -207,6 +207,7 @@ class _ReadingOrderDetailViewBodyState
   }
 
   List<_CsvReadingOrderEntry>? _parseCsv(String csvContent) {
+    csvContent = csvContent.replaceAll('\n', '\r\n');
     final csv = const CsvToListConverter().convert(csvContent);
     if (csv.isEmpty || csv.length < 2) {
       return null;
