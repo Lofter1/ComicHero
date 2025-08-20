@@ -23,11 +23,15 @@ var (
 	redisAddr     string = os.Getenv("REDIS_ADDR")
 )
 
+var rateLimiter = make(chan struct{}, 1)
+
 func init() {
 	if username == "" || password == "" {
 		log.Fatal("METRON_EMAIL and METRON_PASSWORD must be set in env")
 	}
 	InitCaching()
+
+	initRatelimiting()
 }
 
 func main() {
@@ -45,6 +49,24 @@ func rewriteImageURLs(data []byte) []byte {
 		[]byte(metronMediaURL),
 		[]byte(proxyBaseURL),
 	)
+}
+
+func initRatelimiting() {
+	rateLimiter <- struct{}{}
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		for range ticker.C {
+			select {
+			case rateLimiter <- struct{}{}:
+			default:
+				// channel full, skip
+			}
+		}
+	}()
+}
+
+func throttle() {
+	<-rateLimiter
 }
 
 func handleProxy(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +93,8 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	req.SetBasicAuth(username, password)
+
+	throttle()
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -122,6 +146,8 @@ func handleMediaProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mediaUrl := metronMediaURL + path
+
+	throttle()
 
 	resp, err := http.Get(mediaUrl)
 	if err != nil {

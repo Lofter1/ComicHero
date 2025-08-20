@@ -12,6 +12,9 @@ import 'package:http/http.dart' as http;
 import 'package:comichero_frontend/metron/metron.dart';
 
 class MetronApi {
+  final int requestDelaySeconds = 1;
+  static DateTime _lastRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
+
   final String baseUrl;
 
   final Map<String, String>? customHeaders;
@@ -86,7 +89,16 @@ class MetronApi {
     return fromJson(jsonDecode(response.body));
   }
 
-  Future<http.Response> _get(Uri uri) {
+  Future<http.Response> _get(Uri uri) async {
+    final diff = DateTime.now().difference(_lastRequestTime);
+    final delay = Duration(seconds: requestDelaySeconds) - diff;
+
+    if (delay > Duration.zero) {
+      await Future.delayed(delay);
+    }
+
+    _lastRequestTime = DateTime.now();
+
     return http.get(
       uri,
       headers: {'Authorization': 'Basic $basicAuthHash'}
