@@ -416,10 +416,12 @@ class _ReadingOrderDetailViewBodyState
             .toList();
 
         if (results.length > 1) {
+          if (mounted) context.loaderOverlay.hide();
           foundComic = await _promptMultipleEntriesFoundInMetron(
             entryName: entry.issueName,
             metronResults: results,
           );
+          if (mounted) context.loaderOverlay.show();
         } else {
           foundComic = results.firstOrNull;
         }
@@ -454,12 +456,14 @@ class _ReadingOrderDetailViewBodyState
       );
 
       if (results.length > 1) {
-        if (context.mounted) {
-          foundComic = await _promptMultipleEntriesFoundInDb(
-            entryName: csvEntry.issueName,
-            dbResults: results,
-          );
-        }
+        if (mounted) context.loaderOverlay.hide();
+
+        foundComic = await _promptMultipleEntriesFoundInDb(
+          entryName: csvEntry.issueName,
+          dbResults: results,
+        );
+
+        if (mounted) context.loaderOverlay.show();
       } else {
         foundComic = results.firstOrNull;
       }
@@ -488,17 +492,30 @@ class _ReadingOrderDetailViewBodyState
       builder: (context) {
         return AlertDialog(
           title: Text(entryName),
-          content: Column(
-            children: [
-              Text("Found multiple possible entries in metron"),
-              IssueSearchResultView(
-                searchResults: metronResults,
-                onComicSelected: (comic) {
-                  Navigator.pop(context, comic);
-                },
-              ),
-            ],
+          content: SizedBox(
+            width: 700,
+            child: Column(
+              spacing: 10,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Found multiple possible entries in metron"),
+                Flexible(
+                  child: IssueSearchResultView(
+                    searchResults: metronResults,
+                    onComicSelected: (comic) {
+                      Navigator.pop(context, comic);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Skip'),
+            ),
+          ],
         );
       },
     );
@@ -513,17 +530,30 @@ class _ReadingOrderDetailViewBodyState
       builder: (context) {
         return AlertDialog(
           title: Text(entryName),
-          content: Column(
-            children: [
-              Text("Found multiple possible entries in database"),
-              IssueSearchResultView(
-                searchResults: dbResults,
-                onComicSelected: (comic) {
-                  Navigator.pop(context, comic);
-                },
-              ),
-            ],
+          content: SizedBox(
+            width: 700,
+            child: Column(
+              spacing: 10,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("Found multiple possible entries in database"),
+                Flexible(
+                  child: IssueSearchResultView(
+                    searchResults: dbResults,
+                    onComicSelected: (comic) {
+                      Navigator.pop(context, comic);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Skip'),
+            ),
+          ],
         );
       },
     );
