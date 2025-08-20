@@ -222,7 +222,9 @@ class _ReadingOrderDetailViewBodyState
           (row) => _CsvReadingOrderEntry(
             position: row[headerIndex['Position']!] as int,
             seriesName: row[headerIndex['SeriesName']!].toString(),
-            yearBegan: row[headerIndex['YearBegin']!] as int,
+            yearBegan: row[headerIndex['YearBegin']!] is int?
+                ? row[headerIndex['YearBegin']!] as int?
+                : null,
             issueNumber: row[headerIndex['Issue']!].toString(),
           ),
         )
@@ -567,16 +569,17 @@ class _ReadingOrderDetailViewBodyState
 class _CsvReadingOrderEntry {
   final int position;
   final String seriesName;
-  final int yearBegan;
+  final int? yearBegan;
   final String issueNumber;
 
   _CsvReadingOrderEntry({
     required this.position,
     required this.seriesName,
-    required this.yearBegan,
+    this.yearBegan,
     required this.issueNumber,
   });
 
-  String get fullSeriesName => "$seriesName ($yearBegan)";
+  String get fullSeriesName =>
+      "$seriesName${yearBegan != null ? " ($yearBegan)" : ""}";
   String get issueName => "$fullSeriesName #$issueNumber";
 }
