@@ -11,7 +11,12 @@ services:
       - METRON_PASSWORD=${METRON_PASSWORD}      
       - METRON_PROXY_URL=${PROXY_URL}
       - POCKETBASE_URL=http://pocketbase:8080/
-  
+        - REDIS_ADDR=redis-metron-cache:6379
+    depends_on:
+      - redis-metron-cache
+    restart: unless-stopped
+
+
   pocketbase:
     build:
       context: ./pocketbase
@@ -22,6 +27,7 @@ services:
     volumes:
       - ./pocketbase/pb_data:/pb/pb_data
       - ./pocketbase/pb_migrations:/pb/pb_migrations
+    restart: unless-stopped
 
   frontend:
     build:
@@ -32,7 +38,16 @@ services:
       - "8070:80"
     volumes:
       - ./config:/webconfig
+    restart: unless-stopped
 
+  redis-metron-cache:
+    image: redis:7-alpine
+    volumes:
+      - redis-metron-cache-data:/data
+    restart: always
+      
+volumes:
+  redis-metron-cache-data:
 # TODO: https://hub.docker.com/_/caddy
 # This image provides for two mount-points for volumes: /data and /config.
 #
