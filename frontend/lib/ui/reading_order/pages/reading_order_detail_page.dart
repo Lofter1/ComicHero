@@ -268,67 +268,71 @@ class _ReadingOrderDetailViewBodyState
   }
 
   Future<void> _handleCsvImport() async {
-    context.loaderOverlay.show();
-    final contents = await _getCsvString();
-    if (contents == null) return;
+    try {
+      context.loaderOverlay.show();
+      final contents = await _getCsvString();
+      if (contents == null) return;
 
-    var csvEntryList = _parseCsv(contents);
-    if (csvEntryList == null || csvEntryList.isEmpty) return;
+      print("parse csv");
+      var csvEntryList = _parseCsv(contents);
+      if (csvEntryList == null || csvEntryList.isEmpty) return;
 
-    List<ReadingOrderEntry> preparedReadingOrderEntriesFromDb = [];
-    List<ReadingOrderEntry> preparedReadingOrderEntriesFromMetron = [];
-    List<_CsvReadingOrderEntry> entriesNotFoundInDb = [];
-    List<_CsvReadingOrderEntry> entriesNotFoundInMetron = [];
+      List<ReadingOrderEntry> preparedReadingOrderEntriesFromDb = [];
+      List<ReadingOrderEntry> preparedReadingOrderEntriesFromMetron = [];
+      List<_CsvReadingOrderEntry> entriesNotFoundInDb = [];
+      List<_CsvReadingOrderEntry> entriesNotFoundInMetron = [];
 
-    await _searchComicInDb(
-      searchCsvEntries: csvEntryList,
-      notFoundEntries: entriesNotFoundInDb,
-      foundEntries: preparedReadingOrderEntriesFromDb,
-    );
-
-    await _searchInMetron(
-      searchCsvEntries: entriesNotFoundInDb,
-      notFoundEntries: entriesNotFoundInMetron,
-      foundEntries: preparedReadingOrderEntriesFromMetron,
-    );
-
-    if (mounted) context.loaderOverlay.hide();
-
-    if (entriesNotFoundInMetron.isNotEmpty) {
-      bool? continueImport = await _promptContinueWithMissingData(
-        entriesNotFoundInMetron,
+      await _searchComicInDb(
+        searchCsvEntries: csvEntryList,
+        notFoundEntries: entriesNotFoundInDb,
+        foundEntries: preparedReadingOrderEntriesFromDb,
+      );
+      await _searchInMetron(
+        searchCsvEntries: entriesNotFoundInDb,
+        notFoundEntries: entriesNotFoundInMetron,
+        foundEntries: preparedReadingOrderEntriesFromMetron,
       );
 
-      if (continueImport == null || continueImport == false) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text("Canceled CSV import")));
+      if (mounted) context.loaderOverlay.hide();
+
+      if (entriesNotFoundInMetron.isNotEmpty) {
+        bool? continueImport = await _promptContinueWithMissingData(
+          entriesNotFoundInMetron,
+        );
+
+        if (continueImport == null || continueImport == false) {
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("Canceled CSV import")));
+          }
+          return;
         }
-        return;
       }
-    }
 
-    if (mounted) {
-      context.loaderOverlay.show();
-    }
-    for (final metronComicEntry in preparedReadingOrderEntriesFromMetron) {
-      var newDbComic = await ComicService().create(metronComicEntry.comic!);
-      metronComicEntry.comic = newDbComic;
-      preparedReadingOrderEntriesFromDb.add(metronComicEntry);
-    }
+      if (mounted) {
+        context.loaderOverlay.show();
+      }
+      for (final metronComicEntry in preparedReadingOrderEntriesFromMetron) {
+        var newDbComic = await ComicService().create(metronComicEntry.comic!);
+        metronComicEntry.comic = newDbComic;
+        preparedReadingOrderEntriesFromDb.add(metronComicEntry);
+      }
 
-    for (final existignComicEntry in preparedReadingOrderEntriesFromDb) {
-      await ReadingOrderEntriesService().create(existignComicEntry);
-    }
+      for (final existignComicEntry in preparedReadingOrderEntriesFromDb) {
+        await ReadingOrderEntriesService().create(existignComicEntry);
+      }
 
-    if (mounted) {
-      context.loaderOverlay.hide();
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Importing CSV complete")));
+      if (mounted) {
+        context.loaderOverlay.hide();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Importing CSV complete")));
+      }
+    } finally {
+      if (mounted) context.loaderOverlay.hide();
     }
   }
 
