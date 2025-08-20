@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -16,31 +15,19 @@ const metronBaseURL = "https://metron.cloud/api"
 const metronMediaURL = "https://static.metron.cloud"
 const port = "8080"
 
-type cacheEntry struct {
-	data      []byte
-	header    http.Header
-	timestamp int64
-}
-
-var (
-	apiCache   = make(map[string]cacheEntry)
-	mediaCache = make(map[string]cacheEntry)
-	cacheTTL   = int64(60 * 60 * 24) // cache for 1 day
-)
-
 var (
 	username      string = os.Getenv("METRON_USERNAME")
 	password      string = os.Getenv("METRON_PASSWORD")
 	proxyBaseURL  string = os.Getenv("METRON_PROXY_URL")
 	pocketbaseURL string = os.Getenv("POCKETBASE_URL")
+	redisAddr     string = os.Getenv("REDIS_ADDR")
 )
-
-var mu sync.RWMutex
 
 func init() {
 	if username == "" || password == "" {
 		log.Fatal("METRON_EMAIL and METRON_PASSWORD must be set in env")
 	}
+	InitCaching()
 }
 
 func main() {
@@ -61,17 +48,12 @@ func rewriteImageURLs(data []byte) []byte {
 }
 
 func handleProxy(w http.ResponseWriter, r *http.Request) {
-
 	cacheKey := r.URL.Path + "?" + r.URL.RawQuery
 
-	mu.RLock()
-	entry, found := apiCache[cacheKey]
-	mu.RUnlock()
-
-	if found && !isExpired(entry) {
+	if entry, found := GetCache(cacheKey, false); found {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(entry.data)
+		w.Write(entry.Data)
 		return
 	}
 
@@ -106,13 +88,11 @@ func handleProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	modified := rewriteImageURLs(buf.Bytes())
 
-	// Cache the result
-	mu.Lock()
-	apiCache[cacheKey] = cacheEntry{
-		data:      modified,
-		timestamp: time.Now().Unix(),
-	}
-	mu.Unlock()
+	SaveCache(cacheKey, CacheEntry{
+		Data:      modified,
+		Header:    nil,
+		Timestamp: time.Now().Unix(),
+	}, time.Duration(cacheTTL)*time.Second, false)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
@@ -130,20 +110,14 @@ func handleMediaProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cacheKey := path
-	mu.RLock()
-	entry, found := mediaCache[cacheKey]
-	mu.RUnlock()
-
-	if found && !isExpired(entry) {
-		// Serve from cache
-		for k, v := range entry.header {
+	if entry, found := GetCache(path, true); found {
+		for k, v := range entry.Header {
 			for _, vv := range v {
 				w.Header().Add(k, vv)
 			}
 		}
 		w.WriteHeader(http.StatusOK)
-		w.Write(entry.data)
+		w.Write(entry.Data)
 		return
 	}
 
@@ -164,14 +138,11 @@ func handleMediaProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cache the response
-	mu.Lock()
-	mediaCache[cacheKey] = cacheEntry{
-		data:      body,
-		header:    resp.Header,
-		timestamp: time.Now().Unix(),
-	}
-	mu.Unlock()
+	SaveCache(path, CacheEntry{
+		Data:      body,
+		Header:    resp.Header.Clone(),
+		Timestamp: time.Now().Unix(),
+	}, time.Duration(cacheTTL)*time.Second, true)
 
 	// Send response
 	for k, v := range resp.Header {
@@ -181,8 +152,4 @@ func handleMediaProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(resp.StatusCode)
 	w.Write(body)
-}
-
-func isExpired(entry cacheEntry) bool {
-	return time.Now().Unix()-entry.timestamp > cacheTTL
 }
