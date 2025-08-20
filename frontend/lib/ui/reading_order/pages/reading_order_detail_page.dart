@@ -412,7 +412,7 @@ class _ReadingOrderDetailViewBodyState
 
       for (final entry in seriesGroup) {
         final results = metronSeriesContent
-            .where((e) => e.issue == entry.issueNumber)
+            .where((e) => e.title == entry.issueName)
             .toList();
 
         if (results.length > 1) {
