@@ -14,6 +14,7 @@ class ComicService {
     String? seriesName,
     int? seriesYearBegan,
     String? issue,
+    DateTime? releaseDate,
   }) async {
     String expand = '';
 
@@ -31,6 +32,9 @@ class ComicService {
     }
     if (issue != null && issue.isNotEmpty) {
       filters.add("issue='${issue.replaceAll("'", r"\'")}'");
+    }
+    if (releaseDate != null) {
+      filters.add("releaseDate~'$releaseDate'");
     }
 
     final filter = filters.join(' && ');
@@ -86,7 +90,11 @@ class ComicService {
             "releaseDate": comic.releaseDate.toString(),
           },
           files: [
-            http.MultipartFile.fromBytes('cover', bytes, filename: filename),
+            http.MultipartFile.fromBytes(
+              'cover',
+              resizedBytes,
+              filename: filename,
+            ),
           ],
         )
         .then(mapRecordToComic);

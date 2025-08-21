@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
+import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
 import 'package:comichero_frontend/ui/general/error_helpers.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
@@ -226,6 +227,12 @@ class _ReadingOrderDetailViewBodyState
                 ? row[headerIndex['YearBegin']!] as int?
                 : null,
             issueNumber: row[headerIndex['Issue']!].toString(),
+            coverMonth: row[headerIndex['CoverMonth']!] is int?
+                ? row[headerIndex['CoverMonth']!] as int?
+                : null,
+            coverYear: row[headerIndex['CoverYear']!] is int?
+                ? row[headerIndex['CoverYear']!] as int?
+                : null,
           ),
         )
         .toList();
@@ -248,7 +255,14 @@ class _ReadingOrderDetailViewBodyState
       for (int i = 0; i < headers.length; i++) headers[i]: i,
     };
 
-    const requiredHeaders = ['Position', 'SeriesName', 'YearBegin', 'Issue'];
+    const requiredHeaders = [
+      'Position',
+      'SeriesName',
+      'YearBegin',
+      'Issue',
+      'CoverMonth',
+      'CoverYear',
+    ];
     for (final header in requiredHeaders) {
       if (!headerIndex.containsKey(header)) {
         return null;
@@ -275,7 +289,6 @@ class _ReadingOrderDetailViewBodyState
       final contents = await _getCsvString();
       if (contents == null) return;
 
-      print("parse csv");
       var csvEntryList = _parseCsv(contents);
       if (csvEntryList == null || csvEntryList.isEmpty) return;
 
@@ -315,6 +328,7 @@ class _ReadingOrderDetailViewBodyState
       if (mounted) {
         context.loaderOverlay.show();
       }
+      //TODO: improve performance
       for (final metronComicEntry in preparedReadingOrderEntriesFromMetron) {
         var newDbComic = await ComicService().create(metronComicEntry.comic!);
         metronComicEntry.comic = newDbComic;
@@ -328,6 +342,10 @@ class _ReadingOrderDetailViewBodyState
       if (mounted) {
         context.loaderOverlay.hide();
       }
+
+      ref.invalidate(entriesForReadingOrderProvider);
+      ref.invalidate(readingOrderProgressProvider);
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -414,12 +432,32 @@ class _ReadingOrderDetailViewBodyState
         continue;
       }
 
-      Comic? foundComic;
-
       for (final entry in seriesGroup) {
-        final results = metronSeriesContent
-            .where((e) => e.title == entry.issueName)
+        Comic? foundComic;
+
+        var results = metronSeriesContent
+            .where(
+              (e) =>
+                  e.title.toLowerCase().contains(
+                    entry.issueName.toLowerCase(),
+                  ) &&
+                  (entry.coverYear == null ||
+                      e.releaseDate?.year == entry.coverYear) &&
+                  (entry.coverMonth == null ||
+                      e.releaseDate?.month == entry.coverMonth),
+            )
             .toList();
+
+        if (results.isEmpty &&
+            entry.coverYear != null &&
+            entry.coverMonth != null) {
+          results = await MetronService().getIssueList(
+            seriesName: entry.seriesName,
+            coverYear: entry.coverYear,
+            coverMonth: entry.coverMonth,
+            loadAll: true,
+          );
+        }
 
         if (results.length > 1) {
           if (mounted) context.loaderOverlay.hide();
@@ -459,6 +497,9 @@ class _ReadingOrderDetailViewBodyState
         seriesName: csvEntry.seriesName,
         seriesYearBegan: csvEntry.yearBegan,
         issue: csvEntry.issueNumber,
+        releaseDate: csvEntry.coverYear != null && csvEntry.coverMonth != null
+            ? DateTime(csvEntry.coverYear!, csvEntry.coverMonth!, 1)
+            : null,
       );
 
       if (results.length > 1) {
@@ -571,12 +612,16 @@ class _CsvReadingOrderEntry {
   final String seriesName;
   final int? yearBegan;
   final String issueNumber;
+  final int? coverMonth;
+  final int? coverYear;
 
   _CsvReadingOrderEntry({
     required this.position,
     required this.seriesName,
-    this.yearBegan,
     required this.issueNumber,
+    this.yearBegan,
+    this.coverMonth,
+    this.coverYear,
   });
 
   String get fullSeriesName =>

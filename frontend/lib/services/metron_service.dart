@@ -39,6 +39,8 @@ class MetronService {
     String? seriesName,
     int? seriesYearBegan,
     String? issue,
+    int? coverMonth,
+    int? coverYear,
     bool loadAll = false,
     int page = 1,
   }) async {
@@ -52,6 +54,8 @@ class MetronService {
           seriesYearBegan: seriesYearBegan,
           number: issue,
           page: page,
+          coverMonth: coverMonth,
+          coverYear: coverYear,
         ),
       );
       comicList.addAll(result.results.map(_mapIssueListToComic));
@@ -88,6 +92,7 @@ class MetronService {
       seriesYearBegan: c.series.yearBegan,
       issue: c.number,
       coverUrl: c.image,
+      releaseDate: DateTime.tryParse(c.coverDate),
     );
   }
 
