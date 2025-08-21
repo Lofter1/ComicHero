@@ -47,6 +47,7 @@ dependencies:
   riverpod_annotation: ^3.0.0-dev.17
   infinite_scroll_pagination: ^5.1.0
   shared_preferences: ^2.5.3
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:

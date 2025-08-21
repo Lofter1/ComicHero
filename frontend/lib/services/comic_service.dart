@@ -3,6 +3,7 @@ import 'package:comichero_frontend/services/services.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:image/image.dart' as img;
 
 class ComicService {
   static const collectionName = 'comics';
@@ -58,6 +59,21 @@ class ComicService {
     );
     final bytes = response.bodyBytes;
     final filename = path.basename(comic.coverUrl!);
+
+    img.Image? original = img.decodeImage(bytes);
+    if (original == null) {
+      throw Exception("Failed to decode image");
+    }
+
+    // 3. Resize to 50%
+    final resized = img.copyResize(
+      original,
+      width: (original.width / 2).round(),
+      height: (original.height / 2).round(),
+    );
+
+    // 4. Encode back to bytes (JPEG or PNG depending on your original format)
+    final resizedBytes = img.encodeJpg(resized); // or encodePng(resized)
 
     return collection
         .create(
