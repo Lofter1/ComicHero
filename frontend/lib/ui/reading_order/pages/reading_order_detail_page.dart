@@ -1,13 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
-import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
-import 'package:comichero_frontend/ui/general/error_helpers.dart';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loader_overlay/loader_overlay.dart';
 
+import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
+import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
+import 'package:comichero_frontend/ui/general/error_helpers.dart';
 import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/ui/ui.dart';
@@ -244,6 +246,12 @@ class _ReadingOrderDetailViewBodyState
       allowedExtensions: ['csv'],
     );
     if (result == null || result.files.single.path == null) return null;
+
+    if (kIsWeb) {
+      final bytes = result.files.single.bytes;
+      if (bytes == null) return null;
+      return utf8.decode(bytes);
+    }
 
     final file = File(result.files.single.path!);
     return file.readAsString();
