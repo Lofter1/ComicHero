@@ -171,6 +171,11 @@ class _AuthDialogState extends State<_AuthDialog> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (value) {
+                  if (isLogin) {
+                    _onLogin();
+                  }
+                },
               ),
               if (!isLogin)
                 TextFormField(
@@ -203,59 +208,25 @@ class _AuthDialogState extends State<_AuthDialog> {
           child: Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState?.validate() == false) {
-              return;
-            }
-            Navigator.of(context).pop(
-              AuthDialogResult(
-                email: email,
-                password: password,
-                isLogin: isLogin,
-                name: isLogin ? null : name,
-                passwordConfirm: isLogin ? null : passwordConfirm,
-              ),
-            );
-          },
+          onPressed: _onLogin,
           child: Text(isLogin ? 'Login' : 'Register'),
         ),
       ],
     );
   }
-}
 
-// class _LoginDialog extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     String email = '';
-//     String password = '';
-//     return AlertDialog(
-//       title: Text('Login'),
-//       content: Column(
-//         mainAxisSize: MainAxisSize.min,
-//         children: [
-//           TextField(
-//             decoration: InputDecoration(labelText: 'Email'),
-//             onChanged: (value) => email = value,
-//           ),
-//           TextField(
-//             decoration: InputDecoration(labelText: 'Password'),
-//             obscureText: true,
-//             onChanged: (value) => password = value,
-//           ),
-//         ],
-//       ),
-//       actions: [
-//         TextButton(
-//           onPressed: () => Navigator.pop(context),
-//           child: Text('Cancel'),
-//         ),
-//         ElevatedButton(
-//           onPressed: () =>
-//               Navigator.of(context).pop({'email': email, 'password': password}),
-//           child: Text('Login'),
-//         ),
-//       ],
-//     );
-//   }
-// }
+  void _onLogin() {
+    if (_formKey.currentState?.validate() == false) {
+      return;
+    }
+    Navigator.of(context).pop(
+      AuthDialogResult(
+        email: email,
+        password: password,
+        isLogin: isLogin,
+        name: isLogin ? null : name,
+        passwordConfirm: isLogin ? null : passwordConfirm,
+      ),
+    );
+  }
+}
