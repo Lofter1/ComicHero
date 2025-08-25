@@ -37,6 +37,8 @@ class ReadingOrderPage extends StatelessWidget {
             ),
             Expanded(
               child: TabBarView(
+                physics: const NeverScrollableScrollPhysics(),
+
                 children: [
                   _ReadingOrderEntriesListBody(readingOrder: readingOrder),
                   ReadingOrderDetailBody(readingOrder: readingOrder),
