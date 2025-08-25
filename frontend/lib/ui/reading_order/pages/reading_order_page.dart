@@ -66,6 +66,7 @@ class _ReadingOrderDetailViewBodyState
   String importProgressText = "";
   double importProgressPercent = 0;
   CancelableOperation? importFuture;
+  bool canceledImport = false;
 
   @override
   Widget build(BuildContext context) {
@@ -85,11 +86,6 @@ class _ReadingOrderDetailViewBodyState
                       onPressed: () {
                         // TODO: ask if import should be canceled
                         importFuture?.cancel();
-                        setState(() {
-                          isImporting = false;
-                          importProgressText = "";
-                          importProgressPercent = 0;
-                        });
                       },
                       child: const Text('Cancel Import'),
                     ),
@@ -143,7 +139,14 @@ class _ReadingOrderDetailViewBodyState
   void _onCsvImport() {
     importFuture = CancelableOperation.fromFuture(
       _handleCsvImport(),
-      onCancel: () => {debugPrint('onCancel')},
+      onCancel: () {
+        setState(() {
+          isImporting = false;
+          importProgressText = "";
+          importProgressPercent = 0;
+          canceledImport = true;
+        });
+      },
     );
   }
 
@@ -349,6 +352,8 @@ class _ReadingOrderDetailViewBodyState
         notFoundEntries: entriesNotFoundInDb,
         foundEntries: preparedReadingOrderEntriesFromDb,
       );
+      if (canceledImport) return;
+
       setState(() {
         importProgressText = "Searching metron";
         importProgressPercent = 0;
@@ -358,6 +363,7 @@ class _ReadingOrderDetailViewBodyState
         notFoundEntries: entriesNotFoundInMetron,
         foundEntries: preparedReadingOrderEntriesFromMetron,
       );
+      if (canceledImport) return;
 
       if (entriesNotFoundInMetron.isNotEmpty) {
         bool? continueImport = await _promptContinueWithMissingData(
@@ -380,6 +386,8 @@ class _ReadingOrderDetailViewBodyState
         importProgressPercent = 0;
       });
       for (final metronComicEntry in preparedReadingOrderEntriesFromMetron) {
+        if (canceledImport) return;
+
         var newDbComic = await ComicService().create(metronComicEntry.comic!);
         metronComicEntry.comic = newDbComic;
         preparedReadingOrderEntriesFromDb.add(metronComicEntry);
@@ -394,6 +402,8 @@ class _ReadingOrderDetailViewBodyState
         importProgressPercent = 0;
       });
       for (final existignComicEntry in preparedReadingOrderEntriesFromDb) {
+        if (canceledImport) return;
+
         await ReadingOrderEntriesService().create(existignComicEntry);
         setState(() {
           importProgressPercent += 1 / preparedReadingOrderEntriesFromDb.length;
@@ -486,6 +496,8 @@ class _ReadingOrderDetailViewBodyState
     final groupedMissingEntries = _groupByFullSeriesName(searchCsvEntries);
 
     for (final seriesGroup in groupedMissingEntries.values) {
+      if (canceledImport) return;
+
       final metronSeriesContent = await MetronService().getIssueList(
         seriesName: seriesGroup.first.seriesName,
         seriesYearBegan: seriesGroup.first.yearBegan,
@@ -559,6 +571,7 @@ class _ReadingOrderDetailViewBodyState
     required List<ReadingOrderEntry> foundEntries,
   }) async {
     for (final csvEntry in searchCsvEntries) {
+      if (canceledImport) return;
       Comic? foundComic;
       final results = await ComicService().get(
         seriesName: csvEntry.seriesName,
