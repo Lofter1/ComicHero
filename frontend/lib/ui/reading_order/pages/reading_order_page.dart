@@ -76,26 +76,10 @@ class _ReadingOrderDetailViewBodyState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (isImporting)
-          Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Importing from CSV - $importProgressText"),
-                    TextButton(
-                      onPressed: () {
-                        // TODO: ask if import should be canceled
-                        importFuture?.cancel();
-                      },
-                      child: const Text('Cancel Import'),
-                    ),
-                  ],
-                ),
-              ),
-              LinearProgressIndicator(value: importProgressPercent),
-            ],
+          _CsvImportProgress(
+            importProgressText: importProgressText,
+            importFuture: importFuture,
+            importProgressPercent: importProgressPercent,
           ),
 
         ReadingOrderToolbar(
@@ -684,6 +668,43 @@ class _ReadingOrderDetailViewBodyState
           ],
         );
       },
+    );
+  }
+}
+
+class _CsvImportProgress extends StatelessWidget {
+  const _CsvImportProgress({
+    required this.importProgressText,
+    required this.importFuture,
+    required this.importProgressPercent,
+  });
+
+  final String importProgressText;
+  final CancelableOperation? importFuture;
+  final double importProgressPercent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Importing from CSV - $importProgressText"),
+              TextButton(
+                onPressed: () {
+                  // TODO: ask if import should be canceled
+                  importFuture?.cancel();
+                },
+                child: const Text('Cancel Import'),
+              ),
+            ],
+          ),
+        ),
+        LinearProgressIndicator(value: importProgressPercent),
+      ],
     );
   }
 }
