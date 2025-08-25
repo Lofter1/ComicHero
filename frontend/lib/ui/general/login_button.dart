@@ -133,6 +133,7 @@ class _AuthDialogState extends State<_AuthDialog> {
             children: [
               TextFormField(
                 decoration: InputDecoration(labelText: 'Email'),
+                autofocus: true,
                 textInputAction: TextInputAction.next,
                 onChanged: (value) => email = value,
                 validator: (value) {
