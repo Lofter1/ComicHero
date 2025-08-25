@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collection/collection.dart';
 
 import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
 import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
@@ -523,11 +524,23 @@ class _ReadingOrderDetailViewBodyState
         }
 
         if (results.length > 1) {
-          foundComic = await _promptMultipleEntriesFound(
-            title: "Found multiple possible entries in Metron",
-            entryName: entry.issueName,
-            foundEntries: results,
+          final exactMatch = results.firstWhereOrNull(
+            (e) =>
+                e.title.toLowerCase() == entry.issueName.toLowerCase() &&
+                (entry.coverYear == null ||
+                    e.releaseDate?.year == entry.coverYear) &&
+                (entry.coverMonth == null ||
+                    e.releaseDate?.month == entry.coverMonth),
           );
+          if (exactMatch != null) {
+            foundComic = exactMatch;
+          } else {
+            foundComic = await _promptMultipleEntriesFound(
+              title: "Found multiple possible entries in Metron",
+              entryName: entry.issueName,
+              foundEntries: results,
+            );
+          }
         } else {
           foundComic = results.firstOrNull;
         }
