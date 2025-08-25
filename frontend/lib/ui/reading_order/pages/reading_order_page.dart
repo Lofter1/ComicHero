@@ -371,6 +371,10 @@ class _ReadingOrderDetailViewBodyState
           context,
         ).showSnackBar(SnackBar(content: Text("Importing CSV complete")));
       }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
+      }
     } finally {
       if (mounted) context.loaderOverlay.hide();
     }
