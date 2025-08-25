@@ -544,11 +544,10 @@ class _ReadingOrderDetailViewBodyState
             ),
           );
         }
+        setState(() {
+          importProgressPercent += 1 / searchCsvEntries.length;
+        });
       }
-
-      setState(() {
-        importProgressPercent += 1 / searchCsvEntries.length;
-      });
     }
   }
 
