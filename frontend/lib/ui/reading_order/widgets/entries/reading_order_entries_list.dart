@@ -6,7 +6,7 @@ import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/ui/ui.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
-class ReadingOrderEntriesList extends ConsumerWidget {
+class ReadingOrderEntriesList extends ConsumerStatefulWidget {
   final String readingOrderId;
   final Function(ReadingOrderEntry entry) onEntryRemoved;
   final Function(ReadingOrderEntry entry) onEntryEdit;
@@ -19,12 +19,21 @@ class ReadingOrderEntriesList extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReadingOrderEntriesList> createState() =>
+      _ReadingOrderEntriesListState();
+}
+
+class _ReadingOrderEntriesListState
+    extends ConsumerState<ReadingOrderEntriesList>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
     final pagedEntriesState = ref.watch(
-      entriesForReadingOrderProvider(readingOrderId),
+      entriesForReadingOrderProvider(widget.readingOrderId),
     );
     final entriesNotifier = ref.read(
-      entriesForReadingOrderProvider(readingOrderId).notifier,
+      entriesForReadingOrderProvider(widget.readingOrderId).notifier,
     );
 
     return Expanded(
@@ -37,8 +46,8 @@ class ReadingOrderEntriesList extends ConsumerWidget {
             itemBuilder: (context, item, index) => ReadingOrderEntryListTile(
               key: ValueKey(item.comic.hashCode),
               entry: item,
-              onEntryRemovedClick: () => onEntryRemoved(item),
-              onEntryEditClick: () => onEntryEdit(item),
+              onEntryRemovedClick: () => widget.onEntryRemoved(item),
+              onEntryEditClick: () => widget.onEntryEdit(item),
               onSetRead: (bool read) =>
                   entriesNotifier.comicSetRead(item.comic!, read),
               onSetSkipped: (bool skipped) =>
@@ -49,4 +58,7 @@ class ReadingOrderEntriesList extends ConsumerWidget {
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }

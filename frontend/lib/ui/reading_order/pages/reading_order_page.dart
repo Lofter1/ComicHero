@@ -52,7 +52,7 @@ class _ReadingOrderPageState extends State<ReadingOrderPage> {
                   _ReadingOrderEntriesListBody(
                     readingOrder: widget.readingOrder,
                   ),
-                  ReadingOrderDetailBox(readingOrder: widget.readingOrder),
+                  ReadingOrderDetailBody(readingOrder: widget.readingOrder),
                 ],
               ),
             ),

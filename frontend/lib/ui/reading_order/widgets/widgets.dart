@@ -9,4 +9,4 @@ export './entries/reading_order_entries_list.dart';
 
 export './reading_order_list.dart';
 export './reading_order_toolbar.dart';
-export './reading_order_detail_box.dart';
+export 'reading_order_detail_body.dart';
