@@ -47,7 +47,7 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64,linux/arm/v7 \
-            -t $GHCR_IMAGE/frontend:${{ env.TAG }} \
+            -t frontend:${{ env.TAG }} \
             ./frontend \
             --push
 
@@ -57,7 +57,7 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64,linux/arm/v7 \
-            -t $GHCR_IMAGE/metron-proxy:${{ env.TAG }} \
+            -t metron-proxy:${{ env.TAG }} \
             ./metron_proxy \
             --push
 
@@ -68,7 +68,7 @@ jobs:
           for arch in amd64 arm64 armv7; do
             docker buildx build \
               --platform linux/$arch \
-              -t $GHCR_IMAGE/pocketbase:${{ env.TAG }}-$arch \
+              -t pocketbase:${{ env.TAG }}-$arch \
               ./pocketbase \
               --build-arg ARCH=$arch \
               --push
