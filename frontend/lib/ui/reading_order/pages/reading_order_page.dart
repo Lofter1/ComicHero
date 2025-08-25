@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:csv/csv.dart';
+import 'package:async/async.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:loader_overlay/loader_overlay.dart';
 
 import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
 import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
@@ -14,26 +14,15 @@ import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/ui/ui.dart';
 
-class ReadingOrderPage extends StatefulWidget {
+class ReadingOrderPage extends StatelessWidget {
   const ReadingOrderPage({super.key, required this.readingOrder});
 
   final ReadingOrder readingOrder;
 
   @override
-  State<ReadingOrderPage> createState() => _ReadingOrderPageState();
-}
-
-class _ReadingOrderPageState extends State<ReadingOrderPage> {
-  @override
-  void initState() {
-    super.initState();
-    _loadReadingOrder();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: ComicHeroAppBar(title: widget.readingOrder.name),
+      appBar: ComicHeroAppBar(title: readingOrder.name),
       body: DefaultTabController(
         length: 2,
         child: Column(
@@ -49,10 +38,8 @@ class _ReadingOrderPageState extends State<ReadingOrderPage> {
             Expanded(
               child: TabBarView(
                 children: [
-                  _ReadingOrderEntriesListBody(
-                    readingOrder: widget.readingOrder,
-                  ),
-                  ReadingOrderDetailBody(readingOrder: widget.readingOrder),
+                  _ReadingOrderEntriesListBody(readingOrder: readingOrder),
+                  ReadingOrderDetailBody(readingOrder: readingOrder),
                 ],
               ),
             ),
@@ -60,10 +47,6 @@ class _ReadingOrderPageState extends State<ReadingOrderPage> {
         ),
       ),
     );
-  }
-
-  void _loadReadingOrder() {
-    setState(() {});
   }
 }
 
@@ -79,11 +62,44 @@ class _ReadingOrderEntriesListBody extends ConsumerStatefulWidget {
 
 class _ReadingOrderDetailViewBodyState
     extends ConsumerState<_ReadingOrderEntriesListBody> {
+  bool isImporting = false;
+  String importProgressText = "";
+  double importProgressPercent = 0;
+  CancelableOperation? importFuture;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (isImporting)
+          Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Importing from CSV - $importProgressText"),
+                    TextButton(
+                      onPressed: () {
+                        // TODO: ask if import should be canceled
+                        importFuture?.cancel();
+                        setState(() {
+                          isImporting = false;
+                          importProgressText = "";
+                          importProgressPercent = 0;
+                        });
+                      },
+                      child: const Text('Cancel Import'),
+                    ),
+                  ],
+                ),
+              ),
+              LinearProgressIndicator(value: importProgressPercent),
+            ],
+          ),
+
         ReadingOrderToolbar(
           onRefresh: _onRefresh,
           onAddEntry: _openAddComicPopup,
@@ -124,8 +140,11 @@ class _ReadingOrderDetailViewBodyState
     _updateReadingOrderEntry(updatedEntry);
   }
 
-  void _onCsvImport() async {
-    await _handleCsvImport();
+  void _onCsvImport() {
+    importFuture = CancelableOperation.fromFuture(
+      _handleCsvImport(),
+      onCancel: () => {debugPrint('onCancel')},
+    );
   }
 
   Future<void> _updateReadingOrderEntry(ReadingOrderEntry entry) async {
@@ -252,7 +271,7 @@ class _ReadingOrderDetailViewBodyState
         .toList();
   }
 
-  Future<String?> _getCsvString() async {
+  Future<String?> _getCsvFileContent() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv'],
@@ -305,8 +324,12 @@ class _ReadingOrderDetailViewBodyState
 
   Future<void> _handleCsvImport() async {
     try {
-      context.loaderOverlay.show();
-      final contents = await _getCsvString();
+      setState(() {
+        isImporting = true;
+        importProgressPercent = 0;
+      });
+
+      final contents = await _getCsvFileContent();
       if (contents == null) return;
 
       var csvEntryList = _parseCsv(contents);
@@ -317,18 +340,24 @@ class _ReadingOrderDetailViewBodyState
       List<_CsvReadingOrderEntry> entriesNotFoundInDb = [];
       List<_CsvReadingOrderEntry> entriesNotFoundInMetron = [];
 
+      setState(() {
+        importProgressText = "Searching database";
+        importProgressPercent = 0;
+      });
       await _searchComicInDb(
         searchCsvEntries: csvEntryList,
         notFoundEntries: entriesNotFoundInDb,
         foundEntries: preparedReadingOrderEntriesFromDb,
       );
+      setState(() {
+        importProgressText = "Searching metron";
+        importProgressPercent = 0;
+      });
       await _searchInMetron(
         searchCsvEntries: entriesNotFoundInDb,
         notFoundEntries: entriesNotFoundInMetron,
         foundEntries: preparedReadingOrderEntriesFromMetron,
       );
-
-      if (mounted) context.loaderOverlay.hide();
 
       if (entriesNotFoundInMetron.isNotEmpty) {
         bool? continueImport = await _promptContinueWithMissingData(
@@ -345,22 +374,30 @@ class _ReadingOrderDetailViewBodyState
         }
       }
 
-      if (mounted) {
-        context.loaderOverlay.show();
-      }
       //TODO: improve performance
+      setState(() {
+        importProgressText = "Importing from metron";
+        importProgressPercent = 0;
+      });
       for (final metronComicEntry in preparedReadingOrderEntriesFromMetron) {
         var newDbComic = await ComicService().create(metronComicEntry.comic!);
         metronComicEntry.comic = newDbComic;
         preparedReadingOrderEntriesFromDb.add(metronComicEntry);
+        setState(() {
+          importProgressPercent +=
+              1 / preparedReadingOrderEntriesFromMetron.length;
+        });
       }
 
+      setState(() {
+        importProgressText = "Creating reading order entries";
+        importProgressPercent = 0;
+      });
       for (final existignComicEntry in preparedReadingOrderEntriesFromDb) {
         await ReadingOrderEntriesService().create(existignComicEntry);
-      }
-
-      if (mounted) {
-        context.loaderOverlay.hide();
+        setState(() {
+          importProgressPercent += 1 / preparedReadingOrderEntriesFromDb.length;
+        });
       }
 
       ref.invalidate(entriesForReadingOrderProvider);
@@ -376,7 +413,11 @@ class _ReadingOrderDetailViewBodyState
         ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
       }
     } finally {
-      if (mounted) context.loaderOverlay.hide();
+      setState(() {
+        isImporting = false;
+        importProgressText = "";
+        importProgressPercent = 0;
+      });
     }
   }
 
@@ -484,12 +525,10 @@ class _ReadingOrderDetailViewBodyState
         }
 
         if (results.length > 1) {
-          if (mounted) context.loaderOverlay.hide();
           foundComic = await _promptMultipleEntriesFoundInMetron(
             entryName: entry.issueName,
             metronResults: results,
           );
-          if (mounted) context.loaderOverlay.show();
         } else {
           foundComic = results.firstOrNull;
         }
@@ -507,6 +546,10 @@ class _ReadingOrderDetailViewBodyState
           );
         }
       }
+
+      setState(() {
+        importProgressPercent += 1 / searchCsvEntries.length;
+      });
     }
   }
 
@@ -527,14 +570,10 @@ class _ReadingOrderDetailViewBodyState
       );
 
       if (results.length > 1) {
-        if (mounted) context.loaderOverlay.hide();
-
         foundComic = await _promptMultipleEntriesFoundInDb(
           entryName: csvEntry.issueName,
           dbResults: results,
         );
-
-        if (mounted) context.loaderOverlay.show();
       } else {
         foundComic = results.firstOrNull;
       }
@@ -551,6 +590,9 @@ class _ReadingOrderDetailViewBodyState
           ),
         );
       }
+      setState(() {
+        importProgressPercent += 1 / searchCsvEntries.length;
+      });
     }
   }
 
@@ -662,23 +704,15 @@ class _Progress extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(readingOrderProgressProvider(readingOrder.id));
 
-    // final percentFormat = NumberFormat.decimalPercentPattern(
-    //   locale: Intl.defaultLocale,
-    //   decimalDigits: 2,
-    // );
-
     return progress.when(
       data: (progress) {
         final percentage = progress.total == 0
             ? 0.0
             : progress.read / progress.total;
-        // final progressText =
-        //     '${progress.read} / ${progress.total} (${percentFormat.format(percentage)})';
 
         return Row(
           spacing: 10,
           children: [
-            // Text(progressText),
             Expanded(child: LinearProgressIndicator(value: percentage)),
           ],
         );
