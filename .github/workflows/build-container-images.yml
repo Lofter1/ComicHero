@@ -26,6 +26,7 @@ jobs:
             echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           else
             echo "TAG=latest" >> $GITHUB_ENV
+          fi
 
       - name: Set up QEMU for multi-arch
         uses: docker/setup-qemu-action@v2
