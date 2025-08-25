@@ -523,9 +523,10 @@ class _ReadingOrderDetailViewBodyState
         }
 
         if (results.length > 1) {
-          foundComic = await _promptMultipleEntriesFoundInMetron(
+          foundComic = await _promptMultipleEntriesFound(
+            title: "Found multiple possible entries in Metron",
             entryName: entry.issueName,
-            metronResults: results,
+            foundEntries: results,
           );
         } else {
           foundComic = results.firstOrNull;
@@ -569,9 +570,10 @@ class _ReadingOrderDetailViewBodyState
       );
 
       if (results.length > 1) {
-        foundComic = await _promptMultipleEntriesFoundInDb(
+        foundComic = await _promptMultipleEntriesFound(
+          title: "Found multiple possible entries in database",
           entryName: csvEntry.issueName,
-          dbResults: results,
+          foundEntries: results,
         );
       } else {
         foundComic = results.firstOrNull;
@@ -595,9 +597,10 @@ class _ReadingOrderDetailViewBodyState
     }
   }
 
-  Future<Comic?> _promptMultipleEntriesFoundInMetron({
+  Future<Comic?> _promptMultipleEntriesFound({
+    required String title,
     required String entryName,
-    required List<Comic> metronResults,
+    required List<Comic> foundEntries,
   }) {
     return showDialog<Comic?>(
       context: context,
@@ -610,48 +613,10 @@ class _ReadingOrderDetailViewBodyState
               spacing: 10,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Found multiple possible entries in metron"),
+                Text(title),
                 Flexible(
                   child: IssueSearchResultView(
-                    searchResults: metronResults,
-                    onComicSelected: (comic) {
-                      Navigator.pop(context, comic);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Skip'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<Comic?> _promptMultipleEntriesFoundInDb({
-    required String entryName,
-    required List<Comic> dbResults,
-  }) {
-    return showDialog<Comic?>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(entryName),
-          content: SizedBox(
-            width: 700,
-            child: Column(
-              spacing: 10,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("Found multiple possible entries in database"),
-                Flexible(
-                  child: IssueSearchResultView(
-                    searchResults: dbResults,
+                    searchResults: foundEntries,
                     onComicSelected: (comic) {
                       Navigator.pop(context, comic);
                     },
