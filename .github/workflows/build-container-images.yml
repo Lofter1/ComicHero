@@ -46,7 +46,7 @@ jobs:
       - name: Build and push frontend
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64,linux/arm/v7 \
+            --platform linux/amd64,linux/arm64 \
             -t frontend:${{ env.TAG }} \
             ./frontend \
             --push
@@ -56,7 +56,7 @@ jobs:
       - name: Build and push metron_proxy
         run: |
           docker buildx build \
-            --platform linux/amd64,linux/arm64,linux/arm/v7 \
+            --platform linux/amd64,linux/arm64 \
             -t metron-proxy:${{ env.TAG }} \
             ./metron_proxy \
             --push
@@ -65,7 +65,7 @@ jobs:
       # Build pocketbase (pass correct ARCH arg)
       - name: Build and push pocketbase
         run: |
-          for arch in amd64 arm64 armv7; do
+          for arch in amd64 arm64; do
             docker buildx build \
               --platform linux/$arch \
               -t pocketbase:${{ env.TAG }}-$arch \
