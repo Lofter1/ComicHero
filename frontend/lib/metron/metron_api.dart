@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:comichero_frontend/metron/metron.dart';
 
 class MetronApi {
-  final int requestDelaySeconds = 1;
+  final int requestDelaySeconds;
   static DateTime _lastRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   final String baseUrl;
@@ -26,6 +26,7 @@ class MetronApi {
     String? password,
     this.baseUrl = "https://metron.cloud/api",
     this.customHeaders,
+    this.requestDelaySeconds = 1,
   }) {
     basicAuthHash = base64Encode(utf8.encode('$username:$password'));
   }

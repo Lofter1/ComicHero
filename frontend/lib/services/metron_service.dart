@@ -10,6 +10,7 @@ class MetronService {
     _metronClient = MetronApi(
       baseUrl: AppConfig.metronProxyUrl,
       customHeaders: <String, String>{"pb_auth": pb.authStore.token},
+      requestDelaySeconds: 0,
     );
   }
   Future<PaginatedSeriesListList> searchSeries(String query) {
