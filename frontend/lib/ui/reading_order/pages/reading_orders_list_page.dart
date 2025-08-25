@@ -1,33 +1,13 @@
+import 'package:comichero_frontend/providers/reading_orders_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:pocketbase/pocketbase.dart';
 
 import 'package:comichero_frontend/models/reading_order.dart';
 import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/ui/ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ReadingOrdersListPage extends StatefulWidget {
+class ReadingOrdersListPage extends StatelessWidget {
   const ReadingOrdersListPage({super.key});
-
-  @override
-  State<ReadingOrdersListPage> createState() => _ReadingOrdersListPageState();
-}
-
-class _ReadingOrdersListPageState extends State<ReadingOrdersListPage> {
-  late Future<ResultList<RecordModel>> list;
-
-  void _listenerReplacer() {}
-
-  @override
-  void initState() {
-    super.initState();
-    authNotifier.addListener(_listenerReplacer);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    authNotifier.removeListener(_listenerReplacer);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +24,9 @@ class _ReadingOrdersListPageState extends State<ReadingOrdersListPage> {
   }
 }
 
-class _ReadingOrdersFAB extends StatelessWidget {
+class _ReadingOrdersFAB extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return AuthGuard(
       loggedInView: (_) => FloatingActionButton(
         onPressed: () async {
@@ -108,11 +88,10 @@ class _ReadingOrdersFAB extends StatelessWidget {
           if (newReadingOrder == null) return;
 
           newReadingOrder = await ReadingOrderService().create(newReadingOrder);
+          ref.invalidate(readingOrdersProvider);
         },
         child: Icon(Icons.add),
       ),
     );
   }
 }
-
-class ReadingOrdersListPageViewModel {}
