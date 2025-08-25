@@ -131,7 +131,7 @@ class _OpenDetailViewButton extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ReadingOrderDetailPage(readingOrder: readingOrder),
+            builder: (_) => ReadingOrderPage(readingOrder: readingOrder),
           ),
         );
       },

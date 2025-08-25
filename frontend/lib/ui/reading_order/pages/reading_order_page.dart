@@ -14,18 +14,16 @@ import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/ui/ui.dart';
 
-class ReadingOrderDetailPage extends StatefulWidget {
-  const ReadingOrderDetailPage({super.key, required this.readingOrder});
+class ReadingOrderPage extends StatefulWidget {
+  const ReadingOrderPage({super.key, required this.readingOrder});
 
   final ReadingOrder readingOrder;
 
   @override
-  State<ReadingOrderDetailPage> createState() => _ReadingOrderDetailPageState();
+  State<ReadingOrderPage> createState() => _ReadingOrderPageState();
 }
 
-class _ReadingOrderDetailPageState extends State<ReadingOrderDetailPage> {
-  late Future<ReadingOrder> _readingOrderFuture;
-
+class _ReadingOrderPageState extends State<ReadingOrderPage> {
   @override
   void initState() {
     super.initState();
@@ -34,56 +32,70 @@ class _ReadingOrderDetailPageState extends State<ReadingOrderDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _readingOrderFuture,
-      builder: (context, asyncSnapshot) {
-        context.loaderOverlay.snapshotLoader(asyncSnapshot);
-
-        final readingOrder = asyncSnapshot.data;
-
-        return Scaffold(
-          appBar: ComicHeroAppBar(title: readingOrder?.name ?? ""),
-          body: readingOrder != null
-              ? _ReadingOrderDetailViewBody(readingOrder: readingOrder)
-              : SizedBox.shrink(),
-        );
-      },
+    return Scaffold(
+      appBar: ComicHeroAppBar(title: widget.readingOrder.name),
+      body: DefaultTabController(
+        length: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const TabBar(
+              tabs: [
+                Tab(icon: Icon(Icons.list)),
+                Tab(icon: Icon(Icons.info)),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _ReadingOrderEntriesListBody(
+                    readingOrder: widget.readingOrder,
+                  ),
+                  ReadingOrderDetailBox(readingOrder: widget.readingOrder),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _loadReadingOrder() {
-    setState(() {
-      _readingOrderFuture = ReadingOrderService().getById(
-        widget.readingOrder.id,
-      );
-    });
+    setState(() {});
   }
 }
 
-class _ReadingOrderDetailViewBody extends ConsumerStatefulWidget {
+class _ReadingOrderEntriesListBody extends ConsumerStatefulWidget {
   final ReadingOrder readingOrder;
 
-  const _ReadingOrderDetailViewBody({required this.readingOrder});
+  const _ReadingOrderEntriesListBody({required this.readingOrder});
 
   @override
-  ConsumerState<_ReadingOrderDetailViewBody> createState() =>
+  ConsumerState<_ReadingOrderEntriesListBody> createState() =>
       _ReadingOrderDetailViewBodyState();
 }
 
 class _ReadingOrderDetailViewBodyState
-    extends ConsumerState<_ReadingOrderDetailViewBody> {
+    extends ConsumerState<_ReadingOrderEntriesListBody> {
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ReadingOrderDetailBox(readingOrder: widget.readingOrder),
-
         ReadingOrderToolbar(
           onRefresh: _onRefresh,
           onAddEntry: _openAddComicPopup,
           onCsvImport: _onCsvImport,
         ),
+
+        AuthGuard(
+          loggedInView: (context) =>
+              _Progress(readingOrder: widget.readingOrder),
+          loggedOutView: (context) => LinearProgressIndicator(value: 0),
+        ),
+
         ReadingOrderEntriesList(
           readingOrderId: widget.readingOrder.id,
           onEntryRemoved: _onEntryRemoved,
@@ -635,4 +647,40 @@ class _CsvReadingOrderEntry {
   String get fullSeriesName =>
       "$seriesName${yearBegan != null ? " ($yearBegan)" : ""}";
   String get issueName => "$fullSeriesName #$issueNumber";
+}
+
+class _Progress extends ConsumerWidget {
+  const _Progress({required this.readingOrder});
+
+  final ReadingOrder readingOrder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final progress = ref.watch(readingOrderProgressProvider(readingOrder.id));
+
+    // final percentFormat = NumberFormat.decimalPercentPattern(
+    //   locale: Intl.defaultLocale,
+    //   decimalDigits: 2,
+    // );
+
+    return progress.when(
+      data: (progress) {
+        final percentage = progress.total == 0
+            ? 0.0
+            : progress.read / progress.total;
+        // final progressText =
+        //     '${progress.read} / ${progress.total} (${percentFormat.format(percentage)})';
+
+        return Row(
+          spacing: 10,
+          children: [
+            // Text(progressText),
+            Expanded(child: LinearProgressIndicator(value: percentage)),
+          ],
+        );
+      },
+      error: (error, stacktrace) => Text('An error occured: $error'),
+      loading: () => Center(child: LinearProgressIndicator()),
+    );
+  }
 }
