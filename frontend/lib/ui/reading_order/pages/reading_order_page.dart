@@ -130,8 +130,60 @@ class _ReadingOrderDetailViewBodyState
     _updateReadingOrderEntry(updatedEntry);
   }
 
-  void _onCsvImport() {
-    _handleCsvImport();
+  Future<void> _onCsvImport() async {
+    try {
+      final csvString = await _getCsvFileContent();
+      if (csvString == null) return;
+
+      importCancelationToken = ImportCancelationToken();
+
+      final importResult = await CsvImportService().importCsv(
+        csvString,
+        widget.readingOrder.id,
+        cancelationToken: importCancelationToken,
+        onProgress: (p0) {
+          setState(() {
+            isImporting = true;
+            importProgressText = p0.step;
+            importProgressPercent = p0.progress;
+          });
+        },
+      );
+
+      ref.invalidate(entriesForReadingOrderProvider);
+      ref.invalidate(readingOrderProgressProvider);
+
+      if (!mounted) return;
+
+      final successCount = importResult.successes.length;
+      final failureCount = importResult.failures.length;
+
+      final snackbarMessage = failureCount == 0
+          ? "Imported $successCount entries successfully."
+          : "Imported $successCount entries, $failureCount failed.";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: Duration(minutes: 20),
+          content: Text(snackbarMessage),
+          action: SnackBarAction(
+            label: 'Details',
+            onPressed: () => _showCsvImportDetailDialog(importResult),
+          ),
+        ),
+      );
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
+      }
+    } finally {
+      setState(() {
+        isImporting = false;
+        importProgressText = "";
+        importProgressPercent = 0;
+        importCancelationToken = null;
+      });
+    }
   }
 
   Future<void> _updateReadingOrderEntry(ReadingOrderEntry entry) async {
@@ -242,61 +294,6 @@ class _ReadingOrderDetailViewBodyState
 
     final file = File(result.files.single.path!);
     return file.readAsString();
-  }
-
-  Future<void> _handleCsvImport() async {
-    try {
-      final csvString = await _getCsvFileContent();
-      if (csvString == null) return;
-
-      importCancelationToken = ImportCancelationToken();
-
-      final importResult = await CsvImportService().importCsv(
-        csvString,
-        widget.readingOrder.id,
-        cancelationToken: importCancelationToken,
-        onProgress: (p0) {
-          setState(() {
-            isImporting = true;
-            importProgressText = p0.step;
-            importProgressPercent = p0.progress;
-          });
-        },
-      );
-
-      ref.invalidate(entriesForReadingOrderProvider);
-      ref.invalidate(readingOrderProgressProvider);
-
-      if (!mounted) return;
-
-      final successCount = importResult.successes.length;
-      final failureCount = importResult.failures.length;
-
-      final snackbarMessage = failureCount == 0
-          ? "Imported $successCount entries successfully."
-          : "Imported $successCount entries, $failureCount failed.";
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(snackbarMessage),
-          action: SnackBarAction(
-            label: 'Details',
-            onPressed: () => _showCsvImportDetailDialog(importResult),
-          ),
-        ),
-      );
-    } on Exception catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
-      }
-    } finally {
-      setState(() {
-        isImporting = false;
-        importProgressText = "";
-        importProgressPercent = 0;
-        importCancelationToken = null;
-      });
-    }
   }
 
   void _showCsvImportDetailDialog(ImportResult importResult) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 SnackBar getErrorSnackbar(Exception exception) {
   return SnackBar(
+    duration: Duration(minutes: 1),
     action: SnackBarAction(label: "Ok", onPressed: () {}),
     content: Row(
       mainAxisSize: MainAxisSize.min,
