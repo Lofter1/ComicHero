@@ -382,8 +382,8 @@ class _CsvImportDetailFailureList extends StatelessWidget {
         final csvData = f.csvRow;
 
         return ListTile(
-          title: Text(csvData.toString(), softWrap: true),
-          subtitle: Text(f.reason, softWrap: true),
+          title: SelectableText(csvData.toString()),
+          subtitle: SelectableText(f.reason),
         );
       },
     );
