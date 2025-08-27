@@ -48,6 +48,15 @@ class ReadingOrderService {
     return _mapRecordToReadingOrder(record);
   }
 
+  Future<void> clearAllEntries(String readingOrderId) async {
+    final entriesInOrder = await ReadingOrderEntriesService().get(
+      readingOrderId: readingOrderId,
+    );
+    for (var entry in entriesInOrder) {
+      await pb.collection('readingOrderEntries').delete(entry.id);
+    }
+  }
+
   ReadingOrder _mapRecordToReadingOrder(RecordModel record) {
     return ReadingOrder(
       id: record.id,

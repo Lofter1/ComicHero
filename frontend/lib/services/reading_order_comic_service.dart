@@ -6,8 +6,15 @@ import 'package:comichero_frontend/services/services.dart';
 class ReadingOrderEntriesService {
   final collection = pb.collection('readingOrderEntries');
 
-  Future<ResultList<RecordModel>> get() {
-    return collection.getList();
+  Future<List<ReadingOrderEntry>> get({String? readingOrderId}) async {
+    List<String> filters = [];
+    if (readingOrderId != null) {
+      filters.add("readingOrder.id = '$readingOrderId'");
+    }
+
+    return (await collection.getFullList(
+      filter: filters.join("&&"),
+    )).map(mapRecordToReadingOrderEntry).toList();
   }
 
   Future<ResultList<RecordModel>> getWithComics(

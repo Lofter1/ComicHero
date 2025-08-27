@@ -72,8 +72,8 @@ class _ReadingOrderDetailViewBodyState
   }
 
   void _onRefresh() {
-    ref.invalidate(entriesForReadingOrderProvider);
-    ref.invalidate(readingOrderProgressProvider);
+    ref.invalidate(entriesForReadingOrderProvider(widget.readingOrder.id));
+    ref.invalidate(readingOrderProgressProvider(widget.readingOrder.id));
   }
 
   Future<void> _onEntryRemoved(ReadingOrderEntry entry) async {
@@ -111,8 +111,8 @@ class _ReadingOrderDetailViewBodyState
         },
       );
 
-      ref.invalidate(entriesForReadingOrderProvider);
-      ref.invalidate(readingOrderProgressProvider);
+      ref.invalidate(entriesForReadingOrderProvider(widget.readingOrder.id));
+      ref.invalidate(readingOrderProgressProvider(widget.readingOrder.id));
 
       if (!mounted) return;
 
@@ -126,6 +126,7 @@ class _ReadingOrderDetailViewBodyState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           duration: Duration(minutes: 20),
+          showCloseIcon: true,
           content: Text(snackbarMessage),
           action: SnackBarAction(
             label: 'Details',
