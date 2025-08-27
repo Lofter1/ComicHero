@@ -5,7 +5,7 @@ class Comic {
   final String seriesName;
   final int seriesYearBegan;
   final String issue;
-  final DateTime? releaseDate;
+  final DateTime? coverDate;
   final String? description;
   final String? marvelUrl;
   final String? userComicId;
@@ -18,7 +18,7 @@ class Comic {
     required this.seriesName,
     required this.issue,
     required this.seriesYearBegan,
-    this.releaseDate,
+    this.coverDate,
     this.description,
     this.coverUrl,
     this.marvelUrl,
@@ -28,7 +28,7 @@ class Comic {
   });
 
   String get title =>
-      "$seriesName ($seriesYearBegan) ${issue.isNotEmpty ? "#$issue" : ""}";
+      "$seriesName ($seriesYearBegan)${issue.isNotEmpty ? " #$issue" : ""}";
 
   factory Comic.fromRecord(RecordModel record) =>
       Comic.fromJson(record.toJson());
@@ -53,7 +53,7 @@ class Comic {
       seriesName: json['seriesName'],
       seriesYearBegan: json['seriesYearBegan'],
       issue: json['issue'],
-      releaseDate: DateTime.tryParse(json['releaseDate']),
+      coverDate: DateTime.tryParse(json['coverDate']),
       description: json['description'],
       marvelUrl: json['marvelUnlimitedUrl'],
       userComicId: userComicsId,

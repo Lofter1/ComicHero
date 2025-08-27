@@ -14,7 +14,7 @@ class ComicService {
     String? seriesName,
     int? seriesYearBegan,
     String? issue,
-    DateTime? releaseDate,
+    DateTime? coverDate,
   }) async {
     String expand = '';
 
@@ -25,7 +25,7 @@ class ComicService {
     final filters = <String>[];
 
     if (seriesName != null && seriesName.isNotEmpty) {
-      filters.add("seriesName='${seriesName.replaceAll("'", r"\'")}'");
+      filters.add("seriesName~'${seriesName.replaceAll("'", r"\'")}'");
     }
     if (seriesYearBegan != null) {
       filters.add("seriesYearBegan=$seriesYearBegan");
@@ -33,16 +33,16 @@ class ComicService {
     if (issue != null && issue.isNotEmpty) {
       filters.add("issue='${issue.replaceAll("'", r"\'")}'");
     }
-    if (releaseDate != null) {
-      filters.add("releaseDate~'$releaseDate'");
+    if (coverDate != null) {
+      filters.add("coverDate~'$coverDate'");
     }
 
     final filter = filters.join(' && ');
 
-    return (await collection.getList(
+    return (await collection.getFullList(
       expand: expand,
       filter: filter,
-    )).items.map(mapRecordToComic).toList();
+    )).map(mapRecordToComic).toList();
   }
 
   Future<Comic> getById(String id) async {
@@ -87,7 +87,7 @@ class ComicService {
             "description": comic.description,
             "issue": comic.issue,
             "marvelUnlimitedUrl": comic.marvelUrl,
-            "releaseDate": comic.releaseDate.toString(),
+            "coverDate": comic.coverDate.toString(),
           },
           files: [
             http.MultipartFile.fromBytes(
