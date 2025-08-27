@@ -9,6 +9,7 @@ export './reading_order_service.dart';
 export './reading_order_comic_service.dart';
 export './metron_service.dart';
 export './auth_service.dart';
+export './csv_import_service.dart';
 
 export './options/options.dart';
 

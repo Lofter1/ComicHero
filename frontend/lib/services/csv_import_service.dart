@@ -22,7 +22,6 @@ class CsvImportService {
       return ImportResult(successes: [], failures: []);
     }
 
-    onProgress?.call(ImportProgress(step: "Fetching comics from backend"));
     final comicLookup = await _fetchGroupedBySeries(
       groupedBySeries,
       onProgress: onProgress,
@@ -32,7 +31,6 @@ class CsvImportService {
       return ImportResult(successes: [], failures: []);
     }
 
-    onProgress?.call(ImportProgress(step: "Creating entries"));
     return _createEntries(
       parsedCsvData,
       comicLookup,
@@ -101,10 +99,21 @@ class CsvImportService {
   }) async {
     final comicLookup = <String, Comic>{};
 
+    final totalSeries = groupedBySeries.length;
+    var processedSeries = 0;
+
     for (final entry in groupedBySeries.entries) {
       if (cancelationToken != null && cancelationToken.isCancelled) {
         return comicLookup;
       }
+
+      onProgress?.call(
+        ImportProgress(
+          step: "Fetching series - ${entry.key}",
+          progress: ++processedSeries / totalSeries,
+        ),
+      );
+
       final comics = await ComicService().get(
         seriesName: entry.value.first.seriesName,
         seriesYearBegan: entry.value.first.seriesYearBegan,
@@ -134,6 +143,13 @@ class CsvImportService {
       }
 
       if (notFoundRows.isNotEmpty) {
+        onProgress?.call(
+          ImportProgress(
+            step: "Fetching series - ${entry.key} (Metron)",
+            progress: processedSeries / totalSeries,
+          ),
+        );
+
         final metronComics = await MetronService().getIssueList(
           seriesName: entry.value.first.seriesName,
           seriesYearBegan: entry.value.first.seriesYearBegan,
