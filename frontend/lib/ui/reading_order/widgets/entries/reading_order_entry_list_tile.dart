@@ -38,8 +38,8 @@ class ReadingOrderEntryListTile extends StatelessWidget {
             )
           : null,
       title: Text(entry.comic!.title),
-      subtitle: entry.comic!.releaseDate != null
-          ? Text(DateFormat.yMMMd().format(entry.comic!.releaseDate!))
+      subtitle: entry.comic!.coverDate != null
+          ? Text(DateFormat.yMMMd().format(entry.comic!.coverDate!))
           : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

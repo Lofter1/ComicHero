@@ -1,18 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:csv/csv.dart';
-import 'package:async/async.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collection/collection.dart';
 
 import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
 import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
 import 'package:comichero_frontend/ui/general/error_helpers.dart';
 import 'package:comichero_frontend/models/models.dart';
-import 'package:comichero_frontend/services/services.dart';
+import 'package:comichero_frontend/services/csv_import_service.dart';
 import 'package:comichero_frontend/ui/ui.dart';
 
 class ReadingOrderPage extends StatelessWidget {
@@ -67,9 +64,8 @@ class _ReadingOrderDetailViewBodyState
     extends ConsumerState<_ReadingOrderEntriesListBody> {
   bool isImporting = false;
   String importProgressText = "";
-  double importProgressPercent = 0;
-  CancelableOperation? importFuture;
-  bool canceledImport = false;
+  double? importProgressPercent;
+  ImportCancelationToken? importCancelationToken;
 
   @override
   Widget build(BuildContext context) {
@@ -79,8 +75,18 @@ class _ReadingOrderDetailViewBodyState
         if (isImporting)
           _CsvImportProgress(
             importProgressText: importProgressText,
-            importFuture: importFuture,
             importProgressPercent: importProgressPercent,
+            onCancel: () {
+              importCancelationToken?.cancel();
+              setState(() {
+                isImporting = false;
+                importProgressText = "";
+                importProgressPercent = 0;
+              });
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text("Import canceled")));
+            },
           ),
 
         ReadingOrderToolbar(
@@ -91,7 +97,7 @@ class _ReadingOrderDetailViewBodyState
 
         AuthGuard(
           loggedInView: (context) =>
-              _Progress(readingOrder: widget.readingOrder),
+              _ReadingProgress(readingOrder: widget.readingOrder),
           loggedOutView: (context) => LinearProgressIndicator(value: 0),
         ),
 
@@ -106,6 +112,7 @@ class _ReadingOrderDetailViewBodyState
 
   void _onRefresh() {
     ref.invalidate(entriesForReadingOrderProvider);
+    ref.invalidate(readingOrderProgressProvider);
   }
 
   Future<void> _onEntryRemoved(ReadingOrderEntry entry) async {
@@ -124,17 +131,7 @@ class _ReadingOrderDetailViewBodyState
   }
 
   void _onCsvImport() {
-    importFuture = CancelableOperation.fromFuture(
-      _handleCsvImport(),
-      onCancel: () {
-        setState(() {
-          isImporting = false;
-          importProgressText = "";
-          importProgressPercent = 0;
-          canceledImport = true;
-        });
-      },
-    );
+    _handleCsvImport();
   }
 
   Future<void> _updateReadingOrderEntry(ReadingOrderEntry entry) async {
@@ -230,37 +227,6 @@ class _ReadingOrderDetailViewBodyState
     );
   }
 
-  List<_CsvReadingOrderEntry>? _parseCsv(String csvContent) {
-    csvContent = csvContent.replaceAll('\n', '\r\n');
-    final csv = const CsvToListConverter().convert(csvContent);
-    if (csv.isEmpty || csv.length < 2) {
-      return null;
-    }
-
-    var headerIndex = _getHeaderIndex(csv);
-    if (headerIndex == null) return null;
-
-    return csv
-        .skip(1)
-        .map(
-          (row) => _CsvReadingOrderEntry(
-            position: row[headerIndex['Position']!] as int,
-            seriesName: row[headerIndex['SeriesName']!].toString(),
-            yearBegan: row[headerIndex['YearBegin']!] is int?
-                ? row[headerIndex['YearBegin']!] as int?
-                : null,
-            issueNumber: row[headerIndex['Issue']!].toString(),
-            coverMonth: row[headerIndex['CoverMonth']!] is int?
-                ? row[headerIndex['CoverMonth']!] as int?
-                : null,
-            coverYear: row[headerIndex['CoverYear']!] is int?
-                ? row[headerIndex['CoverYear']!] as int?
-                : null,
-          ),
-        )
-        .toList();
-  }
-
   Future<String?> _getCsvFileContent() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -278,133 +244,47 @@ class _ReadingOrderDetailViewBodyState
     return file.readAsString();
   }
 
-  Map<String, int>? _getHeaderIndex(List<List<dynamic>> csvData) {
-    final headers = csvData.first.map((h) => h.toString().trim()).toList();
-    final headerIndex = {
-      for (int i = 0; i < headers.length; i++) headers[i]: i,
-    };
-
-    const requiredHeaders = [
-      'Position',
-      'SeriesName',
-      'YearBegin',
-      'Issue',
-      'CoverMonth',
-      'CoverYear',
-    ];
-    for (final header in requiredHeaders) {
-      if (!headerIndex.containsKey(header)) {
-        return null;
-      }
-    }
-    return headerIndex;
-  }
-
-  Map<String, List<_CsvReadingOrderEntry>> _groupByFullSeriesName(
-    List<_CsvReadingOrderEntry> listToGroup,
-  ) {
-    final Map<String, List<_CsvReadingOrderEntry>> group = {};
-
-    for (final entry in listToGroup) {
-      group.putIfAbsent(entry.fullSeriesName, () => []).add(entry);
-    }
-
-    return group;
-  }
-
   Future<void> _handleCsvImport() async {
     try {
-      setState(() {
-        isImporting = true;
-        importProgressPercent = 0;
-      });
+      final csvString = await _getCsvFileContent();
+      if (csvString == null) return;
 
-      final contents = await _getCsvFileContent();
-      if (contents == null) return;
+      importCancelationToken = ImportCancelationToken();
 
-      var csvEntryList = _parseCsv(contents);
-      if (csvEntryList == null || csvEntryList.isEmpty) return;
-
-      List<ReadingOrderEntry> preparedReadingOrderEntriesFromDb = [];
-      List<ReadingOrderEntry> preparedReadingOrderEntriesFromMetron = [];
-      List<_CsvReadingOrderEntry> entriesNotFoundInDb = [];
-      List<_CsvReadingOrderEntry> entriesNotFoundInMetron = [];
-
-      setState(() {
-        importProgressText = "Searching database";
-        importProgressPercent = 0;
-      });
-      await _searchComicInDb(
-        searchCsvEntries: csvEntryList,
-        notFoundEntries: entriesNotFoundInDb,
-        foundEntries: preparedReadingOrderEntriesFromDb,
+      final importResult = await CsvImportService().importCsv(
+        csvString,
+        widget.readingOrder.id,
+        cancelationToken: importCancelationToken,
+        onProgress: (p0) {
+          setState(() {
+            isImporting = true;
+            importProgressText = p0.step;
+            importProgressPercent = p0.progress;
+          });
+        },
       );
-      if (canceledImport) return;
-
-      setState(() {
-        importProgressText = "Searching metron";
-        importProgressPercent = 0;
-      });
-      await _searchInMetron(
-        searchCsvEntries: entriesNotFoundInDb,
-        notFoundEntries: entriesNotFoundInMetron,
-        foundEntries: preparedReadingOrderEntriesFromMetron,
-      );
-      if (canceledImport) return;
-
-      if (entriesNotFoundInMetron.isNotEmpty) {
-        bool? continueImport = await _promptContinueWithMissingData(
-          entriesNotFoundInMetron,
-        );
-
-        if (continueImport == null || continueImport == false) {
-          if (mounted) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text("Canceled CSV import")));
-          }
-          return;
-        }
-      }
-
-      //TODO: improve performance
-      setState(() {
-        importProgressText = "Importing from metron";
-        importProgressPercent = 0;
-      });
-      for (final metronComicEntry in preparedReadingOrderEntriesFromMetron) {
-        if (canceledImport) return;
-
-        var newDbComic = await ComicService().create(metronComicEntry.comic!);
-        metronComicEntry.comic = newDbComic;
-        preparedReadingOrderEntriesFromDb.add(metronComicEntry);
-        setState(() {
-          importProgressPercent +=
-              1 / preparedReadingOrderEntriesFromMetron.length;
-        });
-      }
-
-      setState(() {
-        importProgressText = "Creating reading order entries";
-        importProgressPercent = 0;
-      });
-      for (final existignComicEntry in preparedReadingOrderEntriesFromDb) {
-        if (canceledImport) return;
-
-        await ReadingOrderEntriesService().create(existignComicEntry);
-        setState(() {
-          importProgressPercent += 1 / preparedReadingOrderEntriesFromDb.length;
-        });
-      }
 
       ref.invalidate(entriesForReadingOrderProvider);
       ref.invalidate(readingOrderProgressProvider);
 
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Importing CSV complete")));
-      }
+      if (!mounted) return;
+
+      final successCount = importResult.successes.length;
+      final failureCount = importResult.failures.length;
+
+      final snackbarMessage = failureCount == 0
+          ? "Imported $successCount entries successfully."
+          : "Imported $successCount entries, $failureCount failed.";
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(snackbarMessage),
+          action: SnackBarAction(
+            label: 'Details',
+            onPressed: () => _showCsvImportDetailDialog(importResult),
+          ),
+        ),
+      );
     } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
@@ -414,235 +294,129 @@ class _ReadingOrderDetailViewBodyState
         isImporting = false;
         importProgressText = "";
         importProgressPercent = 0;
+        importCancelationToken = null;
       });
     }
   }
 
-  Future<bool?> _promptContinueWithMissingData(
-    List<_CsvReadingOrderEntry> missingData,
-  ) async {
-    return await showDialog<bool>(
+  void _showCsvImportDetailDialog(ImportResult importResult) {
+    showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text("Not able to find all entries"),
-          content: SizedBox(
-            width: 700,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 10,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('The Following entries could not be found'),
-                Flexible(
-                  child: SizedBox(
-                    height: 400,
-                    child: ListView.separated(
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          subtitle: Text(
-                            "Position: ${missingData[index].position}",
-                          ),
-                          title: Text(missingData[index].issueName),
-                        );
-                      },
-                      separatorBuilder: (context, index) {
-                        return Divider();
-                      },
-                      itemCount: missingData.length,
+        return _CsvImportDetailDialog(importResult: importResult);
+      },
+    );
+  }
+}
+
+class _CsvImportDetailDialog extends StatelessWidget {
+  const _CsvImportDetailDialog({required this.importResult});
+
+  final ImportResult importResult;
+
+  @override
+  Widget build(BuildContext context) {
+    final successCount = importResult.successes.length;
+    final failureCount = importResult.failures.length;
+    final hasFailures = failureCount > 0;
+    final tabCount = hasFailures ? 2 : 1;
+
+    return AlertDialog(
+      title: const Text("CSV Import Details"),
+      content: SizedBox(
+        width: 700,
+        height: 400, // scrollable box
+        child: DefaultTabController(
+          length: tabCount,
+          child: Column(
+            children: [
+              TabBar(
+                tabs: [
+                  Tab(text: "Successful: $successCount"),
+
+                  if (hasFailures) Tab(text: "Failed: $failureCount"),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _CsvImportDetailSuccessList(
+                      successCount: successCount,
+                      importResult: importResult,
                     ),
-                  ),
+
+                    if (hasFailures)
+                      _CsvImportDetailFailureList(
+                        failureCount: failureCount,
+                        importResult: importResult,
+                      ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, false);
-              },
-              child: Text("Cancel Import"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context, true);
-              },
-              child: Text("Import with found data"),
-            ),
-          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text("Close"),
+        ),
+      ],
+    );
+  }
+}
+
+class _CsvImportDetailFailureList extends StatelessWidget {
+  const _CsvImportDetailFailureList({
+    required this.failureCount,
+    required this.importResult,
+  });
+
+  final int failureCount;
+  final ImportResult importResult;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: failureCount,
+      itemBuilder: (context, index) {
+        final f = importResult.failures[index];
+        final csvData = f.csvRow;
+
+        return ListTile(
+          title: Text(csvData.toString(), softWrap: true),
+          subtitle: Text(f.reason, softWrap: true),
         );
       },
     );
   }
+}
 
-  Future<void> _searchInMetron({
-    required List<_CsvReadingOrderEntry> searchCsvEntries,
-    required List<_CsvReadingOrderEntry> notFoundEntries,
-    required List<ReadingOrderEntry> foundEntries,
-  }) async {
-    final groupedMissingEntries = _groupByFullSeriesName(searchCsvEntries);
+class _CsvImportDetailSuccessList extends StatelessWidget {
+  const _CsvImportDetailSuccessList({
+    required this.successCount,
+    required this.importResult,
+  });
 
-    for (final seriesGroup in groupedMissingEntries.values) {
-      if (canceledImport) return;
+  final int successCount;
+  final ImportResult importResult;
 
-      final metronSeriesContent = await MetronService().getIssueList(
-        seriesName: seriesGroup.first.seriesName,
-        seriesYearBegan: seriesGroup.first.yearBegan,
-        loadAll: true,
-      );
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: successCount,
+      itemBuilder: (context, index) {
+        final s = importResult.successes[index];
+        final entry = s.entry;
+        final csvData = s.csvRow;
 
-      if (metronSeriesContent.isEmpty) {
-        notFoundEntries.addAll(seriesGroup);
-        continue;
-      }
-
-      for (final entry in seriesGroup) {
-        Comic? foundComic;
-
-        var results = metronSeriesContent
-            .where(
-              (e) =>
-                  e.title.toLowerCase().contains(
-                    entry.issueName.toLowerCase(),
-                  ) &&
-                  (entry.coverYear == null ||
-                      e.releaseDate?.year == entry.coverYear) &&
-                  (entry.coverMonth == null ||
-                      e.releaseDate?.month == entry.coverMonth),
-            )
-            .toList();
-
-        if (results.isEmpty &&
-            entry.coverYear != null &&
-            entry.coverMonth != null) {
-          results = await MetronService().getIssueList(
-            seriesName: entry.seriesName,
-            coverYear: entry.coverYear,
-            coverMonth: entry.coverMonth,
-            loadAll: true,
-          );
-        }
-
-        if (results.length > 1) {
-          final exactMatch = results.firstWhereOrNull(
-            (e) =>
-                e.title.toLowerCase() == entry.issueName.toLowerCase() &&
-                (entry.coverYear == null ||
-                    e.releaseDate?.year == entry.coverYear) &&
-                (entry.coverMonth == null ||
-                    e.releaseDate?.month == entry.coverMonth),
-          );
-          if (exactMatch != null) {
-            foundComic = exactMatch;
-          } else {
-            foundComic = await _promptMultipleEntriesFound(
-              title: "Found multiple possible entries in Metron",
-              entryName: entry.issueName,
-              foundEntries: results,
-            );
-          }
-        } else {
-          foundComic = results.firstOrNull;
-        }
-
-        if (foundComic == null) {
-          notFoundEntries.add(entry);
-        } else {
-          foundEntries.add(
-            ReadingOrderEntry(
-              id: '',
-              readingOrderId: widget.readingOrder.id,
-              position: entry.position,
-              comic: foundComic,
-            ),
-          );
-        }
-        setState(() {
-          importProgressPercent += 1 / searchCsvEntries.length;
-        });
-      }
-    }
-  }
-
-  Future<void> _searchComicInDb({
-    required List<_CsvReadingOrderEntry> searchCsvEntries,
-    required List<_CsvReadingOrderEntry> notFoundEntries,
-    required List<ReadingOrderEntry> foundEntries,
-  }) async {
-    for (final csvEntry in searchCsvEntries) {
-      if (canceledImport) return;
-      Comic? foundComic;
-      final results = await ComicService().get(
-        seriesName: csvEntry.seriesName,
-        seriesYearBegan: csvEntry.yearBegan,
-        issue: csvEntry.issueNumber,
-        releaseDate: csvEntry.coverYear != null && csvEntry.coverMonth != null
-            ? DateTime(csvEntry.coverYear!, csvEntry.coverMonth!, 1)
-            : null,
-      );
-
-      if (results.length > 1) {
-        foundComic = await _promptMultipleEntriesFound(
-          title: "Found multiple possible entries in database",
-          entryName: csvEntry.issueName,
-          foundEntries: results,
-        );
-      } else {
-        foundComic = results.firstOrNull;
-      }
-
-      if (foundComic == null) {
-        notFoundEntries.add(csvEntry);
-      } else {
-        foundEntries.add(
-          ReadingOrderEntry(
-            id: '',
-            readingOrderId: widget.readingOrder.id,
-            position: csvEntry.position,
-            comic: foundComic,
+        return ListTile(
+          title: Text(
+            "${entry.position}: ${entry.comic?.title}",
+            softWrap: true,
           ),
-        );
-      }
-      setState(() {
-        importProgressPercent += 1 / searchCsvEntries.length;
-      });
-    }
-  }
-
-  Future<Comic?> _promptMultipleEntriesFound({
-    required String title,
-    required String entryName,
-    required List<Comic> foundEntries,
-  }) {
-    return showDialog<Comic?>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(entryName),
-          content: SizedBox(
-            width: 700,
-            child: Column(
-              spacing: 10,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title),
-                Flexible(
-                  child: IssueSearchResultView(
-                    searchResults: foundEntries,
-                    onComicSelected: (comic) {
-                      Navigator.pop(context, comic);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Skip'),
-            ),
-          ],
+          subtitle: Text("CSV Data: $csvData", softWrap: true),
         );
       },
     );
@@ -652,13 +426,13 @@ class _ReadingOrderDetailViewBodyState
 class _CsvImportProgress extends StatelessWidget {
   const _CsvImportProgress({
     required this.importProgressText,
-    required this.importFuture,
-    required this.importProgressPercent,
+    this.importProgressPercent,
+    this.onCancel,
   });
 
   final String importProgressText;
-  final CancelableOperation? importFuture;
-  final double importProgressPercent;
+  final double? importProgressPercent;
+  final Function? onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -667,16 +441,19 @@ class _CsvImportProgress extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.all(8.0),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Importing from CSV - $importProgressText"),
-              TextButton(
-                onPressed: () {
-                  // TODO: ask if import should be canceled
-                  importFuture?.cancel();
-                },
-                child: const Text('Cancel Import'),
+              Expanded(
+                child: Text(
+                  "Importing from CSV - $importProgressText",
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
+              if (onCancel != null)
+                TextButton(
+                  onPressed: () => onCancel!(),
+                  child: const Text('Cancel Import'),
+                ),
             ],
           ),
         ),
@@ -686,30 +463,8 @@ class _CsvImportProgress extends StatelessWidget {
   }
 }
 
-class _CsvReadingOrderEntry {
-  final int position;
-  final String seriesName;
-  final int? yearBegan;
-  final String issueNumber;
-  final int? coverMonth;
-  final int? coverYear;
-
-  _CsvReadingOrderEntry({
-    required this.position,
-    required this.seriesName,
-    required this.issueNumber,
-    this.yearBegan,
-    this.coverMonth,
-    this.coverYear,
-  });
-
-  String get fullSeriesName =>
-      "$seriesName${yearBegan != null ? " ($yearBegan)" : ""}";
-  String get issueName => "$fullSeriesName #$issueNumber";
-}
-
-class _Progress extends ConsumerWidget {
-  const _Progress({required this.readingOrder});
+class _ReadingProgress extends ConsumerWidget {
+  const _ReadingProgress({required this.readingOrder});
 
   final ReadingOrder readingOrder;
 

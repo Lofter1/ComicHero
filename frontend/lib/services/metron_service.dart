@@ -13,6 +13,7 @@ class MetronService {
       requestDelaySeconds: 0,
     );
   }
+
   Future<PaginatedSeriesListList> searchSeries(String query) {
     final (seriesName, startingYear) = _splitSeriesName(query);
     return _metronClient.series(
@@ -82,18 +83,18 @@ class MetronService {
       issue: metronIssue.number,
       coverUrl: metronIssue.image,
       description: metronIssue.desc,
-      releaseDate: DateTime.tryParse(metronIssue.coverDate),
+      coverDate: DateTime.tryParse(metronIssue.coverDate),
     );
   }
 
   Comic _mapIssueListToComic(IssueList c) {
     return Comic(
-      id: c.id.toString(),
+      id: '',
       seriesName: c.series.name,
       seriesYearBegan: c.series.yearBegan,
       issue: c.number,
       coverUrl: c.image,
-      releaseDate: DateTime.tryParse(c.coverDate),
+      coverDate: DateTime.tryParse(c.coverDate),
     );
   }
 

@@ -1,5 +1,6 @@
-import 'package:comichero_frontend/models/reading_order_entry.dart';
 import 'package:pocketbase/pocketbase.dart';
+
+import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/services/services.dart';
 
 class ReadingOrderEntriesService {

@@ -34,22 +34,6 @@ class ReadingOrderService {
     return getById(newRecord.id);
   }
 
-  Future<void> addComicToList(
-    ReadingOrder order,
-    Comic comic,
-    int position,
-    String notes,
-  ) async {
-    await _comicOrderCollection.create(
-      body: <String, dynamic>{
-        "readingOrder": order.id,
-        "comic": comic.id,
-        "position": position,
-        "notes": notes,
-      },
-    );
-  }
-
   Future<void> removeEntry(ReadingOrderEntry entry) async {
     await _comicOrderCollection.delete(entry.id);
   }

@@ -64,8 +64,8 @@ class _ComicQuickOverviewState extends State<ComicQuickOverview> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _ComicTitleBar(comic: comic, widget: widget),
-                  if (comic.releaseDate != null)
-                    Text(DateFormat.yMMMd().format(comic.releaseDate!)),
+                  if (comic.coverDate != null)
+                    Text(DateFormat.yMMMd().format(comic.coverDate!)),
                 ],
               ),
               _ComicActionButtonRow(

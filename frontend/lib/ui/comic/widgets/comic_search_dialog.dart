@@ -121,7 +121,6 @@ class _SearchViewState extends State<SearchView> {
     context.loaderOverlay.show();
 
     if (searchMetron) {
-      comic = await MetronService().getComicById(int.parse(comic.id));
       comic = await ComicService().create(comic);
     }
 
