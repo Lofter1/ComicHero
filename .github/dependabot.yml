@@ -18,9 +18,9 @@ updates:
       prefix: "chore"
       include: "scope"
 
-  # Go  metron_proxy
+  # Go  api_proxy
   - package-ecosystem: "gomod"
-    directory: "/metron_proxy"
+    directory: "/api_proxy"
     schedule:
       interval: "weekly"
     commit-message:

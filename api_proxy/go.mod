@@ -1,4 +1,4 @@
-module metron_proxy
+module api_proxy
 
 go 1.24.5
 

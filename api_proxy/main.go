@@ -8,14 +8,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
 const metronBaseURL = "https://metron.cloud/api"
 const metronMediaURL = "https://static.metron.cloud"
 
-const gcdBaseURL = "https://www.comics.org/api/"
-const gcdMediaURL = "https://files1.comics.org/"
+const gcdBaseURL = "https://www.comics.org/api"
+const gcdMediaURL = "https://files1.comics.org"
 
 const port = "8080"
 
@@ -60,10 +61,12 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+port, corsMiddleware(checkAuthMiddleware(mux))))
 }
 
-func rewriteImageURLs(data []byte) []byte {
+func replaceURLs(data []byte, replaceURL string, apiPath string) []byte {
+	newUrl, _ := url.JoinPath(proxyBaseURL, apiPath)
+
 	return bytes.ReplaceAll(data,
-		[]byte(metronMediaURL),
-		[]byte(proxyBaseURL),
+		[]byte(replaceURL),
+		[]byte(newUrl),
 	)
 }
 
@@ -99,7 +102,7 @@ func handleGCDProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	gcdUrl = gcdUrl.JoinPath(r.URL.Path)
+	gcdUrl = gcdUrl.JoinPath(strings.TrimPrefix(r.URL.Path, "/gcd"))
 	gcdUrl.RawQuery = r.URL.RawQuery
 
 	req, err := http.NewRequest("GET", gcdUrl.String(), nil)
@@ -110,7 +113,7 @@ func handleGCDProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	req.SetBasicAuth(gcdUsername, gcdPassword)
 
-	throttle()
+	log.Println(req.URL)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -126,13 +129,18 @@ func handleGCDProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	modified := rewriteImageURLs(buf.Bytes())
+	modified := replaceURLs(buf.Bytes(), gcdMediaURL, strings.Split(r.URL.Path, "/")[1])
+	modified = replaceURLs(modified, gcdBaseURL, strings.Split(r.URL.Path, "/")[1])
 
-	SaveCache(cacheKey, CacheEntry{
-		Data:      modified,
-		Header:    nil,
-		Timestamp: time.Now().Unix(),
-	}, time.Duration(cacheTTL)*time.Second, false)
+	contentType := resp.Header.Get("Content-Type")
+
+	if resp.StatusCode == http.StatusOK && strings.Contains(contentType, "application/json") {
+		SaveCache(cacheKey, CacheEntry{
+			Data:      modified,
+			Header:    nil,
+			Timestamp: time.Now().Unix(),
+		}, time.Duration(cacheTTL)*time.Second, false)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
@@ -161,9 +169,7 @@ func handleGCDMediaProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mediaUrl := gcdMediaURL + path
-
-	throttle()
+	mediaUrl := gcdMediaURL + strings.TrimPrefix(path, "/gcd")
 
 	resp, err := http.Get(mediaUrl)
 	if err != nil {
@@ -210,7 +216,8 @@ func handleMetronProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	metronUrl = metronUrl.JoinPath(r.URL.Path)
+
+	metronUrl = metronUrl.JoinPath(strings.TrimPrefix(r.URL.Path, "/metron"))
 	metronUrl.RawQuery = r.URL.RawQuery
 
 	req, err := http.NewRequest("GET", metronUrl.String(), nil)
@@ -237,13 +244,17 @@ func handleMetronProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	modified := rewriteImageURLs(buf.Bytes())
+	modified := replaceURLs(buf.Bytes(), metronMediaURL, strings.Split(r.URL.Path, "/")[1])
 
-	SaveCache(cacheKey, CacheEntry{
-		Data:      modified,
-		Header:    nil,
-		Timestamp: time.Now().Unix(),
-	}, time.Duration(cacheTTL)*time.Second, false)
+	contentType := resp.Header.Get("Content-Type")
+
+	if resp.StatusCode == http.StatusOK && strings.Contains(contentType, "application/json") {
+		SaveCache(cacheKey, CacheEntry{
+			Data:      modified,
+			Header:    nil,
+			Timestamp: time.Now().Unix(),
+		}, time.Duration(cacheTTL)*time.Second, false)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
@@ -272,9 +283,7 @@ func handleMetronMediaProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mediaUrl := metronMediaURL + path
-
-	throttle()
+	mediaUrl := metronMediaURL + strings.TrimPrefix(path, "/metron")
 
 	resp, err := http.Get(mediaUrl)
 	if err != nil {

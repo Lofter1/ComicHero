@@ -1,4 +1,4 @@
 {
     "backendUrl": "http://localhost:8090",
-    "metronProxyUrl": "http://localhost:8080"
+    "apiProxyUrl": "http://localhost:8080"
 }

@@ -1,23 +1,27 @@
 services:
-  metron-proxy:
+  api-proxy:
+    image: ghcr.io/lofter1/api-proxy:dev-latest
     build:
-      context: ./metron_proxy
+      context: ./api_proxy
       dockerfile: Dockerfile
-    container_name: metron-proxy
+    container_name: api-proxy
     ports:
       - "8080:8080"
     environment:
       - METRON_USERNAME=${METRON_USERNAME}
-      - METRON_PASSWORD=${METRON_PASSWORD}      
-      - METRON_PROXY_URL=${PROXY_URL}
+      - METRON_PASSWORD=${METRON_PASSWORD}  
+      - GCD_USERNAME=${GCD_USERNAME}
+      - GCD_PASSWORD=${GCD_PASSWORD}        
+      - PROXY_URL=${PROXY_URL}
       - POCKETBASE_URL=http://pocketbase:8080/
-      - REDIS_ADDR=redis-metron-cache:6379
+      - REDIS_ADDR=redis-api-cache:6379
     depends_on:
-      - redis-metron-cache
+      - redis-api-cache
     restart: unless-stopped
 
 
   pocketbase:
+    image: ghcr.io/lofter1/pocketbase:dev-latest
     build:
       context: ./pocketbase
       dockerfile: Dockerfile
@@ -30,6 +34,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ghcr.io/lofter1/pocketbase:dev-latest-arm64
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -45,13 +50,13 @@ services:
       - caddy_config:/config
     restart: unless-stopped
 
-  redis-metron-cache:
+  redis-api-cache:
     image: redis:7-alpine
     volumes:
-      - redis-metron-cache-data:/data
+      - redis-api-cache-data:/data
     restart: always
       
 volumes:
-  redis-metron-cache-data:
+  redis-api-cache-data:
   caddy_data:
   caddy_config:

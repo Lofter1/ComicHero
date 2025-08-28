@@ -55,13 +55,13 @@ jobs:
             --push
 
       # -----------------------------
-      # Build metron-proxy
-      - name: Build & push metron-proxy
+      # Build api-proxy
+      - name: Build & push api-proxy
         run: |
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            -t ghcr.io/$GHCR_OWNER/metron-proxy:${TAG} \
-            ./metron_proxy \
+            -t ghcr.io/$GHCR_OWNER/api-proxy:${TAG} \
+            ./api_proxy \
             --push
 
       # -----------------------------

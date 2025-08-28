@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:comichero_frontend/models/models.dart';
-import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
-import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
-import 'package:comichero_frontend/services/csv_import_service.dart';
-import 'package:comichero_frontend/ui/general/error_helpers.dart';
-import 'package:comichero_frontend/ui/ui.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:comichero_frontend/models/models.dart';
+import 'package:comichero_frontend/providers/reading_order_entries_provider.dart';
+import 'package:comichero_frontend/providers/reading_order_progress_provider.dart';
+import 'package:comichero_frontend/services/services.dart';
+import 'package:comichero_frontend/ui/general/error_helpers.dart';
+import 'package:comichero_frontend/ui/ui.dart';
 
 class ReadingOrderEntriesListBody extends ConsumerStatefulWidget {
   final ReadingOrder readingOrder;
@@ -37,17 +38,7 @@ class _ReadingOrderDetailViewBodyState
           _CsvImportProgress(
             importProgressText: importProgressText,
             importProgressPercent: importProgressPercent,
-            onCancel: () {
-              importCancelationToken?.cancel();
-              setState(() {
-                isImporting = false;
-                importProgressText = "";
-                importProgressPercent = 0;
-              });
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text("Import canceled")));
-            },
+            onCancel: _onCancelImport,
           ),
 
         ReadingOrderToolbar(
@@ -91,6 +82,18 @@ class _ReadingOrderDetailViewBodyState
     _updateReadingOrderEntry(updatedEntry);
   }
 
+  void _onCancelImport() {
+    importCancelationToken?.cancel();
+    setState(() {
+      isImporting = false;
+      importProgressText = "";
+      importProgressPercent = 0;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Import canceled")));
+  }
+
   Future<void> _onCsvImport() async {
     try {
       final csvString = await _getCsvFileContent();
@@ -111,13 +114,12 @@ class _ReadingOrderDetailViewBodyState
         },
       );
 
-      ref.invalidate(entriesForReadingOrderProvider(widget.readingOrder.id));
-      ref.invalidate(readingOrderProgressProvider(widget.readingOrder.id));
-
       if (!mounted) return;
 
       final successCount = importResult.successes.length;
       final failureCount = importResult.failures.length;
+
+      if (successCount == 0 && failureCount == 0) return;
 
       final snackbarMessage = failureCount == 0
           ? "Imported $successCount entries successfully."
@@ -139,6 +141,9 @@ class _ReadingOrderDetailViewBodyState
         ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
       }
     } finally {
+      ref.invalidate(entriesForReadingOrderProvider(widget.readingOrder.id));
+      ref.invalidate(readingOrderProgressProvider(widget.readingOrder.id));
+
       setState(() {
         isImporting = false;
         importProgressText = "";
@@ -284,7 +289,7 @@ class _CsvImportDetailDialog extends StatelessWidget {
       title: const Text("CSV Import Details"),
       content: SizedBox(
         width: 700,
-        height: 400, // scrollable box
+        height: 400,
         child: DefaultTabController(
           length: tabCount,
           child: Column(
@@ -346,6 +351,9 @@ class _CsvImportDetailFailureList extends StatelessWidget {
         return ListTile(
           title: SelectableText(csvData.toString()),
           subtitle: SelectableText(f.reason),
+          trailing: f.tip != null
+              ? Tooltip(message: f.tip, child: Icon(Icons.info))
+              : null,
         );
       },
     );
@@ -371,6 +379,7 @@ class _CsvImportDetailSuccessList extends StatelessWidget {
         final csvData = s.csvRow;
 
         return ListTile(
+          leading: ComicCover(comic: entry.comic!),
           title: Text(
             "${entry.position}: ${entry.comic?.title}",
             softWrap: true,

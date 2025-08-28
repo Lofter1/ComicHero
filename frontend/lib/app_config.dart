@@ -6,7 +6,7 @@ class AppConfig {
   static bool isInitialized = false;
 
   static String backendUrl = '';
-  static String metronProxyUrl = '';
+  static String apiProxyUrl = '';
 
   static Future load() async {
     await readConfigFile('assets/config/config.json');
@@ -21,6 +21,6 @@ class AppConfig {
     final jsonString = await rootBundle.loadString(filePath);
     final jsonMap = json.decode(jsonString);
     backendUrl = jsonMap['backendUrl'] ?? backendUrl;
-    metronProxyUrl = jsonMap['metronProxyUrl'] ?? metronProxyUrl;
+    apiProxyUrl = jsonMap['apiProxyUrl'] ?? apiProxyUrl;
   }
 }

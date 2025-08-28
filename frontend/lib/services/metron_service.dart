@@ -7,8 +7,14 @@ class MetronService {
   late MetronApi _metronClient;
 
   MetronService() {
+    final metronUri = Uri.parse(
+      AppConfig.apiProxyUrl.endsWith('/')
+          ? '${AppConfig.apiProxyUrl}metron'
+          : '${AppConfig.apiProxyUrl}/metron',
+    );
+
     _metronClient = MetronApi(
-      baseUrl: AppConfig.metronProxyUrl,
+      baseUrl: metronUri.toString(),
       customHeaders: <String, String>{"pb_auth": pb.authStore.token},
       requestDelaySeconds: 0,
     );

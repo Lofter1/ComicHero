@@ -1,6 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
+import 'package:http/http.dart' as http;
 
+import 'package:comichero_frontend/app_config.dart';
 import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/services/services.dart';
 
@@ -36,6 +41,7 @@ class CsvImportService {
       comicLookup,
       readingOrderId,
       onProgress: onProgress,
+      cancelationToken: cancelationToken,
     );
   }
 
@@ -62,7 +68,17 @@ class CsvImportService {
       );
       var comic = comicLookup[_normalizeSeriesName(row.comicKey)];
       if (comic == null) {
-        failures.add(FailedImport(csvRow: row, reason: "Comic not found."));
+        failures.add(
+          FailedImport(
+            csvRow: row,
+            reason: "Comic not found.",
+            tip:
+                "Check the series name, series year and the cover date. "
+                "If the comic is not available on Metron, "
+                "consider helping out the Metron project by adding it to the "
+                "Metron database at https://metron.cloud/",
+          ),
+        );
 
         continue;
       }
@@ -114,9 +130,12 @@ class CsvImportService {
         ),
       );
 
+      final seriesName = entry.value.first.seriesName;
+      final seriesYearBegan = entry.value.first.seriesYearBegan;
+
       final comics = await ComicService().get(
-        seriesName: entry.value.first.seriesName,
-        seriesYearBegan: entry.value.first.seriesYearBegan,
+        seriesName: seriesName,
+        seriesYearBegan: seriesYearBegan,
       );
 
       final notFoundRows = <ParsedCsvRow>[];
@@ -151,12 +170,14 @@ class CsvImportService {
         );
 
         final metronComics = await MetronService().getIssueList(
-          seriesName: entry.value.first.seriesName,
-          seriesYearBegan: entry.value.first.seriesYearBegan,
+          seriesName: seriesName,
+          seriesYearBegan: seriesYearBegan,
           loadAll: true,
         );
 
-        for (final row in notFoundRows) {
+        final metronSearchRows = [...notFoundRows];
+
+        for (final row in metronSearchRows) {
           final match = metronComics.firstWhereOrNull(
             (comic) =>
                 _normalizeSeriesName(row.seriesName) ==
@@ -168,6 +189,99 @@ class CsvImportService {
           );
           if (match != null) {
             comicLookup[_normalizeSeriesName(match.title)] = match;
+            notFoundRows.remove(row);
+          }
+        }
+      }
+
+      if (cancelationToken != null && cancelationToken.isCancelled) {
+        return comicLookup;
+      }
+
+      if (notFoundRows.isNotEmpty) {
+        onProgress?.call(
+          ImportProgress(
+            step: "Fetching series - ${entry.key} (GCD)",
+            progress: processedSeries / totalSeries,
+          ),
+        );
+
+        // TODO: put in own service
+        final gcdSeriesSearchString = seriesName
+            .substring(seriesName.indexOf('/') + 1)
+            .trim();
+
+        var uriString =
+            "${AppConfig.apiProxyUrl}/gcd/series/name/$gcdSeriesSearchString"
+            "/year/$seriesYearBegan/";
+
+        final gcdSeriesUri = Uri.parse("$uriString?format=json");
+        final seriesResponse = await http.get(
+          gcdSeriesUri,
+          headers: {"pb_auth": pb.authStore.token},
+        );
+
+        if (seriesResponse.statusCode != 200) {
+          throw HttpException(
+            "Error fetching series from gcd. "
+            "Status code ${seriesResponse.statusCode}",
+            uri: gcdSeriesUri,
+          );
+        }
+
+        final data = jsonDecode(seriesResponse.body) as Map<String, dynamic>;
+        final results = data['results'] as List<dynamic>;
+
+        Map<String, dynamic>? foundGcdSeries;
+        for (final gcdSeries in results) {
+          if (_normalizeSeriesName(gcdSeries['name']) ==
+              _normalizeSeriesName(seriesName)) {
+            foundGcdSeries = gcdSeries;
+            break;
+          }
+        }
+
+        if (foundGcdSeries != null) {
+          final activeIssues = foundGcdSeries['active_issues'] ?? [];
+          final issueDescriptors = foundGcdSeries['issue_descriptors'] ?? [];
+
+          for (final row in notFoundRows) {
+            final issueIndex = issueDescriptors.indexWhere((desc) {
+              final numberPart = desc.split(' ').first;
+              return numberPart == row.issue;
+            });
+
+            if (issueIndex != -1 && issueIndex < activeIssues.length) {
+              final issueUrl = activeIssues[issueIndex];
+
+              // Fetch issue details from GCD
+              final gcdIssueUri = Uri.parse(issueUrl);
+
+              final issueResponse = await http.get(
+                gcdIssueUri,
+                headers: {"pb_auth": pb.authStore.token},
+              );
+
+              if (issueResponse.statusCode != 200) {
+                throw HttpException(
+                  "Error fetching issue from gcd. "
+                  "Status code ${issueResponse.statusCode}",
+                  uri: gcdIssueUri,
+                );
+              }
+
+              final issueData = jsonDecode(issueResponse.body);
+
+              final gcdMatch = Comic(
+                id: '',
+                seriesName: seriesName,
+                issue: row.issue,
+                seriesYearBegan: seriesYearBegan,
+                coverUrl: issueData['cover'],
+                coverDate: row.coverDate,
+              );
+              comicLookup[_normalizeSeriesName(gcdMatch.title)] = gcdMatch;
+            }
           }
         }
       }
@@ -281,8 +395,9 @@ class SuccessfulImport {
 class FailedImport {
   final ParsedCsvRow csvRow;
   final String reason;
+  final String? tip;
 
-  FailedImport({required this.csvRow, required this.reason});
+  FailedImport({required this.csvRow, required this.reason, this.tip});
 }
 
 class _CsvColumnDefinitions {
@@ -306,29 +421,24 @@ class ParsedCsvRow {
   final String issue;
   final int position;
   final DateTime? coverDate;
-  final int? seriesYearBegan;
+  final int seriesYearBegan;
   final String? notes;
 
-  String get seriesKey =>
-      "$seriesName${seriesYearBegan != null ? " ($seriesYearBegan)" : ""}";
+  String get seriesKey => "$seriesName ($seriesYearBegan)";
   String get comicKey => "$seriesKey${issue.isNotEmpty ? " #$issue" : ""}";
 
   ParsedCsvRow({
     required this.seriesName,
     required this.issue,
     required this.position,
+    required this.seriesYearBegan,
     this.coverDate,
-    this.seriesYearBegan,
     this.notes,
   });
 
   @override
   String toString() {
-    var str = "$position - $seriesName";
-
-    if (seriesYearBegan != null) {
-      str += " - $seriesYearBegan";
-    }
+    var str = "$position - $seriesName - $seriesYearBegan";
 
     if (issue.isNotEmpty) {
       str += " - $issue";
@@ -349,7 +459,7 @@ class ParsedCsvRow {
 
   static ParsedCsvRow? fromMap(Map<String, String> map) {
     final seriesName = map[_CsvColumnDefinitions.seriesName];
-    final seriesYearBegan = map[_CsvColumnDefinitions.seriesYearBegan];
+    final seriesYearBeganStr = map[_CsvColumnDefinitions.seriesYearBegan];
     final issue = map[_CsvColumnDefinitions.issue];
     final coverDateStr = map[_CsvColumnDefinitions.coverDate];
     final coverMonthStr = map[_CsvColumnDefinitions.coverMonth];
@@ -357,12 +467,17 @@ class ParsedCsvRow {
     final positionStr = map[_CsvColumnDefinitions.position];
     final notes = map[_CsvColumnDefinitions.notes]; // may be null
 
-    if (seriesName == null || issue == null || positionStr == null) {
+    if (seriesName == null ||
+        issue == null ||
+        positionStr == null ||
+        seriesYearBeganStr == null) {
       return null;
     }
 
     final position = int.tryParse(positionStr);
     if (position == null) return null;
+    final seriesYearBegan = int.tryParse(seriesYearBeganStr);
+    if (seriesYearBegan == null) return null;
 
     DateTime? coverDate;
     if (coverDateStr != null && coverDateStr.isNotEmpty) {
@@ -380,7 +495,7 @@ class ParsedCsvRow {
       issue: issue,
       position: position,
       coverDate: coverDate,
-      seriesYearBegan: int.tryParse(seriesYearBegan ?? ""),
+      seriesYearBegan: seriesYearBegan,
       notes: notes,
     );
   }

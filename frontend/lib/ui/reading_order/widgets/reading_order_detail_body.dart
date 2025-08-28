@@ -79,8 +79,10 @@ class _ClearAllEntriesButton extends ConsumerWidget {
             ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
           }
         } finally {
-          ref.invalidate(entriesForReadingOrderProvider(readingOrder.id));
-          ref.invalidate(readingOrderProgressProvider(readingOrder.id));
+          if (context.mounted) {
+            ref.invalidate(entriesForReadingOrderProvider(readingOrder.id));
+            ref.invalidate(readingOrderProgressProvider(readingOrder.id));
+          }
         }
       },
       child: Text("Clear all entries"),

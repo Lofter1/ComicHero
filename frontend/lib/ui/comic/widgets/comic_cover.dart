@@ -11,13 +11,10 @@ class ComicCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(rounding),
-      child: Image.network(
-        comic.coverUrl!,
-        fit: BoxFit.scaleDown,
-        headers: {"pb_auth": pb.authStore.token},
-      ),
+    return Image.network(
+      comic.coverUrl!,
+      fit: BoxFit.scaleDown,
+      headers: {"pb_auth": pb.authStore.token},
     );
   }
 }
