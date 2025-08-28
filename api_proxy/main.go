@@ -129,8 +129,8 @@ func handleGCDProxy(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Print(err)
 	}
-	modified := replaceURLs(buf.Bytes(), gcdMediaURL, strings.Split(r.URL.Path, "/")[1])
-	modified = replaceURLs(modified, gcdBaseURL, strings.Split(r.URL.Path, "/")[1])
+	modified := replaceURLs(buf.Bytes(), gcdMediaURL, "gcd/media")
+	modified = replaceURLs(modified, gcdBaseURL, "gcd")
 
 	contentType := resp.Header.Get("Content-Type")
 
