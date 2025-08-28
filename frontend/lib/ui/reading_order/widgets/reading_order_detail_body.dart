@@ -46,7 +46,11 @@ class _ReadingOrderActionButtons extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               Row(
-                children: [_ClearAllEntriesButton(readingOrder: readingOrder)],
+                spacing: 10,
+                children: [
+                  _ClearAllEntriesButton(readingOrder: readingOrder),
+                  _DeleteReadingOrderButton(readingOrder: readingOrder),
+                ],
               ),
             ],
           ),
@@ -86,6 +90,43 @@ class _ClearAllEntriesButton extends ConsumerWidget {
         }
       },
       child: Text("Clear all entries"),
+    );
+  }
+}
+
+class _DeleteReadingOrderButton extends ConsumerWidget {
+  const _DeleteReadingOrderButton({required this.readingOrder});
+
+  final ReadingOrder readingOrder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return TextButton(
+      style: TextButton.styleFrom(foregroundColor: Colors.red),
+      onPressed: () async {
+        try {
+          await ReadingOrderService().clearAllEntries(readingOrder.id);
+          await ReadingOrderService().delete(readingOrder);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("Deleted Reading Order")));
+
+            Navigator.pop(context);
+          }
+        } on Exception catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(getErrorSnackbar(e));
+          }
+        } finally {
+          if (context.mounted) {
+            ref.invalidate(entriesForReadingOrderProvider(readingOrder.id));
+            ref.invalidate(readingOrderProgressProvider(readingOrder.id));
+          }
+        }
+      },
+      child: Text("Delete reading order"),
     );
   }
 }
