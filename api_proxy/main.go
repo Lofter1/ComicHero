@@ -169,7 +169,7 @@ func handleGCDMediaProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mediaUrl := gcdMediaURL + strings.TrimPrefix(path, "/gcd")
+	mediaUrl := gcdMediaURL + strings.TrimPrefix(path, "/gcd/media")
 
 	resp, err := http.Get(mediaUrl)
 	if err != nil {
