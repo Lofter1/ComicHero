@@ -21,7 +21,7 @@ services:
 
 
   pocketbase:
-    image: ghcr.io/lofter1/pocketbase:dev-latest
+    image: ghcr.io/lofter1/pocketbase:dev-latest-arm64
     build:
       context: ./pocketbase
       dockerfile: Dockerfile
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/lofter1/pocketbase:dev-latest-arm64
+    image: ghcr.io/lofter1/frontend:dev-latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
