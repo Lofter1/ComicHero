@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:comichero_frontend/models/models.dart';
 import 'package:comichero_frontend/ui/ui.dart';
+import 'package:intl/intl.dart';
 
 class IssueSearchResultView extends StatelessWidget {
   final List<Comic> searchResults;
@@ -24,6 +25,11 @@ class IssueSearchResultView extends StatelessWidget {
           return ListTile(
             leading: ComicCover(comic: comic, rounding: 1),
             title: Text(comic.title),
+            subtitle: Text(
+              comic.coverDate != null
+                  ? DateFormat.yMMM().format(comic.coverDate!)
+                  : '',
+            ),
             onTap: () => onComicSelected(comic),
           );
         },
