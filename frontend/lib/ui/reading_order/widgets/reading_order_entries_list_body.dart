@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:comichero_frontend/models/models.dart';
@@ -263,25 +265,40 @@ class _ReadingOrderDetailViewBodyState
     return file.readAsString();
   }
 
-  void _showCsvImportDetailDialog(ImportResult importResult) {
-    showDialog(
+  Future<void> _showCsvImportDetailDialog(ImportResult importResult) async {
+    await showDialog(
       context: context,
       builder: (context) {
-        return _CsvImportDetailDialog(importResult: importResult);
+        return _CsvImportDetailDialog(
+          importResult: importResult,
+          readingOrderId: widget.readingOrder.id,
+        );
       },
     );
+
+    ref.invalidate(entriesForReadingOrderProvider(widget.readingOrder.id));
+    ref.invalidate(readingOrderProgressProvider(widget.readingOrder.id));
   }
 }
 
-class _CsvImportDetailDialog extends StatelessWidget {
-  const _CsvImportDetailDialog({required this.importResult});
-
+class _CsvImportDetailDialog extends StatefulWidget {
   final ImportResult importResult;
+  final String readingOrderId;
+
+  const _CsvImportDetailDialog({
+    required this.importResult,
+    required this.readingOrderId,
+  });
 
   @override
+  State<_CsvImportDetailDialog> createState() => _CsvImportDetailDialogState();
+}
+
+class _CsvImportDetailDialogState extends State<_CsvImportDetailDialog> {
+  @override
   Widget build(BuildContext context) {
-    final successCount = importResult.successes.length;
-    final failureCount = importResult.failures.length;
+    final successCount = widget.importResult.successes.length;
+    final failureCount = widget.importResult.failures.length;
     final hasFailures = failureCount > 0;
     final tabCount = hasFailures ? 2 : 1;
 
@@ -306,13 +323,40 @@ class _CsvImportDetailDialog extends StatelessWidget {
                   children: [
                     _CsvImportDetailSuccessList(
                       successCount: successCount,
-                      importResult: importResult,
+                      importResult: widget.importResult,
                     ),
 
                     if (hasFailures)
                       _CsvImportDetailFailureList(
                         failureCount: failureCount,
-                        importResult: importResult,
+                        importResult: widget.importResult,
+                        onComicManualSearchResult:
+                            (
+                              FailedImport failedImport,
+                              Comic selectedComic,
+                            ) async {
+                              final entry = await ReadingOrderEntriesService()
+                                  .create(
+                                    ReadingOrderEntry(
+                                      id: '',
+                                      readingOrderId: widget.readingOrderId,
+                                      position: failedImport.csvRow.position,
+                                      comic: selectedComic,
+                                      notes: failedImport.csvRow.notes,
+                                    ),
+                                  );
+                              setState(() {
+                                widget.importResult.successes.add(
+                                  SuccessfulImport(
+                                    csvRow: failedImport.csvRow,
+                                    entry: entry,
+                                  ),
+                                );
+                                widget.importResult.failures.remove(
+                                  failedImport,
+                                );
+                              });
+                            },
                       ),
                   ],
                 ),
@@ -326,19 +370,61 @@ class _CsvImportDetailDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text("Close"),
         ),
+        TextButton(
+          onPressed: () {
+            List<List<dynamic>> csvList = [];
+            csvList.add([
+              "Position",
+              "SeriesName",
+              "SeriesYearBegan",
+              "Issue",
+              "CoverYear",
+              "CoverMonth",
+              "Notes",
+              "FailureReason",
+              "Tip",
+            ]);
+            for (var failure in widget.importResult.failures) {
+              csvList.add([
+                failure.csvRow.position,
+                failure.csvRow.seriesName,
+                failure.csvRow.seriesYearBegan,
+                failure.csvRow.issue,
+                failure.csvRow.coverDate?.year ?? "",
+                failure.csvRow.coverDate?.month ?? "",
+                failure.csvRow.notes ?? "",
+                failure.reason,
+                failure.tip ?? "",
+              ]);
+            }
+            final csvString = ListToCsvConverter().convert(csvList);
+
+            Clipboard.setData(ClipboardData(text: csvString));
+
+            ScaffoldMessenger.of(
+              Navigator.of(context, rootNavigator: true).context,
+            ).showSnackBar(
+              SnackBar(content: Text("Copied failures to clipboard")),
+            );
+          },
+          child: Text("Export failures"),
+        ),
       ],
     );
   }
 }
 
 class _CsvImportDetailFailureList extends StatelessWidget {
+  final int failureCount;
+  final ImportResult importResult;
+  final Function(FailedImport failedImport, Comic selectedComic)
+  onComicManualSearchResult;
+
   const _CsvImportDetailFailureList({
     required this.failureCount,
     required this.importResult,
+    required this.onComicManualSearchResult,
   });
-
-  final int failureCount;
-  final ImportResult importResult;
 
   @override
   Widget build(BuildContext context) {
@@ -351,9 +437,30 @@ class _CsvImportDetailFailureList extends StatelessWidget {
         return ListTile(
           title: SelectableText(csvData.toString()),
           subtitle: SelectableText(f.reason),
-          trailing: f.tip != null
-              ? Tooltip(message: f.tip, child: Icon(Icons.info))
-              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (f.tip != null)
+                Tooltip(message: f.tip, child: Icon(Icons.info)),
+              IconButton(
+                onPressed: () async {
+                  final searchResult = await Navigator.of(context).push(
+                    DialogRoute(
+                      context: context,
+                      builder: (context) => ComicSearchDialog(
+                        initialSearchQuery: f.csvRow.comicKey,
+                      ),
+                    ),
+                  );
+                  if (searchResult != null) {
+                    onComicManualSearchResult(f, searchResult);
+                  }
+                },
+                icon: Icon(Icons.search),
+                tooltip: "Search manually",
+              ),
+            ],
+          ),
         );
       },
     );

@@ -6,11 +6,22 @@ import 'package:comichero_frontend/services/services.dart';
 import 'package:comichero_frontend/ui/ui.dart';
 
 class ComicSearchDialog extends StatelessWidget {
-  const ComicSearchDialog({super.key});
+  final String? initialSearchQuery;
+
+  const ComicSearchDialog({super.key, this.initialSearchQuery});
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(insetPadding: EdgeInsets.all(10), content: SearchView());
+    return AlertDialog(
+      insetPadding: EdgeInsets.all(10),
+      content: SearchView(initialSearchQuery: initialSearchQuery),
+      actions: [
+        TextButton(
+          onPressed: () => (Navigator.pop(context)),
+          child: Text("Close"),
+        ),
+      ],
+    );
   }
 }
 
