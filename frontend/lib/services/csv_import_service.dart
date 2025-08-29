@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:comichero_frontend/app_config.dart';
@@ -132,29 +133,35 @@ class CsvImportService {
 
       final seriesName = entry.value.first.seriesName;
       final seriesYearBegan = entry.value.first.seriesYearBegan;
-
-      final comics = await ComicService().get(
-        seriesName: seriesName,
-        seriesYearBegan: seriesYearBegan,
-      );
-
       final notFoundRows = <ParsedCsvRow>[];
 
-      for (final row in entry.value) {
-        final match = comics.firstWhereOrNull(
-          (comic) =>
-              _normalizeSeriesName(row.seriesName) ==
-                  _normalizeSeriesName(comic.seriesName) &&
-              row.seriesYearBegan == comic.seriesYearBegan &&
-              row.issue == comic.issue &&
-              row.coverDate?.year == comic.coverDate?.year &&
-              row.coverDate?.month == comic.coverDate?.month,
+      try {
+        final comics = await ComicService().get(
+          seriesName: seriesName,
+          seriesYearBegan: seriesYearBegan,
         );
-        if (match != null) {
-          comicLookup[_normalizeSeriesName(match.title)] = match;
-        } else {
-          notFoundRows.add(row);
+
+        for (final row in entry.value) {
+          final match = comics.firstWhereOrNull(
+            (comic) =>
+                _normalizeSeriesName(row.seriesName) ==
+                    _normalizeSeriesName(comic.seriesName) &&
+                row.seriesYearBegan == comic.seriesYearBegan &&
+                row.issue == comic.issue &&
+                row.coverDate?.year == comic.coverDate?.year &&
+                row.coverDate?.month == comic.coverDate?.month,
+          );
+          if (match != null) {
+            comicLookup[_normalizeSeriesName(match.title)] = match;
+          } else {
+            notFoundRows.add(row);
+          }
         }
+      } on Exception catch (e) {
+        debugPrint(
+          "Exception thrown retrieving from "
+          "Backend: $seriesName $seriesYearBegan $e",
+        );
       }
 
       if (cancelationToken != null && cancelationToken.isCancelled) {
@@ -169,28 +176,35 @@ class CsvImportService {
           ),
         );
 
-        final metronComics = await MetronService().getIssueList(
-          seriesName: seriesName,
-          seriesYearBegan: seriesYearBegan,
-          loadAll: true,
-        );
-
-        final metronSearchRows = [...notFoundRows];
-
-        for (final row in metronSearchRows) {
-          final match = metronComics.firstWhereOrNull(
-            (comic) =>
-                _normalizeSeriesName(row.seriesName) ==
-                    _normalizeSeriesName(comic.seriesName) &&
-                row.seriesYearBegan == comic.seriesYearBegan &&
-                row.issue == comic.issue &&
-                row.coverDate?.year == comic.coverDate?.year &&
-                row.coverDate?.month == comic.coverDate?.month,
+        try {
+          final metronComics = await MetronService().getIssueList(
+            seriesName: seriesName,
+            seriesYearBegan: seriesYearBegan,
+            loadAll: true,
           );
-          if (match != null) {
-            comicLookup[_normalizeSeriesName(match.title)] = match;
-            notFoundRows.remove(row);
+
+          final metronSearchRows = [...notFoundRows];
+
+          for (final row in metronSearchRows) {
+            final match = metronComics.firstWhereOrNull(
+              (comic) =>
+                  _normalizeSeriesName(row.seriesName) ==
+                      _normalizeSeriesName(comic.seriesName) &&
+                  row.seriesYearBegan == comic.seriesYearBegan &&
+                  row.issue == comic.issue &&
+                  row.coverDate?.year == comic.coverDate?.year &&
+                  row.coverDate?.month == comic.coverDate?.month,
+            );
+            if (match != null) {
+              comicLookup[_normalizeSeriesName(match.title)] = match;
+              notFoundRows.remove(row);
+            }
           }
+        } on Exception catch (e) {
+          debugPrint(
+            "Exception thrown retrieving from "
+            "Metron: $seriesName $seriesYearBegan $e",
+          );
         }
       }
 
@@ -214,75 +228,73 @@ class CsvImportService {
         var uriString =
             "${AppConfig.apiProxyUrl}/gcd/series/name/$gcdSeriesSearchString"
             "/year/$seriesYearBegan/";
-
-        final gcdSeriesUri = Uri.parse("$uriString?format=json");
-        final seriesResponse = await http.get(
-          gcdSeriesUri,
-          headers: {"pb_auth": pb.authStore.token},
-        );
-
-        if (seriesResponse.statusCode != 200) {
-          throw HttpException(
-            "Error fetching series from gcd. "
-            "Status code ${seriesResponse.statusCode}",
-            uri: gcdSeriesUri,
+        try {
+          final gcdSeriesUri = Uri.parse("$uriString?format=json");
+          final seriesResponse = await http.get(
+            gcdSeriesUri,
+            headers: {"pb_auth": pb.authStore.token},
           );
-        }
 
-        final data = jsonDecode(seriesResponse.body) as Map<String, dynamic>;
-        final results = data['results'] as List<dynamic>;
+          final data = jsonDecode(seriesResponse.body) as Map<String, dynamic>;
+          final results = data['results'] as List<dynamic>;
 
-        Map<String, dynamic>? foundGcdSeries;
-        for (final gcdSeries in results) {
-          if (_normalizeSeriesName(gcdSeries['name']) ==
-              _normalizeSeriesName(seriesName)) {
-            foundGcdSeries = gcdSeries;
-            break;
-          }
-        }
-
-        if (foundGcdSeries != null) {
-          final activeIssues = foundGcdSeries['active_issues'] ?? [];
-          final issueDescriptors = foundGcdSeries['issue_descriptors'] ?? [];
-
-          for (final row in notFoundRows) {
-            final issueIndex = issueDescriptors.indexWhere((desc) {
-              final numberPart = desc.split(' ').first;
-              return numberPart == row.issue;
-            });
-
-            if (issueIndex != -1 && issueIndex < activeIssues.length) {
-              final issueUrl = activeIssues[issueIndex];
-
-              // Fetch issue details from GCD
-              final gcdIssueUri = Uri.parse(issueUrl);
-
-              final issueResponse = await http.get(
-                gcdIssueUri,
-                headers: {"pb_auth": pb.authStore.token},
-              );
-
-              if (issueResponse.statusCode != 200) {
-                throw HttpException(
-                  "Error fetching issue from gcd. "
-                  "Status code ${issueResponse.statusCode}",
-                  uri: gcdIssueUri,
-                );
-              }
-
-              final issueData = jsonDecode(issueResponse.body);
-
-              final gcdMatch = Comic(
-                id: '',
-                seriesName: seriesName,
-                issue: row.issue,
-                seriesYearBegan: seriesYearBegan,
-                coverUrl: issueData['cover'],
-                coverDate: row.coverDate,
-              );
-              comicLookup[_normalizeSeriesName(gcdMatch.title)] = gcdMatch;
+          Map<String, dynamic>? foundGcdSeries;
+          for (final gcdSeries in results) {
+            if (_normalizeSeriesName(gcdSeries['name']) ==
+                _normalizeSeriesName(seriesName)) {
+              foundGcdSeries = gcdSeries;
+              break;
             }
           }
+
+          if (foundGcdSeries != null) {
+            final activeIssues = foundGcdSeries['active_issues'] ?? [];
+            final issueDescriptors = foundGcdSeries['issue_descriptors'] ?? [];
+
+            for (final row in notFoundRows) {
+              final issueIndex = issueDescriptors.indexWhere((desc) {
+                final numberPart = desc.split(' ').first;
+                return numberPart == row.issue;
+              });
+
+              if (issueIndex != -1 && issueIndex < activeIssues.length) {
+                final issueUrl = activeIssues[issueIndex];
+
+                // Fetch issue details from GCD
+                final gcdIssueUri = Uri.parse(issueUrl);
+
+                final issueResponse = await http.get(
+                  gcdIssueUri,
+                  headers: {"pb_auth": pb.authStore.token},
+                );
+
+                if (issueResponse.statusCode != 200) {
+                  throw HttpException(
+                    "Error fetching issue from gcd. "
+                    "Status code ${issueResponse.statusCode}",
+                    uri: gcdIssueUri,
+                  );
+                }
+
+                final issueData = jsonDecode(issueResponse.body);
+
+                final gcdMatch = Comic(
+                  id: '',
+                  seriesName: seriesName,
+                  issue: row.issue,
+                  seriesYearBegan: seriesYearBegan,
+                  coverUrl: issueData['cover'],
+                  coverDate: row.coverDate,
+                );
+                comicLookup[_normalizeSeriesName(gcdMatch.title)] = gcdMatch;
+              }
+            }
+          }
+        } on Exception catch (e) {
+          debugPrint(
+            "Exception thrown retrieving from "
+            "GCD: $seriesName $seriesYearBegan $e",
+          );
         }
       }
     }
