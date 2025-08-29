@@ -208,7 +208,7 @@ class CsvImportService {
 
         // TODO: put in own service
         final gcdSeriesSearchString = seriesName
-            .substring(seriesName.indexOf('/') + 1)
+            .substring(seriesName.lastIndexOf('/') + 1)
             .trim();
 
         var uriString =
