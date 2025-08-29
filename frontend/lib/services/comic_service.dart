@@ -69,15 +69,9 @@ class ComicService {
       throw Exception("Failed to decode image");
     }
 
-    // 3. Resize to 50%
-    final resized = img.copyResize(
-      original,
-      width: (original.width / 2).round(),
-      height: (original.height / 2).round(),
-    );
+    final resized = img.copyResize(original, width: 320, maintainAspect: true);
 
-    // 4. Encode back to bytes (JPEG or PNG depending on your original format)
-    final resizedBytes = img.encodeJpg(resized); // or encodePng(resized)
+    final resizedBytes = img.encodeJpg(resized);
 
     return collection
         .create(
