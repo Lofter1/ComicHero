@@ -134,6 +134,7 @@ class _AuthDialogState extends State<_AuthDialog> {
               TextFormField(
                 decoration: InputDecoration(labelText: 'Email'),
                 autofocus: true,
+                autofillHints: const [AutofillHints.username],
                 textInputAction: TextInputAction.next,
                 onChanged: (value) => email = value,
                 validator: (value) {
@@ -162,6 +163,7 @@ class _AuthDialogState extends State<_AuthDialog> {
                     ? TextInputAction.done
                     : TextInputAction.next,
                 obscureText: true,
+                autofillHints: const [AutofillHints.password],
                 onChanged: (value) => password = value,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
