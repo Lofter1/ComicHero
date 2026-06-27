@@ -9,7 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 
-	"ComicHeroV2-Backend/internal/metron"
+	"github.com/Lofter1/ComicHero/backend/internal/metron"
 )
 
 func newMetronImportTestDB(t *testing.T) *sqlx.DB {

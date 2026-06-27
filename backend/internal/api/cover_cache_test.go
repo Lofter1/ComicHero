@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"ComicHeroV2-Backend/internal/metron"
+	"github.com/Lofter1/ComicHero/backend/internal/metron"
 )
 
 func TestCreateComicDownloadsRemoteCover(t *testing.T) {

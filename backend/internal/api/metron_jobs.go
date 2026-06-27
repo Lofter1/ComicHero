@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"ComicHeroV2-Backend/internal/metron"
+	"github.com/Lofter1/ComicHero/backend/internal/metron"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"

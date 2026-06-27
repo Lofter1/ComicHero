@@ -7,7 +7,7 @@ BACKEND_URL ?= http://localhost:8090/docs
 UI_URL ?= http://localhost:5173
 OPEN_BROWSER ?= 1
 OPEN_CMD ?= open
-IMAGE ?= comichero-v2:latest
+IMAGE ?= comichero:latest
 
 dev:
 	@set -e; \

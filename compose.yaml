@@ -1,7 +1,7 @@
 services:
   comichero:
     build: .
-    image: comichero-v2:latest
+    image: comichero:latest
     ports:
       - "8080:8080"
     volumes:

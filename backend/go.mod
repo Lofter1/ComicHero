@@ -1,4 +1,4 @@
-module ComicHeroV2-Backend
+module github.com/Lofter1/ComicHero/backend
 
 go 1.26.3
 

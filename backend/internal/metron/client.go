@@ -251,7 +251,7 @@ func (c *Client) get(ctx context.Context, path string, values url.Values, target
 	}
 	c.authorize(req)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "ComicHeroV2/0.1")
+	req.Header.Set("User-Agent", "ComicHero/0.1")
 	if cached, ok := c.cached(cacheKey); ok && cached.lastModified != "" {
 		req.Header.Set("If-Modified-Since", cached.lastModified)
 	}

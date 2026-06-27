@@ -41,7 +41,7 @@ SQLite data is stored in the `comichero-data` Docker volume.
 Requirements:
 
 - Go matching `backend/go.mod`
-- Node matching `Dockerfile` or newer compatible LTS
+- Node.js 24 LTS
 - npm
 
 Install frontend dependencies:

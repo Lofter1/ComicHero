@@ -39,6 +39,6 @@ yarn-debug.log*
 pnpm-debug.log*
 
 # Local binaries
-ComicHeroV2-Backend
+ComicHero
 comichero
 server

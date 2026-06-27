@@ -12,9 +12,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
-	"ComicHeroV2-Backend/internal/api"
-	"ComicHeroV2-Backend/internal/db"
-	"ComicHeroV2-Backend/internal/metron"
+	"github.com/Lofter1/ComicHero/backend/internal/api"
+	"github.com/Lofter1/ComicHero/backend/internal/db"
+	"github.com/Lofter1/ComicHero/backend/internal/metron"
 )
 
 func main() {
