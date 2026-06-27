@@ -77,6 +77,7 @@ type CharacterListOutput struct {
 }
 
 type CharacterDetailOutput struct {
+	MetronRateLimitHeaders
 	Body CharacterDetail
 }
 

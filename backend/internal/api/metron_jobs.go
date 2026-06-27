@@ -17,7 +17,7 @@ import (
 
 type MetronImportJob struct {
 	ID        string `json:"id" doc:"Import job identifier." example:"metron-1"`
-	Type      string `json:"type" doc:"Import type." enum:"comic,readingList,series" example:"series"`
+	Type      string `json:"type" doc:"Import type." enum:"comic,readingList,series,character" example:"series"`
 	MetronID  int    `json:"metronId" doc:"Metron resource identifier." example:"123456"`
 	Status    string `json:"status" doc:"Current job status." enum:"queued,running,succeeded,failed,canceled" example:"running"`
 	Message   string `json:"message" doc:"Human-readable status message." example:"Importing series from Metron..."`
@@ -163,6 +163,8 @@ func successMessage(jobType string) string {
 		return "Reading list import finished."
 	case "series":
 		return "Series import finished."
+	case "character":
+		return "Character import finished."
 	default:
 		return "Import finished."
 	}
@@ -231,6 +233,13 @@ func startMetronSeriesImport(store *metronImportJobStore, db *sqlx.DB, client *m
 	})
 }
 
+func startMetronCharacterAppearancesImport(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int) MetronImportJob {
+	return store.start("character", metronID, "Importing character from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+		progress(0, 0, "Preparing character appearance import...")
+		return importMetronCharacterAppearancesWithProgress(ctx, db, client, covers, metronID, progress)
+	})
+}
+
 func metronImportError(err error) error {
 	if isContextCanceledError(err) {
 		return err
@@ -278,6 +287,8 @@ func continueMetronImportJob(store *metronImportJobStore, db *sqlx.DB, client *m
 		next = startMetronReadingListContinue(store, db, client, covers, job.MetronID)
 	case "series":
 		next = startMetronSeriesImport(store, db, client, covers, job.MetronID)
+	case "character":
+		next = startMetronCharacterAppearancesImport(store, db, client, covers, job.MetronID)
 	default:
 		return nil, huma.Error400BadRequest("unsupported import type")
 	}

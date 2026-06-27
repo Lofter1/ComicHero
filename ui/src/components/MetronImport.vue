@@ -1,9 +1,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 import {
+  importMetronCharacterAppearances,
   importMetronComic,
   importMetronReadingList,
   importMetronSeries,
+  searchMetronCharacters,
   searchMetronComics,
   searchMetronReadingLists,
   searchMetronSeries,
@@ -27,12 +29,14 @@ const importingKey = ref('')
 const importStatus = ref('')
 const rateLimit = ref(null)
 const comicResults = ref([])
+const characterResults = ref([])
 const readingListResults = ref([])
 const seriesResults = ref([])
 
 const busy = computed(() => searching.value)
 const searchLabel = computed(() => {
   if (searching.value) return 'Searching...'
+  if (activeSearch.value === 'characters') return 'Search Characters'
   return `Search ${activeSearch.value === 'readingLists' ? 'Reading Lists' : activeSearch.value}`
 })
 const rateLimitSummary = computed(() => {
@@ -73,6 +77,13 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronReadingLists({ q: query.value })
       updateRateLimit(nextRateLimit)
       readingListResults.value = Array.isArray(data) ? data : []
+      return
+    }
+
+    if (activeSearch.value === 'characters') {
+      const { data, rateLimit: nextRateLimit } = await searchMetronCharacters({ q: query.value })
+      updateRateLimit(nextRateLimit)
+      characterResults.value = Array.isArray(data) ? data : []
       return
     }
 
@@ -135,6 +146,22 @@ async function importSeries(item) {
   }
 }
 
+async function importCharacter(character) {
+  const id = character.id
+  importingKey.value = `character:${id}`
+  importStatus.value = 'Character import started in the background.'
+  try {
+    const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(id)
+    updateRateLimit(nextRateLimit)
+    trackJob(job, character.name || 'Untitled character')
+  } catch (err) {
+    updateRateLimit(err.rateLimit)
+    emit('error', err.message)
+  } finally {
+    importingKey.value = ''
+  }
+}
+
 function setSearchMode(mode) {
   activeSearch.value = mode
   if (mode !== 'comics') {
@@ -164,6 +191,10 @@ function rowImporting(type, id) {
   return importingKey.value === `${type}:${id}` || props.importJobs.some(job => {
     return job.type === type && job.metronId === id && (job.status === 'queued' || job.status === 'running')
   })
+}
+
+function characterAppearanceLabel(character) {
+  return character.aliases?.length ? character.aliases.join(', ') : 'No aliases in search result'
 }
 </script>
 
@@ -197,11 +228,28 @@ function rowImporting(type, id) {
       >
         Series
       </button>
+      <button
+        type="button"
+        :class="{ active: activeSearch === 'characters' }"
+        role="tab"
+        :aria-selected="activeSearch === 'characters'"
+        @click="setSearchMode('characters')"
+      >
+        Characters
+      </button>
     </div>
 
     <form class="metron-search" @submit.prevent="search">
       <label>
-        {{ activeSearch === 'comics' ? 'Search' : activeSearch === 'readingLists' ? 'Reading List' : 'Series' }}
+        {{
+          activeSearch === 'comics'
+            ? 'Search'
+            : activeSearch === 'readingLists'
+              ? 'Reading List'
+              : activeSearch === 'characters'
+                ? 'Character'
+                : 'Series'
+        }}
         <input v-model="query" placeholder="Batman, X-Men, Civil War" />
       </label>
       <label v-if="activeSearch === 'comics'">
@@ -263,7 +311,7 @@ function rowImporting(type, id) {
           </button>
         </template>
 
-        <template v-else>
+        <template v-else-if="activeSearch === 'series'">
           <h3>Series</h3>
           <p v-if="searching" class="muted">Searching Metron series...</p>
           <p v-else-if="seriesResults.length === 0" class="muted">No Metron series results yet.</p>
@@ -281,6 +329,27 @@ function rowImporting(type, id) {
               </small>
             </span>
             <span class="status-pill">{{ rowImporting('series', item.id) ? 'Importing...' : 'Import' }}</span>
+          </button>
+        </template>
+
+        <template v-else>
+          <h3>Characters</h3>
+          <p v-if="searching" class="muted">Searching Metron characters...</p>
+          <p v-else-if="characterResults.length === 0" class="muted">No Metron character results yet.</p>
+          <button
+            v-for="character in characterResults"
+            :key="character.id"
+            class="row"
+            :disabled="importingKey === `character:${character.id}`"
+            @click="importCharacter(character)"
+          >
+            <span>
+              <strong>{{ character.name }}</strong>
+              <small>{{ characterAppearanceLabel(character) }} · Metron {{ character.id }}</small>
+            </span>
+            <span class="status-pill">
+              {{ importingKey === `character:${character.id}` ? 'Importing...' : 'Import' }}
+            </span>
           </button>
         </template>
       </article>

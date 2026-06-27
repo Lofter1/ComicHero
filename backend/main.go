@@ -41,12 +41,13 @@ func main() {
 
 	api.RegisterReadingOrderRoutes(humaAPI, database)
 	api.RegisterComicRoutes(humaAPI, database, covers)
-	api.RegisterCharacterRoutes(humaAPI, database)
-	api.RegisterMetronRoutes(humaAPI, database, metron.New(metron.Config{
+	metronClient := metron.New(metron.Config{
 		BaseURL:  env("METRON_BASE_URL", metron.DefaultBaseURL),
 		Username: os.Getenv("METRON_USERNAME"),
 		Password: os.Getenv("METRON_PASSWORD"),
-	}), covers, api.NewMetronImportJobStore())
+	})
+	api.RegisterCharacterRoutes(humaAPI, database)
+	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, api.NewMetronImportJobStore())
 	serveStatic(router, env("STATIC_DIR", "./public"))
 
 	addr := ":" + env("PORT", "8080")

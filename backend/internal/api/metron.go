@@ -31,6 +31,10 @@ type MetronSeriesInput struct {
 	Query string `query:"q" doc:"Search text for Metron series." example:"Batman"`
 }
 
+type MetronCharacterInput struct {
+	Query string `query:"q" doc:"Search text for Metron characters." example:"Batman"`
+}
+
 type MetronIssueListOutput struct {
 	MetronRateLimitHeaders
 	Body []metron.Issue
@@ -54,6 +58,11 @@ type MetronReadingListDetailOutput struct {
 type MetronSeriesListOutput struct {
 	MetronRateLimitHeaders
 	Body []metron.Series
+}
+
+type MetronCharacterListOutput struct {
+	MetronRateLimitHeaders
+	Body []metron.MetronCharacter
 }
 
 type MetronRateLimitHeaders struct {
@@ -195,6 +204,36 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "searchMetronCharacters",
+		Tags:        []string{tagMetron},
+		Summary:     "Search Metron characters",
+		Description: "Searches Metron for characters by name.",
+		Method:      http.MethodGet,
+		Path:        "/metron/characters",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronCharacterInput) (*MetronCharacterListOutput, error) {
+		characters, err := client.SearchCharacters(ctx, input.Query)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronCharacterListOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: characters}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "importMetronCharacterAppearances",
+		Tags:          []string{tagMetron, tagCharacters},
+		Summary:       "Import Metron character appearances",
+		Description:   "Starts a background job that imports or reuses a Metron character locally, fetches the character's Metron issue list, imports or reuses those issues, and links them as local appearances.",
+		Method:        http.MethodPost,
+		Path:          "/metron/characters/{id}/import",
+		DefaultStatus: http.StatusAccepted,
+		Errors:        errsMetronSync,
+	}, func(ctx context.Context, input *MetronIDInput) (*MetronImportJobOutput, error) {
+		job := startMetronCharacterAppearancesImport(importJobs, db, client, covers, input.ID)
+		return &MetronImportJobOutput{Body: job}, nil
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "importMetronSeries",
 		Tags:          []string{tagMetron},
 		Summary:       "Import Metron series",
@@ -269,7 +308,7 @@ func metronRateLimitHeaders(rateLimit metron.RateLimit) MetronRateLimitHeaders {
 }
 
 func withMetronRateLimit[T interface {
-	*ComicDetailOutput | *ReadingOrderDetailOutput | *ComicListOutput
+	*ComicDetailOutput | *ReadingOrderDetailOutput | *ComicListOutput | *CharacterDetailOutput
 }](output T, rateLimit metron.RateLimit) T {
 	headers := metronRateLimitHeaders(rateLimit)
 	switch typed := any(output).(type) {
@@ -278,6 +317,8 @@ func withMetronRateLimit[T interface {
 	case *ReadingOrderDetailOutput:
 		typed.MetronRateLimitHeaders = headers
 	case *ComicListOutput:
+		typed.MetronRateLimitHeaders = headers
+	case *CharacterDetailOutput:
 		typed.MetronRateLimitHeaders = headers
 	}
 	return output

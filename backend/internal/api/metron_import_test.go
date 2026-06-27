@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
@@ -85,6 +86,14 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 	}
 
 	return db
+}
+
+func serverNextURL(r *http.Request, path string) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	return scheme + "://" + r.Host + path
 }
 
 func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
@@ -246,6 +255,129 @@ func TestImportMetronComicSkipsExistingCharacterImport(t *testing.T) {
 	}
 	if len(comic.Body.Characters) != 1 || comic.Body.Characters[0].Name != "Original Hero" {
 		t.Fatalf("comic characters = %#v; want existing character", comic.Body.Characters)
+	}
+}
+
+func TestImportCharacterAppearancesFromMetron(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO characters (id, name, metron_character_id)
+		VALUES (1, 'Hero', 301)
+	`); err != nil {
+		t.Fatalf("insert character: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO comics (id, series, series_year, issue, publisher, metron_issue_id)
+		VALUES (1, 'Series', 2026, 1, 'Publisher', 101)
+	`); err != nil {
+		t.Fatalf("insert existing comic: %v", err)
+	}
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.String()]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.String() {
+		case "/character/301/issue_list/":
+			w.Write([]byte(`{
+				"count": 2,
+				"next": "` + serverNextURL(r, "/character/301/issue_list/?page=2") + `",
+				"results": [
+					{"id":101,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"1","cover_date":"2026-01-01"}
+				]
+			}`))
+		case "/character/301/issue_list/?page=2":
+			w.Write([]byte(`{
+				"count": 2,
+				"next": null,
+				"results": [
+					{"issue":{"id":102,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"2","cover_date":"2026-02-01"}}
+				]
+			}`))
+		case "/issue/102/":
+			w.Write([]byte(`{"id":102,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"2","cover_date":"2026-02-01"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	detail, err := importCharacterAppearancesFromMetron(ctx, db, client, nil, 1)
+	if err != nil {
+		t.Fatalf("importCharacterAppearancesFromMetron: %v", err)
+	}
+	if requests["/character/301/issue_list/"] != 1 {
+		t.Fatalf("first issue-list page requests = %d; want 1", requests["/character/301/issue_list/"])
+	}
+	if requests["/character/301/issue_list/?page=2"] != 1 {
+		t.Fatalf("second issue-list page requests = %d; want 1", requests["/character/301/issue_list/?page=2"])
+	}
+	if requests["/issue/101/"] != 0 {
+		t.Fatalf("existing issue detail requests = %d; want 0", requests["/issue/101/"])
+	}
+	if requests["/issue/102/"] != 1 {
+		t.Fatalf("new issue detail requests = %d; want 1", requests["/issue/102/"])
+	}
+	if len(detail.Body.Comics) != 2 {
+		t.Fatalf("appearances = %d; want 2", len(detail.Body.Comics))
+	}
+
+	var linkCount int
+	if err := db.GetContext(ctx, &linkCount, `SELECT COUNT(*) FROM comic_characters WHERE character_id = 1`); err != nil {
+		t.Fatalf("count links: %v", err)
+	}
+	if linkCount != 2 {
+		t.Fatalf("link count = %d; want 2", linkCount)
+	}
+}
+
+func TestStartMetronCharacterAppearancesImport(t *testing.T) {
+	db := newMetronImportTestDB(t)
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/character/301/":
+			w.Write([]byte(`{"id":301,"name":"Hero"}`))
+		case "/character/301/issue_list/":
+			w.Write([]byte(`[{"id":101,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"1"}]`))
+		case "/issue/101/":
+			w.Write([]byte(`{"id":101,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"1"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	store := newMetronImportJobStore()
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	job := startMetronCharacterAppearancesImport(store, db, client, nil, 301)
+
+	var current MetronImportJob
+	for range 100 {
+		var ok bool
+		current, ok = store.get(job.ID)
+		if !ok {
+			t.Fatal("job not found")
+		}
+		if current.Status == "succeeded" || current.Status == "failed" || current.Status == "canceled" {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if current.Status != "succeeded" {
+		t.Fatalf("job status = %q, message = %q; want succeeded", current.Status, current.Message)
+	}
+	if current.Type != "character" {
+		t.Fatalf("job type = %q; want character", current.Type)
+	}
+	if requests["/character/301/issue_list/"] != 1 {
+		t.Fatalf("issue list requests = %d; want 1", requests["/character/301/issue_list/"])
 	}
 }
 

@@ -114,6 +114,14 @@ export function getCharacter(id) {
   return request(`/characters/${id}`)
 }
 
+export function searchMetronCharacters(params) {
+  return requestWithMeta(`/metron/characters${queryString(params)}`)
+}
+
+export function importMetronCharacterAppearances(id) {
+  return sendWithMeta(`/metron/characters/${id}/import`, 'POST', {})
+}
+
 export function getComic(id) {
   return request(`/comics/${id}`)
 }

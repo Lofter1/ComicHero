@@ -808,9 +808,9 @@ textarea {
 
 .metron-modes {
   display: inline-grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  width: min(520px, 100%);
+  width: min(680px, 100%);
 }
 
 .metron-modes button {
@@ -985,6 +985,21 @@ textarea {
   border-radius: inherit;
   background: var(--primary);
   transition: width 180ms ease;
+}
+
+.job-progress.indeterminate span {
+  width: 42% !important;
+  min-width: 42%;
+  animation: job-progress-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes job-progress-sweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
 }
 
 .metron-results {

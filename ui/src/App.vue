@@ -12,6 +12,7 @@ import {
   getComic,
   getMetronImportJob,
   getReadingOrder,
+  importMetronCharacterAppearances,
   importMetronComic,
   importMetronReadingList,
   importMetronSeries,
@@ -508,6 +509,7 @@ async function handleMetronImported() {
 
 function trackMetronImportJob(job) {
 	if (!job?.id) return
+	metronImportMonitorOpen.value = true
 	upsertMetronImportJob(job)
 	pollMetronImportJob(job.id)
 }
@@ -574,6 +576,7 @@ async function retryMetronJob(job) {
 function startMetronRetry(job) {
   if (job.type === 'comic') return importMetronComic(job.metronId)
   if (job.type === 'readingList') return importMetronReadingList(job.metronId)
+  if (job.type === 'character') return importMetronCharacterAppearances(job.metronId)
   return importMetronSeries(job.metronId)
 }
 
@@ -621,7 +624,11 @@ function metronJobCanContinue(job) {
 }
 
 function metronJobProgressLabel(job) {
-  if (!job.total) return job.status === 'running' ? 'Working...' : job.status
+  if (!job.total) {
+    if (job.status === 'queued') return 'Queued'
+    if (job.status === 'running') return 'Preparing...'
+    return job.status
+  }
   return `${job.completed} of ${job.total}`
 }
 
@@ -630,8 +637,12 @@ function metronJobProgressPercent(job) {
   return Math.min(100, Math.round((job.completed / job.total) * 100))
 }
 
+function metronJobProgressIndeterminate(job) {
+  return (job.status === 'queued' || job.status === 'running') && !job.total
+}
+
 function metronJobTitle(job) {
-  const type = job.type === 'readingList' ? 'Reading list' : job.type
+  const type = job.type === 'readingList' ? 'Reading list' : job.type === 'character' ? 'Character' : job.type
   return job.displayName ? `${type} import for ${job.displayName}` : `${type} import`
 }
 
@@ -701,7 +712,7 @@ onUnmounted(() => {
               <strong>{{ metronJobTitle(job) }}</strong>
               <small>{{ metronJobMessage(job) }}</small>
               <small>{{ metronJobProgressLabel(job) }}</small>
-              <span class="job-progress" aria-hidden="true">
+              <span class="job-progress" :class="{ indeterminate: metronJobProgressIndeterminate(job) }" aria-hidden="true">
                 <span :style="{ width: `${metronJobProgressPercent(job)}%` }"></span>
               </span>
             </span>

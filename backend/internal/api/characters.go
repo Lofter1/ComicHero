@@ -197,6 +197,142 @@ func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, comicID int, is
 	return nil
 }
 
+func importCharacterAppearancesFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int) (*CharacterDetailOutput, error) {
+	if err := importCharacterAppearancesFromMetronWithProgress(ctx, db, client, covers, characterID, func(int, int, string) {}); err != nil {
+		return nil, err
+	}
+	return getCharacter(ctx, db, characterID)
+}
+
+func importCharacterAppearancesFromMetronWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int, progress func(int, int, string)) error {
+	character, err := getCharacterRow(ctx, db, characterID)
+	if err != nil {
+		return err
+	}
+	if character.MetronCharacterID == nil {
+		return huma.Error400BadRequest("character is not linked to Metron")
+	}
+
+	completed := 0
+	total := 0
+	progress(0, 0, "Fetching character issue list from Metron...")
+	if err := client.EachCharacterIssuePage(ctx, *character.MetronCharacterID, func(issues []metron.Issue, count int) error {
+		if count > 0 {
+			total = count
+		} else if total < completed+len(issues) {
+			total = completed + len(issues)
+		}
+		progress(completed, total, "Importing character appearances...")
+
+		for _, issue := range issues {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			comic, err := importMetronCharacterAppearanceIssue(ctx, db, client, covers, issue)
+			if err != nil {
+				return err
+			}
+			if err := linkCharacterAppearance(ctx, db, characterID, comic.ID); err != nil {
+				return err
+			}
+			completed++
+			progress(completed, total, "Importing character appearances...")
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if total < completed {
+		total = completed
+	}
+	progress(total, total, "Character appearances imported.")
+	return nil
+}
+
+func importMetronCharacterAppearances(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int) (*CharacterDetailOutput, error) {
+	if err := importMetronCharacterAppearancesWithProgress(ctx, db, client, covers, metronCharacterID, func(int, int, string) {}); err != nil {
+		return nil, err
+	}
+
+	localID, ok, err := characterIDByMetronID(ctx, db, metronCharacterID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, huma.Error500InternalServerError("failed to fetch imported character")
+	}
+	return getCharacter(ctx, db, localID)
+}
+
+func importMetronCharacterAppearancesWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int, progress func(int, int, string)) error {
+	localID, ok, err := characterIDByMetronID(ctx, db, metronCharacterID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		progress(0, 0, "Fetching character from Metron...")
+		character, err := client.GetCharacter(ctx, metronCharacterID)
+		if err != nil {
+			return metronAPIError(err)
+		}
+		localID, err = upsertMetronCharacter(ctx, db, *character)
+		if err != nil {
+			return err
+		}
+	}
+
+	return importCharacterAppearancesFromMetronWithProgress(ctx, db, client, covers, localID, progress)
+}
+
+func importMetronCharacterAppearanceIssue(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue) (Comic, error) {
+	if issue.ID > 0 {
+		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
+			return Comic{}, err
+		} else if ok {
+			return getComicRow(ctx, db, id)
+		}
+	}
+
+	if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
+		return Comic{}, err
+	} else if ok {
+		if issue.ID > 0 {
+			if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
+				return Comic{}, err
+			}
+		}
+		return getComicRow(ctx, db, id)
+	}
+
+	fullIssue := issue
+	if issue.ID > 0 {
+		detail, err := client.GetIssue(ctx, issue.ID)
+		if err != nil {
+			if isContextCanceledError(err) {
+				return Comic{}, err
+			}
+			return Comic{}, huma.Error502BadGateway(err.Error())
+		}
+		fullIssue = *detail
+	}
+
+	comic, err := importMetronComic(ctx, db, client, covers, fullIssue)
+	if err != nil {
+		return Comic{}, err
+	}
+	return comic.Body.Comic, nil
+}
+
+func linkCharacterAppearance(ctx context.Context, db sqlx.ExtContext, characterID, comicID int) error {
+	if _, err := db.ExecContext(ctx, `
+		INSERT OR IGNORE INTO comic_characters (comic_id, character_id)
+		VALUES (?, ?)
+	`, comicID, characterID); err != nil {
+		return huma.Error500InternalServerError("failed to link character appearance")
+	}
+	return nil
+}
+
 func characterIDByMetronID(ctx context.Context, db sqlx.ExtContext, metronID int) (int, bool, error) {
 	var id int
 	if err := sqlx.GetContext(ctx, db, &id, `
