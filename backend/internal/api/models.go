@@ -1,0 +1,148 @@
+package api
+
+type Comic struct {
+	ID            int  `json:"id"                      db:"id"              doc:"Local comic identifier." example:"42"`
+	MetronIssueID *int `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
+
+	Title       string `json:"title"       db:"-"           doc:"Generated display title built from series, seriesYear, and issue." example:"Batman (2011) #6"`
+	Series      string `json:"series"      db:"series"      doc:"Series name." example:"Batman"`
+	SeriesYear  int    `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in the generated title." minimum:"0" example:"2011"`
+	Issue       int    `json:"issue"       db:"issue"       doc:"Numeric issue number used for sorting." example:"6"`
+	Publisher   string `json:"publisher"   db:"publisher"   doc:"Publisher name." example:"DC Comics"`
+	CoverDate   string `json:"coverDate"   db:"cover_date"  doc:"Cover date as provided by the source." example:"2012-04-01"`
+	CoverImage  string `json:"coverImage"  db:"cover_image" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
+	Description string `json:"description" db:"description" doc:"Issue synopsis or notes."`
+	Read        bool   `json:"read"        db:"read"        doc:"Whether the comic has been read." example:"false"`
+}
+
+type ComicPayload struct {
+	Series      string `json:"series"     minLength:"1" doc:"Series name." example:"Batman"`
+	SeriesYear  int    `json:"seriesYear" minimum:"0"   doc:"Series start year or volume year used in the generated title." example:"2011"`
+	Issue       int    `json:"issue"      minimum:"0"   doc:"Numeric issue number used for sorting." example:"6"`
+	Publisher   string `json:"publisher"  doc:"Publisher name." example:"DC Comics"`
+	CoverDate   string `json:"coverDate"  doc:"Cover date as free text or ISO date." example:"2012-04-01"`
+	CoverImage  string `json:"coverImage" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
+	Description string `json:"description" doc:"Issue synopsis or notes."`
+	Read        bool   `json:"read"       doc:"Whether the comic has been read." example:"false"`
+}
+
+type ComicDetail struct {
+	Comic
+	ReadingOrders []ReadingOrder `json:"readingOrders" doc:"Reading orders that include this comic."`
+}
+
+type ComicListInput struct {
+	Query          string `query:"q"              doc:"Case-insensitive text search across generated title metadata, publisher, and description." example:"batman"`
+	Series         string `query:"series"         doc:"Filter comics by partial series name." example:"Batman"`
+	Publisher      string `query:"publisher"      doc:"Filter comics by partial publisher name." example:"DC"`
+	Read           string `query:"read"           doc:"Filter comics by read status. Use true or false." enum:"true,false" example:"false"`
+	ReadingOrderID int    `query:"readingOrderId" doc:"Filter comics to those included in a reading order." example:"7"`
+}
+
+type ComicInput struct {
+	ID int `path:"id" doc:"Local comic identifier." example:"42"`
+}
+
+type ComicListOutput struct {
+	MetronRateLimitHeaders
+	Body []Comic
+}
+
+type ComicDetailOutput struct {
+	MetronRateLimitHeaders
+	Body ComicDetail
+}
+
+type CreateComicInput struct {
+	Body ComicPayload
+}
+
+type UpdateComicInput struct {
+	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
+	Body ComicPayload
+}
+
+type UpdateComicReadInput struct {
+	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
+	Body struct {
+		Read bool `json:"read" doc:"New read status." example:"true"`
+	}
+}
+
+type UpdateComicFromMetronInput struct {
+	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
+	Body struct {
+		MetronIssueID int `json:"metronIssueId" minimum:"1" doc:"Metron issue identifier to copy metadata from." example:"123456"`
+	}
+}
+
+type ReadingOrder struct {
+	ID                  int  `json:"id"                                  db:"id"                     doc:"Local reading-order identifier." example:"7"`
+	MetronReadingListID *int `json:"metronReadingListId,omitempty"       db:"metron_reading_list_id" doc:"Linked Metron reading-list identifier, when imported." example:"9876"`
+
+	Name        string  `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
+	Description string  `json:"description" db:"description" doc:"Reading-order description or notes."`
+	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
+	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+}
+
+type ReadingOrderPayload struct {
+	Name        string `json:"name"        minLength:"1" doc:"Reading-order name." example:"Batman: Court of Owls"`
+	Description string `json:"description" doc:"Reading-order description or notes."`
+	Favorite    bool   `json:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
+}
+
+type ReadingOrderComicPayload struct {
+	ComicID int    `json:"comicId" doc:"Local comic identifier to add to the reading order." example:"42"`
+	Comment string `json:"comment" doc:"Optional note for this specific reading-order entry." example:"Read after issue 5"`
+}
+
+type ReadingOrderComic struct {
+	Comic
+	Comment string `json:"comment" db:"comment" doc:"Per-entry reading-order note." example:"Tie-in"`
+}
+
+type ReadingOrderDetail struct {
+	ReadingOrder
+	Comics []ReadingOrderComic `json:"comics" doc:"Comics in reading-order position order."`
+}
+
+type ReadingOrderListInput struct {
+	Query    string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
+	Favorite string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
+	ComicID  int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
+}
+
+type ReadingOrderInput struct {
+	ID int `path:"id" doc:"Local reading-order identifier." example:"7"`
+}
+
+type ReadingOrderListOutput struct {
+	Body []ReadingOrder
+}
+
+type ReadingOrderDetailOutput struct {
+	MetronRateLimitHeaders
+	Body ReadingOrderDetail
+}
+
+type CreateReadingOrderInput struct {
+	Body ReadingOrderPayload
+}
+
+type CreateReadingOrderOutput struct {
+	Body ReadingOrder
+}
+
+type UpdateReadingOrderInput struct {
+	ID   int `path:"id" doc:"Local reading-order identifier." example:"7"`
+	Body ReadingOrderPayload
+}
+
+type SetReadingOrderComicsInput struct {
+	ID   int `path:"id" doc:"Local reading-order identifier." example:"7"`
+	Body struct {
+		ComicIDs []int                      `json:"comicIds,omitempty" doc:"Comic IDs in reading order. Use comics to include comments." example:"[42,43]"`
+		Comics   []ReadingOrderComicPayload `json:"comics,omitempty"   doc:"Comics in reading order with optional per-entry comments."`
+	}
+}

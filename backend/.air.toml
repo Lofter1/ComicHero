@@ -1,0 +1,30 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/server ./"
+  entrypoint = ["./tmp/server"]
+  include_ext = ["go", "sql"]
+  exclude_dir = ["tmp", "vendor", "data"]
+  delay = 1000 # ms to wait before rebuild
+
+[proxy]
+  enabled = true
+  proxy_port = 8090   # visit this in your browser
+  app_port = 8080     # your actual app
+
+
+[log]
+  time = true
+
+[screen]
+  clear_on_rebuild = false
+  keep_scroll = true
+
+[misc]
+  startup_banner = ""
+
+[color]
+  app = "green"
+  build = "yellow"
+  runner = "cyan"

@@ -1,0 +1,29 @@
+# Runtime data
+data/
+public/covers/
+
+# Temporary build/runtime output
+tmp/
+*.test
+comichero
+server
+
+# SQLite files
+*.db
+*.db-*
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+
+# Environment and logs
+.env
+.env.*
+!.env.example
+*.log
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
