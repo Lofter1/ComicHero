@@ -41,6 +41,7 @@ func main() {
 
 	api.RegisterReadingOrderRoutes(humaAPI, database)
 	api.RegisterComicRoutes(humaAPI, database, covers)
+	api.RegisterCharacterRoutes(humaAPI, database)
 	api.RegisterMetronRoutes(humaAPI, database, metron.New(metron.Config{
 		BaseURL:  env("METRON_BASE_URL", metron.DefaultBaseURL),
 		Username: os.Getenv("METRON_USERNAME"),

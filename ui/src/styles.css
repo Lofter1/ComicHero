@@ -570,6 +570,10 @@ textarea {
     0 8px 18px rgba(29, 35, 40, 0.08);
 }
 
+.character-row {
+  align-items: center;
+}
+
 .row small,
 .preview-list small,
 .muted {
@@ -758,6 +762,43 @@ textarea {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: cover;
+}
+
+.character-portrait {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f0f3f2;
+  max-width: 180px;
+}
+
+.character-portrait img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.alias-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alias-list span,
+.alias-list button {
+  min-height: 30px;
+  border: 1px solid #cfe1da;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  padding: 5px 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.alias-list button {
+  cursor: pointer;
 }
 
 .metron-view {

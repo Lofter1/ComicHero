@@ -28,6 +28,30 @@ CREATE UNIQUE INDEX idx_comics_metron_issue_id
 ON comics(metron_issue_id)
 WHERE metron_issue_id IS NOT NULL;
 
+CREATE TABLE characters (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                TEXT    NOT NULL,
+    description         TEXT    NOT NULL DEFAULT '',
+    image               TEXT    NOT NULL DEFAULT '',
+    metron_character_id INTEGER
+);
+
+CREATE UNIQUE INDEX idx_characters_metron_character_id
+ON characters(metron_character_id)
+WHERE metron_character_id IS NOT NULL;
+
+CREATE TABLE character_aliases (
+    character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    alias        TEXT    NOT NULL,
+    PRIMARY KEY (character_id, alias)
+);
+
+CREATE TABLE comic_characters (
+    comic_id      INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+    character_id  INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    PRIMARY KEY (comic_id, character_id)
+);
+
 CREATE TABLE reading_order_comics (
     reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
     comic_id         INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -37,5 +61,8 @@ CREATE TABLE reading_order_comics (
 
 -- +goose Down
 DROP TABLE reading_order_comics;
+DROP TABLE comic_characters;
+DROP TABLE character_aliases;
+DROP TABLE characters;
 DROP TABLE comics;
 DROP TABLE reading_orders;

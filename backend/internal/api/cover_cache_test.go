@@ -59,7 +59,7 @@ func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
 	defer server.Close()
 
 	covers := NewCoverCache(t.TempDir(), "/covers")
-	detail, err := importMetronComic(ctx, db, covers, metronIssueWithCover(server.URL+"/issue-cover.jpg"))
+	detail, err := importMetronComic(ctx, db, nil, covers, metronIssueWithCover(server.URL+"/issue-cover.jpg"))
 	if err != nil {
 		t.Fatalf("importMetronComic: %v", err)
 	}

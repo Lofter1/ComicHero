@@ -29,6 +29,7 @@ type ComicPayload struct {
 type ComicDetail struct {
 	Comic
 	ReadingOrders []ReadingOrder `json:"readingOrders" doc:"Reading orders that include this comic."`
+	Characters    []Character    `json:"characters"    doc:"Characters appearing in this comic."`
 }
 
 type ComicListInput struct {
@@ -46,6 +47,37 @@ type ComicInput struct {
 type ComicListOutput struct {
 	MetronRateLimitHeaders
 	Body []Comic
+}
+
+type Character struct {
+	ID                int      `json:"id"                         db:"id"                  doc:"Local character identifier." example:"12"`
+	MetronCharacterID *int     `json:"metronCharacterId,omitempty" db:"metron_character_id" doc:"Linked Metron character identifier, when imported." example:"100"`
+	Name              string   `json:"name"                       db:"name"                doc:"Character name." example:"Batman"`
+	Description       string   `json:"description"                db:"description"         doc:"Character description from Metron."`
+	Image             string   `json:"image"                      db:"image"               doc:"Character image URL from Metron." format:"uri"`
+	Aliases           []string `json:"aliases"                    db:"-"                   doc:"Known character aliases."`
+	AppearanceCount   int      `json:"appearanceCount"            db:"appearance_count"    doc:"Number of local comics this character appears in." example:"25"`
+}
+
+type CharacterDetail struct {
+	Character
+	Comics []Comic `json:"comics" doc:"Local comics where this character appears."`
+}
+
+type CharacterListInput struct {
+	Query string `query:"q" doc:"Case-insensitive text search across character names and aliases." example:"bat"`
+}
+
+type CharacterInput struct {
+	ID int `path:"id" doc:"Local character identifier." example:"12"`
+}
+
+type CharacterListOutput struct {
+	Body []Character
+}
+
+type CharacterDetailOutput struct {
+	Body CharacterDetail
 }
 
 type ComicDetailOutput struct {

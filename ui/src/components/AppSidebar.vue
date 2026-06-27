@@ -8,6 +8,10 @@ defineProps({
     type: Number,
     default: 0,
   },
+  characterCount: {
+    type: Number,
+    default: 0,
+  },
   orderCount: {
     type: Number,
     default: 0,
@@ -35,6 +39,10 @@ defineEmits(['change-view', 'refresh'])
       <button :class="{ active: activeView === 'comics' }" @click="$emit('change-view', 'comics')">
         <span>Comics</span>
         <strong>{{ comicCount }}</strong>
+      </button>
+      <button :class="{ active: activeView === 'characters' }" @click="$emit('change-view', 'characters')">
+        <span>Characters</span>
+        <strong>{{ characterCount }}</strong>
       </button>
       <button :class="{ active: activeView === 'metron' }" @click="$emit('change-view', 'metron')">
         <span>Metron</span>

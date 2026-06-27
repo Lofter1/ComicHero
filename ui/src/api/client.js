@@ -105,6 +105,15 @@ export async function listComics() {
   return Array.isArray(comics) ? comics : []
 }
 
+export async function listCharacters() {
+  const characters = await request('/characters')
+  return Array.isArray(characters) ? characters : []
+}
+
+export function getCharacter(id) {
+  return request(`/characters/${id}`)
+}
+
 export function getComic(id) {
   return request(`/comics/${id}`)
 }

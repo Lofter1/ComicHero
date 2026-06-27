@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 
@@ -132,13 +133,10 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 }
 
 func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, error) {
-	var comic Comic
-	if err := db.GetContext(ctx, &comic, `
-		SELECT * FROM comics WHERE id = ?
-	`, id); err != nil {
-		return nil, huma.Error404NotFound("comic not found")
+	comic, err := getComicRow(ctx, db, id)
+	if err != nil {
+		return nil, err
 	}
-	hydrateComicTitle(&comic)
 
 	orders := []ReadingOrder{}
 	if err := db.SelectContext(ctx, &orders, `
@@ -150,12 +148,43 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 		return nil, huma.Error500InternalServerError("failed to fetch reading orders")
 	}
 
+	characters := []Character{}
+	if err := db.SelectContext(ctx, &characters, `
+		SELECT ch.*, COUNT(cc_all.comic_id) AS appearance_count
+		FROM characters ch
+		JOIN comic_characters cc ON cc.character_id = ch.id
+		LEFT JOIN comic_characters cc_all ON cc_all.character_id = ch.id
+		WHERE cc.comic_id = ?
+		GROUP BY ch.id
+		ORDER BY ch.name
+	`, id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch characters")
+	}
+	if err := hydrateCharacterAliases(ctx, db, characters); err != nil {
+		return nil, err
+	}
+
 	return &ComicDetailOutput{
 		Body: ComicDetail{
 			Comic:         comic,
 			ReadingOrders: orders,
+			Characters:    characters,
 		},
 	}, nil
+}
+
+func getComicRow(ctx context.Context, db *sqlx.DB, id int) (Comic, error) {
+	var comic Comic
+	if err := db.GetContext(ctx, &comic, `
+		SELECT * FROM comics WHERE id = ?
+	`, id); err != nil {
+		if err == sql.ErrNoRows {
+			return Comic{}, huma.Error404NotFound("comic not found")
+		}
+		return Comic{}, huma.Error500InternalServerError("failed to fetch comic")
+	}
+	hydrateComicTitle(&comic)
+	return comic, nil
 }
 
 func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload ComicPayload) (*ComicDetailOutput, error) {

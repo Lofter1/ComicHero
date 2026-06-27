@@ -34,16 +34,25 @@ type Config struct {
 }
 
 type Issue struct {
-	ID          int    `json:"id"          doc:"Metron issue identifier." example:"123456"`
-	Title       string `json:"title"       doc:"Issue title." example:"The Court of Owls"`
-	Series      string `json:"series"      doc:"Series name." example:"Batman"`
-	SeriesYear  int    `json:"seriesYear"  doc:"Series start year or volume year used by ComicHero generated titles." example:"2011"`
-	Issue       int    `json:"issue"       doc:"Numeric issue number parsed for local sorting." example:"6"`
-	Number      string `json:"number"      doc:"Original Metron issue number." example:"6"`
-	Publisher   string `json:"publisher"   doc:"Publisher name." example:"DC Comics"`
-	CoverDate   string `json:"coverDate"   doc:"Cover date as provided by Metron." example:"2012-04-01"`
-	CoverImage  string `json:"coverImage"  doc:"Absolute Metron cover-image URL." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
-	Description string `json:"description" doc:"Metron issue synopsis."`
+	ID          int               `json:"id"          doc:"Metron issue identifier." example:"123456"`
+	Title       string            `json:"title"       doc:"Issue title." example:"The Court of Owls"`
+	Series      string            `json:"series"      doc:"Series name." example:"Batman"`
+	SeriesYear  int               `json:"seriesYear"  doc:"Series start year or volume year used by ComicHero generated titles." example:"2011"`
+	Issue       int               `json:"issue"       doc:"Numeric issue number parsed for local sorting." example:"6"`
+	Number      string            `json:"number"      doc:"Original Metron issue number." example:"6"`
+	Publisher   string            `json:"publisher"   doc:"Publisher name." example:"DC Comics"`
+	CoverDate   string            `json:"coverDate"   doc:"Cover date as provided by Metron." example:"2012-04-01"`
+	CoverImage  string            `json:"coverImage"  doc:"Absolute Metron cover-image URL." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
+	Description string            `json:"description" doc:"Metron issue synopsis."`
+	Characters  []MetronCharacter `json:"characters"  doc:"Characters appearing in the issue, when returned by Metron."`
+}
+
+type MetronCharacter struct {
+	ID          int      `json:"id"          doc:"Metron character identifier." example:"100"`
+	Name        string   `json:"name"        doc:"Character name." example:"Batman"`
+	Aliases     []string `json:"aliases"     doc:"Known character aliases from Metron."`
+	Description string   `json:"description" doc:"Character description from Metron."`
+	Image       string   `json:"image"       doc:"Character image URL from Metron." format:"uri"`
 }
 
 type ReadingList struct {
@@ -155,6 +164,16 @@ func (c *Client) GetIssue(ctx context.Context, id int) (*Issue, error) {
 
 	issue := issueFromMap(raw)
 	return &issue, nil
+}
+
+func (c *Client) GetCharacter(ctx context.Context, id int) (*MetronCharacter, error) {
+	var raw map[string]any
+	if err := c.get(ctx, fmt.Sprintf("/character/%d/", id), nil, &raw); err != nil {
+		return nil, err
+	}
+
+	character := characterFromMap(raw)
+	return &character, nil
 }
 
 func (c *Client) SearchReadingLists(ctx context.Context, query string) ([]ReadingList, error) {
@@ -452,7 +471,57 @@ func issueFromMap(raw map[string]any) Issue {
 		CoverDate:   firstString(raw, "cover_date", "store_date", "date"),
 		CoverImage:  firstString(raw, "image", "cover", "cover_image", "image_url"),
 		Description: firstString(raw, "desc", "description", "synopsis"),
+		Characters:  charactersFromMap(raw),
 	}
+}
+
+func charactersFromMap(raw map[string]any) []MetronCharacter {
+	values, ok := raw["characters"].([]any)
+	if !ok {
+		return nil
+	}
+
+	characters := make([]MetronCharacter, 0, len(values))
+	for _, value := range values {
+		if item, ok := value.(map[string]any); ok {
+			character := characterFromMap(item)
+			if character.ID > 0 || character.Name != "" {
+				characters = append(characters, character)
+			}
+		}
+	}
+	return characters
+}
+
+func characterFromMap(raw map[string]any) MetronCharacter {
+	return MetronCharacter{
+		ID:          intValue(raw, "id"),
+		Name:        firstString(raw, "name"),
+		Aliases:     stringList(raw, "alias", "aliases"),
+		Description: firstString(raw, "desc", "description"),
+		Image:       firstString(raw, "image"),
+	}
+}
+
+func stringList(raw map[string]any, keys ...string) []string {
+	seen := map[string]bool{}
+	var values []string
+	for _, key := range keys {
+		rawValues, ok := raw[key].([]any)
+		if !ok {
+			continue
+		}
+		for _, rawValue := range rawValues {
+			value, ok := rawValue.(string)
+			value = strings.TrimSpace(value)
+			if !ok || value == "" || seen[value] {
+				continue
+			}
+			seen[value] = true
+			values = append(values, value)
+		}
+	}
+	return values
 }
 
 func firstInt(values ...int) int {

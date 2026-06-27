@@ -86,6 +86,7 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	router := chi.NewRouter()
 	api := humachi.New(router, DocsConfig())
 	RegisterComicRoutes(api, nil, nil)
+	RegisterCharacterRoutes(api, nil)
 	RegisterReadingOrderRoutes(api, nil)
 	RegisterMetronRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 
@@ -93,8 +94,8 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 3 {
-		t.Fatalf("len(tags) = %d; want 3", len(openAPI.Tags))
+	if len(openAPI.Tags) != 4 {
+		t.Fatalf("len(tags) = %d; want 4", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get
@@ -103,6 +104,11 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	}
 	if _, ok := listComics.Responses["400"]; !ok {
 		t.Fatal("list comics response docs missing 400 error")
+	}
+
+	listCharacters := openAPI.Paths["/characters"].Get
+	if len(listCharacters.Tags) != 1 || listCharacters.Tags[0] != tagCharacters {
+		t.Fatalf("list characters tags = %#v; want Characters tag", listCharacters.Tags)
 	}
 
 	importSeries := openAPI.Paths["/metron/series/{id}/import"].Post

@@ -51,6 +51,29 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		ON comics(metron_issue_id)
 		WHERE metron_issue_id IS NOT NULL;
 
+		CREATE TABLE characters (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			metron_character_id INTEGER
+		);
+		CREATE UNIQUE INDEX idx_characters_metron_character_id
+		ON characters(metron_character_id)
+		WHERE metron_character_id IS NOT NULL;
+
+		CREATE TABLE character_aliases (
+			character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+			alias TEXT NOT NULL,
+			PRIMARY KEY (character_id, alias)
+		);
+
+		CREATE TABLE comic_characters (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+			PRIMARY KEY (comic_id, character_id)
+		);
+
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -75,11 +98,11 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 		Publisher:  "Publisher",
 	}
 
-	first, err := importMetronComic(ctx, db, nil, issue)
+	first, err := importMetronComic(ctx, db, nil, nil, issue)
 	if err != nil {
 		t.Fatalf("first import: %v", err)
 	}
-	second, err := importMetronComic(ctx, db, nil, issue)
+	second, err := importMetronComic(ctx, db, nil, nil, issue)
 	if err != nil {
 		t.Fatalf("second import: %v", err)
 	}
@@ -93,6 +116,136 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 	}
 	if count != 1 {
 		t.Fatalf("comic count = %d; want 1", count)
+	}
+}
+
+func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+	issue := metron.Issue{
+		ID:         101,
+		Series:     "Series",
+		SeriesYear: 2026,
+		Issue:      1,
+		Publisher:  "Publisher",
+		Characters: []metron.MetronCharacter{
+			{ID: 301, Name: "Hero", Aliases: []string{"The Hero"}},
+		},
+	}
+
+	comic, err := importMetronComic(ctx, db, nil, nil, issue)
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if len(comic.Body.Characters) != 1 {
+		t.Fatalf("comic characters = %d; want 1", len(comic.Body.Characters))
+	}
+
+	characters, err := listCharacters(ctx, db, &CharacterListInput{Query: "Hero"})
+	if err != nil {
+		t.Fatalf("listCharacters: %v", err)
+	}
+	if len(characters.Body) != 1 {
+		t.Fatalf("characters = %d; want 1", len(characters.Body))
+	}
+	if characters.Body[0].AppearanceCount != 1 {
+		t.Fatalf("appearance count = %d; want 1", characters.Body[0].AppearanceCount)
+	}
+	if len(characters.Body[0].Aliases) != 1 || characters.Body[0].Aliases[0] != "The Hero" {
+		t.Fatalf("aliases = %#v; want The Hero", characters.Body[0].Aliases)
+	}
+
+	detail, err := getCharacter(ctx, db, characters.Body[0].ID)
+	if err != nil {
+		t.Fatalf("getCharacter: %v", err)
+	}
+	if len(detail.Body.Comics) != 1 || detail.Body.Comics[0].ID != comic.Body.ID {
+		t.Fatalf("appearances = %#v; want imported comic", detail.Body.Comics)
+	}
+}
+
+func TestImportMetronComicDoesNotFetchCharacterDetails(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"id":301,"name":"Hero","alias":["The Hero"]}`))
+	}))
+	defer server.Close()
+
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	_, err := importMetronComic(ctx, db, client, nil, metron.Issue{
+		ID:         101,
+		Series:     "Series",
+		SeriesYear: 2026,
+		Issue:      1,
+		Publisher:  "Publisher",
+		Characters: []metron.MetronCharacter{
+			{ID: 301, Name: "Hero"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if requests["/character/301/"] != 0 {
+		t.Fatalf("fetched character detail %d times; want 0", requests["/character/301/"])
+	}
+}
+
+func TestImportMetronComicSkipsExistingCharacterImport(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO characters (id, name, description, image, metron_character_id)
+		VALUES (1, 'Original Hero', 'Keep this', '', 301)
+	`); err != nil {
+		t.Fatalf("insert character: %v", err)
+	}
+
+	comic, err := importMetronComic(ctx, db, nil, nil, metron.Issue{
+		ID:         101,
+		Series:     "Series",
+		SeriesYear: 2026,
+		Issue:      1,
+		Publisher:  "Publisher",
+		Characters: []metron.MetronCharacter{
+			{ID: 301, Name: "Changed Hero", Aliases: []string{"New Alias"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+
+	var character Character
+	if err := db.GetContext(ctx, &character, `
+		SELECT ch.*, COUNT(cc.comic_id) AS appearance_count
+		FROM characters ch
+		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
+		WHERE ch.id = 1
+		GROUP BY ch.id
+	`); err != nil {
+		t.Fatalf("get character: %v", err)
+	}
+	if character.Name != "Original Hero" {
+		t.Fatalf("character name = %q; want existing value", character.Name)
+	}
+	if character.AppearanceCount != 1 {
+		t.Fatalf("appearance count = %d; want 1", character.AppearanceCount)
+	}
+
+	var aliasCount int
+	if err := db.GetContext(ctx, &aliasCount, `SELECT COUNT(*) FROM character_aliases WHERE character_id = 1`); err != nil {
+		t.Fatalf("count aliases: %v", err)
+	}
+	if aliasCount != 0 {
+		t.Fatalf("alias count = %d; want 0", aliasCount)
+	}
+	if len(comic.Body.Characters) != 1 || comic.Body.Characters[0].Name != "Original Hero" {
+		t.Fatalf("comic characters = %#v; want existing character", comic.Body.Characters)
 	}
 }
 
@@ -114,11 +267,11 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 		},
 	}
 
-	first, err := importMetronReadingList(ctx, db, nil, list)
+	first, err := importMetronReadingList(ctx, db, nil, nil, list)
 	if err != nil {
 		t.Fatalf("first import: %v", err)
 	}
-	second, err := importMetronReadingList(ctx, db, nil, list)
+	second, err := importMetronReadingList(ctx, db, nil, nil, list)
 	if err != nil {
 		t.Fatalf("second import: %v", err)
 	}
@@ -154,7 +307,7 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 		t.Fatalf("insert partial reading order: %v", err)
 	}
 
-	err := continueMetronReadingListWithProgress(ctx, db, nil, metron.ReadingList{
+	err := continueMetronReadingListWithProgress(ctx, db, nil, nil, metron.ReadingList{
 		ID:          501,
 		Name:        "Event",
 		Description: "Big event",

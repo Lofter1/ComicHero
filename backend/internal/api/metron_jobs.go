@@ -186,7 +186,7 @@ func startMetronComicImport(store *metronImportJobStore, db *sqlx.DB, client *me
 			}
 			return metronImportError(err)
 		}
-		_, err = importMetronComic(ctx, db, covers, *issue)
+		_, err = importMetronComic(ctx, db, client, covers, *issue)
 		if err == nil {
 			progress(1, 1, "Comic imported.")
 		}
@@ -212,7 +212,7 @@ func startMetronReadingListImport(store *metronImportJobStore, db *sqlx.DB, clie
 			}
 			return metronImportError(err)
 		}
-		return importMetronReadingListWithProgress(ctx, db, covers, *list, progress)
+		return importMetronReadingListWithProgress(ctx, db, client, covers, *list, progress)
 	})
 }
 
@@ -294,6 +294,6 @@ func startMetronReadingListContinue(store *metronImportJobStore, db *sqlx.DB, cl
 			}
 			return metronImportError(err)
 		}
-		return continueMetronReadingListWithProgress(ctx, db, covers, *list, progress)
+		return continueMetronReadingListWithProgress(ctx, db, client, covers, *list, progress)
 	})
 }

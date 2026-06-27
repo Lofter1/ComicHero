@@ -125,7 +125,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err != nil {
 			return nil, metronAPIError(err)
 		}
-		output, err := updateComicFromMetron(ctx, db, covers, input.ID, *issue)
+		output, err := updateComicFromMetron(ctx, db, client, covers, input.ID, *issue)
 		if err != nil {
 			return nil, err
 		}
@@ -295,11 +295,14 @@ func comicPayloadFromMetronIssue(issue metron.Issue) ComicPayload {
 	}
 }
 
-func importMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, issue metron.Issue) (*ComicDetailOutput, error) {
+func importMetronComic(ctx context.Context, db *sqlx.DB, _ *metron.Client, covers *CoverCache, issue metron.Issue) (*ComicDetailOutput, error) {
 	if issue.ID > 0 {
 		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 			return nil, err
 		} else if ok {
+			if err := syncMetronIssueCharacters(ctx, db, id, issue); err != nil {
+				return nil, err
+			}
 			return getComic(ctx, db, id)
 		}
 	}
@@ -311,6 +314,9 @@ func importMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, iss
 			if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
 				return nil, err
 			}
+		}
+		if err := syncMetronIssueCharacters(ctx, db, id, issue); err != nil {
+			return nil, err
 		}
 		return getComic(ctx, db, id)
 	}
@@ -389,10 +395,13 @@ func createMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, iss
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get imported comic id")
 	}
+	if err := syncMetronIssueCharacters(ctx, db, int(id), issue); err != nil {
+		return nil, err
+	}
 	return getComic(ctx, db, int(id))
 }
 
-func updateComicFromMetron(ctx context.Context, db *sqlx.DB, covers *CoverCache, comicID int, issue metron.Issue) (*ComicDetailOutput, error) {
+func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, comicID int, issue metron.Issue) (*ComicDetailOutput, error) {
 	payload := comicPayloadFromMetronIssue(issue)
 	var err error
 	payload.CoverImage, err = localCoverURL(ctx, covers, payload.CoverImage)
@@ -421,10 +430,13 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, covers *CoverCache,
 		return nil, err
 	}
 
+	if err := syncMetronIssueCharacters(ctx, db, comicID, issue); err != nil {
+		return nil, err
+	}
 	return getComic(ctx, db, comicID)
 }
 
-func importMetronReadingList(ctx context.Context, db *sqlx.DB, covers *CoverCache, list metron.ReadingList) (*ReadingOrderDetailOutput, error) {
+func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList) (*ReadingOrderDetailOutput, error) {
 	if list.ID > 0 {
 		if id, ok, err := existingReadingOrderIDByMetronID(ctx, db, list.ID); err != nil {
 			return nil, err
@@ -440,7 +452,7 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, covers *CoverCach
 
 	input := &SetReadingOrderComicsInput{ID: order.Body.ID}
 	for _, issue := range list.Issues {
-		comic, err := importMetronComic(ctx, db, covers, issue)
+		comic, err := importMetronComic(ctx, db, client, covers, issue)
 		if err != nil {
 			return nil, err
 		}
@@ -452,15 +464,15 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, covers *CoverCach
 	return setReadingOrderComics(ctx, db, input)
 }
 
-func importMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
-	return importMetronReadingListWithOptions(ctx, db, covers, list, false, progress)
+func importMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
+	return importMetronReadingListWithOptions(ctx, db, client, covers, list, false, progress)
 }
 
-func continueMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
-	return importMetronReadingListWithOptions(ctx, db, covers, list, true, progress)
+func continueMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
+	return importMetronReadingListWithOptions(ctx, db, client, covers, list, true, progress)
 }
 
-func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, covers *CoverCache, list metron.ReadingList, continueExisting bool, progress func(int, int, string)) error {
+func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, continueExisting bool, progress func(int, int, string)) error {
 	var orderID int
 	if list.ID > 0 {
 		if id, ok, err := existingReadingOrderIDByMetronID(ctx, db, list.ID); err != nil || ok {
@@ -492,7 +504,7 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, covers
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		comic, err := importMetronComic(ctx, db, covers, issue)
+		comic, err := importMetronComic(ctx, db, client, covers, issue)
 		if err != nil {
 			return err
 		}
@@ -526,11 +538,11 @@ func importMetronSeriesWithProgress(ctx context.Context, db *sqlx.DB, client *me
 			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 				return nil, err
 			} else if ok {
-				comic, err := getComic(ctx, db, id)
+				comic, err := getComicRow(ctx, db, id)
 				if err != nil {
 					return nil, err
 				}
-				comics = append(comics, comic.Body.Comic)
+				comics = append(comics, comic)
 				progress(i+1, total, "Importing series issues...")
 				continue
 			}
@@ -544,11 +556,11 @@ func importMetronSeriesWithProgress(ctx context.Context, db *sqlx.DB, client *me
 					return nil, err
 				}
 			}
-			comic, err := getComic(ctx, db, id)
+			comic, err := getComicRow(ctx, db, id)
 			if err != nil {
 				return nil, err
 			}
-			comics = append(comics, comic.Body.Comic)
+			comics = append(comics, comic)
 			progress(i+1, total, "Importing series issues...")
 			continue
 		}
@@ -565,7 +577,7 @@ func importMetronSeriesWithProgress(ctx context.Context, db *sqlx.DB, client *me
 			fullIssue = *detail
 		}
 
-		comic, err := importMetronComic(ctx, db, covers, fullIssue)
+		comic, err := importMetronComic(ctx, db, client, covers, fullIssue)
 		if err != nil {
 			return nil, err
 		}

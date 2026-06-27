@@ -12,6 +12,7 @@ type selectQuery struct {
 	base    string
 	filters []string
 	args    []any
+	group   string
 	suffix  string
 }
 
@@ -28,10 +29,17 @@ func (q *selectQuery) orderBy(order string) {
 	q.suffix = order
 }
 
+func (q *selectQuery) groupBy(group string) {
+	q.group = group
+}
+
 func (q *selectQuery) build() (string, []any) {
 	query := q.base
 	if len(q.filters) > 0 {
 		query += " WHERE " + strings.Join(q.filters, " AND ")
+	}
+	if q.group != "" {
+		query += " " + q.group
 	}
 	if q.suffix != "" {
 		query += " " + q.suffix

@@ -10,6 +10,11 @@ const labels = {
     title: 'Comics',
     placeholder: 'Search comics',
   },
+  characters: {
+    eyebrow: 'Characters',
+    title: 'Characters',
+    placeholder: 'Search characters',
+  },
   metron: {
     eyebrow: 'Metron',
     title: 'Import from Metron',
