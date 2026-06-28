@@ -72,6 +72,49 @@ func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
 	}
 }
 
+func TestSyncMetronCharactersDownloadsRemoteImage(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/png")
+		w.Write([]byte("character image"))
+	}))
+	defer server.Close()
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO comics (id, series, issue, publisher)
+		VALUES (1, 'Series', 1, 'Publisher')
+	`); err != nil {
+		t.Fatalf("insert comic: %v", err)
+	}
+
+	covers := NewCoverCache(t.TempDir(), "/covers")
+	err := syncMetronIssueCharacters(ctx, db, covers, 1, metron.Issue{
+		Characters: []metron.MetronCharacter{{
+			ID:    301,
+			Name:  "Hero",
+			Image: server.URL + "/hero",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("syncMetronIssueCharacters: %v", err)
+	}
+
+	characters, err := listCharacters(ctx, db, &CharacterListInput{})
+	if err != nil {
+		t.Fatalf("listCharacters: %v", err)
+	}
+	if len(characters.Body) != 1 {
+		t.Fatalf("characters = %d; want 1", len(characters.Body))
+	}
+	if !strings.HasPrefix(characters.Body[0].Image, "/covers/") {
+		t.Fatalf("character image = %q; want local cover URL", characters.Body[0].Image)
+	}
+	if strings.HasPrefix(characters.Body[0].Image, server.URL) {
+		t.Fatalf("character image kept remote URL: %q", characters.Body[0].Image)
+	}
+}
+
 func metronIssueWithCover(cover string) metron.Issue {
 	return metron.Issue{
 		ID:         101,

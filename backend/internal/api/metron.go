@@ -341,7 +341,7 @@ func importMetronComic(ctx context.Context, db *sqlx.DB, _ *metron.Client, cover
 		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 			return nil, err
 		} else if ok {
-			if err := syncMetronIssueCharacters(ctx, db, id, issue); err != nil {
+			if err := syncMetronIssueCharacters(ctx, db, covers, id, issue); err != nil {
 				return nil, err
 			}
 			return getComic(ctx, db, id)
@@ -356,7 +356,7 @@ func importMetronComic(ctx context.Context, db *sqlx.DB, _ *metron.Client, cover
 				return nil, err
 			}
 		}
-		if err := syncMetronIssueCharacters(ctx, db, id, issue); err != nil {
+		if err := syncMetronIssueCharacters(ctx, db, covers, id, issue); err != nil {
 			return nil, err
 		}
 		return getComic(ctx, db, id)
@@ -436,7 +436,7 @@ func createMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, iss
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get imported comic id")
 	}
-	if err := syncMetronIssueCharacters(ctx, db, int(id), issue); err != nil {
+	if err := syncMetronIssueCharacters(ctx, db, covers, int(id), issue); err != nil {
 		return nil, err
 	}
 	return getComic(ctx, db, int(id))
@@ -471,7 +471,7 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		return nil, err
 	}
 
-	if err := syncMetronIssueCharacters(ctx, db, comicID, issue); err != nil {
+	if err := syncMetronIssueCharacters(ctx, db, covers, comicID, issue); err != nil {
 		return nil, err
 	}
 	return getComic(ctx, db, comicID)

@@ -57,6 +57,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0,
 			metron_character_id INTEGER
 		);
 		CREATE UNIQUE INDEX idx_characters_metron_character_id
@@ -170,6 +171,36 @@ func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
 	}
 	if len(detail.Body.Comics) != 1 || detail.Body.Comics[0].ID != comic.Body.ID {
 		t.Fatalf("appearances = %#v; want imported comic", detail.Body.Comics)
+	}
+}
+
+func TestListCharactersReturnsFavoriteAndProgress(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO characters (id, name, favorite) VALUES (1, 'Hero', 1);
+		INSERT INTO characters (id, name, favorite) VALUES (2, 'Villain', 0);
+		INSERT INTO comics (id, series, issue, publisher, read) VALUES (1, 'Series', 1, 'Publisher', 1);
+		INSERT INTO comics (id, series, issue, publisher, read) VALUES (2, 'Series', 2, 'Publisher', 0);
+		INSERT INTO comic_characters (comic_id, character_id) VALUES (1, 1);
+		INSERT INTO comic_characters (comic_id, character_id) VALUES (2, 1);
+	`); err != nil {
+		t.Fatalf("insert fixtures: %v", err)
+	}
+
+	characters, err := listCharacters(ctx, db, &CharacterListInput{Favorite: "true"})
+	if err != nil {
+		t.Fatalf("listCharacters: %v", err)
+	}
+	if len(characters.Body) != 1 {
+		t.Fatalf("characters = %d; want 1 favorite", len(characters.Body))
+	}
+	if !characters.Body[0].Favorite {
+		t.Fatal("favorite = false; want true")
+	}
+	if characters.Body[0].Progress != 0.5 {
+		t.Fatalf("progress = %v; want 0.5", characters.Body[0].Progress)
 	}
 }
 

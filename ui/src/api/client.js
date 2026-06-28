@@ -114,6 +114,10 @@ export function getCharacter(id) {
   return request(`/characters/${id}`)
 }
 
+export function updateCharacterFavorite(id, favorite) {
+  return send(`/characters/${id}/favorite`, 'PATCH', { favorite })
+}
+
 export function searchMetronCharacters(params) {
   return requestWithMeta(`/metron/characters${queryString(params)}`)
 }

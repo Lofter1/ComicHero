@@ -24,14 +24,16 @@ import {
   updateComic,
   updateComicFromMetron,
   updateComicReadStatus,
+  updateCharacterFavorite,
   updateReadingOrder,
 } from '@/api/client.js'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppToolbar from '@/components/AppToolbar.vue'
+import ComicListView from '@/components/ComicListView.vue'
 import ComicEditor from '@/components/ComicEditor.vue'
 import MetronImport from '@/components/MetronImport.vue'
 import ReadingOrderEditor from '@/components/ReadingOrderEditor.vue'
-import { comicMatchesSearch, comicPayload, emptyComic } from '@/domain/comics.js'
+import { comicPayload, emptyComic } from '@/domain/comics.js'
 import {
   emptyReadingOrder,
   formatProgress,
@@ -52,12 +54,13 @@ const selectedOrder = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const quickSavingComicID = ref(null)
+const quickSavingCharacterID = ref(null)
 const quickSavingOrderID = ref(null)
+const comicReturnTarget = ref(null)
 const error = ref('')
 const search = ref('')
+const characterFilter = ref('all')
 const readingOrderFilter = ref('all')
-const orderComicSearch = ref('')
-const orderComicStatus = ref('all')
 const metronMetadataOpen = ref(false)
 const metronMetadataSearching = ref(false)
 const metronMetadataApplyingID = ref(null)
@@ -73,7 +76,6 @@ const orderForm = ref(emptyReadingOrder())
 const searchTerm = computed(() => search.value.trim().toLowerCase())
 const isEditing = computed(() => viewMode.value === 'edit')
 const isDetail = computed(() => viewMode.value === 'detail')
-const filteredComics = computed(() => comics.value.filter(comic => comicMatchesSearch(comic, searchTerm.value)))
 const filteredCharacters = computed(() => {
   return characters.value.filter(character => {
     if (!searchTerm.value) return true
@@ -81,6 +83,26 @@ const filteredCharacters = computed(() => {
       .filter(value => value !== undefined && value !== null && value !== '')
       .some(value => String(value).toLowerCase().includes(searchTerm.value))
   })
+})
+const visibleCharacters = computed(() => {
+  if (characterFilter.value === 'favorites') {
+    return filteredCharacters.value.filter(character => character.favorite)
+  }
+  return filteredCharacters.value
+})
+const favoriteVisibleCharacters = computed(() => filteredCharacters.value.filter(character => character.favorite))
+const remainingVisibleCharacters = computed(() => filteredCharacters.value.filter(character => !character.favorite))
+const characterBrowseSections = computed(() => {
+  if (characterFilter.value === 'favorites') {
+    return [{ key: 'favorites', title: 'Favorites', characters: favoriteVisibleCharacters.value }]
+  }
+  if (!favoriteVisibleCharacters.value.length) {
+    return [{ key: 'all', title: 'All Characters', characters: filteredCharacters.value }]
+  }
+  return [
+    { key: 'favorites', title: 'Favorites', characters: favoriteVisibleCharacters.value },
+    { key: 'other', title: 'Other Characters', characters: remainingVisibleCharacters.value },
+  ].filter(section => section.characters.length)
 })
 const filteredOrders = computed(() => {
   return readingOrders.value.filter(order => readingOrderMatchesSearch(order, searchTerm.value))
@@ -91,25 +113,13 @@ const visibleOrders = computed(() => {
   }
   return filteredOrders.value
 })
-const orderComicSearchTerm = computed(() => orderComicSearch.value.trim().toLowerCase())
-const visibleOrderComics = computed(() => {
-  const orderComics = selectedOrder.value?.comics || []
-  return orderComics.filter(comic => {
-    if (orderComicStatus.value === 'read' && !comic.read) return false
-    if (orderComicStatus.value === 'unread' && comic.read) return false
-    if (!orderComicSearchTerm.value) return true
-
-    return [comic.title, comic.series, comic.issue, comic.publisher, comic.comment]
-      .filter(value => value !== undefined && value !== null && value !== '')
-      .some(value => String(value).toLowerCase().includes(orderComicSearchTerm.value))
-  })
-})
 const unreadComicCount = computed(() => comics.value.filter(comic => !comic.read).length)
+const favoriteCharacterCount = computed(() => characters.value.filter(character => character.favorite).length)
 const favoriteOrderCount = computed(() => readingOrders.value.filter(order => order.favorite).length)
 const toolbarResultCount = computed(() => {
   if (activeView.value === 'readingOrders') return visibleOrders.value.length
-  if (activeView.value === 'comics') return filteredComics.value.length
-  if (activeView.value === 'characters') return filteredCharacters.value.length
+  if (activeView.value === 'comics') return comics.value.length
+  if (activeView.value === 'characters') return visibleCharacters.value.length
   return 0
 })
 const toolbarTotalCount = computed(() => {
@@ -122,10 +132,10 @@ const currentOrderIndex = computed(() => {
   return visibleOrders.value.findIndex(order => order.id === selectedOrder.value?.id)
 })
 const currentComicIndex = computed(() => {
-  return filteredComics.value.findIndex(comic => comic.id === selectedComic.value?.id)
+  return comics.value.findIndex(comic => comic.id === selectedComic.value?.id)
 })
 const currentCharacterIndex = computed(() => {
-  return filteredCharacters.value.findIndex(character => character.id === selectedCharacter.value?.id)
+  return visibleCharacters.value.findIndex(character => character.id === selectedCharacter.value?.id)
 })
 const metronImportInProgress = computed(() => {
   return metronImportJobs.value.some(job => job.status === 'queued' || job.status === 'running')
@@ -139,6 +149,7 @@ const metronImportSummary = computed(() => {
 
 function setView(view) {
   error.value = ''
+  comicReturnTarget.value = null
   activeView.value = view
   viewMode.value = 'browse'
 }
@@ -163,8 +174,14 @@ async function refreshLists() {
   readingOrders.value = orderList
 }
 
-async function openComic(comic) {
+async function openComic(comic, options = {}) {
   error.value = ''
+  if (!options.preserveReturnTarget) {
+    comicReturnTarget.value = {
+      activeView: activeView.value,
+      viewMode: viewMode.value,
+    }
+  }
   activeView.value = 'comics'
   viewMode.value = 'detail'
   resetMetronMetadata()
@@ -179,9 +196,9 @@ async function openOrderComic(comic) {
 }
 
 async function openAdjacentComic(offset) {
-  const nextComic = filteredComics.value[currentComicIndex.value + offset]
+  const nextComic = comics.value[currentComicIndex.value + offset]
   if (nextComic) {
-    await openComic(nextComic)
+    await openComic(nextComic, { preserveReturnTarget: true })
   }
 }
 
@@ -194,14 +211,66 @@ async function openCharacter(character) {
 }
 
 async function openAdjacentCharacter(offset) {
-  const nextCharacter = filteredCharacters.value[currentCharacterIndex.value + offset]
+  const nextCharacter = visibleCharacters.value[currentCharacterIndex.value + offset]
   if (nextCharacter) {
     await openCharacter(nextCharacter)
   }
 }
 
+async function toggleCharacterFavorite(character) {
+  if (!character?.id || quickSavingCharacterID.value) return
+
+  quickSavingCharacterID.value = character.id
+  error.value = ''
+
+  try {
+    const detail = await updateCharacterFavorite(character.id, !character.favorite)
+    applyCharacterFavoriteState(detail)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    quickSavingCharacterID.value = null
+  }
+}
+
+function applyCharacterFavoriteState(detail) {
+  characters.value = characters.value.map(character => {
+    return character.id === detail.id ? { ...character, favorite: detail.favorite } : character
+  })
+
+  if (selectedCharacter.value?.id === detail.id) {
+    selectedCharacter.value = { ...selectedCharacter.value, favorite: detail.favorite }
+  }
+}
+
+function characterProgress(character) {
+  return formatProgress(character?.progress ?? 0)
+}
+
+async function importSelectedCharacterAppearances() {
+  if (!selectedCharacter.value?.metronCharacterId || characterImportRunning(selectedCharacter.value)) return
+
+  error.value = ''
+  try {
+    const { data: job } = await importMetronCharacterAppearances(selectedCharacter.value.metronCharacterId)
+    trackMetronImportJob({ ...job, displayName: selectedCharacter.value.name })
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+function characterImportRunning(character) {
+  if (!character?.metronCharacterId) return false
+  return metronImportJobs.value.some(job => {
+    return job.type === 'character'
+      && job.metronId === character.metronCharacterId
+      && (job.status === 'queued' || job.status === 'running')
+  })
+}
+
 function newComic() {
   error.value = ''
+  comicReturnTarget.value = null
   activeView.value = 'comics'
   viewMode.value = 'edit'
   selectedComic.value = null
@@ -291,6 +360,16 @@ function applyComicReadState(detail) {
       progress: readingOrderProgress(orderComics),
     }
   }
+  if (selectedCharacter.value) {
+    const characterComics = selectedCharacter.value.comics.map(comic => {
+      return comic.id === detail.id ? { ...comic, read: detail.read } : comic
+    })
+    selectedCharacter.value = {
+      ...selectedCharacter.value,
+      comics: characterComics,
+      progress: readingOrderProgress(characterComics),
+    }
+  }
 }
 
 function applyComicDetailState(detail) {
@@ -306,6 +385,16 @@ function applyComicDetailState(detail) {
       ...selectedOrder.value,
       comics: orderComics,
       progress: readingOrderProgress(orderComics),
+    }
+  }
+  if (selectedCharacter.value) {
+    const characterComics = selectedCharacter.value.comics.map(comic => {
+      return comic.id === detail.id ? { ...comic, ...detail } : comic
+    })
+    selectedCharacter.value = {
+      ...selectedCharacter.value,
+      comics: characterComics,
+      progress: readingOrderProgress(characterComics),
     }
   }
 }
@@ -365,7 +454,7 @@ async function applyMetronMetadata(metronIssueID) {
 }
 
 function readingOrderProgress(orderComics) {
-  if (orderComics.length === 0) return 100
+  if (orderComics.length === 0) return 0
   const readCount = orderComics.filter(comic => comic.read).length
   return readCount / orderComics.length
 }
@@ -374,8 +463,6 @@ async function openReadingOrder(order) {
   error.value = ''
   activeView.value = 'readingOrders'
   viewMode.value = 'detail'
-  orderComicSearch.value = ''
-  orderComicStatus.value = 'all'
   const detail = await getReadingOrder(order.id)
   selectedOrder.value = detail
   orderForm.value = readingOrderFormFromDetail(detail)
@@ -491,6 +578,12 @@ function cancelEdit() {
 
 function backToBrowse() {
   error.value = ''
+  if (activeView.value === 'comics' && viewMode.value === 'detail' && comicReturnTarget.value) {
+    activeView.value = comicReturnTarget.value.activeView
+    viewMode.value = comicReturnTarget.value.viewMode
+    comicReturnTarget.value = null
+    return
+  }
   viewMode.value = 'browse'
 }
 
@@ -505,6 +598,9 @@ function clearError() {
 async function handleMetronImported() {
   error.value = ''
   await refreshLists()
+  if (activeView.value === 'characters' && viewMode.value === 'detail' && selectedCharacter.value?.id) {
+    selectedCharacter.value = await getCharacter(selectedCharacter.value.id)
+  }
 }
 
 function trackMetronImportJob(job) {
@@ -675,7 +771,7 @@ onUnmounted(() => {
 
     <section class="content">
       <AppToolbar
-        v-if="!isEditing && !isDetail"
+        v-if="!isEditing && !isDetail && activeView !== 'comics'"
         :active-view="activeView"
         :search="search"
         :result-count="toolbarResultCount"
@@ -840,77 +936,18 @@ onUnmounted(() => {
               </span>
             </div>
 
-            <div class="preview-list">
-              <div class="preview-list-header">
-                <div>
-                  <p class="eyebrow">Comics</p>
-                  <small>{{ visibleOrderComics.length }} of {{ selectedOrder.comics.length }}</small>
-                </div>
-                <div class="inline-filter-tabs" role="tablist" aria-label="Reading order comic status filter">
-                  <button
-                    type="button"
-                    :class="{ active: orderComicStatus === 'all' }"
-                    role="tab"
-                    :aria-selected="orderComicStatus === 'all'"
-                    @click="orderComicStatus = 'all'"
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    :class="{ active: orderComicStatus === 'unread' }"
-                    role="tab"
-                    :aria-selected="orderComicStatus === 'unread'"
-                    @click="orderComicStatus = 'unread'"
-                  >
-                    Unread
-                  </button>
-                  <button
-                    type="button"
-                    :class="{ active: orderComicStatus === 'read' }"
-                    role="tab"
-                    :aria-selected="orderComicStatus === 'read'"
-                    @click="orderComicStatus = 'read'"
-                  >
-                    Read
-                  </button>
-                </div>
-              </div>
-              <div v-if="selectedOrder.comics.length" class="order-comic-search">
-                <input v-model="orderComicSearch" type="search" placeholder="Search this order" />
-                <button v-if="orderComicSearch" class="ghost-button" type="button" @click="orderComicSearch = ''">
-                  Clear
-                </button>
-              </div>
-              <ol v-if="visibleOrderComics.length">
-                <li
-                  v-for="(comic, index) in visibleOrderComics"
-                  :key="`${comic.id}-${index}`"
-                  class="comic-progress-row read-accent"
-                  :class="{ read: comic.read, unread: !comic.read }"
-                >
-                  <button class="order-comic-main" type="button" @click="openOrderComic(comic)">
-                    <strong>{{ comic.title }}</strong>
-                    <small v-if="comic.comment">{{ comic.comment }}</small>
-                  </button>
-                  <span class="read-state-actions">
-                    <span class="read-state-pill" :class="{ read: comic.read, unread: !comic.read }">
-                      {{ comic.read ? 'Read' : 'Unread' }}
-                    </span>
-                    <button
-                      type="button"
-                      class="read-toggle-button"
-                      :disabled="quickSavingComicID === comic.id"
-                      @click="toggleComicRead(comic)"
-                    >
-                      {{ comic.read ? 'Mark unread' : 'Mark read' }}
-                    </button>
-                  </span>
-                </li>
-              </ol>
-              <p v-else-if="selectedOrder.comics.length" class="muted">No comics match these filters.</p>
-              <p v-else class="muted">No comics in this reading order yet.</p>
-            </div>
+            <ComicListView
+              class="preview-list"
+              title="Comics"
+              :comics="selectedOrder.comics"
+              :selected-comic-id="selectedComic?.id"
+              :quick-saving-comic-id="quickSavingComicID"
+              show-comment
+              empty-message="No comics in this reading order yet."
+              filtered-empty-message="No comics match these filters."
+              @open-comic="openOrderComic"
+              @toggle-read="toggleComicRead"
+            />
           </div>
           <p v-else class="empty-state">Select a reading order to view it.</p>
         </article>
@@ -1031,10 +1068,31 @@ onUnmounted(() => {
             <button
               class="secondary-button"
               type="button"
-              :disabled="currentCharacterIndex < 0 || currentCharacterIndex >= filteredCharacters.length - 1"
+              :disabled="currentCharacterIndex < 0 || currentCharacterIndex >= visibleCharacters.length - 1"
               @click="openAdjacentCharacter(1)"
             >
               Next
+            </button>
+            <button
+              v-if="selectedCharacter"
+              type="button"
+              class="favorite-toggle detail-favorite-toggle"
+              :class="{ active: selectedCharacter.favorite }"
+              :disabled="quickSavingCharacterID === selectedCharacter.id"
+              :aria-label="selectedCharacter.favorite ? 'Remove from favorites' : 'Add to favorites'"
+              :title="selectedCharacter.favorite ? 'Remove from favorites' : 'Add to favorites'"
+              @click="toggleCharacterFavorite(selectedCharacter)"
+            >
+              <span aria-hidden="true">{{ selectedCharacter.favorite ? '★' : '☆' }}</span>
+            </button>
+            <button
+              v-if="selectedCharacter?.metronCharacterId"
+              class="primary-button"
+              type="button"
+              :disabled="characterImportRunning(selectedCharacter)"
+              @click="importSelectedCharacterAppearances"
+            >
+              {{ characterImportRunning(selectedCharacter) ? 'Importing...' : 'Import from Metron' }}
             </button>
           </div>
         </header>
@@ -1054,6 +1112,10 @@ onUnmounted(() => {
 
             <div class="metadata-grid">
               <span>
+                <strong>{{ characterProgress(selectedCharacter) }}</strong>
+                <small>Progress</small>
+              </span>
+              <span>
                 <strong>{{ selectedCharacter.appearanceCount }}</strong>
                 <small>Appearances</small>
               </span>
@@ -1062,9 +1124,12 @@ onUnmounted(() => {
                 <small>Aliases</small>
               </span>
               <span>
-                <strong>{{ selectedCharacter.metronCharacterId || 'Local' }}</strong>
-                <small>Metron ID</small>
+                <strong>{{ selectedCharacter.favorite ? 'Yes' : 'No' }}</strong>
+                <small>Favorite</small>
               </span>
+            </div>
+            <div class="progress-meter" aria-label="Character read progress">
+              <span :style="{ width: characterProgress(selectedCharacter) }"></span>
             </div>
 
             <div v-if="selectedCharacter.aliases?.length" class="alias-list">
@@ -1073,31 +1138,17 @@ onUnmounted(() => {
 
             <p class="detail-description">{{ selectedCharacter.description || 'No description' }}</p>
 
-            <div class="preview-list">
-              <div class="preview-list-header">
-                <div>
-                  <p class="eyebrow">Appearances</p>
-                  <small>{{ selectedCharacter.comics?.length || 0 }} comics</small>
-                </div>
-              </div>
-              <ol v-if="selectedCharacter.comics?.length">
-                <li
-                  v-for="comic in selectedCharacter.comics"
-                  :key="comic.id"
-                  class="comic-progress-row read-accent"
-                  :class="{ read: comic.read, unread: !comic.read }"
-                >
-                  <button class="order-comic-main" type="button" @click="openComic(comic)">
-                    <strong>{{ comic.title }}</strong>
-                    <small>{{ comic.publisher || 'Unknown publisher' }} · {{ comic.coverDate || 'Unknown date' }}</small>
-                  </button>
-                  <span class="read-state-pill" :class="{ read: comic.read, unread: !comic.read }">
-                    {{ comic.read ? 'Read' : 'Unread' }}
-                  </span>
-                </li>
-              </ol>
-              <p v-else class="muted">No appearances saved yet.</p>
-            </div>
+            <ComicListView
+              class="preview-list"
+              title="Appearances"
+              :comics="selectedCharacter.comics || []"
+              :selected-comic-id="selectedComic?.id"
+              :quick-saving-comic-id="quickSavingComicID"
+              empty-message="No appearances saved yet."
+              filtered-empty-message="No appearances match these filters."
+              @open-comic="openComic"
+              @toggle-read="toggleComicRead"
+            />
           </div>
           <p v-else class="empty-state">Select a character to view appearances.</p>
         </article>
@@ -1111,33 +1162,77 @@ onUnmounted(() => {
               <small>Characters</small>
             </span>
             <span>
+              <strong>{{ favoriteCharacterCount }}</strong>
+              <small>Favorites</small>
+            </span>
+            <span>
               <strong>{{ characters.reduce((total, character) => total + (character.appearanceCount || 0), 0) }}</strong>
               <small>Appearances</small>
             </span>
-            <span>
-              <strong>{{ characters.filter(character => character.aliases?.length).length }}</strong>
-              <small>With Aliases</small>
-            </span>
           </div>
-          <div v-if="filteredCharacters.length" class="list">
-            <button
-              v-for="character in filteredCharacters"
-              :key="character.id"
-              class="row character-row"
-              type="button"
-              :class="{ selected: selectedCharacter?.id === character.id }"
-              @click="openCharacter(character)"
-            >
-              <span>
-                <strong>{{ character.name }}</strong>
-                <small v-if="character.aliases?.length">{{ character.aliases.join(', ') }}</small>
-                <small v-else>No aliases saved</small>
-              </span>
-              <span class="status-pill">{{ character.appearanceCount }} appearances</span>
-            </button>
+          <div v-if="visibleCharacters.length" class="sectioned-list">
+            <section v-for="section in characterBrowseSections" :key="section.key" class="list-section">
+              <div class="list-section-header">
+                <p class="eyebrow">{{ section.title }}</p>
+                <small>{{ section.characters.length }}</small>
+              </div>
+              <div class="list">
+                <div
+                  v-for="character in section.characters"
+                  :key="character.id"
+                  class="row character-row"
+                  :class="{ selected: selectedCharacter?.id === character.id }"
+                >
+                  <span class="order-row-content">
+                    <button class="row-main character-row-main" type="button" @click="openCharacter(character)">
+                      <span v-if="character.image" class="character-list-avatar" aria-hidden="true">
+                        <img :src="assetURL(character.image)" alt="" loading="lazy" />
+                      </span>
+                      <span>
+                        <strong>{{ character.name }}</strong>
+                        <small v-if="character.aliases?.length">{{ character.aliases.join(', ') }}</small>
+                        <small v-else>No aliases saved</small>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="favorite-toggle"
+                      :class="{ active: character.favorite }"
+                      :disabled="quickSavingCharacterID === character.id"
+                      :aria-label="character.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      :title="character.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      @click="toggleCharacterFavorite(character)"
+                    >
+                      <span aria-hidden="true">{{ character.favorite ? '★' : '☆' }}</span>
+                    </button>
+                  </span>
+                  <span class="row-meta">
+                    <span class="status-pill">{{ character.appearanceCount }} appearances</span>
+                    <span class="status-pill">{{ characterProgress(character) }}</span>
+                  </span>
+                  <span class="row-progress" aria-label="Character read progress">
+                    <span :style="{ width: characterProgress(character) }"></span>
+                  </span>
+                </div>
+              </div>
+            </section>
           </div>
           <div v-else class="empty-state">
-            {{ searchTerm ? 'No characters match your search.' : 'No characters imported yet.' }}
+            {{
+              searchTerm
+                ? 'No characters match your search.'
+                : characterFilter === 'favorites'
+                  ? 'No favorite characters yet.'
+                  : 'No characters imported yet.'
+            }}
+            <button
+              v-if="!searchTerm && characterFilter === 'favorites' && characters.length"
+              class="secondary-button"
+              type="button"
+              @click="characterFilter = 'all'"
+            >
+              Show all characters
+            </button>
           </div>
         </div>
       </div>
@@ -1185,7 +1280,7 @@ onUnmounted(() => {
             <button
               class="secondary-button"
               type="button"
-              :disabled="currentComicIndex < 0 || currentComicIndex >= filteredComics.length - 1"
+              :disabled="currentComicIndex < 0 || currentComicIndex >= comics.length - 1"
               @click="openAdjacentComic(1)"
             >
               Next
@@ -1330,50 +1425,19 @@ onUnmounted(() => {
               <small>Read</small>
             </span>
           </div>
-          <div class="browse-controls align-end">
-            <button
-              class="primary-button icon-text-button"
-              type="button"
-              aria-label="New comic"
-              title="New comic"
-              @click="newComic"
-            >
-              <span aria-hidden="true" class="button-icon">+</span>
-            </button>
-          </div>
-          <div v-if="filteredComics.length" class="list">
-            <div
-              v-for="comic in filteredComics"
-              :key="comic.id"
-              class="row comic-row read-accent"
-              :class="{ read: comic.read, unread: !comic.read, selected: selectedComic?.id === comic.id }"
-            >
-              <button class="row-main" type="button" @click="openComic(comic)">
-                  <span>
-                    <strong>{{ comic.title }}</strong>
-                  <small>{{ comic.publisher || 'Unknown publisher' }}</small>
-                  </span>
-              </button>
-              <span class="read-state-pill" :class="{ read: comic.read, unread: !comic.read }">
-                {{ comic.read ? 'Read' : 'Unread' }}
-              </span>
-              <button
-                type="button"
-                class="read-toggle-button"
-                :disabled="quickSavingComicID === comic.id"
-                @click="toggleComicRead(comic)"
-              >
-                {{ comic.read ? 'Mark unread' : 'Mark read' }}
-              </button>
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            {{ searchTerm ? 'No comics match your search.' : 'No comics yet.' }}
-            <button v-if="!searchTerm" class="secondary-button" type="button" @click="newComic">
-              <span aria-hidden="true" class="button-icon">+</span>
-              Add the first comic
-            </button>
-          </div>
+          <ComicListView
+            title="Comics"
+            :comics="comics"
+            :selected-comic-id="selectedComic?.id"
+            :quick-saving-comic-id="quickSavingComicID"
+            show-new-button
+            show-cover
+            empty-message="No comics yet."
+            filtered-empty-message="No comics match these filters."
+            @new-comic="newComic"
+            @open-comic="openComic"
+            @toggle-read="toggleComicRead"
+          />
         </div>
       </div>
     </section>

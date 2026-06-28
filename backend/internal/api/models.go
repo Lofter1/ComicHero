@@ -55,6 +55,8 @@ type Character struct {
 	Name              string   `json:"name"                       db:"name"                doc:"Character name." example:"Batman"`
 	Description       string   `json:"description"                db:"description"         doc:"Character description from Metron."`
 	Image             string   `json:"image"                      db:"image"               doc:"Character image URL from Metron." format:"uri"`
+	Favorite          bool     `json:"favorite"                   db:"favorite"            doc:"Whether this character is marked as a favorite." example:"true"`
+	Progress          float64  `json:"progress"                   db:"progress"            doc:"Fraction of appearances marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	Aliases           []string `json:"aliases"                    db:"-"                   doc:"Known character aliases."`
 	AppearanceCount   int      `json:"appearanceCount"            db:"appearance_count"    doc:"Number of local comics this character appears in." example:"25"`
 }
@@ -65,11 +67,19 @@ type CharacterDetail struct {
 }
 
 type CharacterListInput struct {
-	Query string `query:"q" doc:"Case-insensitive text search across character names and aliases." example:"bat"`
+	Query    string `query:"q"        doc:"Case-insensitive text search across character names and aliases." example:"bat"`
+	Favorite string `query:"favorite" doc:"Filter characters by favorite status. Use true or false." enum:"true,false" example:"true"`
 }
 
 type CharacterInput struct {
 	ID int `path:"id" doc:"Local character identifier." example:"12"`
+}
+
+type UpdateCharacterFavoriteInput struct {
+	ID   int `path:"id" doc:"Local character identifier." example:"12"`
+	Body struct {
+		Favorite bool `json:"favorite" doc:"New favorite status." example:"true"`
+	}
 }
 
 type CharacterListOutput struct {

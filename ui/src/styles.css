@@ -470,6 +470,33 @@ textarea {
   gap: 10px;
 }
 
+.sectioned-list {
+  display: grid;
+  gap: 16px;
+}
+
+.list-section {
+  display: grid;
+  gap: 8px;
+}
+
+.list-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.list-section-header .eyebrow {
+  margin: 0;
+}
+
+.list-section-header small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .row {
   width: 100%;
   padding: 14px;
@@ -571,7 +598,75 @@ textarea {
 }
 
 .character-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  gap: 6px 10px;
+  padding: 10px 12px 8px;
+}
+
+.character-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.character-list-avatar {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f0f3f2;
+}
+
+.character-list-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-favorite-toggle {
+  align-self: center;
+}
+
+.character-row .order-row-content {
+  grid-column: 1;
+  width: 100%;
+}
+
+.character-row .favorite-toggle {
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  font-size: 1rem;
+}
+
+.character-row .row-meta {
+  grid-column: 2;
+  grid-row: 1;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.character-row .status-pill {
+  padding: 3px 7px;
+  font-size: 0.76rem;
+}
+
+.character-row .row-progress {
+  grid-column: 1 / -1;
+  height: 6px;
+}
+
+.character-row strong,
+.character-row small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .row small,
@@ -1206,21 +1301,49 @@ textarea {
   color: #ffffff;
 }
 
-.order-comic-search {
+.comic-list-view {
+  display: grid;
+  gap: 12px;
+}
+
+.comic-list-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.comic-list-header .eyebrow {
+  margin-bottom: 2px;
+}
+
+.comic-list-header small {
+  color: var(--muted);
+}
+
+.comic-list-tools {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(130px, 160px) minmax(130px, 160px) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.comic-list-tools input,
+.comic-list-tools select {
+  min-height: 38px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
-  padding: 4px 6px 4px 0;
-  margin-bottom: 12px;
+  padding: 8px 10px;
 }
 
-.order-comic-search input {
-  border: 0;
-  min-height: 34px;
-  background: transparent;
+.comic-list-tools .inline-filter-tabs {
+  min-width: 230px;
+}
+
+.issue-list {
+  display: grid;
+  gap: 10px;
 }
 
 .comic-add-panel {
@@ -1311,7 +1434,7 @@ textarea {
   margin-bottom: 10px;
 }
 
-.comic-progress-row {
+.issue-list-item {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1322,24 +1445,27 @@ textarea {
   padding: 10px 12px;
 }
 
-.comic-progress-row.read-accent {
+.issue-list-item.read-accent {
   border-bottom-width: 4px;
 }
 
-.comic-progress-row.read-accent.read {
+.issue-list-item.read-accent.read {
   border-bottom-color: var(--primary);
 }
 
-.comic-progress-row.read-accent.unread {
+.issue-list-item.read-accent.unread {
   border-bottom-color: #e2c46a;
 }
 
-.comic-progress-row > span,
-.order-comic-main {
+.issue-list-item > span,
+.issue-list-main {
   min-width: 0;
 }
 
-.order-comic-main {
+.issue-list-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: 1 1 auto;
   border: 0;
   background: transparent;
@@ -1348,15 +1474,36 @@ textarea {
   text-align: left;
 }
 
-.order-comic-main:hover {
+.issue-list-main:hover {
   border-color: transparent;
   box-shadow: none;
   transform: none;
 }
 
-.order-comic-main strong,
-.order-comic-main small {
+.issue-list-main strong,
+.issue-list-main small {
   display: block;
+}
+
+.issue-list-copy {
+  min-width: 0;
+}
+
+.issue-list-cover {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 60px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f0f3f2;
+}
+
+.issue-list-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .toast {
@@ -1523,12 +1670,22 @@ textarea {
     flex-wrap: wrap;
   }
 
+  .character-row {
+    grid-template-columns: 1fr;
+  }
+
+  .character-row .row-meta {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+
   .progress,
   .status-pill {
     margin-left: auto;
   }
 
-  .comic-progress-row {
+  .issue-list-item {
     flex-wrap: wrap;
   }
 
@@ -1562,8 +1719,16 @@ textarea {
   }
 
   .inline-filter-tabs,
-  .order-comic-search {
+  .comic-list-tools {
     width: 100%;
+  }
+
+  .comic-list-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .comic-list-tools .inline-filter-tabs {
+    min-width: 0;
   }
 
   .metron-view,

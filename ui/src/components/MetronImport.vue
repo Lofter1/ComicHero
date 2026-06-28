@@ -193,9 +193,6 @@ function rowImporting(type, id) {
   })
 }
 
-function characterAppearanceLabel(character) {
-  return character.aliases?.length ? character.aliases.join(', ') : 'No aliases in search result'
-}
 </script>
 
 <template>
@@ -345,7 +342,7 @@ function characterAppearanceLabel(character) {
           >
             <span>
               <strong>{{ character.name }}</strong>
-              <small>{{ characterAppearanceLabel(character) }} · Metron {{ character.id }}</small>
+              <small>Metron ID {{ character.id }}</small>
             </span>
             <span class="status-pill">
               {{ importingKey === `character:${character.id}` ? 'Importing...' : 'Import' }}

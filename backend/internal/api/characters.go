@@ -36,13 +36,28 @@ func RegisterCharacterRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *CharacterInput) (*CharacterDetailOutput, error) {
 		return getCharacter(ctx, db, input.ID)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateCharacterFavorite",
+		Tags:        []string{tagCharacters},
+		Summary:     "Update character favorite status",
+		Description: "Marks or unmarks a character as a favorite without changing aliases or appearances.",
+		Method:      http.MethodPatch,
+		Path:        "/characters/{id}/favorite",
+		Errors:      errsWrite,
+	}, func(ctx context.Context, input *UpdateCharacterFavoriteInput) (*CharacterDetailOutput, error) {
+		return updateCharacterFavorite(ctx, db, input.ID, input.Body.Favorite)
+	})
 }
 
 func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput) (*CharacterListOutput, error) {
 	query := newSelectQuery(`
-		SELECT ch.*, COUNT(cc.comic_id) AS appearance_count
+		SELECT ch.*,
+			COUNT(cc.comic_id) AS appearance_count,
+			COALESCE(AVG(CASE WHEN c.read = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
 		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
+		LEFT JOIN comics c ON c.id = cc.comic_id
 	`)
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -53,6 +68,11 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 				WHERE ca.character_id = ch.id AND ca.alias LIKE ?
 			)
 		)`, search, search)
+	}
+	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
+		return nil, err
+	} else if ok {
+		query.where("ch.favorite = ?", favorite)
 	}
 	query.groupBy("GROUP BY ch.id")
 	query.orderBy("ORDER BY ch.name")
@@ -66,6 +86,25 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 		return nil, err
 	}
 	return &CharacterListOutput{Body: characters}, nil
+}
+
+func updateCharacterFavorite(ctx context.Context, db *sqlx.DB, id int, favorite bool) (*CharacterDetailOutput, error) {
+	result, err := db.ExecContext(ctx, `
+		UPDATE characters
+		SET favorite = ?
+		WHERE id = ?
+	`, favorite, id)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to update character favorite")
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to check character favorite update")
+	}
+	if count == 0 {
+		return nil, huma.Error404NotFound("character not found")
+	}
+	return getCharacter(ctx, db, id)
 }
 
 func getCharacter(ctx context.Context, db *sqlx.DB, id int) (*CharacterDetailOutput, error) {
@@ -96,9 +135,12 @@ func getCharacter(ctx context.Context, db *sqlx.DB, id int) (*CharacterDetailOut
 func getCharacterRow(ctx context.Context, db *sqlx.DB, id int) (Character, error) {
 	var character Character
 	if err := db.GetContext(ctx, &character, `
-		SELECT ch.*, COUNT(cc.comic_id) AS appearance_count
+		SELECT ch.*,
+			COUNT(cc.comic_id) AS appearance_count,
+			COALESCE(AVG(CASE WHEN c.read = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
 		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
+		LEFT JOIN comics c ON c.id = cc.comic_id
 		WHERE ch.id = ?
 		GROUP BY ch.id
 	`, id); err != nil {
@@ -152,7 +194,7 @@ func hydrateCharacterAliases(ctx context.Context, db *sqlx.DB, characters []Char
 	return nil
 }
 
-func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, comicID int, issue metron.Issue) error {
+func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, covers *CoverCache, comicID int, issue metron.Issue) error {
 	if issue.Characters == nil {
 		return nil
 	}
@@ -175,7 +217,7 @@ func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, comicID int, is
 
 	seen := map[int]bool{}
 	for _, character := range issue.Characters {
-		id, err := upsertMetronCharacter(ctx, tx, character)
+		id, err := upsertMetronCharacter(ctx, tx, covers, character)
 		if err != nil {
 			return err
 		}
@@ -275,7 +317,7 @@ func importMetronCharacterAppearancesWithProgress(ctx context.Context, db *sqlx.
 		if err != nil {
 			return metronAPIError(err)
 		}
-		localID, err = upsertMetronCharacter(ctx, db, *character)
+		localID, err = upsertMetronCharacter(ctx, db, covers, *character)
 		if err != nil {
 			return err
 		}
@@ -346,7 +388,7 @@ func characterIDByMetronID(ctx context.Context, db sqlx.ExtContext, metronID int
 	return id, true, nil
 }
 
-func upsertMetronCharacter(ctx context.Context, db sqlx.ExtContext, character metron.MetronCharacter) (int, error) {
+func upsertMetronCharacter(ctx context.Context, db sqlx.ExtContext, covers *CoverCache, character metron.MetronCharacter) (int, error) {
 	character.Name = strings.TrimSpace(character.Name)
 	if character.ID <= 0 && character.Name == "" {
 		return 0, nil
@@ -378,10 +420,15 @@ func upsertMetronCharacter(ctx context.Context, db sqlx.ExtContext, character me
 		}
 	}
 
+	image, err := localCoverURL(ctx, covers, character.Image)
+	if err != nil {
+		return 0, err
+	}
+
 	result, err := db.ExecContext(ctx, `
 		INSERT INTO characters (name, description, image, metron_character_id)
 		VALUES (?, ?, ?, ?)
-	`, character.Name, character.Description, character.Image, nullableMetronID(character.ID))
+	`, character.Name, character.Description, image, nullableMetronID(character.ID))
 	if err != nil {
 		return 0, huma.Error500InternalServerError("failed to create character")
 	}
