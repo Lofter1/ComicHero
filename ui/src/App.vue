@@ -887,25 +887,6 @@ onUnmounted(() => {
       <div v-else-if="activeView === 'readingOrders' && isDetail" class="detail-view">
         <header class="detail-nav">
           <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
-          <div class="detail-nav-actions">
-            <button
-              class="secondary-button"
-              type="button"
-              :disabled="currentOrderIndex <= 0"
-              @click="openAdjacentReadingOrder(-1)"
-            >
-              Previous
-            </button>
-            <button
-              class="secondary-button"
-              type="button"
-              :disabled="currentOrderIndex < 0 || currentOrderIndex >= visibleOrders.length - 1"
-              @click="openAdjacentReadingOrder(1)"
-            >
-              Next
-            </button>
-            <button v-if="selectedOrder" class="primary-button" type="button" @click="editReadingOrder">Edit</button>
-          </div>
         </header>
 
         <article class="detail-panel">
@@ -1057,22 +1038,6 @@ onUnmounted(() => {
         <header class="detail-nav">
           <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
           <div class="detail-nav-actions">
-            <button
-              class="secondary-button"
-              type="button"
-              :disabled="currentCharacterIndex <= 0"
-              @click="openAdjacentCharacter(-1)"
-            >
-              Previous
-            </button>
-            <button
-              class="secondary-button"
-              type="button"
-              :disabled="currentCharacterIndex < 0 || currentCharacterIndex >= visibleCharacters.length - 1"
-              @click="openAdjacentCharacter(1)"
-            >
-              Next
-            </button>
             <button
               v-if="selectedCharacter"
               type="button"
@@ -1269,22 +1234,6 @@ onUnmounted(() => {
         <header class="detail-nav">
           <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
           <div class="detail-nav-actions">
-            <button
-              class="secondary-button"
-              type="button"
-              :disabled="currentComicIndex <= 0"
-              @click="openAdjacentComic(-1)"
-            >
-              Previous
-            </button>
-            <button
-              class="secondary-button"
-              type="button"
-              :disabled="currentComicIndex < 0 || currentComicIndex >= comics.length - 1"
-              @click="openAdjacentComic(1)"
-            >
-              Next
-            </button>
             <button
               v-if="selectedComic"
               class="secondary-button"
