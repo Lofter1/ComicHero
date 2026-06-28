@@ -44,7 +44,7 @@ defineEmits(['update:search'])
 </script>
 
 <template>
-  <header class="toolbar">
+  <header class="toolbar sticky-toolbar">
     <div>
       <p class="eyebrow">{{ labels[activeView].eyebrow }}</p>
       <h2>{{ labels[activeView].title }}</h2>

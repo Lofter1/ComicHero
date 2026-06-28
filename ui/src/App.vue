@@ -856,7 +856,7 @@ onUnmounted(() => {
       />
 
       <div v-else-if="!loading && activeView === 'readingOrders' && isEditing" class="editor-view">
-        <header class="editor-header">
+        <header class="editor-header sticky-toolbar">
           <button class="secondary-button" type="button" @click="cancelEdit">Back</button>
           <div>
             <p class="eyebrow">Reading Order</p>
@@ -885,7 +885,7 @@ onUnmounted(() => {
       </div>
 
       <div v-else-if="activeView === 'readingOrders' && isDetail" class="detail-view">
-        <header class="detail-nav">
+        <header class="detail-nav sticky-toolbar">
           <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
         </header>
 
@@ -1035,7 +1035,7 @@ onUnmounted(() => {
       </div>
 
       <div v-else-if="activeView === 'characters' && isDetail" class="detail-view">
-        <header class="detail-nav">
+        <header class="detail-nav sticky-toolbar">
           <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
           <div class="detail-nav-actions">
             <button
@@ -1203,7 +1203,7 @@ onUnmounted(() => {
       </div>
 
       <div v-else-if="activeView === 'comics' && isEditing" class="editor-view">
-        <header class="editor-header">
+        <header class="editor-header sticky-toolbar">
           <button class="secondary-button" type="button" @click="cancelEdit">Back</button>
           <div>
             <p class="eyebrow">Comic</p>
@@ -1231,7 +1231,7 @@ onUnmounted(() => {
       </div>
 
       <div v-else-if="activeView === 'comics' && isDetail" class="detail-view">
-        <header class="detail-nav">
+        <header class="detail-nav sticky-toolbar">
           <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
           <div class="detail-nav-actions">
             <button
@@ -1359,35 +1359,19 @@ onUnmounted(() => {
       </div>
 
       <div v-else class="browse-view">
-        <div class="list-pane">
-          <div class="overview-strip">
-            <span>
-              <strong>{{ comics.length }}</strong>
-              <small>Comics</small>
-            </span>
-            <span>
-              <strong>{{ unreadComicCount }}</strong>
-              <small>Unread</small>
-            </span>
-            <span>
-              <strong>{{ comics.length - unreadComicCount }}</strong>
-              <small>Read</small>
-            </span>
-          </div>
-          <ComicListView
-            title="Comics"
-            :comics="comics"
-            :selected-comic-id="selectedComic?.id"
-            :quick-saving-comic-id="quickSavingComicID"
-            show-new-button
-            show-cover
-            empty-message="No comics yet."
-            filtered-empty-message="No comics match these filters."
-            @new-comic="newComic"
-            @open-comic="openComic"
-            @toggle-read="toggleComicRead"
-          />
-        </div>
+        <ComicListView
+          title="Comics"
+          :comics="comics"
+          :selected-comic-id="selectedComic?.id"
+          :quick-saving-comic-id="quickSavingComicID"
+          show-new-button
+          show-cover
+          empty-message="No comics yet."
+          filtered-empty-message="No comics match these filters."
+          @new-comic="newComic"
+          @open-comic="openComic"
+          @toggle-read="toggleComicRead"
+        />
       </div>
     </section>
   </main>
