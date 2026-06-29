@@ -86,6 +86,7 @@ const pageState = ref({
 const loadMoreSentinel = ref(null)
 const metronImportPollTimers = new Map()
 let loadMoreObserver = null
+let searchDebounceTimer = null
 
 const comicForm = ref(emptyComic())
 const orderForm = ref(emptyReadingOrder())
@@ -93,22 +94,14 @@ const orderForm = ref(emptyReadingOrder())
 const searchTerm = computed(() => search.value.trim().toLowerCase())
 const isEditing = computed(() => viewMode.value === 'edit')
 const isDetail = computed(() => viewMode.value === 'detail')
-const filteredCharacters = computed(() => {
-  return characters.value.filter(character => {
-    if (!searchTerm.value) return true
-    return [character.name, ...(character.aliases || [])]
-      .filter(value => value !== undefined && value !== null && value !== '')
-      .some(value => String(value).toLowerCase().includes(searchTerm.value))
-  })
-})
 const visibleCharacters = computed(() => {
-  return filteredCharacters.value
+  return characters.value
 })
-const favoriteVisibleCharacters = computed(() => filteredCharacters.value.filter(character => character.favorite))
-const remainingVisibleCharacters = computed(() => filteredCharacters.value.filter(character => !character.favorite))
+const favoriteVisibleCharacters = computed(() => characters.value.filter(character => character.favorite))
+const remainingVisibleCharacters = computed(() => characters.value.filter(character => !character.favorite))
 const characterBrowseSections = computed(() => {
   if (!favoriteVisibleCharacters.value.length) {
-    return [{ key: 'all', title: 'All Characters', characters: filteredCharacters.value }]
+    return [{ key: 'all', title: 'All Characters', characters: characters.value }]
   }
   return [
     { key: 'favorites', title: 'Favorites', characters: favoriteVisibleCharacters.value },
@@ -116,28 +109,25 @@ const characterBrowseSections = computed(() => {
   ].filter(section => section.characters.length)
 })
 const visibleSeries = computed(() => {
-  return series.value.filter(item => seriesMatchesSearch(item, searchTerm.value))
+  return series.value
 })
-const favoriteVisibleSeries = computed(() => visibleSeries.value.filter(series => series.favorite))
-const remainingVisibleSeries = computed(() => visibleSeries.value.filter(series => !series.favorite))
+const favoriteVisibleSeries = computed(() => series.value.filter(series => series.favorite))
+const remainingVisibleSeries = computed(() => series.value.filter(series => !series.favorite))
 const seriesBrowseSections = computed(() => {
   if (!favoriteVisibleSeries.value.length) {
-    return [{ key: 'all', title: 'All Series', series: visibleSeries.value }]
+    return [{ key: 'all', title: 'All Series', series: series.value }]
   }
   return [
     { key: 'favorites', title: 'Favorites', series: favoriteVisibleSeries.value },
     { key: 'other', title: 'Other Series', series: remainingVisibleSeries.value },
   ].filter(section => section.series.length)
 })
-const filteredOrders = computed(() => {
-  return readingOrders.value.filter(order => readingOrderMatchesSearch(order, searchTerm.value))
-})
-const visibleOrders = computed(() => filteredOrders.value)
-const favoriteVisibleOrders = computed(() => filteredOrders.value.filter(order => order.favorite))
-const remainingVisibleOrders = computed(() => filteredOrders.value.filter(order => !order.favorite))
+const visibleOrders = computed(() => readingOrders.value)
+const favoriteVisibleOrders = computed(() => readingOrders.value.filter(order => order.favorite))
+const remainingVisibleOrders = computed(() => readingOrders.value.filter(order => !order.favorite))
 const readingOrderBrowseSections = computed(() => {
   if (!favoriteVisibleOrders.value.length) {
-    return [{ key: 'all', title: 'All Orders', orders: filteredOrders.value }]
+    return [{ key: 'all', title: 'All Orders', orders: readingOrders.value }]
   }
   return [
     { key: 'favorites', title: 'Favorites', orders: favoriteVisibleOrders.value },
@@ -377,9 +367,13 @@ async function loadPagedList(key, target, listFn, { append = false, force = fals
   if (!append && state.initialized && !force) return
 
   const offset = append ? state.nextOffset : 0
+  const params = { limit: pageSize, offset }
+  if (searchTerm.value) {
+    params.q = searchTerm.value
+  }
   state.loadingMore = append
   try {
-    const page = await listFn({ limit: pageSize, offset })
+    const page = await listFn(params)
     target.value = append ? [...target.value, ...page.items] : page.items
     state.initialized = true
     state.hasMore = page.hasMore
@@ -1017,6 +1011,10 @@ function metronJobMessage(job) {
   return job.message
 }
 
+function updateSearch(value) {
+  search.value = value
+}
+
 function setupLoadMoreObserver() {
   if (typeof IntersectionObserver === 'undefined') return
   loadMoreObserver = new IntersectionObserver((entries) => {
@@ -1048,9 +1046,23 @@ watch(activeView, () => {
   nextTick(observeLoadMoreSentinel)
 })
 
+watch(search, () => {
+  if (searchDebounceTimer) {
+    window.clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = window.setTimeout(() => {
+    if (!isEditing.value && !isDetail.value && activeView.value !== 'metron') {
+      loadData(true)
+    }
+  }, 250)
+})
+
 onUnmounted(() => {
   metronImportPollTimers.forEach(timer => window.clearTimeout(timer))
   metronImportPollTimers.clear()
+  if (searchDebounceTimer) {
+    window.clearTimeout(searchDebounceTimer)
+  }
   if (loadMoreObserver) {
     loadMoreObserver.disconnect()
   }
@@ -1073,7 +1085,7 @@ onUnmounted(() => {
         :search="search"
         :result-count="toolbarResultCount"
         :total-count="toolbarTotalCount"
-        @update:search="search = $event"
+        @update:search="updateSearch"
       />
 
       <div v-if="error" class="toast error-toast" role="alert" aria-live="assertive">
@@ -1771,6 +1783,8 @@ onUnmounted(() => {
           title="Comics"
           :comics="comics"
           :total-count="listTotal('comics')"
+          :search="search"
+          server-search
           :selected-comic-id="selectedComic?.id"
           :quick-saving-comic-id="quickSavingComicID"
           show-new-button
@@ -1778,6 +1792,7 @@ onUnmounted(() => {
           empty-message="No comics yet."
           filtered-empty-message="No comics match these filters."
           @new-comic="newComic"
+          @update:search="updateSearch"
           @open-comic="openComic"
           @toggle-read="toggleComicRead"
         />

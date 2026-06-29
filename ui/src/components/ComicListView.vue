@@ -11,6 +11,14 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  search: {
+    type: String,
+    default: null,
+  },
+  serverSearch: {
+    type: Boolean,
+    default: false,
+  },
   title: {
     type: String,
     default: 'Comics',
@@ -49,20 +57,32 @@ const props = defineProps({
   },
 })
 
-defineEmits(['open-comic', 'toggle-read', 'new-comic'])
+const emit = defineEmits(['open-comic', 'toggle-read', 'new-comic', 'update:search'])
 
 const localSearch = ref('')
 const status = ref('all')
 const sort = ref(props.initialSort)
 const direction = ref('asc')
 
-const searchTerm = computed(() => localSearch.value.trim().toLowerCase())
+const searchText = computed({
+  get() {
+    return props.search === null ? localSearch.value : props.search
+  },
+  set(value) {
+    if (props.search === null) {
+      localSearch.value = value
+      return
+    }
+    emit('update:search', value)
+  },
+})
+const searchTerm = computed(() => searchText.value.trim().toLowerCase())
 const visibleComics = computed(() => {
   return [...props.comics]
     .filter(comic => {
       if (status.value === 'read' && !comic.read) return false
       if (status.value === 'unread' && comic.read) return false
-      if (!searchTerm.value) return true
+      if (props.serverSearch || !searchTerm.value) return true
 
       return [comic.title, comic.series, comic.issue, comic.publisher, comic.coverDate, comic.comment]
         .filter(value => value !== undefined && value !== null && value !== '')
@@ -127,7 +147,7 @@ function compareText(a, b) {
       </header>
 
       <div v-if="comics.length" class="comic-list-tools">
-        <input v-model="localSearch" type="search" placeholder="Search issues" />
+        <input v-model="searchText" type="search" placeholder="Search issues" />
         <div class="inline-filter-tabs" role="tablist" aria-label="Issue read status filter">
           <button type="button" :class="{ active: status === 'all' }" role="tab" :aria-selected="status === 'all'" @click="status = 'all'">
             All
@@ -150,7 +170,7 @@ function compareText(a, b) {
           <option value="asc">Ascending</option>
           <option value="desc">Descending</option>
         </select>
-        <button v-if="localSearch" class="ghost-button" type="button" @click="localSearch = ''">
+        <button v-if="searchText" class="ghost-button" type="button" @click="searchText = ''">
           Clear
         </button>
       </div>
