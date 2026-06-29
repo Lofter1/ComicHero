@@ -10,6 +10,11 @@ const labels = {
     title: 'Comics',
     placeholder: 'Search comics',
   },
+  series: {
+    eyebrow: 'Series',
+    title: 'Series',
+    placeholder: 'Search series',
+  },
   characters: {
     eyebrow: 'Characters',
     title: 'Characters',

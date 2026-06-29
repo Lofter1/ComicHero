@@ -52,6 +52,24 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		ON comics(metron_issue_id)
 		WHERE metron_issue_id IS NOT NULL;
 
+		CREATE TABLE series (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			favorite INTEGER NOT NULL DEFAULT 0,
+			metron_series_id INTEGER,
+			publisher TEXT NOT NULL DEFAULT '',
+			volume INTEGER NOT NULL DEFAULT 0,
+			year_end INTEGER NOT NULL DEFAULT 0,
+			issue_count INTEGER NOT NULL DEFAULT 0,
+			description TEXT NOT NULL DEFAULT ''
+		);
+		CREATE UNIQUE INDEX idx_series_name_year
+		ON series(name, series_year);
+		CREATE UNIQUE INDEX idx_series_metron_series_id
+		ON series(metron_series_id)
+		WHERE metron_series_id IS NOT NULL;
+
 		CREATE TABLE characters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
@@ -294,8 +312,8 @@ func TestImportCharacterAppearancesFromMetron(t *testing.T) {
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
-		INSERT INTO characters (id, name, metron_character_id)
-		VALUES (1, 'Hero', 301)
+		INSERT INTO characters (id, name, description, image, favorite, metron_character_id)
+		VALUES (1, 'Old Hero', 'Old description', 'old-image', 1, 301)
 	`); err != nil {
 		t.Fatalf("insert character: %v", err)
 	}
@@ -311,6 +329,8 @@ func TestImportCharacterAppearancesFromMetron(t *testing.T) {
 		requests[r.URL.String()]++
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.String() {
+		case "/character/301/":
+			w.Write([]byte(`{"id":301,"name":"Hero","description":"Fresh description","image":"fresh-image","aliases":["The Hero"]}`))
 		case "/character/301/issue_list/":
 			w.Write([]byte(`{
 				"count": 2,
@@ -343,6 +363,9 @@ func TestImportCharacterAppearancesFromMetron(t *testing.T) {
 	if requests["/character/301/issue_list/"] != 1 {
 		t.Fatalf("first issue-list page requests = %d; want 1", requests["/character/301/issue_list/"])
 	}
+	if requests["/character/301/"] != 1 {
+		t.Fatalf("character detail requests = %d; want 1", requests["/character/301/"])
+	}
 	if requests["/character/301/issue_list/?page=2"] != 1 {
 		t.Fatalf("second issue-list page requests = %d; want 1", requests["/character/301/issue_list/?page=2"])
 	}
@@ -354,6 +377,15 @@ func TestImportCharacterAppearancesFromMetron(t *testing.T) {
 	}
 	if len(detail.Body.Comics) != 2 {
 		t.Fatalf("appearances = %d; want 2", len(detail.Body.Comics))
+	}
+	if detail.Body.Name != "Hero" || detail.Body.Description != "Fresh description" || detail.Body.Image != "fresh-image" {
+		t.Fatalf("character metadata = %#v; want refreshed Metron metadata", detail.Body.Character)
+	}
+	if !detail.Body.Favorite {
+		t.Fatal("character favorite was not preserved")
+	}
+	if len(detail.Body.Aliases) != 1 || detail.Body.Aliases[0] != "The Hero" {
+		t.Fatalf("aliases = %#v; want The Hero", detail.Body.Aliases)
 	}
 
 	var linkCount int
@@ -568,5 +600,92 @@ func TestImportMetronSeriesSkipsDetailFetchForExistingComic(t *testing.T) {
 	}
 	if detailRequests["/issue/102/"] != 1 {
 		t.Fatalf("fetched new comic detail %d times; want 1", detailRequests["/issue/102/"])
+	}
+}
+
+func TestImportLocalSeriesFromMetronUpdatesMetadataAndImportsMissingComics(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO series (id, name, series_year, favorite)
+		VALUES (1, 'Series', 2026, 1);
+		INSERT INTO comics (id, series, series_year, issue, publisher, metron_issue_id)
+		VALUES (1, 'Series', 2026, 1, 'Publisher', 101);
+	`); err != nil {
+		t.Fatalf("insert local series: %v", err)
+	}
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.String()]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.String() {
+		case "/series/?name=Series":
+			w.Write([]byte(`{"results":[{"id":405,"name":"Series","year_began":2026,"publisher":{"name":"Publisher"},"volume":2,"year_end":2027,"issue_count":2,"description":"Series metadata"}]}`))
+		case "/series/405/":
+			w.Write([]byte(`{"id":405,"name":"Series","year_began":2026,"publisher":{"name":"Publisher"},"volume":2,"year_end":2027,"issue_count":2,"description":"Series metadata"}`))
+		case "/series/405/issue_list/":
+			w.Write([]byte(`[
+				{"id":101,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"1"},
+				{"id":102,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"2"}
+			]`))
+		case "/issue/102/":
+			w.Write([]byte(`{"id":102,"series":{"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"2"}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	store := newMetronImportJobStore()
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	output, err := importLocalSeriesFromMetron(ctx, db, client, nil, store, 1)
+	if err != nil {
+		t.Fatalf("importLocalSeriesFromMetron: %v", err)
+	}
+
+	var current MetronImportJob
+	for range 100 {
+		var ok bool
+		current, ok = store.get(output.Body.ID)
+		if !ok {
+			t.Fatal("job not found")
+		}
+		if current.Status == "succeeded" || current.Status == "failed" || current.Status == "canceled" {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if current.Status != "succeeded" {
+		t.Fatalf("job status = %q, message = %q; want succeeded", current.Status, current.Message)
+	}
+	if requests["/issue/101/"] != 0 {
+		t.Fatalf("existing issue detail requests = %d; want 0", requests["/issue/101/"])
+	}
+	if requests["/issue/102/"] != 1 {
+		t.Fatalf("new issue detail requests = %d; want 1", requests["/issue/102/"])
+	}
+
+	var series ComicSeries
+	if err := db.GetContext(ctx, &series, `SELECT * FROM series WHERE id = 1`); err != nil {
+		t.Fatalf("get series: %v", err)
+	}
+	if series.MetronSeriesID == nil || *series.MetronSeriesID != 405 {
+		t.Fatalf("metron series id = %#v; want 405", series.MetronSeriesID)
+	}
+	if series.Description != "Series metadata" || series.IssueCount != 2 || series.Volume != 2 {
+		t.Fatalf("series metadata = %#v; want Metron metadata", series)
+	}
+	if !series.Favorite {
+		t.Fatal("series favorite was not preserved")
+	}
+
+	var comicCount int
+	if err := db.GetContext(ctx, &comicCount, `SELECT COUNT(*) FROM comics`); err != nil {
+		t.Fatalf("count comics: %v", err)
+	}
+	if comicCount != 2 {
+		t.Fatalf("comic count = %d; want 2", comicCount)
 	}
 }

@@ -12,6 +12,8 @@ import {
   getComic,
   getMetronImportJob,
   getReadingOrder,
+  getSeries,
+  importLocalSeriesFromMetron,
   importMetronCharacterAppearances,
   importMetronComic,
   importMetronReadingList,
@@ -19,6 +21,7 @@ import {
   listCharacters,
   listComics,
   listReadingOrders,
+  listSeries,
   searchMetronComics,
   setReadingOrderComics,
   updateComic,
@@ -26,6 +29,7 @@ import {
   updateComicReadStatus,
   updateCharacterFavorite,
   updateReadingOrder,
+  updateSeriesFavorite,
 } from '@/api/client.js'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppToolbar from '@/components/AppToolbar.vue'
@@ -46,11 +50,13 @@ import {
 const activeView = ref('readingOrders')
 const viewMode = ref('browse')
 const comics = ref([])
+const series = ref([])
 const characters = ref([])
 const readingOrders = ref([])
 const selectedComic = ref(null)
 const selectedCharacter = ref(null)
 const selectedOrder = ref(null)
+const selectedSeries = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const quickSavingComicID = ref(null)
@@ -59,8 +65,6 @@ const quickSavingOrderID = ref(null)
 const comicReturnTarget = ref(null)
 const error = ref('')
 const search = ref('')
-const characterFilter = ref('all')
-const readingOrderFilter = ref('all')
 const metronMetadataOpen = ref(false)
 const metronMetadataSearching = ref(false)
 const metronMetadataApplyingID = ref(null)
@@ -85,17 +89,11 @@ const filteredCharacters = computed(() => {
   })
 })
 const visibleCharacters = computed(() => {
-  if (characterFilter.value === 'favorites') {
-    return filteredCharacters.value.filter(character => character.favorite)
-  }
   return filteredCharacters.value
 })
 const favoriteVisibleCharacters = computed(() => filteredCharacters.value.filter(character => character.favorite))
 const remainingVisibleCharacters = computed(() => filteredCharacters.value.filter(character => !character.favorite))
 const characterBrowseSections = computed(() => {
-  if (characterFilter.value === 'favorites') {
-    return [{ key: 'favorites', title: 'Favorites', characters: favoriteVisibleCharacters.value }]
-  }
   if (!favoriteVisibleCharacters.value.length) {
     return [{ key: 'all', title: 'All Characters', characters: filteredCharacters.value }]
   }
@@ -104,27 +102,49 @@ const characterBrowseSections = computed(() => {
     { key: 'other', title: 'Other Characters', characters: remainingVisibleCharacters.value },
   ].filter(section => section.characters.length)
 })
+const visibleSeries = computed(() => {
+  return series.value.filter(item => seriesMatchesSearch(item, searchTerm.value))
+})
+const favoriteVisibleSeries = computed(() => visibleSeries.value.filter(series => series.favorite))
+const remainingVisibleSeries = computed(() => visibleSeries.value.filter(series => !series.favorite))
+const seriesBrowseSections = computed(() => {
+  if (!favoriteVisibleSeries.value.length) {
+    return [{ key: 'all', title: 'All Series', series: visibleSeries.value }]
+  }
+  return [
+    { key: 'favorites', title: 'Favorites', series: favoriteVisibleSeries.value },
+    { key: 'other', title: 'Other Series', series: remainingVisibleSeries.value },
+  ].filter(section => section.series.length)
+})
 const filteredOrders = computed(() => {
   return readingOrders.value.filter(order => readingOrderMatchesSearch(order, searchTerm.value))
 })
-const visibleOrders = computed(() => {
-  if (readingOrderFilter.value === 'favorites') {
-    return filteredOrders.value.filter(order => order.favorite)
+const visibleOrders = computed(() => filteredOrders.value)
+const favoriteVisibleOrders = computed(() => filteredOrders.value.filter(order => order.favorite))
+const remainingVisibleOrders = computed(() => filteredOrders.value.filter(order => !order.favorite))
+const readingOrderBrowseSections = computed(() => {
+  if (!favoriteVisibleOrders.value.length) {
+    return [{ key: 'all', title: 'All Orders', orders: filteredOrders.value }]
   }
-  return filteredOrders.value
+  return [
+    { key: 'favorites', title: 'Favorites', orders: favoriteVisibleOrders.value },
+    { key: 'other', title: 'Other Orders', orders: remainingVisibleOrders.value },
+  ].filter(section => section.orders.length)
 })
-const unreadComicCount = computed(() => comics.value.filter(comic => !comic.read).length)
+const favoriteSeriesCount = computed(() => series.value.filter(item => item.favorite).length)
 const favoriteCharacterCount = computed(() => characters.value.filter(character => character.favorite).length)
 const favoriteOrderCount = computed(() => readingOrders.value.filter(order => order.favorite).length)
 const toolbarResultCount = computed(() => {
   if (activeView.value === 'readingOrders') return visibleOrders.value.length
   if (activeView.value === 'comics') return comics.value.length
+  if (activeView.value === 'series') return visibleSeries.value.length
   if (activeView.value === 'characters') return visibleCharacters.value.length
   return 0
 })
 const toolbarTotalCount = computed(() => {
   if (activeView.value === 'readingOrders') return readingOrders.value.length
   if (activeView.value === 'comics') return comics.value.length
+  if (activeView.value === 'series') return series.value.length
   if (activeView.value === 'characters') return characters.value.length
   return 0
 })
@@ -154,6 +174,78 @@ function setView(view) {
   viewMode.value = 'browse'
 }
 
+function seriesMatchesSearch(series, term) {
+  if (!term) return true
+
+  return [
+    series.name,
+    series.seriesYear,
+    ...(series.publishers || []),
+  ]
+    .filter(value => value !== undefined && value !== null && value !== '')
+    .some(value => String(value).toLowerCase().includes(term))
+}
+
+function seriesYearLabel(series) {
+  return series?.seriesYear ? ` (${series.seriesYear})` : ''
+}
+
+function seriesPublisherLabel(series) {
+  if (!series?.publishers?.length) return 'No publisher saved'
+  return series.publishers.join(', ')
+}
+
+async function openSeries(item) {
+  if (!item?.id) return
+  error.value = ''
+  activeView.value = 'series'
+  viewMode.value = 'detail'
+  selectedSeries.value = await getSeries(item.id)
+}
+
+async function toggleSeriesFavorite(item) {
+  if (!item?.id) return
+
+  error.value = ''
+  try {
+    const detail = await updateSeriesFavorite(item.id, !item.favorite)
+    applySeriesFavoriteState(detail)
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+function applySeriesFavoriteState(detail) {
+  series.value = series.value.map(item => {
+    return item.id === detail.id ? { ...item, favorite: detail.favorite } : item
+  })
+
+  if (selectedSeries.value?.id === detail.id) {
+    selectedSeries.value = { ...selectedSeries.value, ...detail }
+  }
+}
+
+async function importSelectedSeriesFromMetron() {
+  if (!selectedSeries.value?.id || seriesImportRunning(selectedSeries.value)) return
+
+  error.value = ''
+  try {
+    const { data: job } = await importLocalSeriesFromMetron(selectedSeries.value.id)
+    trackMetronImportJob({ ...job, displayName: selectedSeries.value.name })
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+function seriesImportRunning(series) {
+  if (!series?.id) return false
+  return metronImportJobs.value.some(job => {
+    return job.type === 'series'
+      && (job.status === 'queued' || job.status === 'running')
+      && (job.metronId === series.metronSeriesId || job.displayName === series.name)
+  })
+}
+
 async function loadData() {
   loading.value = true
   error.value = ''
@@ -168,8 +260,14 @@ async function loadData() {
 }
 
 async function refreshLists() {
-  const [comicList, characterList, orderList] = await Promise.all([listComics(), listCharacters(), listReadingOrders()])
+  const [comicList, seriesList, characterList, orderList] = await Promise.all([
+    listComics(),
+    listSeries(),
+    listCharacters(),
+    listReadingOrders(),
+  ])
   comics.value = comicList
+  series.value = seriesList
   characters.value = characterList
   readingOrders.value = orderList
 }
@@ -370,6 +468,17 @@ function applyComicReadState(detail) {
       progress: readingOrderProgress(characterComics),
     }
   }
+  if (selectedSeries.value?.comics) {
+    const seriesComics = selectedSeries.value.comics.map(comic => {
+      return comic.id === detail.id ? { ...comic, read: detail.read } : comic
+    })
+    selectedSeries.value = {
+      ...selectedSeries.value,
+      comics: seriesComics,
+      readCount: seriesComics.filter(comic => comic.read).length,
+      progress: readingOrderProgress(seriesComics),
+    }
+  }
 }
 
 function applyComicDetailState(detail) {
@@ -395,6 +504,17 @@ function applyComicDetailState(detail) {
       ...selectedCharacter.value,
       comics: characterComics,
       progress: readingOrderProgress(characterComics),
+    }
+  }
+  if (selectedSeries.value?.comics) {
+    const seriesComics = selectedSeries.value.comics.map(comic => {
+      return comic.id === detail.id ? { ...comic, ...detail } : comic
+    })
+    selectedSeries.value = {
+      ...selectedSeries.value,
+      comics: seriesComics,
+      readCount: seriesComics.filter(comic => comic.read).length,
+      progress: readingOrderProgress(seriesComics),
     }
   }
 }
@@ -601,6 +721,9 @@ async function handleMetronImported() {
   if (activeView.value === 'characters' && viewMode.value === 'detail' && selectedCharacter.value?.id) {
     selectedCharacter.value = await getCharacter(selectedCharacter.value.id)
   }
+  if (activeView.value === 'series' && viewMode.value === 'detail' && selectedSeries.value?.id) {
+    selectedSeries.value = await getSeries(selectedSeries.value.id)
+  }
 }
 
 function trackMetronImportJob(job) {
@@ -762,6 +885,7 @@ onUnmounted(() => {
     <AppSidebar
       :active-view="activeView"
       :comic-count="comics.length"
+      :series-count="series.length"
       :character-count="characters.length"
       :order-count="readingOrders.length"
       :loading="loading"
@@ -950,27 +1074,7 @@ onUnmounted(() => {
               <small>Comics</small>
             </span>
           </div>
-          <div class="browse-controls">
-            <div class="filter-tabs" role="tablist" aria-label="Reading order filter">
-              <button
-                type="button"
-                :class="{ active: readingOrderFilter === 'all' }"
-                role="tab"
-                :aria-selected="readingOrderFilter === 'all'"
-                @click="readingOrderFilter = 'all'"
-              >
-                All
-              </button>
-              <button
-                type="button"
-                :class="{ active: readingOrderFilter === 'favorites' }"
-                role="tab"
-                :aria-selected="readingOrderFilter === 'favorites'"
-                @click="readingOrderFilter = 'favorites'"
-              >
-                Favorites
-              </button>
-            </div>
+          <div class="browse-controls align-end">
             <button
               class="primary-button icon-text-button"
               type="button"
@@ -981,54 +1085,198 @@ onUnmounted(() => {
               <span aria-hidden="true" class="button-icon">+</span>
             </button>
           </div>
-          <div v-if="visibleOrders.length" class="list">
-            <div
-              v-for="order in visibleOrders"
-              :key="order.id"
-              class="row order-row"
-              :class="{ selected: selectedOrder?.id === order.id }"
-            >
-              <span class="order-row-content">
-                <button class="row-main" type="button" @click="openReadingOrder(order)">
-                  <strong>{{ order.name }}</strong>
-                  <small>{{ order.description || 'No description' }}</small>
-                </button>
-                <button
-                  type="button"
-                  class="favorite-toggle"
-                  :class="{ active: order.favorite }"
-                  :disabled="quickSavingOrderID === order.id"
-                  :aria-label="order.favorite ? 'Remove from favorites' : 'Add to favorites'"
-                  :title="order.favorite ? 'Remove from favorites' : 'Add to favorites'"
-                  @click="toggleReadingOrderFavorite(order)"
+          <div v-if="visibleOrders.length" class="sectioned-list">
+            <section v-for="section in readingOrderBrowseSections" :key="section.key" class="list-section">
+              <div class="list-section-header">
+                <p class="eyebrow">{{ section.title }}</p>
+                <small>{{ section.orders.length }}</small>
+              </div>
+              <div class="list">
+                <div
+                  v-for="order in section.orders"
+                  :key="order.id"
+                  class="row order-row"
+                  :class="{ selected: selectedOrder?.id === order.id }"
                 >
-                  <span aria-hidden="true">{{ order.favorite ? '★' : '☆' }}</span>
-                </button>
-              </span>
-              <span class="row-progress" aria-label="Reading order progress">
-                <span :style="{ width: formatProgress(order.progress) }"></span>
-              </span>
-            </div>
+                  <span class="order-row-content">
+                    <button class="row-main" type="button" @click="openReadingOrder(order)">
+                      <strong>{{ order.name }}</strong>
+                      <small>{{ order.description || 'No description' }}</small>
+                    </button>
+                    <button
+                      type="button"
+                      class="favorite-toggle"
+                      :class="{ active: order.favorite }"
+                      :disabled="quickSavingOrderID === order.id"
+                      :aria-label="order.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      :title="order.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      @click="toggleReadingOrderFavorite(order)"
+                    >
+                      <span aria-hidden="true">{{ order.favorite ? '★' : '☆' }}</span>
+                    </button>
+                  </span>
+                  <span class="row-progress" aria-label="Reading order progress">
+                    <span :style="{ width: formatProgress(order.progress) }"></span>
+                  </span>
+                </div>
+              </div>
+            </section>
           </div>
           <div v-else class="empty-state">
-            {{
-              searchTerm
-                ? 'No reading orders match your search.'
-                : readingOrderFilter === 'favorites'
-                  ? 'No favorite reading orders yet.'
-                  : 'No reading orders yet.'
-            }}
-            <button
-              v-if="!searchTerm && readingOrderFilter === 'favorites' && readingOrders.length"
-              class="secondary-button"
-              type="button"
-              @click="readingOrderFilter = 'all'"
-            >
-              Show all orders
-            </button>
-            <button v-else-if="!searchTerm" class="secondary-button" type="button" @click="newReadingOrder">
+            {{ searchTerm ? 'No reading orders match your search.' : 'No reading orders yet.' }}
+            <button v-if="!searchTerm" class="secondary-button" type="button" @click="newReadingOrder">
               <span aria-hidden="true" class="button-icon">+</span>
               Create the first order
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="activeView === 'series' && isDetail" class="detail-view">
+        <header class="detail-nav sticky-toolbar">
+          <button class="secondary-button" type="button" @click="backToBrowse">Back</button>
+          <div class="detail-nav-actions">
+            <button
+              v-if="selectedSeries"
+              type="button"
+              class="favorite-toggle detail-favorite-toggle"
+              :class="{ active: selectedSeries.favorite }"
+              :aria-label="selectedSeries.favorite ? 'Remove from favorites' : 'Add to favorites'"
+              :title="selectedSeries.favorite ? 'Remove from favorites' : 'Add to favorites'"
+              @click="toggleSeriesFavorite(selectedSeries)"
+            >
+              <span aria-hidden="true">{{ selectedSeries.favorite ? '★' : '☆' }}</span>
+            </button>
+            <button
+              v-if="selectedSeries"
+              class="primary-button"
+              type="button"
+              :disabled="seriesImportRunning(selectedSeries)"
+              @click="importSelectedSeriesFromMetron"
+            >
+              {{ seriesImportRunning(selectedSeries) ? 'Importing...' : 'Import from Metron' }}
+            </button>
+          </div>
+        </header>
+
+        <article class="detail-panel">
+          <div v-if="selectedSeries" class="read-only-detail">
+            <header class="panel-header">
+              <div>
+                <p class="eyebrow">Series</p>
+                <h3>{{ selectedSeries.name }}{{ seriesYearLabel(selectedSeries) }}</h3>
+              </div>
+            </header>
+
+            <div class="progress-meter" aria-label="Series read progress">
+              <span :style="{ width: formatProgress(selectedSeries.progress) }"></span>
+            </div>
+            <div class="metadata-grid">
+              <span>
+                <strong>{{ formatProgress(selectedSeries.progress) }}</strong>
+                <small>Progress</small>
+              </span>
+              <span>
+                <strong>{{ selectedSeries.readCount }} / {{ selectedSeries.entryCount }}</strong>
+                <small>Read</small>
+              </span>
+              <span>
+                <strong>{{ selectedSeries.entryCount }}</strong>
+                <small>Entries</small>
+              </span>
+              <span>
+                <strong>{{ selectedSeries.favorite ? 'Yes' : 'No' }}</strong>
+                <small>Favorite</small>
+              </span>
+              <span>
+                <strong>{{ seriesPublisherLabel(selectedSeries) }}</strong>
+                <small>Publisher</small>
+              </span>
+            </div>
+
+            <ComicListView
+              class="preview-list"
+              title="Entries"
+              :comics="selectedSeries.comics || []"
+              :selected-comic-id="selectedComic?.id"
+              :quick-saving-comic-id="quickSavingComicID"
+              show-cover
+              empty-message="No comics in this series yet."
+              filtered-empty-message="No series entries match these filters."
+              @open-comic="openComic"
+              @toggle-read="toggleComicRead"
+            />
+          </div>
+          <p v-else class="empty-state">Select a series to view entries.</p>
+        </article>
+      </div>
+
+      <div v-else-if="activeView === 'series'" class="browse-view">
+        <div class="list-pane">
+          <div class="overview-strip">
+            <span>
+              <strong>{{ series.length }}</strong>
+              <small>Series</small>
+            </span>
+            <span>
+              <strong>{{ favoriteSeriesCount }}</strong>
+              <small>Favorites</small>
+            </span>
+            <span>
+              <strong>{{ comics.length }}</strong>
+              <small>Entries</small>
+            </span>
+          </div>
+          <div v-if="visibleSeries.length" class="sectioned-list">
+            <section v-for="section in seriesBrowseSections" :key="section.key" class="list-section">
+              <div class="list-section-header">
+                <p class="eyebrow">{{ section.title }}</p>
+                <small>{{ section.series.length }}</small>
+              </div>
+              <div class="list">
+                <div
+                  v-for="series in section.series"
+                  :key="series.id"
+                  class="row series-row"
+                  :class="{ selected: selectedSeries?.id === series.id }"
+                >
+                  <span class="order-row-content">
+                    <button class="row-main series-row-main" type="button" @click="openSeries(series)">
+                      <span v-if="series.coverImage" class="series-list-cover" aria-hidden="true">
+                        <img :src="assetURL(series.coverImage)" alt="" loading="lazy" />
+                      </span>
+                      <span>
+                        <strong>{{ series.name }}{{ seriesYearLabel(series) }}</strong>
+                        <small>{{ seriesPublisherLabel(series) }}</small>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="favorite-toggle"
+                      :class="{ active: series.favorite }"
+                      :aria-label="series.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      :title="series.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                      @click="toggleSeriesFavorite(series)"
+                    >
+                      <span aria-hidden="true">{{ series.favorite ? '★' : '☆' }}</span>
+                    </button>
+                  </span>
+                  <span class="row-meta">
+                    <span class="status-pill">{{ series.entryCount }} entries</span>
+                    <span class="status-pill">{{ formatProgress(series.progress) }}</span>
+                  </span>
+                  <span class="row-progress" aria-label="Series read progress">
+                    <span :style="{ width: formatProgress(series.progress) }"></span>
+                  </span>
+                </div>
+              </div>
+            </section>
+          </div>
+          <div v-else class="empty-state">
+            {{ searchTerm ? 'No series match your search.' : 'No series available yet.' }}
+            <button v-if="!searchTerm" class="secondary-button" type="button" @click="newComic">
+              <span aria-hidden="true" class="button-icon">+</span>
+              Add the first comic
             </button>
           </div>
         </div>
@@ -1183,21 +1431,7 @@ onUnmounted(() => {
             </section>
           </div>
           <div v-else class="empty-state">
-            {{
-              searchTerm
-                ? 'No characters match your search.'
-                : characterFilter === 'favorites'
-                  ? 'No favorite characters yet.'
-                  : 'No characters imported yet.'
-            }}
-            <button
-              v-if="!searchTerm && characterFilter === 'favorites' && characters.length"
-              class="secondary-button"
-              type="button"
-              @click="characterFilter = 'all'"
-            >
-              Show all characters
-            </button>
+            {{ searchTerm ? 'No characters match your search.' : 'No characters imported yet.' }}
           </div>
         </div>
       </div>

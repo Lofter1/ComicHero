@@ -86,6 +86,54 @@ type CharacterListOutput struct {
 	Body []Character
 }
 
+type ComicSeries struct {
+	ID             int  `json:"id"                       db:"id"               doc:"Local series identifier." example:"5"`
+	MetronSeriesID *int `json:"metronSeriesId,omitempty" db:"metron_series_id" doc:"Linked Metron series identifier, when known." example:"405"`
+
+	Name        string   `json:"name"        db:"name"        doc:"Series name." example:"Batman"`
+	SeriesYear  int      `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in generated comic titles." minimum:"0" example:"2011"`
+	Favorite    bool     `json:"favorite"    db:"favorite"    doc:"Whether this series is marked as a favorite." example:"true"`
+	Publisher   string   `json:"publisher"   db:"publisher"   doc:"Publisher name from Metron series metadata." example:"DC Comics"`
+	Volume      int      `json:"volume"      db:"volume"      doc:"Metron series volume number." example:"2"`
+	YearEnd     int      `json:"yearEnd"     db:"year_end"    doc:"Final publication year from Metron, when known." example:"2016"`
+	IssueCount  int      `json:"issueCount"  db:"issue_count" doc:"Issue count reported by Metron." example:"52"`
+	Description string   `json:"description" db:"description" doc:"Series description from Metron."`
+	Progress    float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+	EntryCount  int      `json:"entryCount"  db:"entry_count" doc:"Number of local comic entries in this series." example:"12"`
+	ReadCount   int      `json:"readCount"   db:"read_count"  doc:"Number of local comic entries marked read." example:"6"`
+	CoverImage  string   `json:"coverImage"  db:"cover_image" doc:"First available local or remote cover image for the series." format:"uri"`
+	Publishers  []string `json:"publishers"  db:"-"           doc:"Publishers represented by local entries in this series."`
+}
+
+type ComicSeriesDetail struct {
+	ComicSeries
+	Comics []Comic `json:"comics" doc:"Local comics in this series."`
+}
+
+type ComicSeriesListInput struct {
+	Query    string `query:"q"        doc:"Case-insensitive text search across series names, publishers, years, and issue numbers." example:"batman"`
+	Favorite string `query:"favorite" doc:"Filter series by favorite status. Use true or false." enum:"true,false" example:"true"`
+}
+
+type ComicSeriesInput struct {
+	ID int `path:"id" doc:"Local series identifier." example:"5"`
+}
+
+type UpdateComicSeriesFavoriteInput struct {
+	ID   int `path:"id" doc:"Local series identifier." example:"5"`
+	Body struct {
+		Favorite bool `json:"favorite" doc:"New favorite status." example:"true"`
+	}
+}
+
+type ComicSeriesListOutput struct {
+	Body []ComicSeries
+}
+
+type ComicSeriesDetailOutput struct {
+	Body ComicSeriesDetail
+}
+
 type CharacterDetailOutput struct {
 	MetronRateLimitHeaders
 	Body CharacterDetail

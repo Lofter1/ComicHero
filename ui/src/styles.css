@@ -619,10 +619,24 @@ textarea {
   padding: 10px 12px 8px;
 }
 
+.series-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px 12px 8px;
+}
+
 .character-row-main {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.series-row-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .character-list-avatar {
@@ -635,7 +649,24 @@ textarea {
   background: #f0f3f2;
 }
 
+.series-list-cover {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f0f3f2;
+}
+
 .character-list-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.series-list-cover img {
   display: block;
   width: 100%;
   height: 100%;
@@ -646,7 +677,8 @@ textarea {
   align-self: center;
 }
 
-.character-row .order-row-content {
+.character-row .order-row-content,
+.series-row .order-row-content {
   grid-column: 1;
   width: 100%;
 }
@@ -658,25 +690,30 @@ textarea {
   font-size: 1rem;
 }
 
-.character-row .row-meta {
+.character-row .row-meta,
+.series-row .row-meta {
   grid-column: 2;
   grid-row: 1;
   flex: 0 0 auto;
   gap: 6px;
 }
 
-.character-row .status-pill {
+.character-row .status-pill,
+.series-row .status-pill {
   padding: 3px 7px;
   font-size: 0.76rem;
 }
 
-.character-row .row-progress {
+.character-row .row-progress,
+.series-row .row-progress {
   grid-column: 1 / -1;
   height: 6px;
 }
 
 .character-row strong,
-.character-row small {
+.character-row small,
+.series-row strong,
+.series-row small {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1626,7 +1663,7 @@ textarea {
   }
 
   .nav-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
     gap: 6px;
   }
 

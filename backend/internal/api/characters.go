@@ -247,12 +247,33 @@ func importCharacterAppearancesFromMetron(ctx context.Context, db *sqlx.DB, clie
 }
 
 func importCharacterAppearancesFromMetronWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int, progress func(int, int, string)) error {
+	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, characterID, progress, true)
+}
+
+func importCharacterAppearancesFromMetronWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int, progress func(int, int, string), refreshMetadata bool) error {
 	character, err := getCharacterRow(ctx, db, characterID)
 	if err != nil {
 		return err
 	}
 	if character.MetronCharacterID == nil {
 		return huma.Error400BadRequest("character is not linked to Metron")
+	}
+	if refreshMetadata {
+		progress(0, 0, "Fetching character metadata from Metron...")
+		metronCharacter, err := client.GetCharacter(ctx, *character.MetronCharacterID)
+		if err != nil {
+			return metronAPIError(err)
+		}
+		refreshedID, err := upsertMetronCharacter(ctx, db, covers, *metronCharacter)
+		if err != nil {
+			return err
+		}
+		if refreshedID > 0 {
+			characterID = refreshedID
+			if err := updateMetronCharacter(ctx, db, covers, refreshedID, *metronCharacter); err != nil {
+				return err
+			}
+		}
 	}
 
 	completed := 0
@@ -321,9 +342,14 @@ func importMetronCharacterAppearancesWithProgress(ctx context.Context, db *sqlx.
 		if err != nil {
 			return err
 		}
+		if localID > 0 {
+			if err := updateMetronCharacter(ctx, db, covers, localID, *character); err != nil {
+				return err
+			}
+		}
 	}
 
-	return importCharacterAppearancesFromMetronWithProgress(ctx, db, client, covers, localID, progress)
+	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, localID, progress, ok)
 }
 
 func importMetronCharacterAppearanceIssue(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue) (Comic, error) {
@@ -447,6 +473,34 @@ func upsertMetronCharacter(ctx context.Context, db sqlx.ExtContext, covers *Cove
 		}
 	}
 	return id, nil
+}
+
+func updateMetronCharacter(ctx context.Context, db sqlx.ExtContext, covers *CoverCache, id int, character metron.MetronCharacter) error {
+	image, err := localCoverURL(ctx, covers, character.Image)
+	if err != nil {
+		return err
+	}
+
+	if _, err := db.ExecContext(ctx, `
+		UPDATE characters
+		SET name = COALESCE(NULLIF(?, ''), name),
+			description = COALESCE(NULLIF(?, ''), description),
+			image = COALESCE(NULLIF(?, ''), image),
+			metron_character_id = COALESCE(?, metron_character_id)
+		WHERE id = ?
+	`, character.Name, character.Description, image, nullableMetronID(character.ID), id); err != nil {
+		return huma.Error500InternalServerError("failed to update character")
+	}
+
+	for _, alias := range cleanAliases(character.Aliases) {
+		if _, err := db.ExecContext(ctx, `
+			INSERT OR IGNORE INTO character_aliases (character_id, alias)
+			VALUES (?, ?)
+		`, id, alias); err != nil {
+			return huma.Error500InternalServerError("failed to save character alias")
+		}
+	}
+	return nil
 }
 
 func cleanAliases(aliases []string) []string {

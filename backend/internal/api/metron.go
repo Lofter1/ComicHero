@@ -436,6 +436,9 @@ func createMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, iss
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get imported comic id")
 	}
+	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
+		return nil, err
+	}
 	if err := syncMetronIssueCharacters(ctx, db, covers, int(id), issue); err != nil {
 		return nil, err
 	}
@@ -468,6 +471,9 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		return nil, huma.Error500InternalServerError("failed to update comic from Metron")
 	}
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
+		return nil, err
+	}
+	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
 

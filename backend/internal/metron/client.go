@@ -269,6 +269,15 @@ func (c *Client) SearchSeries(ctx context.Context, query string) ([]Series, erro
 	return series, nil
 }
 
+func (c *Client) GetSeries(ctx context.Context, id int) (*Series, error) {
+	var raw map[string]any
+	if err := c.get(ctx, fmt.Sprintf("/series/%d/", id), nil, &raw); err != nil {
+		return nil, err
+	}
+	series := seriesFromMap(raw)
+	return &series, nil
+}
+
 func (c *Client) GetSeriesIssues(ctx context.Context, id int) ([]Issue, error) {
 	results, err := c.getAllList(ctx, fmt.Sprintf("/series/%d/issue_list/", id), nil)
 	if err != nil {

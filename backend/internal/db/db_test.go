@@ -40,4 +40,12 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if !columns["series_year"] {
 		t.Fatal("comics table missing series_year column")
 	}
+
+	var seriesTable string
+	if err := database.QueryRow(`
+		SELECT name FROM sqlite_master
+		WHERE type = 'table' AND name = 'series'
+	`).Scan(&seriesTable); err != nil {
+		t.Fatal("series table missing")
+	}
 }

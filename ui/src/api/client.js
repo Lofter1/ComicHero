@@ -110,6 +110,23 @@ export async function listCharacters() {
   return Array.isArray(characters) ? characters : []
 }
 
+export async function listSeries() {
+  const series = await request('/series')
+  return Array.isArray(series) ? series : []
+}
+
+export function getSeries(id) {
+  return request(`/series/${id}`)
+}
+
+export function updateSeriesFavorite(id, favorite) {
+  return send(`/series/${id}/favorite`, 'PATCH', { favorite })
+}
+
+export function importLocalSeriesFromMetron(id) {
+  return sendWithMeta(`/series/${id}/metron/import`, 'POST', {})
+}
+
 export function getCharacter(id) {
   return request(`/characters/${id}`)
 }

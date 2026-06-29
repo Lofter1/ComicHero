@@ -46,8 +46,10 @@ func main() {
 		Username: os.Getenv("METRON_USERNAME"),
 		Password: os.Getenv("METRON_PASSWORD"),
 	})
+	metronImportJobs := api.NewMetronImportJobStore()
+	api.RegisterSeriesRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
 	api.RegisterCharacterRoutes(humaAPI, database)
-	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, api.NewMetronImportJobStore())
+	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
 	serveStatic(router, env("STATIC_DIR", "./public"))
 
 	addr := ":" + env("PORT", "8080")

@@ -220,6 +220,45 @@ func startMetronReadingListImport(store *metronImportJobStore, db *sqlx.DB, clie
 
 func startMetronSeriesImport(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int) MetronImportJob {
 	return store.start("series", metronID, "Importing series from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+		progress(0, 0, "Fetching series metadata from Metron...")
+		metadata, err := client.GetSeries(ctx, metronID)
+		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
+			return metronImportError(err)
+		}
+
+		progress(0, 0, "Fetching series issue list from Metron...")
+		issues, err := client.GetSeriesIssues(ctx, metronID)
+		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
+			return metronImportError(err)
+		}
+		_, err = importMetronSeriesWithProgress(ctx, db, client, covers, issues, progress)
+		if err != nil {
+			return err
+		}
+		return updateImportedSeriesMetadata(ctx, db, *metadata)
+	})
+}
+
+func startLocalSeriesMetronImport(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, localID, metronID int) MetronImportJob {
+	return store.start("series", metronID, "Importing series from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+		progress(0, 0, "Fetching series metadata from Metron...")
+		metadata, err := client.GetSeries(ctx, metronID)
+		if err != nil {
+			if ctxErr := ctx.Err(); ctxErr != nil {
+				return ctxErr
+			}
+			return metronImportError(err)
+		}
+		if err := updateSeriesMetronMetadata(ctx, db, localID, *metadata); err != nil {
+			return err
+		}
+
 		progress(0, 0, "Fetching series issue list from Metron...")
 		issues, err := client.GetSeriesIssues(ctx, metronID)
 		if err != nil {

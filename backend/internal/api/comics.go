@@ -214,6 +214,9 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
+	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
+		return nil, err
+	}
 
 	return getComic(ctx, db, int(id))
 }
@@ -243,6 +246,9 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 		return nil, huma.Error500InternalServerError("failed to update comic")
 	}
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
+		return nil, err
+	}
+	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
 
