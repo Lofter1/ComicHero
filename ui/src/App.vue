@@ -1222,10 +1222,6 @@ onUnmounted(() => {
                 <small>Progress</small>
               </span>
               <span>
-                <strong>{{ selectedOrder.favorite ? 'Yes' : 'No' }}</strong>
-                <small>Favorite</small>
-              </span>
-              <span>
                 <strong>{{ selectedOrder.comics.length }}</strong>
                 <small>Comics</small>
               </span>
@@ -1369,10 +1365,6 @@ onUnmounted(() => {
               <span>
                 <strong>{{ selectedSeries.entryCount }}</strong>
                 <small>Entries</small>
-              </span>
-              <span>
-                <strong>{{ selectedSeries.favorite ? 'Yes' : 'No' }}</strong>
-                <small>Favorite</small>
               </span>
               <span>
                 <strong>{{ seriesPublisherLabel(selectedSeries) }}</strong>
@@ -1521,10 +1513,6 @@ onUnmounted(() => {
               <span>
                 <strong>{{ selectedCharacter.aliases?.length || 0 }}</strong>
                 <small>Aliases</small>
-              </span>
-              <span>
-                <strong>{{ selectedCharacter.favorite ? 'Yes' : 'No' }}</strong>
-                <small>Favorite</small>
               </span>
             </div>
             <div class="progress-meter" aria-label="Character read progress">
