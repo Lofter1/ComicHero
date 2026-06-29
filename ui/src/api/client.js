@@ -200,6 +200,19 @@ export function getMetronImportJob(id) {
   return request(`/metron/imports/${id}`)
 }
 
+export async function listMetronImportJobs() {
+  const jobs = await request('/metron/imports')
+  return Array.isArray(jobs) ? jobs : []
+}
+
+export function dismissMetronImportJob(id) {
+  return request(`/metron/imports/${id}`, { method: 'DELETE' })
+}
+
+export function getMetronQuota() {
+  return requestWithMeta('/metron/quota')
+}
+
 export function cancelMetronImportJob(id) {
   return send(`/metron/imports/${id}/cancel`, 'POST', {})
 }

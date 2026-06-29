@@ -155,6 +155,65 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 	}
 }
 
+func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
+	ctx := context.Background()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE series (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			favorite INTEGER NOT NULL DEFAULT 0,
+			metron_series_id INTEGER,
+			publisher TEXT NOT NULL DEFAULT '',
+			volume INTEGER NOT NULL DEFAULT 0,
+			year_end INTEGER NOT NULL DEFAULT 0,
+			issue_count INTEGER NOT NULL DEFAULT 0,
+			description TEXT NOT NULL DEFAULT ''
+		);
+		CREATE UNIQUE INDEX idx_series_name_year
+		ON series(name, series_year);
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue INTEGER NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			read INTEGER NOT NULL DEFAULT 0,
+			metron_issue_id INTEGER
+		);
+		INSERT INTO series (name, series_year)
+		VALUES ('Stale', 2026);
+		INSERT INTO comics (series, series_year, issue, publisher)
+		VALUES ('Live', 2026, 1, 'Publisher');
+		CREATE TRIGGER fail_series_prune
+		BEFORE DELETE ON series
+		BEGIN
+			SELECT RAISE(FAIL, 'prune blocked');
+		END;
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+
+	list, err := listSeries(ctx, db, &ComicSeriesListInput{})
+	if err != nil {
+		t.Fatalf("listSeries: %v", err)
+	}
+	if len(list.Body) != 2 {
+		t.Fatalf("series count = %d; want live plus stale rows", len(list.Body))
+	}
+}
+
 func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	router := chi.NewRouter()
 	api := humachi.New(router, DocsConfig())

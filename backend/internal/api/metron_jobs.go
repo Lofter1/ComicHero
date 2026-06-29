@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -29,6 +30,10 @@ type MetronImportJob struct {
 
 type MetronImportJobOutput struct {
 	Body MetronImportJob
+}
+
+type MetronImportJobListOutput struct {
+	Body []MetronImportJob
 }
 
 type MetronImportJobInput struct {
@@ -88,6 +93,18 @@ func (s *metronImportJobStore) start(jobType string, metronID int, message strin
 	}()
 
 	return *job
+}
+
+func (s *metronImportJobStore) list() []MetronImportJob {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	jobs := make([]MetronImportJob, 0, len(s.jobs))
+	for _, job := range s.jobs {
+		jobs = append(jobs, *job)
+	}
+	sortMetronImportJobs(jobs)
+	return jobs
 }
 
 func (s *metronImportJobStore) get(id string) (MetronImportJob, bool) {
@@ -153,6 +170,27 @@ func (s *metronImportJobStore) updateProgress(id string, completed, total int, m
 			job.Message = message
 		}
 	}
+}
+
+func (s *metronImportJobStore) deleteTerminal(id string) (MetronImportJob, bool, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	job, ok := s.jobs[id]
+	if !ok {
+		return MetronImportJob{}, false, false
+	}
+	if job.Status == "queued" || job.Status == "running" {
+		return *job, true, false
+	}
+	delete(s.jobs, id)
+	return *job, true, true
+}
+
+func sortMetronImportJobs(jobs []MetronImportJob) {
+	sort.SliceStable(jobs, func(i, j int) bool {
+		return jobs[i].StartedAt > jobs[j].StartedAt
+	})
 }
 
 func successMessage(jobType string) string {
@@ -293,12 +331,25 @@ func isContextCanceledError(err error) bool {
 	return errors.Is(err, context.Canceled) || strings.Contains(strings.ToLower(err.Error()), "context canceled")
 }
 
+func listMetronImportJobs(store *metronImportJobStore) *MetronImportJobListOutput {
+	return &MetronImportJobListOutput{Body: store.list()}
+}
+
 func getMetronImportJob(store *metronImportJobStore, id string) (*MetronImportJobOutput, error) {
 	job, ok := store.get(id)
 	if !ok {
 		return nil, huma.Error404NotFound("import job not found")
 	}
 	return &MetronImportJobOutput{Body: job}, nil
+}
+
+func deleteMetronImportJob(store *metronImportJobStore, id string) (*struct{}, error) {
+	if _, ok, deleted := store.deleteTerminal(id); !ok {
+		return nil, huma.Error404NotFound("import job not found")
+	} else if !deleted {
+		return nil, huma.Error400BadRequest("only finished imports can be dismissed")
+	}
+	return nil, nil
 }
 
 func cancelMetronImportJob(store *metronImportJobStore, id string) (*MetronImportJobOutput, error) {

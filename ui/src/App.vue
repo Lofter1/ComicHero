@@ -8,9 +8,11 @@ import {
   createReadingOrder,
   deleteComic as removeComic,
   deleteReadingOrder as removeReadingOrder,
+  dismissMetronImportJob as removeMetronImportJob,
   getCharacter,
   getComic,
   getMetronImportJob,
+  getMetronQuota,
   getReadingOrder,
   getSeries,
   importLocalSeriesFromMetron,
@@ -20,6 +22,7 @@ import {
   importMetronSeries,
   listCharacters,
   listComics,
+  listMetronImportJobs,
   listReadingOrders,
   listSeries,
   searchMetronComics,
@@ -72,6 +75,7 @@ const metronMetadataStatus = ref('')
 const metronMetadataResults = ref([])
 const metronImportJobs = ref([])
 const metronImportMonitorOpen = ref(false)
+const metronQuota = ref(null)
 const metronImportPollTimers = new Map()
 
 const comicForm = ref(emptyComic())
@@ -251,11 +255,40 @@ async function loadData() {
   error.value = ''
 
   try {
-    await refreshLists()
+    await Promise.all([
+      refreshLists(),
+      loadMetronImportJobs(),
+      loadMetronQuota(),
+    ])
   } catch (err) {
     error.value = err.message
   } finally {
     loading.value = false
+  }
+}
+
+async function loadMetronImportJobs() {
+  const jobs = await listMetronImportJobs()
+  metronImportJobs.value = []
+  jobs.forEach(job => {
+    upsertMetronImportJob(job)
+    if (job.status === 'queued' || job.status === 'running') {
+      pollMetronImportJob(job.id)
+    }
+  })
+  if (jobs.length) {
+    metronImportMonitorOpen.value = jobs.some(job => job.status === 'queued' || job.status === 'running')
+  }
+}
+
+async function loadMetronQuota() {
+  const { data } = await getMetronQuota()
+  metronQuota.value = data
+}
+
+function updateMetronQuota(quota) {
+  if (quota?.known) {
+    metronQuota.value = quota
   }
 }
 
@@ -731,6 +764,7 @@ function trackMetronImportJob(job) {
 	metronImportMonitorOpen.value = true
 	upsertMetronImportJob(job)
 	pollMetronImportJob(job.id)
+  loadMetronQuota().catch(() => {})
 }
 
 function upsertMetronImportJob(job) {
@@ -758,6 +792,7 @@ async function pollMetronImportJob(id) {
 	try {
 		const job = normalizeMetronImportJob(await getMetronImportJob(id))
 		upsertMetronImportJob(job)
+    loadMetronQuota().catch(() => {})
 
     if (job.status === 'succeeded') {
       await handleMetronImported()
@@ -779,6 +814,7 @@ async function pollMetronImportJob(id) {
 
 function dismissMetronJob(id) {
   clearMetronImportPoll(id)
+  removeMetronImportJob(id).catch(() => {})
   metronImportJobs.value = metronImportJobs.value.filter(job => job.id !== id)
 }
 
@@ -974,9 +1010,11 @@ onUnmounted(() => {
       <MetronImport
         v-if="!loading && activeView === 'metron'"
         :import-jobs="metronImportJobs"
+        :metron-quota="metronQuota"
         @imported="handleMetronImported"
         @error="showError"
         @job-started="trackMetronImportJob"
+        @quota-updated="updateMetronQuota"
       />
 
       <div v-else-if="!loading && activeView === 'readingOrders' && isEditing" class="editor-view">

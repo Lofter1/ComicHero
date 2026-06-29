@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 	"strings"
 
@@ -375,8 +376,9 @@ func syncSeriesRows(ctx context.Context, db *sqlx.DB) error {
 			SELECT 1 FROM comics c
 			WHERE c.series = series.name AND c.series_year = series.series_year
 		)
+			AND metron_series_id IS NULL
 	`); err != nil {
-		return huma.Error500InternalServerError("failed to prune empty series")
+		log.Printf("failed to prune empty series: %v", err)
 	}
 	return nil
 }

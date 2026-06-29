@@ -74,6 +74,23 @@ type MetronRateLimitHeaders struct {
 	SustainedReset     string `header:"X-RateLimit-Sustained-Reset"     doc:"Unix timestamp when the Metron sustained-rate window resets."`
 }
 
+type MetronQuota struct {
+	BurstLimit         int   `json:"burstLimit"         doc:"Metron burst-rate request limit." example:"10"`
+	BurstRemaining     int   `json:"burstRemaining"     doc:"Remaining Metron burst-rate requests." example:"4"`
+	BurstUsed          int   `json:"burstUsed"          doc:"Used Metron burst-rate requests in the current window." example:"6"`
+	BurstReset         int64 `json:"burstReset"         doc:"Unix timestamp when the burst-rate window resets." example:"1782468300"`
+	SustainedLimit     int   `json:"sustainedLimit"     doc:"Metron sustained-rate request limit." example:"100"`
+	SustainedRemaining int   `json:"sustainedRemaining" doc:"Remaining Metron sustained-rate requests." example:"75"`
+	SustainedUsed      int   `json:"sustainedUsed"      doc:"Used Metron sustained-rate requests in the current window." example:"25"`
+	SustainedReset     int64 `json:"sustainedReset"     doc:"Unix timestamp when the sustained-rate window resets." example:"1782470000"`
+	Known              bool  `json:"known"              doc:"Whether Metron has returned quota headers during this server run." example:"true"`
+}
+
+type MetronQuotaOutput struct {
+	MetronRateLimitHeaders
+	Body MetronQuota
+}
+
 func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
 	huma.Register(api, huma.Operation{
 		OperationID: "searchMetronComics",
@@ -248,6 +265,34 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "getMetronQuota",
+		Tags:        []string{tagMetron},
+		Summary:     "Get Metron quota",
+		Description: "Returns the latest Metron rate-limit quota known to this server.",
+		Method:      http.MethodGet,
+		Path:        "/metron/quota",
+		Errors:      errsRead,
+	}, func(ctx context.Context, input *struct{}) (*MetronQuotaOutput, error) {
+		rateLimit := client.CurrentRateLimit()
+		return &MetronQuotaOutput{
+			MetronRateLimitHeaders: metronRateLimitHeaders(rateLimit),
+			Body:                   metronQuotaFromRateLimit(rateLimit),
+		}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listMetronImportJobs",
+		Tags:        []string{tagMetron},
+		Summary:     "List Metron import jobs",
+		Description: "Returns background Metron import jobs so the web app can reconnect after a reload.",
+		Method:      http.MethodGet,
+		Path:        "/metron/imports",
+		Errors:      errsRead,
+	}, func(ctx context.Context, input *struct{}) (*MetronImportJobListOutput, error) {
+		return listMetronImportJobs(importJobs), nil
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "getMetronImportJob",
 		Tags:        []string{tagMetron},
 		Summary:     "Get Metron import job",
@@ -257,6 +302,18 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *MetronImportJobInput) (*MetronImportJobOutput, error) {
 		return getMetronImportJob(importJobs, input.ID)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "dismissMetronImportJob",
+		Tags:        []string{tagMetron},
+		Summary:     "Dismiss Metron import job",
+		Description: "Removes a finished Metron import job from the monitor.",
+		Method:      http.MethodDelete,
+		Path:        "/metron/imports/{id}",
+		Errors:      errsWrite,
+	}, func(ctx context.Context, input *MetronImportJobInput) (*struct{}, error) {
+		return deleteMetronImportJob(importJobs, input.ID)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -305,6 +362,25 @@ func metronRateLimitHeaders(rateLimit metron.RateLimit) MetronRateLimitHeaders {
 		SustainedRemaining: strconv.Itoa(rateLimit.SustainedRemaining),
 		SustainedReset:     strconv.FormatInt(rateLimit.SustainedReset, 10),
 	}
+}
+
+func metronQuotaFromRateLimit(rateLimit metron.RateLimit) MetronQuota {
+	quota := MetronQuota{
+		BurstLimit:         rateLimit.BurstLimit,
+		BurstRemaining:     rateLimit.BurstRemaining,
+		BurstReset:         rateLimit.BurstReset,
+		SustainedLimit:     rateLimit.SustainedLimit,
+		SustainedRemaining: rateLimit.SustainedRemaining,
+		SustainedReset:     rateLimit.SustainedReset,
+		Known:              !rateLimit.Empty(),
+	}
+	if quota.BurstLimit >= quota.BurstRemaining {
+		quota.BurstUsed = quota.BurstLimit - quota.BurstRemaining
+	}
+	if quota.SustainedLimit >= quota.SustainedRemaining {
+		quota.SustainedUsed = quota.SustainedLimit - quota.SustainedRemaining
+	}
+	return quota
 }
 
 func withMetronRateLimit[T interface {

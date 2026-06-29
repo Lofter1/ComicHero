@@ -16,9 +16,13 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  metronQuota: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['imported', 'error', 'job-started'])
+const emit = defineEmits(['imported', 'error', 'job-started', 'quota-updated'])
 
 const activeSearch = ref('comics')
 const query = ref('')
@@ -56,6 +60,20 @@ const rateLimitReset = computed(() => {
 const rateLimitLow = computed(() => {
   if (!rateLimit.value) return false
   return rateLimit.value.burstRemaining === 0 || rateLimit.value.sustainedRemaining === 0
+})
+const quotaKnown = computed(() => Boolean(props.metronQuota?.known))
+const quotaSummary = computed(() => {
+  if (!quotaKnown.value) return 'Quota appears after the first Metron response'
+  const burst = quotaText('Burst', props.metronQuota.burstUsed, props.metronQuota.burstLimit)
+  const sustained = quotaText('Sustained', props.metronQuota.sustainedUsed, props.metronQuota.sustainedLimit)
+  return [burst, sustained].filter(Boolean).join(' · ')
+})
+const quotaReset = computed(() => {
+  if (!quotaKnown.value) return ''
+  const resets = [props.metronQuota.burstReset, props.metronQuota.sustainedReset].filter(Boolean)
+  if (resets.length === 0) return ''
+  const nextReset = Math.max(...resets)
+  return new Date(nextReset * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 })
 
 async function search() {
@@ -173,6 +191,7 @@ function setSearchMode(mode) {
 function updateRateLimit(nextRateLimit) {
   if (nextRateLimit) {
     rateLimit.value = nextRateLimit
+    emit('quota-updated', quotaFromRateLimit(nextRateLimit))
   }
 }
 
@@ -185,6 +204,31 @@ function limitText(label, remaining, limit) {
   if (remaining === null || remaining === undefined) return ''
   if (limit === null || limit === undefined) return `${label}: ${remaining} left`
   return `${label}: ${remaining}/${limit}`
+}
+
+function quotaText(label, used, limit) {
+  if (limit === null || limit === undefined) return ''
+  return `${label} ${used ?? 0}/${limit} used`
+}
+
+function quotaFromRateLimit(nextRateLimit) {
+  const quota = {
+    burstLimit: nextRateLimit.burstLimit,
+    burstRemaining: nextRateLimit.burstRemaining,
+    burstUsed: usedQuota(nextRateLimit.burstLimit, nextRateLimit.burstRemaining),
+    burstReset: nextRateLimit.burstReset,
+    sustainedLimit: nextRateLimit.sustainedLimit,
+    sustainedRemaining: nextRateLimit.sustainedRemaining,
+    sustainedUsed: usedQuota(nextRateLimit.sustainedLimit, nextRateLimit.sustainedRemaining),
+    sustainedReset: nextRateLimit.sustainedReset,
+    known: true,
+  }
+  return quota
+}
+
+function usedQuota(limit, remaining) {
+  if (limit === null || limit === undefined || remaining === null || remaining === undefined) return 0
+  return Math.max(0, limit - remaining)
 }
 
 function rowImporting(type, id) {
@@ -234,6 +278,14 @@ function rowImporting(type, id) {
       >
         Characters
       </button>
+    </div>
+
+    <div class="metron-quota-strip">
+      <span>
+        <strong>Metron quota</strong>
+        <small>{{ quotaSummary }}</small>
+      </span>
+      <small v-if="quotaReset">Resets around {{ quotaReset }}</small>
     </div>
 
     <form class="metron-search" @submit.prevent="search">
