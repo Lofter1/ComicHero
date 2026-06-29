@@ -1068,7 +1068,7 @@ onUnmounted(() => {
 
     <section class="content">
       <AppToolbar
-        v-if="!isEditing && !isDetail && activeView !== 'comics'"
+        v-if="!isEditing && !isDetail"
         :active-view="activeView"
         :search="search"
         :result-count="toolbarResultCount"

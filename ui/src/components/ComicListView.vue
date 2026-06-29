@@ -108,50 +108,52 @@ function compareText(a, b) {
 
 <template>
   <section class="comic-list-view">
-    <header class="comic-list-header">
-      <div>
-        <p class="eyebrow">{{ title }}</p>
-        <small>{{ summaryText }}</small>
-      </div>
-      <button
-        v-if="showNewButton"
-        class="primary-button icon-text-button"
-        type="button"
-        aria-label="New comic"
-        title="New comic"
-        @click="$emit('new-comic')"
-      >
-        <span aria-hidden="true" class="button-icon">+</span>
-      </button>
-    </header>
+    <div class="comic-list-sticky">
+      <header class="comic-list-header">
+        <div>
+          <p class="eyebrow">{{ title }}</p>
+          <small>{{ summaryText }}</small>
+        </div>
+        <button
+          v-if="showNewButton"
+          class="primary-button icon-text-button"
+          type="button"
+          aria-label="New comic"
+          title="New comic"
+          @click="$emit('new-comic')"
+        >
+          <span aria-hidden="true" class="button-icon">+</span>
+        </button>
+      </header>
 
-    <div v-if="comics.length" class="comic-list-tools">
-      <input v-model="localSearch" type="search" placeholder="Search issues" />
-      <div class="inline-filter-tabs" role="tablist" aria-label="Issue read status filter">
-        <button type="button" :class="{ active: status === 'all' }" role="tab" :aria-selected="status === 'all'" @click="status = 'all'">
-          All
-        </button>
-        <button type="button" :class="{ active: status === 'unread' }" role="tab" :aria-selected="status === 'unread'" @click="status = 'unread'">
-          Unread
-        </button>
-        <button type="button" :class="{ active: status === 'read' }" role="tab" :aria-selected="status === 'read'" @click="status = 'read'">
-          Read
+      <div v-if="comics.length" class="comic-list-tools">
+        <input v-model="localSearch" type="search" placeholder="Search issues" />
+        <div class="inline-filter-tabs" role="tablist" aria-label="Issue read status filter">
+          <button type="button" :class="{ active: status === 'all' }" role="tab" :aria-selected="status === 'all'" @click="status = 'all'">
+            All
+          </button>
+          <button type="button" :class="{ active: status === 'unread' }" role="tab" :aria-selected="status === 'unread'" @click="status = 'unread'">
+            Unread
+          </button>
+          <button type="button" :class="{ active: status === 'read' }" role="tab" :aria-selected="status === 'read'" @click="status = 'read'">
+            Read
+          </button>
+        </div>
+        <select v-model="sort" aria-label="Sort issues">
+          <option value="series">Series</option>
+          <option value="title">Title</option>
+          <option value="date">Date</option>
+          <option value="publisher">Publisher</option>
+          <option value="read">Read Status</option>
+        </select>
+        <select v-model="direction" aria-label="Sort direction">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+        <button v-if="localSearch" class="ghost-button" type="button" @click="localSearch = ''">
+          Clear
         </button>
       </div>
-      <select v-model="sort" aria-label="Sort issues">
-        <option value="series">Series</option>
-        <option value="title">Title</option>
-        <option value="date">Date</option>
-        <option value="publisher">Publisher</option>
-        <option value="read">Read Status</option>
-      </select>
-      <select v-model="direction" aria-label="Sort direction">
-        <option value="asc">Ascending</option>
-        <option value="desc">Descending</option>
-      </select>
-      <button v-if="localSearch" class="ghost-button" type="button" @click="localSearch = ''">
-        Clear
-      </button>
     </div>
 
     <div v-if="visibleComics.length" class="issue-list">

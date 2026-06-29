@@ -214,6 +214,7 @@ h4 {
 .content {
   --sticky-toolbar-top: 0px;
   --sticky-toolbar-inline-offset: 28px;
+  --comic-list-sticky-top: 96px;
   padding: 28px;
   min-width: 0;
   max-width: 1440px;
@@ -1416,6 +1417,20 @@ textarea {
   gap: 12px;
 }
 
+.comic-list-sticky {
+  position: sticky;
+  top: var(--comic-list-sticky-top);
+  z-index: 18;
+  display: grid;
+  gap: 10px;
+  margin-inline: calc(var(--sticky-toolbar-inline-offset) * -1);
+  padding: 12px var(--sticky-toolbar-inline-offset);
+  border-bottom: 1px solid rgba(196, 206, 200, 0.72);
+  background: rgba(248, 250, 249, 0.94);
+  box-shadow: 0 10px 22px rgba(29, 35, 40, 0.06);
+  backdrop-filter: blur(14px);
+}
+
 .comic-list-header {
   display: flex;
   align-items: center;
@@ -1739,6 +1754,7 @@ textarea {
   .content {
     --sticky-toolbar-top: 96px;
     --sticky-toolbar-inline-offset: 14px;
+    --comic-list-sticky-top: 218px;
     padding: 14px;
   }
 
@@ -1756,6 +1772,7 @@ textarea {
 
   .toolbar input,
   .search-field,
+  .comic-list-tools,
   .metron-search button,
   .metron-modes {
     width: 100%;
