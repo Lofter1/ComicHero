@@ -1,12 +1,26 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"strconv"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/jmoiron/sqlx"
 )
+
+const (
+	defaultPageLimit = 50
+	maxPageLimit     = 100
+)
+
+type PaginationHeaders struct {
+	PageLimit  string `header:"X-Page-Limit"  doc:"Number of rows requested for this page."`
+	PageOffset string `header:"X-Page-Offset" doc:"Zero-based row offset for this page."`
+	HasMore    string `header:"X-Has-More"    doc:"Whether another page is available."`
+	TotalCount string `header:"X-Total-Count" doc:"Total matching rows before pagination."`
+}
 
 type selectQuery struct {
 	base    string
@@ -14,6 +28,45 @@ type selectQuery struct {
 	args    []any
 	group   string
 	suffix  string
+}
+
+func paginatedQuery(query string, args []any, limit, offset int) (string, []any, int, int) {
+	limit, offset = normalizePagination(limit, offset)
+	return query + " LIMIT ? OFFSET ?", append(args, limit+1, offset), limit, offset
+}
+
+func normalizePagination(limit, offset int) (int, int) {
+	if limit <= 0 {
+		limit = defaultPageLimit
+	}
+	if limit > maxPageLimit {
+		limit = maxPageLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return limit, offset
+}
+
+func countRows(ctx context.Context, db *sqlx.DB, query string, args []any) (int, error) {
+	var total int
+	if err := db.GetContext(ctx, &total, "SELECT COUNT(*) FROM ("+query+") paged_rows", args...); err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func pageItems[T any](items []T, limit, offset, total int) ([]T, PaginationHeaders) {
+	hasMore := len(items) > limit
+	if hasMore {
+		items = items[:limit]
+	}
+	return items, PaginationHeaders{
+		PageLimit:  strconv.Itoa(limit),
+		PageOffset: strconv.Itoa(offset),
+		HasMore:    strconv.FormatBool(hasMore),
+		TotalCount: strconv.Itoa(total),
+	}
 }
 
 func newSelectQuery(base string) *selectQuery {

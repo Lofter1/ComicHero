@@ -29,6 +29,27 @@ func TestParseOptionalBool(t *testing.T) {
 	}
 }
 
+func TestPaginationHelpers(t *testing.T) {
+	query, args, limit, offset := paginatedQuery("SELECT * FROM comics", []any{"arg"}, 250, -12)
+	if query != "SELECT * FROM comics LIMIT ? OFFSET ?" {
+		t.Fatalf("query = %q", query)
+	}
+	if limit != maxPageLimit || offset != 0 {
+		t.Fatalf("limit/offset = %d/%d; want %d/0", limit, offset, maxPageLimit)
+	}
+	if len(args) != 3 || args[1] != maxPageLimit+1 || args[2] != 0 {
+		t.Fatalf("args = %#v; want original arg plus page limit+1 and offset", args)
+	}
+
+	items, headers := pageItems([]int{1, 2, 3}, 2, 10, 42)
+	if len(items) != 2 || items[0] != 1 || items[1] != 2 {
+		t.Fatalf("items = %#v; want first two", items)
+	}
+	if headers.PageLimit != "2" || headers.PageOffset != "10" || headers.HasMore != "true" || headers.TotalCount != "42" {
+		t.Fatalf("headers = %#v; want limit 2, offset 10, has more true, total 42", headers)
+	}
+}
+
 func TestComicListQuery(t *testing.T) {
 	query, args, err := comicListQuery(&ComicListInput{
 		Query:          "bat",

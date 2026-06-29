@@ -72,15 +72,22 @@ func listSeries(ctx context.Context, db *sqlx.DB, input *ComicSeriesListInput) (
 	if err != nil {
 		return nil, err
 	}
+	total, err := countRows(ctx, db, query, args)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to count series")
+	}
+	query, args, limit, offset := paginatedQuery(query, args, input.Limit, input.Offset)
 
 	series := []ComicSeries{}
 	if err := db.SelectContext(ctx, &series, query, args...); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch series")
 	}
+	var pagination PaginationHeaders
+	series, pagination = pageItems(series, limit, offset, total)
 	if err := hydrateSeriesPublishers(ctx, db, series); err != nil {
 		return nil, err
 	}
-	return &ComicSeriesListOutput{Body: series}, nil
+	return &ComicSeriesListOutput{PaginationHeaders: pagination, Body: series}, nil
 }
 
 func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {

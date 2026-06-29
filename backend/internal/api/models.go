@@ -38,6 +38,8 @@ type ComicListInput struct {
 	Publisher      string `query:"publisher"      doc:"Filter comics by partial publisher name." example:"DC"`
 	Read           string `query:"read"           doc:"Filter comics by read status. Use true or false." enum:"true,false" example:"false"`
 	ReadingOrderID int    `query:"readingOrderId" doc:"Filter comics to those included in a reading order." example:"7"`
+	Limit          int    `query:"limit"          doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset         int    `query:"offset"         doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type ComicInput struct {
@@ -46,6 +48,7 @@ type ComicInput struct {
 
 type ComicListOutput struct {
 	MetronRateLimitHeaders
+	PaginationHeaders
 	Body []Comic
 }
 
@@ -69,6 +72,8 @@ type CharacterDetail struct {
 type CharacterListInput struct {
 	Query    string `query:"q"        doc:"Case-insensitive text search across character names and aliases." example:"bat"`
 	Favorite string `query:"favorite" doc:"Filter characters by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type CharacterInput struct {
@@ -83,6 +88,7 @@ type UpdateCharacterFavoriteInput struct {
 }
 
 type CharacterListOutput struct {
+	PaginationHeaders
 	Body []Character
 }
 
@@ -113,6 +119,8 @@ type ComicSeriesDetail struct {
 type ComicSeriesListInput struct {
 	Query    string `query:"q"        doc:"Case-insensitive text search across series names, publishers, years, and issue numbers." example:"batman"`
 	Favorite string `query:"favorite" doc:"Filter series by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type ComicSeriesInput struct {
@@ -127,6 +135,7 @@ type UpdateComicSeriesFavoriteInput struct {
 }
 
 type ComicSeriesListOutput struct {
+	PaginationHeaders
 	Body []ComicSeries
 }
 
@@ -202,6 +211,8 @@ type ReadingOrderListInput struct {
 	Query    string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
 	Favorite string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
 	ComicID  int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
+	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type ReadingOrderInput struct {
@@ -209,6 +220,7 @@ type ReadingOrderInput struct {
 }
 
 type ReadingOrderListOutput struct {
+	PaginationHeaders
 	Body []ReadingOrder
 }
 

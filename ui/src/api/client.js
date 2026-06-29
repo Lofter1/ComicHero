@@ -20,6 +20,7 @@ async function requestWithMeta(path, options = {}) {
     ...options,
   })
   const rateLimit = metronRateLimitFromHeaders(response.headers)
+  const pagination = paginationFromHeaders(response.headers)
 
   if (!response.ok) {
     let message = `Request failed: ${response.status}`
@@ -35,8 +36,8 @@ async function requestWithMeta(path, options = {}) {
     throw new ApiError(message, { status: response.status, rateLimit })
   }
 
-  if (response.status === 204) return { data: null, rateLimit }
-  return { data: await response.json(), rateLimit }
+  if (response.status === 204) return { data: null, rateLimit, pagination }
+  return { data: await response.json(), rateLimit, pagination }
 }
 
 function send(path, method, body) {
@@ -77,6 +78,20 @@ function metronRateLimitFromHeaders(headers) {
   return Object.values(rateLimit).some((value) => value !== null) ? rateLimit : null
 }
 
+function paginationFromHeaders(headers) {
+  const limit = headerNumber(headers, 'X-Page-Limit')
+  const offset = headerNumber(headers, 'X-Page-Offset')
+  const total = headerNumber(headers, 'X-Total-Count')
+  const hasMoreRaw = headers.get('X-Has-More')
+  if (limit === null && offset === null && total === null && hasMoreRaw === null) return null
+  return {
+    limit: limit ?? 0,
+    offset: offset ?? 0,
+    total: total ?? 0,
+    hasMore: hasMoreRaw === 'true',
+  }
+}
+
 function headerNumber(headers, key) {
   const raw = headers.get(key)
   if (raw === null || raw === '') return null
@@ -100,19 +115,30 @@ export function assetURL(path) {
   return `${base.origin}${path}`
 }
 
-export async function listComics() {
-  const comics = await request('/comics')
-  return Array.isArray(comics) ? comics : []
+function pagedListResult(data, pagination) {
+  const items = Array.isArray(data) ? data : []
+  return {
+    items,
+    limit: pagination?.limit ?? items.length,
+    offset: pagination?.offset ?? 0,
+    total: pagination?.total ?? items.length,
+    hasMore: Boolean(pagination?.hasMore),
+  }
 }
 
-export async function listCharacters() {
-  const characters = await request('/characters')
-  return Array.isArray(characters) ? characters : []
+export async function listComics(params = {}) {
+  const { data, pagination } = await requestWithMeta(`/comics${queryString(params)}`)
+  return pagedListResult(data, pagination)
 }
 
-export async function listSeries() {
-  const series = await request('/series')
-  return Array.isArray(series) ? series : []
+export async function listCharacters(params = {}) {
+  const { data, pagination } = await requestWithMeta(`/characters${queryString(params)}`)
+  return pagedListResult(data, pagination)
+}
+
+export async function listSeries(params = {}) {
+  const { data, pagination } = await requestWithMeta(`/series${queryString(params)}`)
+  return pagedListResult(data, pagination)
 }
 
 export function getSeries(id) {
@@ -163,9 +189,9 @@ export function deleteComic(id) {
   return request(`/comics/${id}`, { method: 'DELETE' })
 }
 
-export async function listReadingOrders() {
-  const readingOrders = await request('/readingOrders')
-  return Array.isArray(readingOrders) ? readingOrders : []
+export async function listReadingOrders(params = {}) {
+  const { data, pagination } = await requestWithMeta(`/readingOrders${queryString(params)}`)
+  return pagedListResult(data, pagination)
 }
 
 export function getReadingOrder(id) {

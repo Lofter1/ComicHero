@@ -106,12 +106,19 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	if err != nil {
 		return nil, err
 	}
+	total, err := countRows(ctx, db, query, args)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to count reading orders")
+	}
+	query, args, limit, offset := paginatedQuery(query, args, input.Limit, input.Offset)
 
 	readingOrders := []ReadingOrder{}
 	if err := db.SelectContext(ctx, &readingOrders, query, args...); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch reading orders")
 	}
-	return &ReadingOrderListOutput{Body: readingOrders}, nil
+	var pagination PaginationHeaders
+	readingOrders, pagination = pageItems(readingOrders, limit, offset, total)
+	return &ReadingOrderListOutput{PaginationHeaders: pagination, Body: readingOrders}, nil
 }
 
 func readingOrderListQuery(input *ReadingOrderListInput) (string, []any, error) {

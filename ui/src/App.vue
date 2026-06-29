@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   assetURL,
   cancelMetronImportJob,
@@ -51,6 +51,7 @@ import {
 } from '@/domain/readingOrders.js'
 
 const activeView = ref('readingOrders')
+const pageSize = 50
 const viewMode = ref('browse')
 const comics = ref([])
 const series = ref([])
@@ -76,7 +77,15 @@ const metronMetadataResults = ref([])
 const metronImportJobs = ref([])
 const metronImportMonitorOpen = ref(false)
 const metronQuota = ref(null)
+const pageState = ref({
+  readingOrders: emptyPageState(),
+  comics: emptyPageState(),
+  series: emptyPageState(),
+  characters: emptyPageState(),
+})
+const loadMoreSentinel = ref(null)
 const metronImportPollTimers = new Map()
+let loadMoreObserver = null
 
 const comicForm = ref(emptyComic())
 const orderForm = ref(emptyReadingOrder())
@@ -146,10 +155,10 @@ const toolbarResultCount = computed(() => {
   return 0
 })
 const toolbarTotalCount = computed(() => {
-  if (activeView.value === 'readingOrders') return readingOrders.value.length
-  if (activeView.value === 'comics') return comics.value.length
-  if (activeView.value === 'series') return series.value.length
-  if (activeView.value === 'characters') return characters.value.length
+  if (activeView.value === 'readingOrders') return listTotal('readingOrders')
+  if (activeView.value === 'comics') return listTotal('comics')
+  if (activeView.value === 'series') return listTotal('series')
+  if (activeView.value === 'characters') return listTotal('characters')
   return 0
 })
 const currentOrderIndex = computed(() => {
@@ -170,12 +179,30 @@ const metronImportSummary = computed(() => {
   const latest = metronImportJobs.value[0]
   return latest ? latest.status : ''
 })
+const loadingLabel = computed(() => {
+  if (activeView.value === 'readingOrders') return 'Loading orders...'
+  if (activeView.value === 'comics') return 'Loading comics...'
+  if (activeView.value === 'series') return 'Loading series...'
+  if (activeView.value === 'characters') return 'Loading characters...'
+  if (activeView.value === 'metron') return 'Loading Metron...'
+  return 'Loading...'
+})
+const activePageState = computed(() => pageState.value[activeView.value] || null)
+const showInfiniteScrollSentinel = computed(() => {
+  return Boolean(activePageState.value)
+    && !loading.value
+    && !isEditing.value
+    && !isDetail.value
+    && (activePageState.value.hasMore || activePageState.value.loadingMore)
+})
+const activeListLoadingMore = computed(() => Boolean(activePageState.value?.loadingMore))
 
-function setView(view) {
+async function setView(view) {
   error.value = ''
   comicReturnTarget.value = null
   activeView.value = view
   viewMode.value = 'browse'
+  await loadData()
 }
 
 function seriesMatchesSearch(series, term) {
@@ -250,20 +277,41 @@ function seriesImportRunning(series) {
   })
 }
 
-async function loadData() {
+async function loadData(force = false) {
   loading.value = true
   error.value = ''
 
   try {
     await Promise.all([
-      refreshLists(),
+      loadActiveViewData({ force }),
       loadMetronImportJobs(),
-      loadMetronQuota(),
     ])
   } catch (err) {
     error.value = err.message
   } finally {
     loading.value = false
+  }
+}
+
+async function loadActiveViewData(options = {}) {
+  if (activeView.value === 'readingOrders') {
+    await loadReadingOrders(options)
+    return
+  }
+  if (activeView.value === 'comics') {
+    await loadComics(options)
+    return
+  }
+  if (activeView.value === 'series') {
+    await loadSeries(options)
+    return
+  }
+  if (activeView.value === 'characters') {
+    await loadCharacters(options)
+    return
+  }
+  if (activeView.value === 'metron') {
+    await loadMetronQuota()
   }
 }
 
@@ -292,17 +340,68 @@ function updateMetronQuota(quota) {
   }
 }
 
-async function refreshLists() {
-  const [comicList, seriesList, characterList, orderList] = await Promise.all([
-    listComics(),
-    listSeries(),
-    listCharacters(),
-    listReadingOrders(),
-  ])
-  comics.value = comicList
-  series.value = seriesList
-  characters.value = characterList
-  readingOrders.value = orderList
+function emptyPageState() {
+  return {
+    initialized: false,
+    hasMore: true,
+    nextOffset: 0,
+    total: 0,
+    loadingMore: false,
+  }
+}
+
+function listTotal(key) {
+  return pageState.value[key]?.total ?? 0
+}
+
+async function loadComics(options = {}) {
+  await loadPagedList('comics', comics, listComics, options)
+}
+
+async function loadSeries(options = {}) {
+  await loadPagedList('series', series, listSeries, options)
+}
+
+async function loadCharacters(options = {}) {
+  await loadPagedList('characters', characters, listCharacters, options)
+}
+
+async function loadReadingOrders(options = {}) {
+  await loadPagedList('readingOrders', readingOrders, listReadingOrders, options)
+}
+
+async function loadPagedList(key, target, listFn, { append = false, force = false } = {}) {
+  const state = pageState.value[key]
+  if (!state) return
+  if (append && (!state.initialized || !state.hasMore || state.loadingMore)) return
+  if (!append && state.initialized && !force) return
+
+  const offset = append ? state.nextOffset : 0
+  state.loadingMore = append
+  try {
+    const page = await listFn({ limit: pageSize, offset })
+    target.value = append ? [...target.value, ...page.items] : page.items
+    state.initialized = true
+    state.hasMore = page.hasMore
+    state.total = page.total
+    state.nextOffset = offset + page.items.length
+  } finally {
+    state.loadingMore = false
+  }
+}
+
+async function refreshActiveLibraryData() {
+  if (activeView.value === 'metron') return
+  await loadActiveViewData({ force: true })
+}
+
+async function loadMoreActiveViewData() {
+  if (loading.value || isEditing.value || isDetail.value) return
+  try {
+    await loadActiveViewData({ append: true })
+  } catch (err) {
+    error.value = err.message
+  }
 }
 
 async function openComic(comic, options = {}) {
@@ -427,7 +526,7 @@ async function saveComic() {
 
     selectedComic.value = detail
     comicForm.value = { ...detail }
-    await loadData()
+    await loadComics({ force: true })
     viewMode.value = 'detail'
   } catch (err) {
     error.value = err.message
@@ -446,7 +545,7 @@ async function deleteComic() {
     await removeComic(comicForm.value.id)
     selectedComic.value = null
     comicForm.value = emptyComic()
-    await loadData()
+    await loadComics({ force: true })
     viewMode.value = 'browse'
   } catch (err) {
     error.value = err.message
@@ -464,7 +563,7 @@ async function toggleComicRead(comic) {
   try {
     const detail = await updateComicReadStatus(comic.id, !comic.read)
     applyComicReadState(detail)
-    await refreshLists()
+    await refreshActiveLibraryData()
   } catch (err) {
     error.value = err.message
   } finally {
@@ -595,7 +694,7 @@ async function applyMetronMetadata(metronIssueID) {
   try {
     const { data } = await updateComicFromMetron(selectedComic.value.id, metronIssueID)
     applyComicDetailState(data)
-    await refreshLists()
+    await loadComics({ force: true })
     metronMetadataStatus.value = 'Metadata updated from Metron.'
     metronMetadataOpen.value = false
     metronMetadataResults.value = []
@@ -667,6 +766,9 @@ function newReadingOrder() {
   viewMode.value = 'edit'
   selectedOrder.value = null
   orderForm.value = emptyReadingOrder()
+  loadComics().catch(err => {
+    error.value = err.message
+  })
 }
 
 function editReadingOrder() {
@@ -674,6 +776,9 @@ function editReadingOrder() {
   error.value = ''
   orderForm.value = readingOrderFormFromDetail(selectedOrder.value)
   viewMode.value = 'edit'
+  loadComics().catch(err => {
+    error.value = err.message
+  })
 }
 
 async function saveReadingOrder() {
@@ -688,7 +793,7 @@ async function saveReadingOrder() {
 
     selectedOrder.value = await setReadingOrderComics(detail.id, readingOrderComicsPayload(orderForm.value))
     orderForm.value = readingOrderFormFromDetail(selectedOrder.value)
-    await loadData()
+    await loadReadingOrders({ force: true })
     viewMode.value = 'detail'
   } catch (err) {
     error.value = err.message
@@ -707,7 +812,7 @@ async function deleteReadingOrder() {
     await removeReadingOrder(orderForm.value.id)
     selectedOrder.value = null
     orderForm.value = emptyReadingOrder()
-    await loadData()
+    await loadReadingOrders({ force: true })
     viewMode.value = 'browse'
   } catch (err) {
     error.value = err.message
@@ -750,7 +855,7 @@ function clearError() {
 
 async function handleMetronImported() {
   error.value = ''
-  await refreshLists()
+  await refreshActiveLibraryData()
   if (activeView.value === 'characters' && viewMode.value === 'detail' && selectedCharacter.value?.id) {
     selectedCharacter.value = await getCharacter(selectedCharacter.value.id)
   }
@@ -764,7 +869,9 @@ function trackMetronImportJob(job) {
 	metronImportMonitorOpen.value = true
 	upsertMetronImportJob(job)
 	pollMetronImportJob(job.id)
-  loadMetronQuota().catch(() => {})
+  if (activeView.value === 'metron') {
+    loadMetronQuota().catch(() => {})
+  }
 }
 
 function upsertMetronImportJob(job) {
@@ -792,7 +899,9 @@ async function pollMetronImportJob(id) {
 	try {
 		const job = normalizeMetronImportJob(await getMetronImportJob(id))
 		upsertMetronImportJob(job)
-    loadMetronQuota().catch(() => {})
+    if (activeView.value === 'metron') {
+      loadMetronQuota().catch(() => {})
+    }
 
     if (job.status === 'succeeded') {
       await handleMetronImported()
@@ -908,11 +1017,43 @@ function metronJobMessage(job) {
   return job.message
 }
 
-onMounted(loadData)
+function setupLoadMoreObserver() {
+  if (typeof IntersectionObserver === 'undefined') return
+  loadMoreObserver = new IntersectionObserver((entries) => {
+    if (entries.some(entry => entry.isIntersecting)) {
+      loadMoreActiveViewData()
+    }
+  }, { rootMargin: '360px 0px' })
+  observeLoadMoreSentinel()
+}
+
+function observeLoadMoreSentinel() {
+  if (!loadMoreObserver) return
+  loadMoreObserver.disconnect()
+  if (loadMoreSentinel.value && showInfiniteScrollSentinel.value) {
+    loadMoreObserver.observe(loadMoreSentinel.value)
+  }
+}
+
+onMounted(() => {
+  loadData()
+  setupLoadMoreObserver()
+})
+
+watch(showInfiniteScrollSentinel, () => {
+  nextTick(observeLoadMoreSentinel)
+})
+
+watch(activeView, () => {
+  nextTick(observeLoadMoreSentinel)
+})
 
 onUnmounted(() => {
   metronImportPollTimers.forEach(timer => window.clearTimeout(timer))
   metronImportPollTimers.clear()
+  if (loadMoreObserver) {
+    loadMoreObserver.disconnect()
+  }
 })
 </script>
 
@@ -920,13 +1061,9 @@ onUnmounted(() => {
   <main class="app-shell">
     <AppSidebar
       :active-view="activeView"
-      :comic-count="comics.length"
-      :series-count="series.length"
-      :character-count="characters.length"
-      :order-count="readingOrders.length"
       :loading="loading"
       @change-view="setView"
-      @refresh="loadData"
+      @refresh="loadData(true)"
     />
 
     <section class="content">
@@ -1005,10 +1142,13 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <p v-if="loading" class="muted">Loading...</p>
+      <div v-if="loading" class="loading-panel" role="status" aria-live="polite">
+        <span class="loading-spinner" aria-hidden="true"></span>
+        <strong>{{ loadingLabel }}</strong>
+      </div>
 
       <MetronImport
-        v-if="!loading && activeView === 'metron'"
+        v-else-if="activeView === 'metron'"
         :import-jobs="metronImportJobs"
         :metron-quota="metronQuota"
         @imported="handleMetronImported"
@@ -1017,7 +1157,7 @@ onUnmounted(() => {
         @quota-updated="updateMetronQuota"
       />
 
-      <div v-else-if="!loading && activeView === 'readingOrders' && isEditing" class="editor-view">
+      <div v-else-if="activeView === 'readingOrders' && isEditing" class="editor-view">
         <header class="editor-header sticky-toolbar">
           <button class="secondary-button" type="button" @click="cancelEdit">Back</button>
           <div>
@@ -1100,16 +1240,12 @@ onUnmounted(() => {
         <div class="list-pane">
           <div class="overview-strip">
             <span>
-              <strong>{{ readingOrders.length }}</strong>
+              <strong>{{ listTotal('readingOrders') }}</strong>
               <small>Orders</small>
             </span>
             <span>
               <strong>{{ favoriteOrderCount }}</strong>
               <small>Favorites</small>
-            </span>
-            <span>
-              <strong>{{ comics.length }}</strong>
-              <small>Comics</small>
             </span>
           </div>
           <div class="browse-controls align-end">
@@ -1253,7 +1389,7 @@ onUnmounted(() => {
         <div class="list-pane">
           <div class="overview-strip">
             <span>
-              <strong>{{ series.length }}</strong>
+              <strong>{{ listTotal('series') }}</strong>
               <small>Series</small>
             </span>
             <span>
@@ -1261,7 +1397,7 @@ onUnmounted(() => {
               <small>Favorites</small>
             </span>
             <span>
-              <strong>{{ comics.length }}</strong>
+              <strong>{{ series.reduce((total, item) => total + (item.entryCount || 0), 0) }}</strong>
               <small>Entries</small>
             </span>
           </div>
@@ -1409,7 +1545,7 @@ onUnmounted(() => {
         <div class="list-pane">
           <div class="overview-strip">
             <span>
-              <strong>{{ characters.length }}</strong>
+              <strong>{{ listTotal('characters') }}</strong>
               <small>Characters</small>
             </span>
             <span>
@@ -1634,6 +1770,7 @@ onUnmounted(() => {
         <ComicListView
           title="Comics"
           :comics="comics"
+          :total-count="listTotal('comics')"
           :selected-comic-id="selectedComic?.id"
           :quick-saving-comic-id="quickSavingComicID"
           show-new-button
@@ -1644,6 +1781,11 @@ onUnmounted(() => {
           @open-comic="openComic"
           @toggle-read="toggleComicRead"
         />
+      </div>
+
+      <div v-if="showInfiniteScrollSentinel" ref="loadMoreSentinel" class="load-more-sentinel" aria-live="polite">
+        <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
+        <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>
     </section>
   </main>

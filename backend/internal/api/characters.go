@@ -79,15 +79,22 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 	query.orderBy("ORDER BY ch.name")
 
 	sql, args := query.build()
+	total, err := countRows(ctx, db, sql, args)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to count characters")
+	}
+	sql, args, limit, offset := paginatedQuery(sql, args, input.Limit, input.Offset)
 	characters := []Character{}
 	if err := db.SelectContext(ctx, &characters, sql, args...); err != nil {
 		log.Printf("failed to fetch characters: %v", err)
 		return nil, huma.Error500InternalServerError("failed to fetch characters")
 	}
+	var pagination PaginationHeaders
+	characters, pagination = pageItems(characters, limit, offset, total)
 	if err := hydrateCharacterAliases(ctx, db, characters); err != nil {
 		return nil, err
 	}
-	return &CharacterListOutput{Body: characters}, nil
+	return &CharacterListOutput{PaginationHeaders: pagination, Body: characters}, nil
 }
 
 func updateCharacterFavorite(ctx context.Context, db *sqlx.DB, id int, favorite bool) (*CharacterDetailOutput, error) {

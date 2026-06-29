@@ -7,6 +7,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  totalCount: {
+    type: Number,
+    default: null,
+  },
   title: {
     type: String,
     default: 'Comics',
@@ -72,6 +76,15 @@ const visibleComics = computed(() => {
 
 const readCount = computed(() => props.comics.filter(comic => comic.read).length)
 const hasFilters = computed(() => searchTerm.value || status.value !== 'all')
+const totalComics = computed(() => props.totalCount ?? props.comics.length)
+const summaryText = computed(() => {
+  const loaded = props.comics.length
+  const total = totalComics.value
+  if (hasFilters.value) {
+    return `${visibleComics.value.length} matching loaded · ${loaded} of ${total} loaded · ${readCount.value} loaded read`
+  }
+  return `${loaded} of ${total} loaded · ${readCount.value} loaded read`
+})
 
 function compareComics(a, b, mode) {
   if (mode === 'date') return compareText(a.coverDate, b.coverDate) || compareSeries(a, b)
@@ -98,7 +111,7 @@ function compareText(a, b) {
     <header class="comic-list-header">
       <div>
         <p class="eyebrow">{{ title }}</p>
-        <small>{{ visibleComics.length }} of {{ comics.length }} · {{ readCount }} read</small>
+        <small>{{ summaryText }}</small>
       </div>
       <button
         v-if="showNewButton"
