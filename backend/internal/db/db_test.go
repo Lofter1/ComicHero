@@ -40,6 +40,13 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if !columns["series_year"] {
 		t.Fatal("comics table missing series_year column")
 	}
+	var busyTimeout int
+	if err := database.QueryRow(`PRAGMA busy_timeout`).Scan(&busyTimeout); err != nil {
+		t.Fatalf("busy timeout: %v", err)
+	}
+	if busyTimeout != 5000 {
+		t.Fatalf("busy timeout = %d; want 5000", busyTimeout)
+	}
 
 	var seriesTable string
 	if err := database.QueryRow(`

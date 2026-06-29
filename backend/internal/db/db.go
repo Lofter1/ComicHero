@@ -23,9 +23,14 @@ func Open(path string) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open db: %w", err)
 	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("ping db: %w", err)
+	}
+	if err := configureSQLite(db); err != nil {
+		return nil, fmt.Errorf("configure sqlite: %w", err)
 	}
 
 	if err := runMigrations(db); err != nil {
@@ -33,6 +38,20 @@ func Open(path string) (*sqlx.DB, error) {
 	}
 
 	return db, nil
+}
+
+func configureSQLite(db *sqlx.DB) error {
+	pragmas := []string{
+		`PRAGMA foreign_keys = ON`,
+		`PRAGMA journal_mode = WAL`,
+		`PRAGMA busy_timeout = 5000`,
+	}
+	for _, pragma := range pragmas {
+		if _, err := db.Exec(pragma); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func runMigrations(db *sqlx.DB) error {

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"log"
 	"net/http"
 	"strings"
 
@@ -80,6 +81,7 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 	sql, args := query.build()
 	characters := []Character{}
 	if err := db.SelectContext(ctx, &characters, sql, args...); err != nil {
+		log.Printf("failed to fetch characters: %v", err)
 		return nil, huma.Error500InternalServerError("failed to fetch characters")
 	}
 	if err := hydrateCharacterAliases(ctx, db, characters); err != nil {
