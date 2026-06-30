@@ -65,6 +65,7 @@ defineEmits(['back', 'edit', 'open-comic', 'toggle-read'])
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
           show-comment
+          show-cover
           empty-message="No comics in this reading order yet."
           filtered-empty-message="No comics match these filters."
           @open-comic="$emit('open-comic', $event)"
