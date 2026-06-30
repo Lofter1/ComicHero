@@ -1,12 +1,19 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
 	"io"
-	"mime"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +21,12 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+)
+
+const (
+	coverMaxDimension     = 720
+	coverJPEGQuality      = 78
+	coverDownloadMaxBytes = 20 << 20
 )
 
 type CoverCache struct {
@@ -30,6 +43,13 @@ func NewCoverCache(dir, publicPath string) *CoverCache {
 			Timeout: 30 * time.Second,
 		},
 	}
+}
+
+func (c *CoverCache) Dir() string {
+	if c == nil {
+		return ""
+	}
+	return c.dir
 }
 
 func (c *CoverCache) EnsureDir() error {
@@ -53,7 +73,7 @@ func (c *CoverCache) LocalURL(ctx context.Context, source string) (string, error
 		return source, nil
 	}
 
-	name := coverFileName(source, parsed)
+	name := coverFileName(source)
 	localPath := filepath.Join(c.dir, name)
 	if _, err := os.Stat(localPath); err == nil {
 		return c.coverURL(name), nil
@@ -77,12 +97,18 @@ func (c *CoverCache) LocalURL(ctx context.Context, source string) (string, error
 		return "", fmt.Errorf("download cover: %s", resp.Status)
 	}
 
-	if ext := coverExtensionFromContentType(resp.Header.Get("Content-Type")); ext != "" && filepath.Ext(name) == "" {
-		name += ext
-		localPath = filepath.Join(c.dir, name)
-		if _, err := os.Stat(localPath); err == nil {
-			return c.coverURL(name), nil
-		}
+	imageBytes, err := io.ReadAll(io.LimitReader(resp.Body, coverDownloadMaxBytes+1))
+	if err != nil {
+		return "", fmt.Errorf("read cover: %w", err)
+	}
+	if len(imageBytes) > coverDownloadMaxBytes {
+		return "", fmt.Errorf("download cover: image is larger than %d bytes", coverDownloadMaxBytes)
+	}
+
+	optimized, err := optimizeCover(imageBytes)
+	if err != nil {
+		log.Printf("cover cache: keeping remote image %q because it could not be optimized: %v", source, err)
+		return source, nil
 	}
 
 	tmp, err := os.CreateTemp(c.dir, "cover-*")
@@ -92,7 +118,7 @@ func (c *CoverCache) LocalURL(ctx context.Context, source string) (string, error
 	tmpPath := tmp.Name()
 	defer os.Remove(tmpPath)
 
-	if _, err := io.Copy(tmp, resp.Body); err != nil {
+	if _, err := tmp.Write(optimized); err != nil {
 		tmp.Close()
 		return "", fmt.Errorf("save cover: %w", err)
 	}
@@ -110,35 +136,58 @@ func (c *CoverCache) coverURL(name string) string {
 	return path.Join(c.publicPath, name)
 }
 
-func coverFileName(source string, parsed *url.URL) string {
+func coverFileName(source string) string {
 	sum := sha256.Sum256([]byte(source))
 	hash := hex.EncodeToString(sum[:])[:24]
-	ext := strings.ToLower(path.Ext(parsed.Path))
-	switch ext {
-	case ".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif":
-		return hash + ext
-	default:
-		return hash
-	}
+	return hash + ".jpg"
 }
 
-func coverExtensionFromContentType(contentType string) string {
-	mediaType, _, err := mime.ParseMediaType(contentType)
+func optimizeCover(source []byte) ([]byte, error) {
+	img, _, err := image.Decode(bytes.NewReader(source))
 	if err != nil {
-		return ""
+		return nil, err
 	}
-	switch mediaType {
-	case "image/jpeg":
-		return ".jpg"
-	case "image/png":
-		return ".png"
-	case "image/webp":
-		return ".webp"
-	case "image/gif":
-		return ".gif"
-	case "image/avif":
-		return ".avif"
-	default:
-		return ""
+
+	resized := flattenImage(resizeImage(img, coverMaxDimension))
+	var out bytes.Buffer
+	if err := jpeg.Encode(&out, resized, &jpeg.Options{Quality: coverJPEGQuality}); err != nil {
+		return nil, err
 	}
+	return out.Bytes(), nil
+}
+
+func resizeImage(src image.Image, maxDimension int) image.Image {
+	bounds := src.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	if width <= 0 || height <= 0 || maxDimension <= 0 {
+		return src
+	}
+	if width <= maxDimension && height <= maxDimension {
+		return src
+	}
+
+	scale := float64(maxDimension) / float64(width)
+	if height > width {
+		scale = float64(maxDimension) / float64(height)
+	}
+	dstWidth := max(1, int(float64(width)*scale))
+	dstHeight := max(1, int(float64(height)*scale))
+	dst := image.NewRGBA(image.Rect(0, 0, dstWidth, dstHeight))
+	for y := 0; y < dstHeight; y++ {
+		srcY := bounds.Min.Y + int(float64(y)*float64(height)/float64(dstHeight))
+		for x := 0; x < dstWidth; x++ {
+			srcX := bounds.Min.X + int(float64(x)*float64(width)/float64(dstWidth))
+			dst.Set(x, y, src.At(srcX, srcY))
+		}
+	}
+	return dst
+}
+
+func flattenImage(src image.Image) image.Image {
+	bounds := src.Bounds()
+	dst := image.NewRGBA(image.Rect(0, 0, bounds.Dx(), bounds.Dy()))
+	draw.Draw(dst, dst.Bounds(), &image.Uniform{C: color.White}, image.Point{}, draw.Src)
+	draw.Draw(dst, dst.Bounds(), src, bounds.Min, draw.Over)
+	return dst
 }

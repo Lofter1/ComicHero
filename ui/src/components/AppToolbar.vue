@@ -3,22 +3,22 @@ const labels = {
   readingOrders: {
     eyebrow: 'Reading Orders',
     title: 'Manage reading orders',
-    placeholder: 'Search orders',
+  },
+  arcs: {
+    eyebrow: 'Arcs',
+    title: 'Arcs',
   },
   comics: {
     eyebrow: 'Comics',
     title: 'Comics',
-    placeholder: 'Search comics',
   },
   series: {
     eyebrow: 'Series',
     title: 'Series',
-    placeholder: 'Search series',
   },
   characters: {
     eyebrow: 'Characters',
     title: 'Characters',
-    placeholder: 'Search characters',
   },
   metron: {
     eyebrow: 'Metron',
@@ -28,10 +28,6 @@ const labels = {
 
 defineProps({
   activeView: {
-    type: String,
-    required: true,
-  },
-  search: {
     type: String,
     required: true,
   },
@@ -45,7 +41,6 @@ defineProps({
   },
 })
 
-defineEmits(['update:search'])
 </script>
 
 <template>
@@ -56,19 +51,6 @@ defineEmits(['update:search'])
       <p v-if="activeView !== 'metron'" class="toolbar-summary">
         Showing {{ resultCount }} of {{ totalCount }}
       </p>
-    </div>
-    <div class="toolbar-actions">
-      <div v-if="activeView !== 'metron'" class="search-field">
-        <input
-          :value="search"
-          type="search"
-          :placeholder="labels[activeView].placeholder"
-          @input="$emit('update:search', $event.target.value)"
-        />
-        <button v-if="search" class="ghost-button" type="button" @click="$emit('update:search', '')">
-          Clear
-        </button>
-      </div>
     </div>
   </header>
 </template>

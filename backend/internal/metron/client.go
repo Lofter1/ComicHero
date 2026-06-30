@@ -34,17 +34,24 @@ type Config struct {
 }
 
 type Issue struct {
-	ID          int               `json:"id"          doc:"Metron issue identifier." example:"123456"`
-	Title       string            `json:"title"       doc:"Issue title." example:"The Court of Owls"`
-	Series      string            `json:"series"      doc:"Series name." example:"Batman"`
-	SeriesYear  int               `json:"seriesYear"  doc:"Series start year or volume year used by ComicHero generated titles." example:"2011"`
-	Issue       int               `json:"issue"       doc:"Numeric issue number parsed for local sorting." example:"6"`
-	Number      string            `json:"number"      doc:"Original Metron issue number." example:"6"`
-	Publisher   string            `json:"publisher"   doc:"Publisher name." example:"DC Comics"`
-	CoverDate   string            `json:"coverDate"   doc:"Cover date as provided by Metron." example:"2012-04-01"`
-	CoverImage  string            `json:"coverImage"  doc:"Absolute Metron cover-image URL." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
-	Description string            `json:"description" doc:"Metron issue synopsis."`
-	Characters  []MetronCharacter `json:"characters"  doc:"Characters appearing in the issue, when returned by Metron."`
+	ID           int               `json:"id"          doc:"Metron issue identifier." example:"123456"`
+	Title        string            `json:"title"       doc:"Issue title." example:"The Court of Owls"`
+	StoryNames   []string          `json:"storyNames"  doc:"Story titles returned by Metron."`
+	SeriesID     int               `json:"seriesId"    doc:"Metron series identifier for this issue." example:"405"`
+	Series       string            `json:"series"      doc:"Series name." example:"Batman"`
+	SeriesYear   int               `json:"seriesYear"  doc:"Series start year or volume year used by ComicHero generated titles." example:"2011"`
+	SeriesVolume int               `json:"seriesVolume" doc:"Metron series volume number." example:"2"`
+	Issue        string            `json:"issue"       doc:"Issue number as provided by Metron." example:"6.LR"`
+	Number       string            `json:"number"      doc:"Original Metron issue number." example:"6"`
+	Publisher    string            `json:"publisher"   doc:"Publisher name." example:"DC Comics"`
+	CoverDate    string            `json:"coverDate"   doc:"Cover date as provided by Metron." example:"2012-04-01"`
+	StoreDate    string            `json:"storeDate"   doc:"Store date as provided by Metron." example:"2012-04-01"`
+	CoverImage   string            `json:"coverImage"  doc:"Absolute Metron cover-image URL." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
+	Description  string            `json:"description" doc:"Metron issue synopsis."`
+	Modified     string            `json:"modified"    doc:"Metron modified timestamp."`
+	Tags         []string          `json:"tags"        doc:"Reading-list item tags/classifications from Metron."`
+	Arcs         []MetronArc       `json:"arcs"        doc:"Story arcs attached to the issue, when returned by Metron."`
+	Characters   []MetronCharacter `json:"characters"  doc:"Characters appearing in the issue, when returned by Metron."`
 }
 
 type MetronCharacter struct {
@@ -56,10 +63,36 @@ type MetronCharacter struct {
 }
 
 type ReadingList struct {
-	ID          int     `json:"id"          doc:"Metron reading-list identifier." example:"9876"`
-	Name        string  `json:"name"        doc:"Metron reading-list name." example:"Batman: Court of Owls"`
-	Description string  `json:"description" doc:"Metron reading-list description."`
-	Issues      []Issue `json:"issues"      doc:"Issues included in the reading list, when requested from a detail endpoint."`
+	ID                int        `json:"id"                doc:"Metron reading-list identifier." example:"9876"`
+	Name              string     `json:"name"              doc:"Metron reading-list name." example:"Batman: Court of Owls"`
+	Slug              string     `json:"slug,omitempty"    doc:"Metron reading-list slug."`
+	User              MetronUser `json:"user,omitempty"    doc:"Metron user who owns the reading list."`
+	ListType          string     `json:"listType"          doc:"Metron reading-list type."`
+	IsPrivate         bool       `json:"isPrivate"         doc:"Whether the Metron reading list is private."`
+	AttributionSource string     `json:"attributionSource" doc:"Reading-list attribution source."`
+	AttributionURL    string     `json:"attributionUrl"    doc:"Reading-list attribution URL." format:"uri"`
+	AverageRating     float64    `json:"averageRating"     doc:"Average Metron user rating."`
+	RatingCount       int        `json:"ratingCount"       doc:"Number of Metron ratings."`
+	Modified          string     `json:"modified"          doc:"Metron modified timestamp."`
+	Image             string     `json:"image"             doc:"Metron reading-list image URL." format:"uri"`
+	ItemsURL          string     `json:"itemsUrl"          doc:"Metron reading-list items URL." format:"uri"`
+	ResourceURL       string     `json:"resourceUrl"       doc:"Metron reading-list resource URL." format:"uri"`
+	Description       string     `json:"description"       doc:"Metron reading-list description."`
+	Issues            []Issue    `json:"issues"            doc:"Issues included in the reading list, when requested from a detail endpoint."`
+}
+
+type MetronUser struct {
+	ID       int    `json:"id"       doc:"Metron user identifier." example:"42"`
+	Username string `json:"username" doc:"Metron username." example:"reader"`
+}
+
+type MetronArc struct {
+	ID          int     `json:"id"          doc:"Metron story-arc identifier." example:"9876"`
+	Name        string  `json:"name"        doc:"Metron story-arc name." example:"Batman: Zero Year"`
+	Description string  `json:"description" doc:"Metron story-arc description."`
+	Image       string  `json:"image"       doc:"Metron story-arc image URL." format:"uri"`
+	Modified    string  `json:"modified"    doc:"Metron modified timestamp."`
+	Issues      []Issue `json:"issues"      doc:"Issues included in the story arc, when requested from a detail endpoint."`
 }
 
 type Series struct {
@@ -80,6 +113,16 @@ type RateLimit struct {
 	SustainedLimit     int   `json:"sustainedLimit,omitempty"     doc:"Metron sustained-rate request limit."`
 	SustainedRemaining int   `json:"sustainedRemaining,omitempty" doc:"Remaining Metron sustained-rate requests."`
 	SustainedReset     int64 `json:"sustainedReset,omitempty"     doc:"Unix timestamp when the sustained-rate window resets."`
+}
+
+type ConditionalRequest struct {
+	LastModified string
+	Force        bool
+}
+
+type FetchInfo struct {
+	LastModified string
+	NotModified  bool
 }
 
 type RateLimitError struct {
@@ -134,15 +177,15 @@ func New(config Config) *Client {
 	}
 }
 
-func (c *Client) SearchIssues(ctx context.Context, query, series string, issue int) ([]Issue, error) {
+func (c *Client) SearchIssues(ctx context.Context, query, series, issue string) ([]Issue, error) {
 	values := url.Values{}
 	if series != "" {
 		values.Set("series_name", series)
 	} else if query != "" {
 		values.Set("series_name", query)
 	}
-	if issue > 0 {
-		values.Set("number", fmt.Sprintf("%d", issue))
+	if issue != "" {
+		values.Set("number", issue)
 	}
 
 	results, err := c.getList(ctx, "/issue/", values)
@@ -157,23 +200,41 @@ func (c *Client) SearchIssues(ctx context.Context, query, series string, issue i
 }
 
 func (c *Client) GetIssue(ctx context.Context, id int) (*Issue, error) {
+	issue, _, err := c.GetIssueConditional(ctx, id, ConditionalRequest{})
+	return issue, err
+}
+
+func (c *Client) GetIssueConditional(ctx context.Context, id int, conditional ConditionalRequest) (*Issue, FetchInfo, error) {
 	var raw map[string]any
-	if err := c.get(ctx, fmt.Sprintf("/issue/%d/", id), nil, &raw); err != nil {
-		return nil, err
+	info, err := c.getConditional(ctx, fmt.Sprintf("/issue/%d/", id), nil, conditional, &raw)
+	if err != nil {
+		return nil, info, err
+	}
+	if info.NotModified {
+		return nil, info, nil
 	}
 
 	issue := issueFromMap(raw)
-	return &issue, nil
+	return &issue, info, nil
 }
 
 func (c *Client) GetCharacter(ctx context.Context, id int) (*MetronCharacter, error) {
+	character, _, err := c.GetCharacterConditional(ctx, id, ConditionalRequest{})
+	return character, err
+}
+
+func (c *Client) GetCharacterConditional(ctx context.Context, id int, conditional ConditionalRequest) (*MetronCharacter, FetchInfo, error) {
 	var raw map[string]any
-	if err := c.get(ctx, fmt.Sprintf("/character/%d/", id), nil, &raw); err != nil {
-		return nil, err
+	info, err := c.getConditional(ctx, fmt.Sprintf("/character/%d/", id), nil, conditional, &raw)
+	if err != nil {
+		return nil, info, err
+	}
+	if info.NotModified {
+		return nil, info, nil
 	}
 
 	character := characterFromMap(raw)
-	return &character, nil
+	return &character, info, nil
 }
 
 func (c *Client) SearchCharacters(ctx context.Context, query string) ([]MetronCharacter, error) {
@@ -252,6 +313,23 @@ func (c *Client) SearchReadingLists(ctx context.Context, query string) ([]Readin
 	return lists, nil
 }
 
+func (c *Client) SearchArcs(ctx context.Context, query string) ([]MetronArc, error) {
+	values := url.Values{}
+	if query != "" {
+		values.Set("name", query)
+	}
+
+	results, err := c.getList(ctx, "/arc/", values)
+	if err != nil {
+		return nil, err
+	}
+	arcs := make([]MetronArc, 0, len(results))
+	for _, raw := range results {
+		arcs = append(arcs, arcFromMap(raw))
+	}
+	return arcs, nil
+}
+
 func (c *Client) SearchSeries(ctx context.Context, query string) ([]Series, error) {
 	values := url.Values{}
 	if query != "" {
@@ -270,12 +348,21 @@ func (c *Client) SearchSeries(ctx context.Context, query string) ([]Series, erro
 }
 
 func (c *Client) GetSeries(ctx context.Context, id int) (*Series, error) {
+	series, _, err := c.GetSeriesConditional(ctx, id, ConditionalRequest{})
+	return series, err
+}
+
+func (c *Client) GetSeriesConditional(ctx context.Context, id int, conditional ConditionalRequest) (*Series, FetchInfo, error) {
 	var raw map[string]any
-	if err := c.get(ctx, fmt.Sprintf("/series/%d/", id), nil, &raw); err != nil {
-		return nil, err
+	info, err := c.getConditional(ctx, fmt.Sprintf("/series/%d/", id), nil, conditional, &raw)
+	if err != nil {
+		return nil, info, err
+	}
+	if info.NotModified {
+		return nil, info, nil
 	}
 	series := seriesFromMap(raw)
-	return &series, nil
+	return &series, info, nil
 }
 
 func (c *Client) GetSeriesIssues(ctx context.Context, id int) ([]Issue, error) {
@@ -292,18 +379,68 @@ func (c *Client) GetSeriesIssues(ctx context.Context, id int) ([]Issue, error) {
 }
 
 func (c *Client) GetReadingList(ctx context.Context, id int) (*ReadingList, error) {
+	list, _, err := c.GetReadingListConditional(ctx, id, ConditionalRequest{})
+	return list, err
+}
+
+func (c *Client) GetReadingListConditional(ctx context.Context, id int, conditional ConditionalRequest) (*ReadingList, FetchInfo, error) {
 	var raw map[string]any
-	if err := c.get(ctx, fmt.Sprintf("/reading_list/%d/", id), nil, &raw); err != nil {
-		return nil, err
+	info, err := c.getConditional(ctx, fmt.Sprintf("/reading_list/%d/", id), nil, conditional, &raw)
+	if err != nil {
+		return nil, info, err
+	}
+	if info.NotModified {
+		return nil, info, nil
 	}
 
 	list := readingListFromMap(raw)
 	issues, err := c.GetReadingListIssues(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, info, err
 	}
 	list.Issues = issues
-	return &list, nil
+	return &list, info, nil
+}
+
+func (c *Client) GetArc(ctx context.Context, id int) (*MetronArc, error) {
+	arc, _, err := c.GetArcConditional(ctx, id, ConditionalRequest{})
+	return arc, err
+}
+
+func (c *Client) GetArcConditional(ctx context.Context, id int, conditional ConditionalRequest) (*MetronArc, FetchInfo, error) {
+	arc, info, err := c.GetArcMetadataConditional(ctx, id, conditional)
+	if err != nil {
+		return nil, info, err
+	}
+	if info.NotModified {
+		return nil, info, nil
+	}
+
+	issues, err := c.GetArcIssues(ctx, id)
+	if err != nil {
+		return nil, info, err
+	}
+	arc.Issues = issues
+	return arc, info, nil
+}
+
+func (c *Client) GetArcMetadata(ctx context.Context, id int) (*MetronArc, error) {
+	arc, _, err := c.GetArcMetadataConditional(ctx, id, ConditionalRequest{})
+	return arc, err
+}
+
+func (c *Client) GetArcMetadataConditional(ctx context.Context, id int, conditional ConditionalRequest) (*MetronArc, FetchInfo, error) {
+	var raw map[string]any
+	info, err := c.getConditional(ctx, fmt.Sprintf("/arc/%d/", id), nil, conditional, &raw)
+	if err != nil {
+		return nil, info, err
+	}
+	if info.NotModified {
+		return nil, info, nil
+	}
+
+	arc := arcFromMap(raw)
+	return &arc, info, nil
 }
 
 func (c *Client) GetReadingListIssues(ctx context.Context, id int) ([]Issue, error) {
@@ -315,15 +452,40 @@ func (c *Client) GetReadingListIssues(ctx context.Context, id int) ([]Issue, err
 	issues := make([]Issue, 0, len(results))
 	for _, raw := range results {
 		if issue := object(raw, "issue"); len(issue) > 0 {
+			issue = cloneMap(issue)
+			if tags := stringList(raw, "issue_type", "type", "tag", "tags"); len(tags) > 0 {
+				issue["tags"] = mergeStringLists(stringList(issue, "tags"), tags)
+			}
 			issues = append(issues, issueFromMap(issue))
 		}
 	}
 	return issues, nil
 }
 
+func (c *Client) GetArcIssues(ctx context.Context, id int) ([]Issue, error) {
+	results, err := c.getAllList(ctx, fmt.Sprintf("/arc/%d/issue_list/", id), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	issues := make([]Issue, 0, len(results))
+	for _, raw := range results {
+		if issue := object(raw, "issue"); len(issue) > 0 {
+			raw = issue
+		}
+		issues = append(issues, issueFromMap(raw))
+	}
+	return issues, nil
+}
+
 func (c *Client) get(ctx context.Context, path string, values url.Values, target any) error {
+	_, err := c.getConditional(ctx, path, values, ConditionalRequest{}, target)
+	return err
+}
+
+func (c *Client) getConditional(ctx context.Context, path string, values url.Values, conditional ConditionalRequest, target any) (FetchInfo, error) {
 	if err := c.waitForRateLimit(ctx); err != nil {
-		return err
+		return FetchInfo{}, err
 	}
 
 	requestURL := c.requestURL(path)
@@ -334,26 +496,35 @@ func (c *Client) get(ctx context.Context, path string, values url.Values, target
 	cacheKey := requestURL
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
-		return err
+		return FetchInfo{}, err
 	}
 	c.authorize(req)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "ComicHero/0.1")
-	if cached, ok := c.cached(cacheKey); ok && cached.lastModified != "" {
-		req.Header.Set("If-Modified-Since", cached.lastModified)
+	if conditional.LastModified != "" && !conditional.Force {
+		req.Header.Set("If-Modified-Since", conditional.LastModified)
+	} else if !conditional.Force {
+		if cached, ok := c.cached(cacheKey); ok && cached.lastModified != "" {
+			req.Header.Set("If-Modified-Since", cached.lastModified)
+		}
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return err
+		return FetchInfo{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotModified {
 		c.updateRateLimit(resp.Header)
-		if cached, ok := c.cached(cacheKey); ok {
-			return json.Unmarshal(cached.body, target)
+		info := FetchInfo{LastModified: req.Header.Get("If-Modified-Since"), NotModified: true}
+		if conditional.LastModified == "" {
+			if cached, ok := c.cached(cacheKey); ok {
+				info.NotModified = false
+				return info, json.Unmarshal(cached.body, target)
+			}
 		}
+		return info, nil
 	}
 
 	rateLimit := c.updateRateLimit(resp.Header)
@@ -361,22 +532,23 @@ func (c *Client) get(ctx context.Context, path string, values url.Values, target
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
 		if resp.StatusCode == http.StatusTooManyRequests {
-			return &RateLimitError{
+			return FetchInfo{}, &RateLimitError{
 				Status:    resp.Status,
 				Body:      strings.TrimSpace(string(body)),
 				RateLimit: rateLimit,
 			}
 		}
-		return fmt.Errorf("metron request failed: %s: %s", resp.Status, strings.TrimSpace(string(body)))
+		return FetchInfo{}, fmt.Errorf("metron request failed: %s: %s", resp.Status, strings.TrimSpace(string(body)))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return FetchInfo{}, err
 	}
-	c.storeCache(cacheKey, resp.Header.Get("Last-Modified"), body)
+	lastModified := resp.Header.Get("Last-Modified")
+	c.storeCache(cacheKey, lastModified, body)
 
-	return json.Unmarshal(body, target)
+	return FetchInfo{LastModified: lastModified}, json.Unmarshal(body, target)
 }
 
 func (c *Client) waitForRateLimit(ctx context.Context) error {
@@ -531,18 +703,43 @@ func issueFromMap(raw map[string]any) Issue {
 	}
 
 	return Issue{
-		ID:          intValue(raw, "id"),
-		Title:       firstString(raw, "title", "name"),
-		Series:      fallbackString(firstString(raw, "series_name", "series"), firstString(series, "name")),
-		SeriesYear:  firstInt(intValue(raw, "series_year", "year_began", "year"), intValue(series, "year_began", "year")),
-		Issue:       intValue(raw, "number", "issue"),
-		Number:      firstString(raw, "number", "issue"),
-		Publisher:   fallbackString(firstString(raw, "publisher_name", "publisher"), firstString(publisher, "name")),
-		CoverDate:   firstString(raw, "cover_date", "store_date", "date"),
-		CoverImage:  firstString(raw, "image", "cover", "cover_image", "image_url"),
-		Description: firstString(raw, "desc", "description", "synopsis"),
-		Characters:  charactersFromMap(raw),
+		ID:           intValue(raw, "id"),
+		Title:        firstString(raw, "title", "name"),
+		StoryNames:   stringList(raw, "name", "story_names", "storyNames"),
+		SeriesID:     firstInt(intValue(raw, "series_id"), intValue(series, "id")),
+		Series:       fallbackString(firstString(raw, "series_name", "series"), firstString(series, "name")),
+		SeriesYear:   firstInt(intValue(raw, "series_year", "year_began", "year"), intValue(series, "year_began", "year")),
+		SeriesVolume: firstInt(intValue(raw, "series_volume"), intValue(series, "volume")),
+		Issue:        firstString(raw, "number", "issue"),
+		Number:       firstString(raw, "number", "issue"),
+		Publisher:    fallbackString(firstString(raw, "publisher_name", "publisher"), firstString(publisher, "name")),
+		CoverDate:    firstString(raw, "cover_date", "store_date", "date"),
+		StoreDate:    firstString(raw, "store_date"),
+		CoverImage:   firstString(raw, "image", "cover", "cover_image", "image_url"),
+		Description:  firstString(raw, "desc", "description", "synopsis"),
+		Modified:     firstString(raw, "modified"),
+		Tags:         stringList(raw, "tags", "tag", "issue_type"),
+		Arcs:         arcsFromMap(raw),
+		Characters:   charactersFromMap(raw),
 	}
+}
+
+func arcsFromMap(raw map[string]any) []MetronArc {
+	values, ok := raw["arcs"].([]any)
+	if !ok {
+		return nil
+	}
+
+	arcs := make([]MetronArc, 0, len(values))
+	for _, value := range values {
+		if item, ok := value.(map[string]any); ok {
+			arc := arcFromMap(item)
+			if arc.ID > 0 || arc.Name != "" {
+				arcs = append(arcs, arc)
+			}
+		}
+	}
+	return arcs
 }
 
 func charactersFromMap(raw map[string]any) []MetronCharacter {
@@ -577,14 +774,49 @@ func stringList(raw map[string]any, keys ...string) []string {
 	seen := map[string]bool{}
 	var values []string
 	for _, key := range keys {
-		rawValues, ok := raw[key].([]any)
-		if !ok {
-			continue
+		switch rawValue := raw[key].(type) {
+		case string:
+			value := strings.TrimSpace(rawValue)
+			if value != "" && !seen[value] {
+				seen[value] = true
+				values = append(values, value)
+			}
+		case []string:
+			for _, item := range rawValue {
+				value := strings.TrimSpace(item)
+				if value == "" || seen[value] {
+					continue
+				}
+				seen[value] = true
+				values = append(values, value)
+			}
+		case []any:
+			for _, item := range rawValue {
+				value := stringValue(item)
+				if value == "" || seen[value] {
+					continue
+				}
+				seen[value] = true
+				values = append(values, value)
+			}
+		case map[string]any:
+			value := stringValue(rawValue)
+			if value != "" && !seen[value] {
+				seen[value] = true
+				values = append(values, value)
+			}
 		}
-		for _, rawValue := range rawValues {
-			value, ok := rawValue.(string)
-			value = strings.TrimSpace(value)
-			if !ok || value == "" || seen[value] {
+	}
+	return values
+}
+
+func mergeStringLists(lists ...[]string) []string {
+	seen := map[string]bool{}
+	values := []string{}
+	for _, list := range lists {
+		for _, item := range list {
+			value := strings.TrimSpace(item)
+			if value == "" || seen[value] {
 				continue
 			}
 			seen[value] = true
@@ -592,6 +824,25 @@ func stringList(raw map[string]any, keys ...string) []string {
 		}
 	}
 	return values
+}
+
+func stringValue(value any) string {
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	case map[string]any:
+		return strings.TrimSpace(firstString(typed, "name", "title", "label", "value", "slug"))
+	default:
+		return ""
+	}
+}
+
+func cloneMap(raw map[string]any) map[string]any {
+	next := make(map[string]any, len(raw))
+	for key, value := range raw {
+		next[key] = value
+	}
+	return next
 }
 
 func firstInt(values ...int) int {
@@ -604,10 +855,23 @@ func firstInt(values ...int) int {
 }
 
 func readingListFromMap(raw map[string]any) ReadingList {
+	user := object(raw, "user")
 	list := ReadingList{
-		ID:          intValue(raw, "id"),
-		Name:        firstString(raw, "name", "title"),
-		Description: firstString(raw, "desc", "description", "summary"),
+		ID:                intValue(raw, "id"),
+		Name:              firstString(raw, "name", "title"),
+		Slug:              firstString(raw, "slug"),
+		User:              MetronUser{ID: intValue(user, "id"), Username: firstString(user, "username", "name")},
+		ListType:          firstString(raw, "list_type", "listType", "type"),
+		IsPrivate:         boolValue(raw, "is_private", "isPrivate"),
+		AttributionSource: firstString(raw, "attribution_source", "attributionSource"),
+		AttributionURL:    firstString(raw, "attribution_url", "attributionUrl"),
+		AverageRating:     floatValue(raw, "average_rating", "averageRating"),
+		RatingCount:       intValue(raw, "rating_count", "ratingCount"),
+		Modified:          firstString(raw, "modified"),
+		Image:             firstString(raw, "image"),
+		ItemsURL:          firstString(raw, "items_url", "itemsUrl"),
+		ResourceURL:       firstString(raw, "resource_url", "resourceUrl"),
+		Description:       firstString(raw, "desc", "description", "summary"),
 	}
 
 	for _, key := range []string{"issues", "issue", "comics"} {
@@ -622,6 +886,66 @@ func readingListFromMap(raw map[string]any) ReadingList {
 		}
 	}
 	return list
+}
+
+func floatValue(raw map[string]any, keys ...string) float64 {
+	for _, key := range keys {
+		switch value := raw[key].(type) {
+		case float64:
+			return value
+		case float32:
+			return float64(value)
+		case int:
+			return float64(value)
+		case int64:
+			return float64(value)
+		case json.Number:
+			parsed, _ := value.Float64()
+			return parsed
+		case string:
+			parsed, _ := strconv.ParseFloat(value, 64)
+			return parsed
+		}
+	}
+	return 0
+}
+
+func boolValue(raw map[string]any, keys ...string) bool {
+	for _, key := range keys {
+		switch value := raw[key].(type) {
+		case bool:
+			return value
+		case float64:
+			return value != 0
+		case string:
+			parsed, _ := strconv.ParseBool(value)
+			return parsed
+		}
+	}
+	return false
+}
+
+func arcFromMap(raw map[string]any) MetronArc {
+	arc := MetronArc{
+		ID:          intValue(raw, "id"),
+		Name:        firstString(raw, "name", "title"),
+		Description: firstString(raw, "desc", "description", "summary"),
+		Image:       firstString(raw, "image"),
+		Modified:    firstString(raw, "modified"),
+	}
+
+	for _, key := range []string{"issues", "issue", "comics"} {
+		values, ok := raw[key].([]any)
+		if !ok {
+			continue
+		}
+		for _, value := range values {
+			if item, ok := value.(map[string]any); ok {
+				arc.Issues = append(arc.Issues, issueFromMap(item))
+			}
+		}
+	}
+	return arc
 }
 
 func seriesFromMap(raw map[string]any) Series {

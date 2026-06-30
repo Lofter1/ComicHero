@@ -6,8 +6,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/danielgtaylor/huma/v2/sse"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
@@ -16,15 +18,29 @@ import (
 type MetronIssueListInput struct {
 	Query  string `query:"q"      doc:"Search text for Metron issues. Used as series-name search when series is empty." example:"Batman"`
 	Series string `query:"series" doc:"Metron series-name filter." example:"Batman"`
-	Issue  int    `query:"issue"  doc:"Numeric issue-number filter." minimum:"1" example:"6"`
+	Issue  string `query:"issue"  doc:"Issue-number filter." example:"6.LR"`
 }
 
 type MetronIDInput struct {
 	ID int `path:"id" doc:"Metron resource identifier." minimum:"1" example:"123456"`
 }
 
+type MetronImportOptions struct {
+	Mode  string `json:"mode,omitempty"  doc:"Import depth preset. Use quick for the base Metron endpoints or full for detail expansion." enum:"quick,full" example:"quick"`
+	Force bool   `json:"force,omitempty" doc:"Bypass Metron conditional requests and download fresh metadata even when local sync state is current." example:"false"`
+}
+
+type MetronImportInput struct {
+	ID   int `path:"id" doc:"Metron resource identifier." minimum:"1" example:"123456"`
+	Body MetronImportOptions
+}
+
 type MetronReadingListInput struct {
 	Query string `query:"q" doc:"Search text for Metron reading lists." example:"Court of Owls"`
+}
+
+type MetronArcInput struct {
+	Query string `query:"q" doc:"Search text for Metron story arcs." example:"Zero Year"`
 }
 
 type MetronSeriesInput struct {
@@ -53,6 +69,16 @@ type MetronReadingListOutput struct {
 type MetronReadingListDetailOutput struct {
 	MetronRateLimitHeaders
 	Body metron.ReadingList
+}
+
+type MetronArcListOutput struct {
+	MetronRateLimitHeaders
+	Body []metron.MetronArc
+}
+
+type MetronArcDetailOutput struct {
+	MetronRateLimitHeaders
+	Body metron.MetronArc
 }
 
 type MetronSeriesListOutput struct {
@@ -133,8 +159,8 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:          "/metron/comics/{id}/import",
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
-	}, func(ctx context.Context, input *MetronIDInput) (*MetronImportJobOutput, error) {
-		job := startMetronComicImport(importJobs, db, client, covers, input.ID)
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		job := startMetronComicImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -147,12 +173,25 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/comics/{id}/metron",
 		Errors:      errsMetronSync,
 	}, func(ctx context.Context, input *UpdateComicFromMetronInput) (*ComicDetailOutput, error) {
-		issue, err := client.GetIssue(ctx, input.Body.MetronIssueID)
+		issue, info, err := fetchMetronIssue(ctx, db, client, input.Body.MetronIssueID, input.Body.Force)
 		if err != nil {
 			return nil, metronAPIError(err)
 		}
+		if info.NotModified {
+			if err := markMetronNotModified(ctx, db, metronResourceIssue, input.Body.MetronIssueID); err != nil {
+				return nil, err
+			}
+			output, err := getComic(ctx, db, input.ID)
+			if err != nil {
+				return nil, err
+			}
+			return withMetronRateLimit(output, client.CurrentRateLimit()), nil
+		}
 		output, err := updateComicFromMetron(ctx, db, client, covers, input.ID, *issue)
 		if err != nil {
+			return nil, err
+		}
+		if err := markMetronSynced(ctx, db, metronResourceIssue, input.Body.MetronIssueID, info); err != nil {
 			return nil, err
 		}
 		return withMetronRateLimit(output, client.CurrentRateLimit()), nil
@@ -199,8 +238,54 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:          "/metron/readingLists/{id}/import",
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
-	}, func(ctx context.Context, input *MetronIDInput) (*MetronImportJobOutput, error) {
-		job := startMetronReadingListImport(importJobs, db, client, covers, input.ID)
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		job := startMetronReadingListImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
+		return &MetronImportJobOutput{Body: job}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "searchMetronArcs",
+		Tags:        []string{tagMetron},
+		Summary:     "Search Metron arcs",
+		Description: "Searches Metron for story arcs.",
+		Method:      http.MethodGet,
+		Path:        "/metron/arcs",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronArcInput) (*MetronArcListOutput, error) {
+		arcs, err := client.SearchArcs(ctx, input.Query)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronArcListOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: arcs}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "getMetronArc",
+		Tags:        []string{tagMetron},
+		Summary:     "Get Metron arc",
+		Description: "Gets a Metron story arc by ID, including its issue entries.",
+		Method:      http.MethodGet,
+		Path:        "/metron/arcs/{id}",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronIDInput) (*MetronArcDetailOutput, error) {
+		arc, err := client.GetArc(ctx, input.ID)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronArcDetailOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: *arc}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "importMetronArc",
+		Tags:          []string{tagMetron, tagArcs},
+		Summary:       "Import Metron arc",
+		Description:   "Starts a background job that imports a Metron story arc as a local arc and imports or reuses its issues as local comics. If the arc is already imported, the job finishes without calling Metron again.",
+		Method:        http.MethodPost,
+		Path:          "/metron/arcs/{id}/import",
+		DefaultStatus: http.StatusAccepted,
+		Errors:        errsMetronSync,
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		job := startMetronArcImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -245,8 +330,8 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:          "/metron/characters/{id}/import",
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
-	}, func(ctx context.Context, input *MetronIDInput) (*MetronImportJobOutput, error) {
-		job := startMetronCharacterAppearancesImport(importJobs, db, client, covers, input.ID)
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		job := startMetronCharacterAppearancesImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -259,8 +344,8 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:          "/metron/series/{id}/import",
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
-	}, func(ctx context.Context, input *MetronIDInput) (*MetronImportJobOutput, error) {
-		job := startMetronSeriesImport(importJobs, db, client, covers, input.ID)
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		job := startMetronSeriesImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -290,6 +375,22 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *struct{}) (*MetronImportJobListOutput, error) {
 		return listMetronImportJobs(importJobs), nil
+	})
+
+	sse.Register(api, huma.Operation{
+		OperationID: "streamMetronImportJobs",
+		Tags:        []string{tagMetron},
+		Summary:     "Stream Metron import jobs",
+		Description: "Streams background Metron import job updates so the web app can reconnect after a reload without polling.",
+		Method:      http.MethodGet,
+		Path:        "/metron/imports/events",
+		Errors:      errsRead,
+	}, map[string]any{
+		"job": MetronImportJobEvent{},
+	}, func(ctx context.Context, input *struct{}, send sse.Sender) {
+		streamMetronImportJobs(ctx, importJobs, func(event MetronImportJobEvent) error {
+			return send.Data(event)
+		})
 	})
 
 	huma.Register(api, huma.Operation{
@@ -384,7 +485,7 @@ func metronQuotaFromRateLimit(rateLimit metron.RateLimit) MetronQuota {
 }
 
 func withMetronRateLimit[T interface {
-	*ComicDetailOutput | *ReadingOrderDetailOutput | *ComicListOutput | *CharacterDetailOutput
+	*ComicDetailOutput | *ReadingOrderDetailOutput | *ComicListOutput | *CharacterDetailOutput | *ArcDetailOutput
 }](output T, rateLimit metron.RateLimit) T {
 	headers := metronRateLimitHeaders(rateLimit)
 	switch typed := any(output).(type) {
@@ -395,6 +496,8 @@ func withMetronRateLimit[T interface {
 	case *ComicListOutput:
 		typed.MetronRateLimitHeaders = headers
 	case *CharacterDetailOutput:
+		typed.MetronRateLimitHeaders = headers
+	case *ArcDetailOutput:
 		typed.MetronRateLimitHeaders = headers
 	}
 	return output
@@ -412,13 +515,26 @@ func comicPayloadFromMetronIssue(issue metron.Issue) ComicPayload {
 	}
 }
 
-func importMetronComic(ctx context.Context, db *sqlx.DB, _ *metron.Client, covers *CoverCache, issue metron.Issue) (*ComicDetailOutput, error) {
+func importMetronComic(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue) (*ComicDetailOutput, error) {
+	return importMetronComicWithOptions(ctx, db, client, covers, issue, defaultMetronImportOptions())
+}
+
+func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (*ComicDetailOutput, error) {
+	options = resolveMetronImportOptions(options)
 	if issue.ID > 0 {
 		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 			return nil, err
 		} else if ok {
-			if err := syncMetronIssueCharacters(ctx, db, covers, id, issue); err != nil {
+			if options.Force {
+				return updateComicFromMetron(ctx, db, client, covers, id, issue)
+			}
+			if err := syncMetronIssueArcsWithOptions(ctx, db, client, id, issue, options); err != nil {
 				return nil, err
+			}
+			if options.Mode == "full" {
+				if err := syncMetronIssueCharactersWithOptions(ctx, db, client, covers, id, issue, options); err != nil {
+					return nil, err
+				}
 			}
 			return getComic(ctx, db, id)
 		}
@@ -432,13 +548,85 @@ func importMetronComic(ctx context.Context, db *sqlx.DB, _ *metron.Client, cover
 				return nil, err
 			}
 		}
-		if err := syncMetronIssueCharacters(ctx, db, covers, id, issue); err != nil {
+		if options.Force {
+			return updateComicFromMetron(ctx, db, client, covers, id, issue)
+		}
+		if err := syncMetronIssueArcsWithOptions(ctx, db, client, id, issue, options); err != nil {
 			return nil, err
+		}
+		if options.Mode == "full" {
+			if err := syncMetronIssueCharactersWithOptions(ctx, db, client, covers, id, issue, options); err != nil {
+				return nil, err
+			}
 		}
 		return getComic(ctx, db, id)
 	}
 
-	return createMetronComic(ctx, db, covers, issue)
+	return createMetronComicWithOptions(ctx, db, client, covers, issue, options)
+}
+
+func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions, fetchIssueDetail bool) (*ComicDetailOutput, error) {
+	options = resolveMetronImportOptions(options)
+	var issueInfo metron.FetchInfo
+	if options.Mode == "full" && fetchIssueDetail && client != nil && issue.ID > 0 {
+		detail, info, err := fetchMetronIssue(ctx, db, client, issue.ID, options.Force)
+		if err != nil {
+			if isContextCanceledError(err) {
+				return nil, err
+			}
+			return nil, huma.Error502BadGateway(err.Error())
+		}
+		issueInfo = info
+		if info.NotModified {
+			if err := markMetronNotModified(ctx, db, metronResourceIssue, issue.ID); err != nil {
+				return nil, err
+			}
+			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
+				return nil, err
+			} else if ok {
+				return getComic(ctx, db, id)
+			}
+			detail, issueInfo, err = fetchMetronIssue(ctx, db, client, issue.ID, true)
+			if err != nil {
+				return nil, huma.Error502BadGateway(err.Error())
+			}
+			issue = *detail
+		} else {
+			issue = *detail
+		}
+	}
+
+	comic, err := importMetronComicWithOptions(ctx, db, client, covers, issue, options)
+	if err != nil {
+		return nil, err
+	}
+	if options.Mode == "full" && fetchIssueDetail && issue.ID > 0 {
+		if err := markMetronSynced(ctx, db, metronResourceIssue, issue.ID, issueInfo); err != nil {
+			return nil, err
+		}
+	}
+	if options.Mode == "full" && client != nil && issue.SeriesID > 0 {
+		metadata, info, err := fetchMetronSeries(ctx, db, client, issue.SeriesID, options.Force)
+		if err != nil {
+			if isContextCanceledError(err) {
+				return nil, err
+			}
+			return nil, huma.Error502BadGateway(err.Error())
+		}
+		if info.NotModified {
+			if err := markMetronNotModified(ctx, db, metronResourceSeries, issue.SeriesID); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := updateImportedSeriesMetadata(ctx, db, *metadata); err != nil {
+				return nil, err
+			}
+			if err := markMetronSynced(ctx, db, metronResourceSeries, issue.SeriesID, info); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return comic, nil
 }
 
 func existingComicIDByMetronIssueID(ctx context.Context, db *sqlx.DB, metronID int) (int, bool, error) {
@@ -484,6 +672,11 @@ func attachMetronIssueID(ctx context.Context, db *sqlx.DB, comicID, metronID int
 }
 
 func createMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, issue metron.Issue) (*ComicDetailOutput, error) {
+	return createMetronComicWithOptions(ctx, db, nil, covers, issue, defaultMetronImportOptions())
+}
+
+func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (*ComicDetailOutput, error) {
+	options = resolveMetronImportOptions(options)
 	payload := comicPayloadFromMetronIssue(issue)
 	var err error
 	payload.CoverImage, err = localCoverURL(ctx, covers, payload.CoverImage)
@@ -515,8 +708,13 @@ func createMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, iss
 	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
-	if err := syncMetronIssueCharacters(ctx, db, covers, int(id), issue); err != nil {
+	if err := syncMetronIssueArcsWithOptions(ctx, db, client, int(id), issue, options); err != nil {
 		return nil, err
+	}
+	if options.Mode == "full" {
+		if err := syncMetronIssueCharactersWithOptions(ctx, db, client, covers, int(id), issue, options); err != nil {
+			return nil, err
+		}
 	}
 	return getComic(ctx, db, int(id))
 }
@@ -553,6 +751,9 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		return nil, err
 	}
 
+	if err := syncMetronIssueArcsWithOptions(ctx, db, client, comicID, issue, MetronImportOptions{Mode: "full"}); err != nil {
+		return nil, err
+	}
 	if err := syncMetronIssueCharacters(ctx, db, covers, comicID, issue); err != nil {
 		return nil, err
 	}
@@ -581,6 +782,7 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Cl
 		}
 		input.Body.Comics = append(input.Body.Comics, ReadingOrderComicPayload{
 			ComicID: comic.Body.ID,
+			Tags:    strings.Join(issue.Tags, ", "),
 		})
 	}
 
@@ -588,14 +790,19 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Cl
 }
 
 func importMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
-	return importMetronReadingListWithOptions(ctx, db, client, covers, list, false, progress)
+	return importMetronReadingListWithProgressOptions(ctx, db, client, covers, list, progress, defaultMetronImportOptions())
 }
 
 func continueMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
-	return importMetronReadingListWithOptions(ctx, db, client, covers, list, true, progress)
+	return importMetronReadingListWithOptions(ctx, db, client, covers, list, true, progress, defaultMetronImportOptions())
 }
 
-func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, continueExisting bool, progress func(int, int, string)) error {
+func importMetronReadingListWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string), options MetronImportOptions) error {
+	return importMetronReadingListWithOptions(ctx, db, client, covers, list, false, progress, options)
+}
+
+func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, continueExisting bool, progress func(int, int, string), options MetronImportOptions) error {
+	options = resolveMetronImportOptions(options)
 	var orderID int
 	if list.ID > 0 {
 		if id, ok, err := existingReadingOrderIDByMetronID(ctx, db, list.ID); err != nil || ok {
@@ -627,12 +834,13 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		comic, err := importMetronComic(ctx, db, client, covers, issue)
+		comic, err := importMetronComicSweep(ctx, db, client, covers, issue, options, true)
 		if err != nil {
 			return err
 		}
 		input.Body.Comics = append(input.Body.Comics, ReadingOrderComicPayload{
 			ComicID: comic.Body.ID,
+			Tags:    strings.Join(issue.Tags, ", "),
 		})
 		progress(i+1, total, "Importing reading-list issues...")
 	}
@@ -644,11 +852,71 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client
 	return nil
 }
 
+func importMetronArcWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, arc metron.MetronArc, continueExisting bool, progress func(int, int, string), options MetronImportOptions) error {
+	options = resolveMetronImportOptions(options)
+	var arcID int
+	if arc.ID > 0 {
+		if id, ok, err := existingArcIDByMetronID(ctx, db, arc.ID); err != nil || ok {
+			if ok {
+				if !continueExisting {
+					progress(1, 1, "Arc already exists.")
+					return err
+				}
+				arcID = id
+				if arc.Name != "" {
+					if err := updateMetronArc(ctx, db, id, arc); err != nil {
+						return err
+					}
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if arcID == 0 {
+		created, err := createMetronArc(ctx, db, arc)
+		if err != nil {
+			return err
+		}
+		arcID = created.Body.ID
+	}
+
+	input := &SetArcComicsInput{ID: arcID}
+	total := len(arc.Issues)
+	progress(0, total, "Importing arc issues...")
+	for i, issue := range arc.Issues {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		comic, err := importMetronComicSweep(ctx, db, client, covers, issue, options, true)
+		if err != nil {
+			return err
+		}
+		input.Body.Comics = append(input.Body.Comics, ArcComicPayload{
+			ComicID: comic.Body.ID,
+		})
+		progress(i+1, total, "Importing arc issues...")
+	}
+
+	if _, err := setArcComics(ctx, db, input); err != nil {
+		return err
+	}
+	progress(total, total, "Arc imported.")
+	return nil
+}
+
 func importMetronSeries(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issues []metron.Issue) (*ComicListOutput, error) {
 	return importMetronSeriesWithProgress(ctx, db, client, covers, issues, func(int, int, string) {})
 }
 
 func importMetronSeriesWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issues []metron.Issue, progress func(int, int, string)) (*ComicListOutput, error) {
+	return importMetronSeriesWithProgressOptions(ctx, db, client, covers, issues, progress, defaultMetronImportOptions())
+}
+
+func importMetronSeriesWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issues []metron.Issue, progress func(int, int, string), options MetronImportOptions) (*ComicListOutput, error) {
+	options = resolveMetronImportOptions(options)
 	comics := make([]Comic, 0, len(issues))
 	total := len(issues)
 	progress(0, total, "Importing series issues...")
@@ -657,7 +925,7 @@ func importMetronSeriesWithProgress(ctx context.Context, db *sqlx.DB, client *me
 			return nil, err
 		}
 
-		if issue.ID > 0 {
+		if options.Mode != "full" && !options.Force && issue.ID > 0 {
 			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 				return nil, err
 			} else if ok {
@@ -671,36 +939,26 @@ func importMetronSeriesWithProgress(ctx context.Context, db *sqlx.DB, client *me
 			}
 		}
 
-		if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
-			return nil, err
-		} else if ok {
-			if issue.ID > 0 {
-				if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
-					return nil, err
-				}
-			}
-			comic, err := getComicRow(ctx, db, id)
-			if err != nil {
+		if options.Mode != "full" && !options.Force {
+			if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
 				return nil, err
-			}
-			comics = append(comics, comic)
-			progress(i+1, total, "Importing series issues...")
-			continue
-		}
-
-		fullIssue := issue
-		if issue.ID > 0 {
-			detail, err := client.GetIssue(ctx, issue.ID)
-			if err != nil {
-				if isContextCanceledError(err) {
+			} else if ok {
+				if issue.ID > 0 {
+					if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
+						return nil, err
+					}
+				}
+				comic, err := getComicRow(ctx, db, id)
+				if err != nil {
 					return nil, err
 				}
-				return nil, huma.Error502BadGateway(err.Error())
+				comics = append(comics, comic)
+				progress(i+1, total, "Importing series issues...")
+				continue
 			}
-			fullIssue = *detail
 		}
 
-		comic, err := importMetronComic(ctx, db, client, covers, fullIssue)
+		comic, err := importMetronComicSweep(ctx, db, client, covers, issue, options, true)
 		if err != nil {
 			return nil, err
 		}
@@ -718,6 +976,19 @@ func existingReadingOrderIDByMetronID(ctx context.Context, db *sqlx.DB, metronID
 	`, metronID); err != nil {
 		if err != sql.ErrNoRows {
 			return 0, false, huma.Error500InternalServerError("failed to check imported reading list")
+		}
+		return 0, false, nil
+	}
+	return id, true, nil
+}
+
+func existingArcIDByMetronID(ctx context.Context, db *sqlx.DB, metronID int) (int, bool, error) {
+	var id int
+	if err := db.GetContext(ctx, &id, `
+		SELECT id FROM arcs WHERE metron_arc_id = ?
+	`, metronID); err != nil {
+		if err != sql.ErrNoRows {
+			return 0, false, huma.Error500InternalServerError("failed to check imported arc")
 		}
 		return 0, false, nil
 	}
@@ -746,6 +1017,42 @@ func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, list metron.Read
 	}
 
 	return &CreateReadingOrderOutput{Body: ro}, nil
+}
+
+func createMetronArc(ctx context.Context, db *sqlx.DB, arc metron.MetronArc) (*CreateArcOutput, error) {
+	result, err := db.ExecContext(ctx, `
+		INSERT INTO arcs (name, description, image, favorite, metron_arc_id)
+		VALUES (?, ?, ?, ?, ?)
+	`, arc.Name, arc.Description, arc.Image, false, nullableMetronID(arc.ID))
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to import Metron arc")
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to get imported arc id")
+	}
+
+	var local Arc
+	if err := db.GetContext(ctx, &local, `
+		SELECT * FROM arcs WHERE id = ?
+	`, id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch imported arc")
+	}
+
+	return &CreateArcOutput{Body: local}, nil
+}
+
+func updateMetronArc(ctx context.Context, db *sqlx.DB, id int, arc metron.MetronArc) error {
+	result, err := db.ExecContext(ctx, `
+		UPDATE arcs
+		SET name = ?, description = ?, image = ?, metron_arc_id = ?
+		WHERE id = ?
+	`, arc.Name, arc.Description, arc.Image, nullableMetronID(arc.ID), id)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to update Metron arc")
+	}
+	return requireRowsAffected(result, "arc not found")
 }
 
 func nullableMetronID(id int) any {

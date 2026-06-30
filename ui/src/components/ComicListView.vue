@@ -61,6 +61,7 @@ const emit = defineEmits(['open-comic', 'toggle-read', 'new-comic', 'update:sear
 
 const localSearch = ref('')
 const status = ref('all')
+const tag = ref('all')
 const sort = ref(props.initialSort)
 const direction = ref('asc')
 
@@ -82,9 +83,10 @@ const visibleComics = computed(() => {
     .filter(comic => {
       if (status.value === 'read' && !comic.read) return false
       if (status.value === 'unread' && comic.read) return false
+      if (tag.value !== 'all' && !comicTags(comic).some(item => item.toLowerCase() === tag.value)) return false
       if (props.serverSearch || !searchTerm.value) return true
 
-      return [comic.title, comic.series, comic.issue, comic.publisher, comic.coverDate, comic.comment]
+      return [comic.title, comic.series, comic.issue, comic.publisher, comic.coverDate, comic.comment, comic.tags]
         .filter(value => value !== undefined && value !== null && value !== '')
         .some(value => String(value).toLowerCase().includes(searchTerm.value))
     })
@@ -94,8 +96,18 @@ const visibleComics = computed(() => {
     })
 })
 
+const tagOptions = computed(() => {
+  const seen = new Set()
+  props.comics.forEach(comic => {
+    comicTags(comic).forEach(item => {
+      const value = item.trim()
+      if (value) seen.add(value)
+    })
+  })
+  return [...seen].sort((a, b) => compareText(a, b))
+})
 const readCount = computed(() => props.comics.filter(comic => comic.read).length)
-const hasFilters = computed(() => searchTerm.value || status.value !== 'all')
+const hasFilters = computed(() => searchTerm.value || status.value !== 'all' || tag.value !== 'all')
 const totalComics = computed(() => props.totalCount ?? props.comics.length)
 const summaryText = computed(() => {
   const loaded = props.comics.length
@@ -117,12 +129,25 @@ function compareComics(a, b, mode) {
 function compareSeries(a, b) {
   return compareText(a.series, b.series)
     || (a.seriesYear ?? 0) - (b.seriesYear ?? 0)
-    || (a.issue ?? 0) - (b.issue ?? 0)
+    || compareText(a.issue, b.issue)
     || compareText(a.title, b.title)
 }
 
 function compareText(a, b) {
   return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+}
+
+function comicTags(comic) {
+  return String(comic.tags || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+function clearFilters() {
+  searchText.value = ''
+  status.value = 'all'
+  tag.value = 'all'
 }
 </script>
 
@@ -159,6 +184,12 @@ function compareText(a, b) {
             Read
           </button>
         </div>
+        <select v-if="tagOptions.length" v-model="tag" aria-label="Filter by tag">
+          <option value="all">All Tags</option>
+          <option v-for="option in tagOptions" :key="option" :value="option.toLowerCase()">
+            {{ option }}
+          </option>
+        </select>
         <select v-model="sort" aria-label="Sort issues">
           <option value="series">Series</option>
           <option value="title">Title</option>
@@ -170,7 +201,7 @@ function compareText(a, b) {
           <option value="asc">Ascending</option>
           <option value="desc">Descending</option>
         </select>
-        <button v-if="searchText" class="ghost-button" type="button" @click="searchText = ''">
+        <button v-if="hasFilters" class="ghost-button" type="button" @click="clearFilters">
           Clear
         </button>
       </div>

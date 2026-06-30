@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE)
 
 class ApiError extends Error {
   constructor(message, { status, rateLimit } = {}) {
@@ -7,6 +7,12 @@ class ApiError extends Error {
     this.status = status
     this.rateLimit = rateLimit
   }
+}
+
+function normalizeApiBase(value) {
+  const base = String(value || '').trim()
+  if (!base) return '/api'
+  return base.endsWith('/') ? base.slice(0, -1) : base
 }
 
 async function request(path, options = {}) {
@@ -141,6 +147,31 @@ export async function listSeries(params = {}) {
   return pagedListResult(data, pagination)
 }
 
+export async function listArcs(params = {}) {
+  const { data, pagination } = await requestWithMeta(`/arcs${queryString(params)}`)
+  return pagedListResult(data, pagination)
+}
+
+export function getArc(id) {
+  return request(`/arcs/${id}`)
+}
+
+export function createArc(payload) {
+  return send('/arcs', 'POST', payload)
+}
+
+export function updateArc(id, payload) {
+  return send(`/arcs/${id}`, 'PUT', payload)
+}
+
+export function deleteArc(id) {
+  return request(`/arcs/${id}`, { method: 'DELETE' })
+}
+
+export function setArcComics(id, payload) {
+  return send(`/arcs/${id}/comics`, 'PUT', payload)
+}
+
 export function getSeries(id) {
   return request(`/series/${id}`)
 }
@@ -165,8 +196,8 @@ export function searchMetronCharacters(params) {
   return requestWithMeta(`/metron/characters${queryString(params)}`)
 }
 
-export function importMetronCharacterAppearances(id) {
-  return sendWithMeta(`/metron/characters/${id}/import`, 'POST', {})
+export function importMetronCharacterAppearances(id, options = {}) {
+  return sendWithMeta(`/metron/characters/${id}/import`, 'POST', options)
 }
 
 export function getComic(id) {
@@ -218,12 +249,12 @@ export function searchMetronComics(params) {
   return requestWithMeta(`/metron/comics${queryString(params)}`)
 }
 
-export function importMetronComic(id) {
-  return sendWithMeta(`/metron/comics/${id}/import`, 'POST', {})
+export function importMetronComic(id, options = {}) {
+  return sendWithMeta(`/metron/comics/${id}/import`, 'POST', options)
 }
 
-export function getMetronImportJob(id) {
-  return request(`/metron/imports/${id}`)
+export function metronImportEventsURL() {
+  return `${API_BASE}/metron/imports/events`
 }
 
 export async function listMetronImportJobs() {
@@ -247,22 +278,34 @@ export function continueMetronImportJob(id) {
   return send(`/metron/imports/${id}/continue`, 'POST', {})
 }
 
-export function updateComicFromMetron(id, metronIssueId) {
-  return sendWithMeta(`/comics/${id}/metron`, 'PATCH', { metronIssueId })
+export function updateComicFromMetron(id, metronIssueId, options = {}) {
+  return sendWithMeta(`/comics/${id}/metron`, 'PATCH', { metronIssueId, force: Boolean(options.force) })
 }
 
 export function searchMetronReadingLists(params) {
   return requestWithMeta(`/metron/readingLists${queryString(params)}`)
 }
 
-export function importMetronReadingList(id) {
-  return sendWithMeta(`/metron/readingLists/${id}/import`, 'POST', {})
+export function getMetronReadingList(id) {
+  return requestWithMeta(`/metron/readingLists/${id}`)
+}
+
+export function importMetronReadingList(id, options = {}) {
+  return sendWithMeta(`/metron/readingLists/${id}/import`, 'POST', options)
 }
 
 export function searchMetronSeries(params) {
   return requestWithMeta(`/metron/series${queryString(params)}`)
 }
 
-export function importMetronSeries(id) {
-  return sendWithMeta(`/metron/series/${id}/import`, 'POST', {})
+export function importMetronSeries(id, options = {}) {
+  return sendWithMeta(`/metron/series/${id}/import`, 'POST', options)
+}
+
+export function searchMetronArcs(params) {
+  return requestWithMeta(`/metron/arcs${queryString(params)}`)
+}
+
+export function importMetronArc(id, options = {}) {
+  return sendWithMeta(`/metron/arcs/${id}/import`, 'POST', options)
 }

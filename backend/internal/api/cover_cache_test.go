@@ -1,7 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -17,14 +22,14 @@ func TestCreateComicDownloadsRemoteCover(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
-		w.Write([]byte("cover image"))
+		w.Write(testPNG(t, 1200, 1800))
 	}))
 	defer server.Close()
 
 	covers := NewCoverCache(t.TempDir(), "/covers")
 	detail, err := createComic(ctx, db, covers, ComicPayload{
 		Series:     "Series",
-		Issue:      1,
+		Issue:      "1",
 		Publisher:  "Publisher",
 		CoverImage: server.URL + "/cover",
 	})
@@ -38,14 +43,25 @@ func TestCreateComicDownloadsRemoteCover(t *testing.T) {
 	if strings.HasPrefix(detail.Body.CoverImage, server.URL) {
 		t.Fatalf("cover image kept remote URL: %q", detail.Body.CoverImage)
 	}
+	if !strings.HasSuffix(detail.Body.CoverImage, ".jpg") {
+		t.Fatalf("cover image = %q; want optimized jpg extension", detail.Body.CoverImage)
+	}
 
 	coverPath := filepath.Join(covers.dir, strings.TrimPrefix(detail.Body.CoverImage, "/covers/"))
-	contents, err := os.ReadFile(coverPath)
+	file, err := os.Open(coverPath)
 	if err != nil {
-		t.Fatalf("read cached cover: %v", err)
+		t.Fatalf("open cached cover: %v", err)
 	}
-	if string(contents) != "cover image" {
-		t.Fatalf("cached cover = %q; want cover image", contents)
+	defer file.Close()
+	img, format, err := image.Decode(file)
+	if err != nil {
+		t.Fatalf("decode cached cover: %v", err)
+	}
+	if format != "jpeg" {
+		t.Fatalf("cached cover format = %q; want jpeg", format)
+	}
+	if got := max(img.Bounds().Dx(), img.Bounds().Dy()); got != coverMaxDimension {
+		t.Fatalf("cached cover max dimension = %d; want %d", got, coverMaxDimension)
 	}
 }
 
@@ -54,7 +70,7 @@ func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
-		w.Write([]byte("metron cover"))
+		w.Write(testJPEG(t, 300, 450))
 	}))
 	defer server.Close()
 
@@ -77,7 +93,7 @@ func TestSyncMetronCharactersDownloadsRemoteImage(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
-		w.Write([]byte("character image"))
+		w.Write(testPNG(t, 400, 600))
 	}))
 	defer server.Close()
 
@@ -120,8 +136,36 @@ func metronIssueWithCover(cover string) metron.Issue {
 		ID:         101,
 		Series:     "Series",
 		SeriesYear: 2026,
-		Issue:      1,
+		Issue:      "1",
 		Publisher:  "Publisher",
 		CoverImage: cover,
 	}
+}
+
+func testPNG(t *testing.T, width, height int) []byte {
+	t.Helper()
+	var out bytes.Buffer
+	if err := png.Encode(&out, testImage(width, height)); err != nil {
+		t.Fatalf("encode png: %v", err)
+	}
+	return out.Bytes()
+}
+
+func testJPEG(t *testing.T, width, height int) []byte {
+	t.Helper()
+	var out bytes.Buffer
+	if err := jpeg.Encode(&out, testImage(width, height), &jpeg.Options{Quality: 90}); err != nil {
+		t.Fatalf("encode jpeg: %v", err)
+	}
+	return out.Bytes()
+}
+
+func testImage(width, height int) image.Image {
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			img.Set(x, y, color.RGBA{R: uint8(x % 255), G: uint8(y % 255), B: 120, A: 255})
+		}
+	}
+	return img
 }

@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestClientUsesBasicAuthAndDocumentedReadingListPaths(t *testing.T) {
+func TestClientUsesBasicAuthAndDocumentedListPaths(t *testing.T) {
 	var paths []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		paths = append(paths, r.URL.String())
@@ -25,7 +25,13 @@ func TestClientUsesBasicAuthAndDocumentedReadingListPaths(t *testing.T) {
 		case "/reading_list/7/":
 			w.Write([]byte(`{"id":7,"name":"Event","desc":"Big event"}`))
 		case "/reading_list/7/items/":
-			w.Write([]byte(`{"results":[{"issue":{"id":11,"series":{"name":"Series"},"number":"1","cover_date":"2026-01-01"}}]}`))
+			w.Write([]byte(`{"results":[{"issue_type":"Main Story","issue":{"id":11,"series":{"name":"Series"},"number":"1","cover_date":"2026-01-01"}}]}`))
+		case "/arc/":
+			w.Write([]byte(`{"results":[{"id":9,"name":"Zero Year"}]}`))
+		case "/arc/9/":
+			w.Write([]byte(`{"id":9,"name":"Zero Year","desc":"Big arc","image":"https://example.test/arc.jpg"}`))
+		case "/arc/9/issue_list/":
+			w.Write([]byte(`{"results":[{"id":21,"series":{"name":"Series"},"number":"2","cover_date":"2026-02-01"}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -53,8 +59,37 @@ func TestClientUsesBasicAuthAndDocumentedReadingListPaths(t *testing.T) {
 	if list.Name != "Event" || len(list.Issues) != 1 || list.Issues[0].ID != 11 {
 		t.Fatalf("unexpected reading list: %#v", list)
 	}
+	if list.Issues[0].Issue != "1" || list.Issues[0].Number != "1" {
+		t.Fatalf("issue number = %q/%q, want 1/1", list.Issues[0].Issue, list.Issues[0].Number)
+	}
+	if len(list.Issues[0].Tags) != 1 || list.Issues[0].Tags[0] != "Main Story" {
+		t.Fatalf("issue tags = %#v; want Main Story", list.Issues[0].Tags)
+	}
 
-	wantPaths := []string{"/reading_list/?name=Event", "/reading_list/7/", "/reading_list/7/items/"}
+	arcs, err := client.SearchArcs(context.Background(), "Zero")
+	if err != nil {
+		t.Fatalf("SearchArcs: %v", err)
+	}
+	if len(arcs) != 1 || arcs[0].ID != 9 {
+		t.Fatalf("unexpected arcs: %#v", arcs)
+	}
+
+	arc, err := client.GetArc(context.Background(), 9)
+	if err != nil {
+		t.Fatalf("GetArc: %v", err)
+	}
+	if arc.Name != "Zero Year" || arc.Image == "" || len(arc.Issues) != 1 || arc.Issues[0].ID != 21 {
+		t.Fatalf("unexpected arc: %#v", arc)
+	}
+
+	wantPaths := []string{
+		"/reading_list/?name=Event",
+		"/reading_list/7/",
+		"/reading_list/7/items/",
+		"/arc/?name=Zero",
+		"/arc/9/",
+		"/arc/9/issue_list/",
+	}
 	if len(paths) != len(wantPaths) {
 		t.Fatalf("paths = %#v, want %#v", paths, wantPaths)
 	}
@@ -62,6 +97,23 @@ func TestClientUsesBasicAuthAndDocumentedReadingListPaths(t *testing.T) {
 		if paths[i] != want {
 			t.Fatalf("paths[%d] = %q, want %q", i, paths[i], want)
 		}
+	}
+}
+
+func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"id":18030,"series":{"name":"The Amazing Spider-Man","year_began":2018},"number":"50.LR","cover_date":"2020-12-01"}`))
+	}))
+	defer server.Close()
+
+	client := New(Config{BaseURL: server.URL})
+	issue, err := client.GetIssue(context.Background(), 18030)
+	if err != nil {
+		t.Fatalf("GetIssue: %v", err)
+	}
+	if issue.Issue != "50.LR" || issue.Number != "50.LR" {
+		t.Fatalf("issue number = %q/%q, want 50.LR/50.LR", issue.Issue, issue.Number)
 	}
 }
 

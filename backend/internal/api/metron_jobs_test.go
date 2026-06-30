@@ -32,8 +32,12 @@ func TestMetronImportJobProgressAndCancel(t *testing.T) {
 		t.Fatalf("progress = %d/%d; want 1/10", current.Completed, current.Total)
 	}
 
-	if _, ok := store.cancelJob(job.ID); !ok {
+	canceled, ok := store.cancelJob(job.ID)
+	if !ok {
 		t.Fatal("cancel returned missing job")
+	}
+	if canceled.Status != "canceling" {
+		t.Fatalf("cancel status = %q; want canceling", canceled.Status)
 	}
 
 	deadline := time.After(time.Second)
@@ -41,6 +45,47 @@ func TestMetronImportJobProgressAndCancel(t *testing.T) {
 		current, _ = store.get(job.ID)
 		if current.Status == "canceled" {
 			return
+		}
+		select {
+		case <-deadline:
+			t.Fatalf("status = %q; want canceled", current.Status)
+		case <-time.After(10 * time.Millisecond):
+		}
+	}
+}
+
+func TestMetronImportJobCancelingDoesNotBecomeSucceeded(t *testing.T) {
+	store := newMetronImportJobStore()
+	release := make(chan struct{})
+	running := make(chan struct{})
+
+	job := store.start("series", 123, "Starting...", func(ctx context.Context, progress func(int, int, string)) error {
+		close(running)
+		<-release
+		return nil
+	})
+
+	select {
+	case <-running:
+	case <-time.After(time.Second):
+		t.Fatal("job did not start")
+	}
+
+	if canceled, ok := store.cancelJob(job.ID); !ok {
+		t.Fatal("cancel returned missing job")
+	} else if canceled.Status != "canceling" {
+		t.Fatalf("cancel status = %q; want canceling", canceled.Status)
+	}
+	close(release)
+
+	deadline := time.After(time.Second)
+	for {
+		current, _ := store.get(job.ID)
+		if current.Status == "canceled" {
+			return
+		}
+		if current.Status == "succeeded" {
+			t.Fatal("canceled job became succeeded")
 		}
 		select {
 		case <-deadline:

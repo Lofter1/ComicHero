@@ -23,6 +23,14 @@ const props = defineProps({
     type: String,
     default: 'reading-order-editor-form',
   },
+  itemLabel: {
+    type: String,
+    default: 'reading order',
+  },
+  emptyEntryMessage: {
+    type: String,
+    default: 'No comics in this reading order yet.',
+  },
 })
 
 const emit = defineEmits(['update:form', 'save', 'delete'])
@@ -61,7 +69,7 @@ function comicMatchesAddSearch(comic) {
 function comicSeriesLine(comic) {
   const series = comic.series || 'Unknown series'
   const year = comic.seriesYear ? ` (${comic.seriesYear})` : ''
-  const issue = Number.isFinite(Number(comic.issue)) ? ` #${comic.issue}` : ''
+  const issue = comic.issue ? ` #${comic.issue}` : ''
   return `${series}${year}${issue}`
 }
 
@@ -81,6 +89,7 @@ function addEntry(comicId) {
       {
         comicId,
         comment: '',
+        tags: '',
       },
     ],
   })
@@ -185,7 +194,7 @@ function endDrag() {
       <div v-else class="empty-state">Add comics before building a reading order.</div>
 
       <div v-if="comics.length && form.comics.length === 0" class="empty-state">
-        No comics in this reading order yet.
+        {{ emptyEntryMessage }}
       </div>
 
       <div
@@ -227,7 +236,15 @@ function endDrag() {
             @input="updateEntry(index, { comment: $event.target.value })"
           />
         </label>
-        <button type="button" class="remove-entry-button" aria-label="Remove comic from reading order" title="Remove" @click="removeEntry(index)">
+        <label class="comment-input-label">
+          <input
+            :value="entry.tags"
+            aria-label="Entry tags"
+            placeholder="Tags"
+            @input="updateEntry(index, { tags: $event.target.value })"
+          />
+        </label>
+        <button type="button" class="remove-entry-button" :aria-label="`Remove comic from ${itemLabel}`" title="Remove" @click="removeEntry(index)">
           <span aria-hidden="true">×</span>
         </button>
       </div>

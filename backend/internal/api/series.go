@@ -115,7 +115,7 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 				WHERE c2.series = s.name
 					AND c2.series_year = s.series_year
 					AND c2.cover_image <> ''
-				ORDER BY c2.issue
+				ORDER BY CAST(c2.issue AS REAL), c2.issue
 				LIMIT 1
 			), '') AS cover_image
 		FROM series s
@@ -165,7 +165,7 @@ func getSeries(ctx context.Context, db *sqlx.DB, id int) (*ComicSeriesDetailOutp
 	if err := db.SelectContext(ctx, &comics, `
 		SELECT c.* FROM comics c
 		WHERE c.series = ? AND c.series_year = ?
-		ORDER BY c.series_year, c.issue
+		ORDER BY c.series_year, CAST(c.issue AS REAL), c.issue
 	`, series.Name, series.SeriesYear); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch series entries")
 	}
@@ -205,7 +205,7 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 				WHERE c2.series = s.name
 					AND c2.series_year = s.series_year
 					AND c2.cover_image <> ''
-				ORDER BY c2.issue
+				ORDER BY CAST(c2.issue AS REAL), c2.issue
 				LIMIT 1
 			), '') AS cover_image
 		FROM series s

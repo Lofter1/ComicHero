@@ -7,7 +7,7 @@ type Comic struct {
 	Title       string `json:"title"       db:"-"           doc:"Generated display title built from series, seriesYear, and issue." example:"Batman (2011) #6"`
 	Series      string `json:"series"      db:"series"      doc:"Series name." example:"Batman"`
 	SeriesYear  int    `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in the generated title." minimum:"0" example:"2011"`
-	Issue       int    `json:"issue"       db:"issue"       doc:"Numeric issue number used for sorting." example:"6"`
+	Issue       string `json:"issue"       db:"issue"       doc:"Issue number." example:"6.LR"`
 	Publisher   string `json:"publisher"   db:"publisher"   doc:"Publisher name." example:"DC Comics"`
 	CoverDate   string `json:"coverDate"   db:"cover_date"  doc:"Cover date as provided by the source." example:"2012-04-01"`
 	CoverImage  string `json:"coverImage"  db:"cover_image" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
@@ -18,7 +18,7 @@ type Comic struct {
 type ComicPayload struct {
 	Series      string `json:"series"     minLength:"1" doc:"Series name." example:"Batman"`
 	SeriesYear  int    `json:"seriesYear" minimum:"0"   doc:"Series start year or volume year used in the generated title." example:"2011"`
-	Issue       int    `json:"issue"      minimum:"0"   doc:"Numeric issue number used for sorting." example:"6"`
+	Issue       string `json:"issue"      doc:"Issue number." example:"6.LR"`
 	Publisher   string `json:"publisher"  doc:"Publisher name." example:"DC Comics"`
 	CoverDate   string `json:"coverDate"  doc:"Cover date as free text or ISO date." example:"2012-04-01"`
 	CoverImage  string `json:"coverImage" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
@@ -29,6 +29,7 @@ type ComicPayload struct {
 type ComicDetail struct {
 	Comic
 	ReadingOrders []ReadingOrder `json:"readingOrders" doc:"Reading orders that include this comic."`
+	Arcs          []Arc          `json:"arcs"          doc:"Story arcs that include this comic."`
 	Characters    []Character    `json:"characters"    doc:"Characters appearing in this comic."`
 }
 
@@ -172,7 +173,8 @@ type UpdateComicReadInput struct {
 type UpdateComicFromMetronInput struct {
 	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
 	Body struct {
-		MetronIssueID int `json:"metronIssueId" minimum:"1" doc:"Metron issue identifier to copy metadata from." example:"123456"`
+		MetronIssueID int  `json:"metronIssueId" minimum:"1" doc:"Metron issue identifier to copy metadata from." example:"123456"`
+		Force         bool `json:"force,omitempty" doc:"Bypass Metron conditional requests and download fresh issue metadata." example:"false"`
 	}
 }
 
@@ -195,11 +197,13 @@ type ReadingOrderPayload struct {
 type ReadingOrderComicPayload struct {
 	ComicID int    `json:"comicId" doc:"Local comic identifier to add to the reading order." example:"42"`
 	Comment string `json:"comment" doc:"Optional note for this specific reading-order entry." example:"Read after issue 5"`
+	Tags    string `json:"tags"    doc:"Comma-separated tags for this reading-order entry." example:"Main Story"`
 }
 
 type ReadingOrderComic struct {
 	Comic
 	Comment string `json:"comment" db:"comment" doc:"Per-entry reading-order note." example:"Tie-in"`
+	Tags    string `json:"tags"    db:"tags"    doc:"Comma-separated entry tags synced from Metron or added locally." example:"Main Story"`
 }
 
 type ReadingOrderDetail struct {
@@ -222,6 +226,81 @@ type ReadingOrderInput struct {
 type ReadingOrderListOutput struct {
 	PaginationHeaders
 	Body []ReadingOrder
+}
+
+type Arc struct {
+	ID          int  `json:"id"                    db:"id"            doc:"Local arc identifier." example:"7"`
+	MetronArcID *int `json:"metronArcId,omitempty" db:"metron_arc_id" doc:"Linked Metron story-arc identifier, when imported." example:"9876"`
+
+	Name        string  `json:"name"        db:"name"        doc:"Story arc name." example:"Batman: Zero Year"`
+	Description string  `json:"description" db:"description" doc:"Arc description or notes."`
+	Image       string  `json:"image"       db:"image"       doc:"Story arc image URL from Metron." format:"uri"`
+	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this arc is marked as a favorite." example:"true"`
+	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+}
+
+type ArcPayload struct {
+	Name        string `json:"name"        minLength:"1" doc:"Story arc name." example:"Batman: Zero Year"`
+	Description string `json:"description" doc:"Arc description or notes."`
+	Favorite    bool   `json:"favorite"    doc:"Whether this arc is marked as a favorite." example:"true"`
+}
+
+type ArcComicPayload struct {
+	ComicID int    `json:"comicId" doc:"Local comic identifier to add to the arc." example:"42"`
+	Comment string `json:"comment" doc:"Optional note for this specific arc entry." example:"Tie-in"`
+}
+
+type ArcComic struct {
+	Comic
+	Comment string `json:"comment" db:"comment" doc:"Per-entry arc note." example:"Tie-in"`
+}
+
+type ArcDetail struct {
+	Arc
+	Comics []ArcComic `json:"comics" doc:"Comics in arc position order."`
+}
+
+type ArcListInput struct {
+	Query    string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
+	Favorite string `query:"favorite" doc:"Filter arcs by favorite status. Use true or false." enum:"true,false" example:"true"`
+	ComicID  int    `query:"comicId"  doc:"Filter arcs to those containing a comic." example:"42"`
+	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
+}
+
+type ArcInput struct {
+	ID int `path:"id" doc:"Local arc identifier." example:"7"`
+}
+
+type ArcListOutput struct {
+	PaginationHeaders
+	Body []Arc
+}
+
+type ArcDetailOutput struct {
+	MetronRateLimitHeaders
+	Body ArcDetail
+}
+
+type CreateArcInput struct {
+	Body ArcPayload
+}
+
+type CreateArcOutput struct {
+	Body Arc
+}
+
+type UpdateArcInput struct {
+	ID   int `path:"id" doc:"Local arc identifier." example:"7"`
+	Body ArcPayload
+}
+
+type SetArcComicsInput struct {
+	ID   int `path:"id" doc:"Local arc identifier." example:"7"`
+	Body struct {
+		ComicIDs []int             `json:"comicIds,omitempty" doc:"Comic IDs in arc order. Use comics to include comments." example:"[42,43]"`
+		Comics   []ArcComicPayload `json:"comics,omitempty"   doc:"Comics in arc order with optional per-entry comments."`
+	}
 }
 
 type ReadingOrderDetailOutput struct {

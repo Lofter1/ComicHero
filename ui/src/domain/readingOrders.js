@@ -17,6 +17,7 @@ export function readingOrderFormFromDetail(detail) {
     comics: (detail.comics || []).map(comic => ({
       comicId: comic.id,
       comment: comic.comment || '',
+      tags: comic.tags || '',
     })),
   }
 }
@@ -36,6 +37,7 @@ export function readingOrderComicsPayload(order) {
       .map(comic => ({
         comicId: Number(comic.comicId),
         comment: comic.comment,
+        tags: comic.tags,
       })),
   }
 }

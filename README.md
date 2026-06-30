@@ -96,7 +96,7 @@ The backend reads environment variables from the process environment and, when p
 When the backend is running, Huma exposes interactive API documentation at:
 
 ```text
-http://localhost:8080/docs
+http://localhost:8080/api/docs
 ```
 
 ## Data and Privacy

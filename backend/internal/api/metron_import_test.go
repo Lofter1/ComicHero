@@ -40,7 +40,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
-			issue INTEGER NOT NULL,
+			issue TEXT NOT NULL,
 			publisher TEXT NOT NULL,
 			cover_date TEXT NOT NULL DEFAULT '',
 			cover_image TEXT NOT NULL DEFAULT '',
@@ -94,11 +94,40 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			PRIMARY KEY (comic_id, character_id)
 		);
 
+		CREATE TABLE arcs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0,
+			metron_arc_id INTEGER,
+			image TEXT NOT NULL DEFAULT ''
+		);
+		CREATE UNIQUE INDEX idx_arcs_metron_arc_id
+		ON arcs(metron_arc_id)
+		WHERE metron_arc_id IS NOT NULL;
+
+		CREATE TABLE arc_comics (
+			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT ''
+		);
+
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			position INTEGER NOT NULL DEFAULT 0,
-			note TEXT NOT NULL DEFAULT ''
+			note TEXT NOT NULL DEFAULT '',
+			tags TEXT NOT NULL DEFAULT ''
+		);
+
+		CREATE TABLE metron_sync_states (
+			resource_type TEXT NOT NULL,
+			metron_id INTEGER NOT NULL,
+			last_modified TEXT NOT NULL DEFAULT '',
+			fully_synced INTEGER NOT NULL DEFAULT 0,
+			synced_at TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (resource_type, metron_id)
 		);
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
@@ -122,7 +151,7 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 		ID:         101,
 		Series:     "Series",
 		SeriesYear: 2026,
-		Issue:      1,
+		Issue:      "1",
 		Publisher:  "Publisher",
 	}
 
@@ -147,6 +176,103 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 	}
 }
 
+func TestMetronConditionalRequestRequiresFullSyncState(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO comics (series, series_year, issue, publisher, metron_issue_id)
+		VALUES ('Series', 2026, '1', 'Publisher', 123)
+	`); err != nil {
+		t.Fatalf("insert partial comic: %v", err)
+	}
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		switch requests {
+		case 1:
+			if got := r.Header.Get("If-Modified-Since"); got != "" {
+				t.Fatalf("first If-Modified-Since = %q; want empty", got)
+			}
+			w.Header().Set("Last-Modified", "Wed, 12 Feb 2026 10:30:00 GMT")
+			w.Write([]byte(`{"id":123,"series":{"name":"Series","year_began":2026},"number":"1","cover_date":"2026-01-01"}`))
+		case 2:
+			if got := r.Header.Get("If-Modified-Since"); got != "Wed, 12 Feb 2026 10:30:00 GMT" {
+				t.Fatalf("second If-Modified-Since = %q; want stored Last-Modified", got)
+			}
+			w.WriteHeader(http.StatusNotModified)
+		case 3:
+			if got := r.Header.Get("If-Modified-Since"); got != "" {
+				t.Fatalf("forced If-Modified-Since = %q; want empty", got)
+			}
+			w.Header().Set("Last-Modified", "Thu, 13 Feb 2026 10:30:00 GMT")
+			w.Write([]byte(`{"id":123,"series":{"name":"Series","year_began":2026},"number":"1","cover_date":"2026-01-02"}`))
+		default:
+			t.Fatalf("unexpected request %d", requests)
+		}
+	}))
+	defer server.Close()
+
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	issue, info, err := fetchMetronIssue(ctx, db, client, 123, false)
+	if err != nil {
+		t.Fatalf("fetchMetronIssue first: %v", err)
+	}
+	if issue == nil || issue.ID != 123 || info.NotModified {
+		t.Fatalf("first issue/info = %#v/%#v", issue, info)
+	}
+	if err := markMetronSynced(ctx, db, metronResourceIssue, 123, info); err != nil {
+		t.Fatalf("markMetronSynced: %v", err)
+	}
+
+	issue, info, err = fetchMetronIssue(ctx, db, client, 123, false)
+	if err != nil {
+		t.Fatalf("fetchMetronIssue second: %v", err)
+	}
+	if issue != nil || !info.NotModified {
+		t.Fatalf("second issue/info = %#v/%#v; want not modified", issue, info)
+	}
+
+	issue, info, err = fetchMetronIssue(ctx, db, client, 123, true)
+	if err != nil {
+		t.Fatalf("fetchMetronIssue forced: %v", err)
+	}
+	if issue == nil || issue.CoverDate != "2026-01-02" || info.NotModified {
+		t.Fatalf("forced issue/info = %#v/%#v", issue, info)
+	}
+}
+
+func TestImportMetronComicPreservesIssueNumberSuffix(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	comic, err := importMetronComic(ctx, db, nil, nil, metron.Issue{
+		ID:         18030,
+		Series:     "The Amazing Spider-Man",
+		SeriesYear: 2018,
+		Issue:      "50.LR",
+		Number:     "50.LR",
+		Publisher:  "Marvel",
+		CoverDate:  "2020-12-01",
+	})
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if comic.Body.Issue != "50.LR" {
+		t.Fatalf("issue = %q, want 50.LR", comic.Body.Issue)
+	}
+	if comic.Body.Title != "The Amazing Spider-Man (2018) #50.LR" {
+		t.Fatalf("title = %q, want suffix in title", comic.Body.Title)
+	}
+
+	var storedIssue string
+	if err := db.GetContext(ctx, &storedIssue, `SELECT issue FROM comics WHERE id = ?`, comic.Body.ID); err != nil {
+		t.Fatalf("stored issue: %v", err)
+	}
+	if storedIssue != "50.LR" {
+		t.Fatalf("stored issue = %q, want 50.LR", storedIssue)
+	}
+}
+
 func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
 	ctx := context.Background()
 	db := newMetronImportTestDB(t)
@@ -154,14 +280,14 @@ func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
 		ID:         101,
 		Series:     "Series",
 		SeriesYear: 2026,
-		Issue:      1,
+		Issue:      "1",
 		Publisher:  "Publisher",
 		Characters: []metron.MetronCharacter{
 			{ID: 301, Name: "Hero", Aliases: []string{"The Hero"}},
 		},
 	}
 
-	comic, err := importMetronComic(ctx, db, nil, nil, issue)
+	comic, err := importMetronComicWithOptions(ctx, db, nil, nil, issue, MetronImportOptions{Mode: "full"})
 	if err != nil {
 		t.Fatalf("import: %v", err)
 	}
@@ -189,6 +315,94 @@ func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
 	}
 	if len(detail.Body.Comics) != 1 || detail.Body.Comics[0].ID != comic.Body.ID {
 		t.Fatalf("appearances = %#v; want imported comic", detail.Body.Comics)
+	}
+}
+
+func TestQuickImportMetronComicSavesArcRelationshipWithoutFetchingArc(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"id":501,"name":"Expanded Arc","desc":"Full metadata"}`))
+	}))
+	defer server.Close()
+
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	comic, err := importMetronComic(ctx, db, client, nil, metron.Issue{
+		ID:         101,
+		Series:     "Series",
+		SeriesYear: 2026,
+		Issue:      "1",
+		Publisher:  "Publisher",
+		Arcs: []metron.MetronArc{
+			{ID: 501, Name: "Payload Arc"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if requests["/arc/501/"] != 0 {
+		t.Fatalf("fetched arc detail %d times; want 0", requests["/arc/501/"])
+	}
+
+	detail, err := getComic(ctx, db, comic.Body.ID)
+	if err != nil {
+		t.Fatalf("getComic: %v", err)
+	}
+	if len(detail.Body.Arcs) != 1 || detail.Body.Arcs[0].Name != "Payload Arc" {
+		t.Fatalf("comic arcs = %#v; want payload arc", detail.Body.Arcs)
+	}
+}
+
+func TestFullImportMetronComicExpandsArcMetadataWithoutIssueList(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/arc/501/":
+			w.Write([]byte(`{"id":501,"name":"Expanded Arc","desc":"Full metadata","image":"https://example.test/arc.jpg"}`))
+		case "/arc/501/issue_list/":
+			w.Write([]byte(`{"results":[{"id":999,"series":{"name":"Other"},"number":"1"}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	comic, err := importMetronComicWithOptions(ctx, db, client, nil, metron.Issue{
+		ID:         101,
+		Series:     "Series",
+		SeriesYear: 2026,
+		Issue:      "1",
+		Publisher:  "Publisher",
+		Arcs: []metron.MetronArc{
+			{ID: 501, Name: "Payload Arc"},
+		},
+	}, MetronImportOptions{Mode: "full"})
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if requests["/arc/501/"] != 1 {
+		t.Fatalf("fetched arc detail %d times; want 1", requests["/arc/501/"])
+	}
+	if requests["/arc/501/issue_list/"] != 0 {
+		t.Fatalf("fetched arc issue list %d times; want 0", requests["/arc/501/issue_list/"])
+	}
+
+	detail, err := getComic(ctx, db, comic.Body.ID)
+	if err != nil {
+		t.Fatalf("getComic: %v", err)
+	}
+	if len(detail.Body.Arcs) != 1 || detail.Body.Arcs[0].Description != "Full metadata" || detail.Body.Arcs[0].Image == "" {
+		t.Fatalf("comic arcs = %#v; want expanded arc metadata", detail.Body.Arcs)
 	}
 }
 
@@ -239,7 +453,7 @@ func TestImportMetronComicDoesNotFetchCharacterDetails(t *testing.T) {
 		ID:         101,
 		Series:     "Series",
 		SeriesYear: 2026,
-		Issue:      1,
+		Issue:      "1",
 		Publisher:  "Publisher",
 		Characters: []metron.MetronCharacter{
 			{ID: 301, Name: "Hero"},
@@ -264,16 +478,16 @@ func TestImportMetronComicSkipsExistingCharacterImport(t *testing.T) {
 		t.Fatalf("insert character: %v", err)
 	}
 
-	comic, err := importMetronComic(ctx, db, nil, nil, metron.Issue{
+	comic, err := importMetronComicWithOptions(ctx, db, nil, nil, metron.Issue{
 		ID:         101,
 		Series:     "Series",
 		SeriesYear: 2026,
-		Issue:      1,
+		Issue:      "1",
 		Publisher:  "Publisher",
 		Characters: []metron.MetronCharacter{
 			{ID: 301, Name: "Changed Hero", Aliases: []string{"New Alias"}},
 		},
-	})
+	}, MetronImportOptions{Mode: "full"})
 	if err != nil {
 		t.Fatalf("import: %v", err)
 	}
@@ -372,8 +586,8 @@ func TestImportCharacterAppearancesFromMetron(t *testing.T) {
 	if requests["/issue/101/"] != 0 {
 		t.Fatalf("existing issue detail requests = %d; want 0", requests["/issue/101/"])
 	}
-	if requests["/issue/102/"] != 1 {
-		t.Fatalf("new issue detail requests = %d; want 1", requests["/issue/102/"])
+	if requests["/issue/102/"] != 0 {
+		t.Fatalf("new issue detail requests = %d; want 0", requests["/issue/102/"])
 	}
 	if len(detail.Body.Comics) != 2 {
 		t.Fatalf("appearances = %d; want 2", len(detail.Body.Comics))
@@ -456,8 +670,9 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 				ID:         101,
 				Series:     "Series",
 				SeriesYear: 2026,
-				Issue:      1,
+				Issue:      "1",
 				Publisher:  "Publisher",
+				Tags:       []string{"Main Story", "Tie-In"},
 			},
 		},
 	}
@@ -489,6 +704,14 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 	if comicCount != 1 {
 		t.Fatalf("comic count = %d; want 1", comicCount)
 	}
+
+	var tags string
+	if err := db.GetContext(ctx, &tags, `SELECT tags FROM reading_order_comics WHERE reading_order_id = ?`, first.Body.ID); err != nil {
+		t.Fatalf("select tags: %v", err)
+	}
+	if tags != "Main Story, Tie-In" {
+		t.Fatalf("tags = %q; want Main Story, Tie-In", tags)
+	}
 }
 
 func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
@@ -499,7 +722,7 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 		INSERT INTO reading_orders (id, name, description, metron_reading_list_id)
 		VALUES (1, 'Event', 'Partial import', 501)
 	`); err != nil {
-		t.Fatalf("insert partial reading order: %v", err)
+		t.Fatalf("insert incomplete reading order: %v", err)
 	}
 
 	err := continueMetronReadingListWithProgress(ctx, db, nil, nil, metron.ReadingList{
@@ -511,7 +734,7 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 				ID:         101,
 				Series:     "Series",
 				SeriesYear: 2026,
-				Issue:      1,
+				Issue:      "1",
 				Publisher:  "Publisher",
 			},
 		},
@@ -586,8 +809,8 @@ func TestImportMetronSeriesSkipsDetailFetchForExistingComic(t *testing.T) {
 
 	client := metron.New(metron.Config{BaseURL: server.URL})
 	output, err := importMetronSeries(ctx, db, client, nil, []metron.Issue{
-		{ID: 101, Series: "Series", SeriesYear: 2026, Issue: 1, Publisher: "Publisher"},
-		{ID: 102, Series: "Series", SeriesYear: 2026, Issue: 2, Publisher: "Publisher"},
+		{ID: 101, Series: "Series", SeriesYear: 2026, Issue: "1", Publisher: "Publisher"},
+		{ID: 102, Series: "Series", SeriesYear: 2026, Issue: "2", Publisher: "Publisher"},
 	})
 	if err != nil {
 		t.Fatalf("importMetronSeries: %v", err)
@@ -598,8 +821,55 @@ func TestImportMetronSeriesSkipsDetailFetchForExistingComic(t *testing.T) {
 	if detailRequests["/issue/101/"] != 0 {
 		t.Fatalf("fetched existing comic detail %d times; want 0", detailRequests["/issue/101/"])
 	}
-	if detailRequests["/issue/102/"] != 1 {
-		t.Fatalf("fetched new comic detail %d times; want 1", detailRequests["/issue/102/"])
+	if detailRequests["/issue/102/"] != 0 {
+		t.Fatalf("fetched new comic detail %d times; want 0", detailRequests["/issue/102/"])
+	}
+}
+
+func TestImportMetronSeriesOptionsControlDetailFetches(t *testing.T) {
+	ctx := context.Background()
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/issue/201/":
+			w.Write([]byte(`{"id":201,"series":{"id":401,"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}},"number":"1","characters":[{"id":301,"name":"Attached Hero"}]}`))
+		case "/series/401/":
+			w.Write([]byte(`{"id":401,"name":"Series","year_began":2026,"publisher":{"name":"Publisher"},"issue_count":1}`))
+		case "/character/301/":
+			w.Write([]byte(`{"id":301,"name":"Full Hero","desc":"Full profile","alias":["Heroic"]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	client := metron.New(metron.Config{BaseURL: server.URL})
+	issues := []metron.Issue{{ID: 201, Series: "Series", SeriesYear: 2026, Issue: "1", Publisher: "Publisher"}}
+
+	quickDB := newMetronImportTestDB(t)
+	if _, err := importMetronSeriesWithProgressOptions(ctx, quickDB, client, nil, issues, func(int, int, string) {}, MetronImportOptions{Mode: "quick"}); err != nil {
+		t.Fatalf("quick import: %v", err)
+	}
+	if requests["/issue/201/"] != 0 || requests["/series/401/"] != 0 || requests["/character/301/"] != 0 {
+		t.Fatalf("quick requests = %#v; want no issue, series, or character detail calls", requests)
+	}
+
+	fullDB := newMetronImportTestDB(t)
+	if _, err := importMetronSeriesWithProgressOptions(ctx, fullDB, client, nil, issues, func(int, int, string) {}, MetronImportOptions{Mode: "full"}); err != nil {
+		t.Fatalf("full import: %v", err)
+	}
+	if requests["/issue/201/"] != 1 || requests["/series/401/"] != 1 || requests["/character/301/"] != 1 {
+		t.Fatalf("full requests = %#v; want one issue, series, and character detail call", requests)
+	}
+
+	var character Character
+	if err := fullDB.GetContext(ctx, &character, `SELECT * FROM characters WHERE metron_character_id = 301`); err != nil {
+		t.Fatalf("full character: %v", err)
+	}
+	if character.Name != "Full Hero" || character.Description != "Full profile" {
+		t.Fatalf("character = %#v; want full metadata", character)
 	}
 }
 
@@ -663,8 +933,8 @@ func TestImportLocalSeriesFromMetronUpdatesMetadataAndImportsMissingComics(t *te
 	if requests["/issue/101/"] != 0 {
 		t.Fatalf("existing issue detail requests = %d; want 0", requests["/issue/101/"])
 	}
-	if requests["/issue/102/"] != 1 {
-		t.Fatalf("new issue detail requests = %d; want 1", requests["/issue/102/"])
+	if requests["/issue/102/"] != 0 {
+		t.Fatalf("new issue detail requests = %d; want 0", requests["/issue/102/"])
 	}
 
 	var series ComicSeries

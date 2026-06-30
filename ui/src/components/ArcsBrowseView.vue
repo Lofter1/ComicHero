@@ -1,0 +1,180 @@
+<script setup>
+import { computed, ref } from 'vue'
+import { assetURL } from '@/api/client.js'
+import BrowseListTools from '@/components/BrowseListTools.vue'
+import { formatProgress } from '@/domain/readingOrders.js'
+
+const props = defineProps({
+  totalCount: {
+    type: Number,
+    default: 0,
+  },
+  favoriteCount: {
+    type: Number,
+    default: 0,
+  },
+  arcs: {
+    type: Array,
+    default: () => [],
+  },
+  sections: {
+    type: Array,
+    default: () => [],
+  },
+  selectedArcId: {
+    type: Number,
+    default: null,
+  },
+  quickSavingArcId: {
+    type: Number,
+    default: null,
+  },
+  search: {
+    type: String,
+    default: '',
+  },
+  searchTerm: {
+    type: String,
+    default: '',
+  },
+})
+
+defineEmits(['update:search', 'new-arc', 'open-arc', 'toggle-favorite'])
+
+const filter = ref('all')
+const sort = ref('name')
+const direction = ref('asc')
+const sortOptions = [
+  { value: 'name', label: 'Name' },
+  { value: 'progress', label: 'Progress' },
+]
+
+const visibleArcs = computed(() => {
+  return [...props.arcs]
+    .filter(arc => {
+      if (filter.value === 'favorites') return arc.favorite
+      if (filter.value === 'other') return !arc.favorite
+      return true
+    })
+    .sort((a, b) => {
+      const result = compareArcs(a, b)
+      return direction.value === 'desc' ? -result : result
+    })
+})
+const visibleSections = computed(() => {
+  if (filter.value === 'favorites') return sectionList('Favorites', visibleArcs.value)
+  if (filter.value === 'other') return sectionList('Other Arcs', visibleArcs.value)
+
+  const favorites = visibleArcs.value.filter(arc => arc.favorite)
+  if (!favorites.length) return sectionList('All Arcs', visibleArcs.value)
+  return [
+    { key: 'favorites', title: 'Favorites', arcs: favorites },
+    { key: 'other', title: 'Other Arcs', arcs: visibleArcs.value.filter(arc => !arc.favorite) },
+  ].filter(section => section.arcs.length)
+})
+const hasFilters = computed(() => props.searchTerm || filter.value !== 'all')
+
+function sectionList(title, arcs) {
+  return arcs.length ? [{ key: filter.value, title, arcs }] : []
+}
+
+function compareArcs(a, b) {
+  if (sort.value === 'progress') return (a.progress ?? 0) - (b.progress ?? 0) || compareText(a.name, b.name)
+  return compareText(a.name, b.name)
+}
+
+function compareText(a, b) {
+  return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+}
+</script>
+
+<template>
+  <div class="browse-view">
+    <div class="list-pane">
+      <div class="browse-list-sticky">
+        <div class="overview-strip">
+          <span>
+            <strong>{{ totalCount }}</strong>
+            <small>Arcs</small>
+          </span>
+          <span>
+            <strong>{{ favoriteCount }}</strong>
+            <small>Favorites</small>
+          </span>
+        </div>
+        <div class="comic-list-header">
+          <BrowseListTools
+            :search="search"
+            search-placeholder="Search arcs"
+            :filter="filter"
+            :sort="sort"
+            :direction="direction"
+            :sort-options="sortOptions"
+            @update:search="$emit('update:search', $event)"
+            @update:filter="filter = $event"
+            @update:sort="sort = $event"
+            @update:direction="direction = $event"
+          />
+          <button
+            class="primary-button icon-text-button"
+            type="button"
+            aria-label="New arc"
+            title="New arc"
+            @click="$emit('new-arc')"
+          >
+            <span aria-hidden="true" class="button-icon">+</span>
+          </button>
+        </div>
+      </div>
+      <div v-if="visibleArcs.length" class="sectioned-list">
+        <section v-for="section in visibleSections" :key="section.key" class="list-section">
+          <div class="list-section-header">
+            <p class="eyebrow">{{ section.title }}</p>
+            <small>{{ section.arcs.length }}</small>
+          </div>
+          <div class="list">
+            <div
+              v-for="arc in section.arcs"
+              :key="arc.id"
+              class="row order-row"
+              :class="{ selected: selectedArcId === arc.id }"
+            >
+              <span class="order-row-content">
+                <button class="row-main arc-row-main" type="button" @click="$emit('open-arc', arc)">
+                  <span v-if="arc.image" class="issue-list-cover" aria-hidden="true">
+                    <img :src="assetURL(arc.image)" alt="" loading="lazy" />
+                  </span>
+                  <span>
+                    <strong>{{ arc.name }}</strong>
+                    <small>{{ arc.description || 'No description' }}</small>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="favorite-toggle"
+                  :class="{ active: arc.favorite }"
+                  :disabled="quickSavingArcId === arc.id"
+                  :aria-label="arc.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                  :title="arc.favorite ? 'Remove from favorites' : 'Add to favorites'"
+                  @click="$emit('toggle-favorite', arc)"
+                >
+                  <span aria-hidden="true">{{ arc.favorite ? '★' : '☆' }}</span>
+                </button>
+              </span>
+              <span class="row-progress" aria-label="Arc progress">
+                <span :style="{ width: formatProgress(arc.progress) }"></span>
+              </span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div v-else class="empty-state">
+        {{ hasFilters ? 'No arcs match these filters.' : 'No arcs yet.' }}
+        <button v-if="!hasFilters" class="secondary-button" type="button" @click="$emit('new-arc')">
+          <span aria-hidden="true" class="button-icon">+</span>
+          Create the first arc
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

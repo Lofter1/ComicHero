@@ -3,11 +3,13 @@
 GOCACHE ?= $(CURDIR)/tmp/go-build
 export GOCACHE
 
-BACKEND_URL ?= http://localhost:8090/docs
+BACKEND_URL ?= http://localhost:8090/api/docs
 UI_URL ?= http://localhost:5173
 OPEN_BROWSER ?= 1
 OPEN_CMD ?= open
 IMAGE ?= comichero:latest
+VITE_API_BASE ?= /api
+export VITE_API_BASE
 
 dev:
 	@set -e; \
@@ -45,7 +47,7 @@ install-ui:
 	npm --prefix ui install
 
 docker-build:
-	docker build -t $(IMAGE) .
+	docker build --build-arg VITE_API_BASE=$(VITE_API_BASE) -t $(IMAGE) .
 
 docker-run:
 	docker run --rm -p 8080:8080 -v comichero-data:/data $(IMAGE)

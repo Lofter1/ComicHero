@@ -46,7 +46,7 @@ function updateField(field, value) {
       </label>
       <label>
         Issue
-        <input :value="form.issue" min="0" type="number" @input="updateField('issue', Number($event.target.value))" />
+        <input :value="form.issue" @input="updateField('issue', $event.target.value)" />
       </label>
       <label>
         Publisher

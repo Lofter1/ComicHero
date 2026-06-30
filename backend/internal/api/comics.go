@@ -39,7 +39,7 @@ func RegisterComicRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID:   "createComic",
 		Tags:          []string{tagComics},
 		Summary:       "Create a comic",
-		Description:   "Creates a local comic record. Series is required, issue and series year must be zero or greater, and the display title is generated from the submitted metadata.",
+		Description:   "Creates a local comic record. Series is required and the display title is generated from the submitted metadata.",
 		Method:        http.MethodPost,
 		Path:          "/comics",
 		DefaultStatus: 201,
@@ -134,7 +134,7 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 		`, input.ReadingOrderID)
 	}
 
-	query.orderBy("ORDER BY c.series, c.series_year, c.issue")
+	query.orderBy("ORDER BY c.series, c.series_year, CAST(c.issue AS REAL), c.issue")
 	sql, args := query.build()
 	return sql, args, nil
 }
@@ -153,6 +153,16 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 		ORDER BY ro.name
 	`, id); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch reading orders")
+	}
+
+	arcs := []Arc{}
+	if err := db.SelectContext(ctx, &arcs, `
+		SELECT a.* FROM arcs a
+		JOIN arc_comics ac ON ac.arc_id = a.id
+		WHERE ac.comic_id = ?
+		ORDER BY a.name
+	`, id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch arcs")
 	}
 
 	characters := []Character{}
@@ -175,6 +185,7 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 		Body: ComicDetail{
 			Comic:         comic,
 			ReadingOrders: orders,
+			Arcs:          arcs,
 			Characters:    characters,
 		},
 	}, nil
@@ -316,8 +327,8 @@ func comicTitle(comic Comic) string {
 	if comic.SeriesYear > 0 {
 		title = fmt.Sprintf("%s (%d)", title, comic.SeriesYear)
 	}
-	if comic.Series != "" || comic.Issue > 0 {
-		title = fmt.Sprintf("%s #%d", title, comic.Issue)
+	if comic.Series != "" || comic.Issue != "" {
+		title = fmt.Sprintf("%s #%s", title, comic.Issue)
 	}
 	return title
 }

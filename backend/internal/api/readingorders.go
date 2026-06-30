@@ -175,7 +175,7 @@ func getReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDet
 func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) (*ReadingOrderDetailOutput, error) {
 	comics := []ReadingOrderComic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, roc.note AS comment FROM comics c
+		SELECT c.*, roc.note AS comment, roc.tags AS tags FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
 		WHERE roc.reading_order_id = ?
 		ORDER BY roc.position
@@ -274,9 +274,9 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 
 	for i, comic := range comics {
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note)
-			VALUES (?, ?, ?, ?)
-		`, input.ID, comic.ComicID, i+1, comic.Comment); err != nil {
+			INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note, tags)
+			VALUES (?, ?, ?, ?, ?)
+		`, input.ID, comic.ComicID, i+1, comic.Comment, comic.Tags); err != nil {
 			return nil, huma.Error500InternalServerError("failed to insert comic")
 		}
 	}

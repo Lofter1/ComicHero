@@ -1,14 +1,18 @@
 <script setup>
 import { computed, ref } from 'vue'
 import {
+  assetURL,
+  getMetronReadingList,
   importMetronCharacterAppearances,
   importMetronComic,
   importMetronReadingList,
   importMetronSeries,
+  importMetronArc,
   searchMetronCharacters,
   searchMetronComics,
   searchMetronReadingLists,
   searchMetronSeries,
+  searchMetronArcs
 } from '@/api/client.js'
 
 const props = defineProps({
@@ -28,20 +32,30 @@ const activeSearch = ref('comics')
 const query = ref('')
 const series = ref('')
 const issue = ref('')
+const arc = ref('')
 const searching = ref(false)
 const importingKey = ref('')
 const importStatus = ref('')
+const importMode = ref('quick')
+const importForce = ref(false)
 const rateLimit = ref(null)
 const comicResults = ref([])
 const characterResults = ref([])
 const readingListResults = ref([])
 const seriesResults = ref([])
+const arcResults = ref([])
+const selectedReadingList = ref(null)
+const readingListDetailOpen = ref(false)
+const readingListDetailLoading = ref(false)
+const readingListDetailStatus = ref('')
 
 const busy = computed(() => searching.value)
 const searchLabel = computed(() => {
   if (searching.value) return 'Searching...'
   if (activeSearch.value === 'characters') return 'Search Characters'
-  return `Search ${activeSearch.value === 'readingLists' ? 'Reading Lists' : activeSearch.value}`
+  if (activeSearch.value === 'readingLists') return 'Search Reading Lists'
+  if (activeSearch.value === 'arcs') return 'Search Arcs'
+  return `Search ${activeSearch.value}`
 })
 const rateLimitSummary = computed(() => {
   if (!rateLimit.value) return ''
@@ -75,6 +89,13 @@ const quotaReset = computed(() => {
   const nextReset = Math.max(...resets)
   return new Date(nextReset * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 })
+const importOptions = computed(() => {
+  const force = importForce.value
+  if (importMode.value === 'full') {
+    return { mode: 'full', force }
+  }
+  return { mode: 'quick', force }
+})
 
 async function search() {
   searching.value = true
@@ -105,6 +126,13 @@ async function search() {
       return
     }
 
+    if (activeSearch.value === 'arcs') {
+      const { data, rateLimit: nextRateLimit } = await searchMetronArcs({ q: query.value })
+      updateRateLimit(nextRateLimit)
+      arcResults.value = Array.isArray(data) ? data : []
+      return
+    }
+
     const { data, rateLimit: nextRateLimit } = await searchMetronSeries({ q: query.value || series.value })
     updateRateLimit(nextRateLimit)
     seriesResults.value = Array.isArray(data) ? data : []
@@ -121,7 +149,7 @@ async function importComic(comic) {
   importingKey.value = `comic:${id}`
   importStatus.value = 'Comic import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronComic(id)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronComic(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, comic.title || `${comic.series} #${comic.number || comic.issue}`)
   } catch (err) {
@@ -137,7 +165,7 @@ async function importReadingList(list) {
   importingKey.value = `readingList:${id}`
   importStatus.value = 'Reading list import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronReadingList(id)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronReadingList(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, list.name || 'Untitled reading list')
   } catch (err) {
@@ -148,12 +176,36 @@ async function importReadingList(list) {
   }
 }
 
+async function openReadingList(list) {
+  selectedReadingList.value = list
+  readingListDetailOpen.value = true
+  readingListDetailLoading.value = true
+  readingListDetailStatus.value = ''
+  try {
+    const { data, rateLimit: nextRateLimit } = await getMetronReadingList(list.id)
+    updateRateLimit(nextRateLimit)
+    selectedReadingList.value = { ...list, ...(data || {}) }
+  } catch (err) {
+    updateRateLimit(err.rateLimit)
+    readingListDetailStatus.value = err.message
+  } finally {
+    readingListDetailLoading.value = false
+  }
+}
+
+function closeReadingListDetail() {
+  readingListDetailOpen.value = false
+  readingListDetailLoading.value = false
+  readingListDetailStatus.value = ''
+  selectedReadingList.value = null
+}
+
 async function importSeries(item) {
   const id = item.id
   importingKey.value = `series:${id}`
   importStatus.value = 'Series import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronSeries(id)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronSeries(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, item.name || 'Untitled series')
   } catch (err) {
@@ -169,9 +221,25 @@ async function importCharacter(character) {
   importingKey.value = `character:${id}`
   importStatus.value = 'Character import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(id)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, character.name || 'Untitled character')
+  } catch (err) {
+    updateRateLimit(err.rateLimit)
+    emit('error', err.message)
+  } finally {
+    importingKey.value = ''
+  }
+}
+
+async function importArc(arc) {
+  const id = arc.id
+  importingKey.value = `arc:${id}`
+  importStatus.value = 'Arc import started in the background.'
+  try {
+    const { data: job, rateLimit: nextRateLimit } = await importMetronArc(id, importOptions.value)
+    updateRateLimit(nextRateLimit)
+    trackJob(job, arc.name || 'Untitled arc')
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -233,8 +301,63 @@ function usedQuota(limit, remaining) {
 
 function rowImporting(type, id) {
   return importingKey.value === `${type}:${id}` || props.importJobs.some(job => {
-    return job.type === type && job.metronId === id && (job.status === 'queued' || job.status === 'running')
+    return job.type === type && job.metronId === id && isActiveJob(job)
   })
+}
+
+function isActiveJob(job) {
+  return job.status === 'queued' || job.status === 'running' || job.status === 'canceling'
+}
+
+function setImportMode(mode) {
+  importMode.value = mode
+}
+
+function comicTitle(comic) {
+  if (comic.title) return comic.title
+  const seriesName = comic.series || 'Unknown series'
+  const number = comic.number || comic.issue
+  return number ? `${seriesName} #${number}` : seriesName
+}
+
+function comicMeta(comic) {
+  return [
+    comic.series && comic.title ? comic.series : '',
+    comic.seriesVolume ? `Vol. ${comic.seriesVolume}` : '',
+    comic.seriesYear || '',
+    comic.publisher || '',
+    comic.storeDate ? `Store ${formatDate(comic.storeDate)}` : '',
+    comic.coverDate ? `Cover ${formatDate(comic.coverDate)}` : '',
+  ].filter(Boolean).join(' · ')
+}
+
+function comicStoryLine(comic) {
+  if (!Array.isArray(comic.storyNames) || comic.storyNames.length === 0) return ''
+  return comic.storyNames.join(', ')
+}
+
+function readingListSummary(list) {
+  return [
+    list.listType || 'Reading list',
+    list.user?.username ? `by ${list.user.username}` : '',
+    list.attributionSource ? `via ${list.attributionSource}` : '',
+    list.ratingCount ? `${list.averageRating || 0} avg from ${list.ratingCount} ratings` : '',
+    list.modified ? `Modified ${formatDate(list.modified)}` : '',
+  ].filter(Boolean).join(' · ')
+}
+
+function arcSummary(item) {
+  return [
+    item.modified ? `Modified ${formatDate(item.modified)}` : '',
+    item.id ? `Metron ID ${item.id}` : '',
+  ].filter(Boolean).join(' · ')
+}
+
+function formatDate(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 </script>
@@ -278,6 +401,15 @@ function rowImporting(type, id) {
       >
         Characters
       </button>
+      <button
+        type="button"
+        :class="{ active: activeSearch === 'arcs' }"
+        role="tab"
+        :aria-selected="activeSearch === 'arcs'"
+        @click="setSearchMode('arcs')"
+      >
+        Arcs
+      </button>
     </div>
 
     <div class="metron-quota-strip">
@@ -286,6 +418,33 @@ function rowImporting(type, id) {
         <small>{{ quotaSummary }}</small>
       </span>
       <small v-if="quotaReset">Resets around {{ quotaReset }}</small>
+    </div>
+
+    <div class="metron-import-options">
+      <div class="metron-modes compact" role="tablist" aria-label="Metron import depth">
+        <button
+          type="button"
+          :class="{ active: importMode === 'quick' }"
+          role="tab"
+          :aria-selected="importMode === 'quick'"
+          @click="setImportMode('quick')"
+        >
+          Quick
+        </button>
+        <button
+          type="button"
+          :class="{ active: importMode === 'full' }"
+          role="tab"
+          :aria-selected="importMode === 'full'"
+          @click="setImportMode('full')"
+        >
+          Full
+        </button>
+      </div>
+      <label class="inline-toggle">
+        <input v-model="importForce" type="checkbox" />
+        Force refresh
+      </label>
     </div>
 
     <form class="metron-search" @submit.prevent="search">
@@ -297,7 +456,8 @@ function rowImporting(type, id) {
               ? 'Reading List'
               : activeSearch === 'characters'
                 ? 'Character'
-                : 'Series'
+                : activeSearch === 'series' ?
+                  'Series' : 'Arc'
         }}
         <input v-model="query" placeholder="Batman, X-Men, Civil War" />
       </label>
@@ -307,7 +467,7 @@ function rowImporting(type, id) {
       </label>
       <label v-if="activeSearch === 'comics'">
         Issue
-        <input v-model="issue" min="0" type="number" />
+        <input v-model="issue" />
       </label>
       <button class="primary-button" type="submit" :disabled="busy">
         {{ searchLabel }}
@@ -334,8 +494,9 @@ function rowImporting(type, id) {
             @click="importComic(comic)"
           >
             <span>
-              <strong>{{ comic.title || 'Untitled comic' }}</strong>
-              <small>{{ comic.series }} #{{ comic.number || comic.issue }} · {{ comic.publisher }}</small>
+              <strong>{{ comicTitle(comic) }}</strong>
+              <small v-if="comicMeta(comic)">{{ comicMeta(comic) }}</small>
+              <small v-if="comicStoryLine(comic)">{{ comicStoryLine(comic) }}</small>
             </span>
             <span class="status-pill">{{ rowImporting('comic', comic.id) ? 'Importing...' : 'Import' }}</span>
           </button>
@@ -350,13 +511,13 @@ function rowImporting(type, id) {
             :key="list.id"
             class="row"
             :disabled="rowImporting('readingList', list.id)"
-            @click="importReadingList(list)"
+            @click="openReadingList(list)"
           >
             <span>
               <strong>{{ list.name || 'Untitled reading list' }}</strong>
-              <small>{{ list.description || 'No description' }}</small>
+              <small>{{ readingListSummary(list) }}</small>
             </span>
-            <span class="status-pill">{{ rowImporting('readingList', list.id) ? 'Importing...' : 'Import' }}</span>
+            <span class="status-pill">{{ rowImporting('readingList', list.id) ? 'Importing...' : 'Details' }}</span>
           </button>
         </template>
 
@@ -381,6 +542,25 @@ function rowImporting(type, id) {
           </button>
         </template>
 
+        <template v-else-if="activeSearch === 'arcs'">
+          <h3>Arcs</h3>
+          <p v-if="searching" class="muted">Searching Metron arcs...</p>
+          <p v-else-if="arcResults.length === 0" class="muted">No Metron arc results yet.</p>
+          <button
+            v-for="item in arcResults"
+            :key="item.id"
+            class="row"
+            :disabled="rowImporting('arc', item.id)"
+            @click="importArc(item)"
+          >
+            <span>
+              <strong>{{ item.name || 'Untitled arc' }}</strong>
+              <small>{{ arcSummary(item) }}</small>
+            </span>
+            <span class="status-pill">{{ rowImporting('arc', item.id) ? 'Importing...' : 'Import' }}</span>
+          </button>
+        </template>
+
         <template v-else>
           <h3>Characters</h3>
           <p v-if="searching" class="muted">Searching Metron characters...</p>
@@ -389,7 +569,7 @@ function rowImporting(type, id) {
             v-for="character in characterResults"
             :key="character.id"
             class="row"
-            :disabled="importingKey === `character:${character.id}`"
+            :disabled="rowImporting('character', character.id)"
             @click="importCharacter(character)"
           >
             <span>
@@ -397,11 +577,73 @@ function rowImporting(type, id) {
               <small>Metron ID {{ character.id }}</small>
             </span>
             <span class="status-pill">
-              {{ importingKey === `character:${character.id}` ? 'Importing...' : 'Import' }}
+              {{ rowImporting('character', character.id) ? 'Importing...' : 'Import' }}
             </span>
           </button>
         </template>
       </article>
     </section>
+
+    <div v-if="readingListDetailOpen" class="modal-backdrop" @click.self="closeReadingListDetail">
+      <section class="metron-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="reading-list-detail-title">
+        <header class="metron-detail-header">
+          <span>
+            <strong id="reading-list-detail-title">{{ selectedReadingList?.name || 'Reading list' }}</strong>
+            <small>{{ selectedReadingList ? readingListSummary(selectedReadingList) : '' }}</small>
+          </span>
+          <button class="icon-button" type="button" aria-label="Close reading list detail" @click="closeReadingListDetail">×</button>
+        </header>
+        <div class="metron-detail-body">
+          <img
+            v-if="selectedReadingList?.image"
+            class="metron-detail-image"
+            :src="assetURL(selectedReadingList.image)"
+            :alt="selectedReadingList.name || 'Reading list image'"
+          />
+          <div class="metron-detail-copy">
+            <p v-if="readingListDetailLoading" class="muted">Loading reading-list details...</p>
+            <p v-else-if="readingListDetailStatus" class="error-text">{{ readingListDetailStatus }}</p>
+            <p v-else>{{ selectedReadingList?.description || 'No description from Metron.' }}</p>
+            <dl class="metron-detail-facts">
+              <div v-if="selectedReadingList?.user?.username">
+                <dt>User</dt>
+                <dd>{{ selectedReadingList.user.username }}</dd>
+              </div>
+              <div v-if="selectedReadingList?.listType">
+                <dt>Type</dt>
+                <dd>{{ selectedReadingList.listType }}</dd>
+              </div>
+              <div v-if="selectedReadingList?.attributionSource">
+                <dt>Source</dt>
+                <dd>{{ selectedReadingList.attributionSource }}</dd>
+              </div>
+              <div v-if="selectedReadingList?.ratingCount">
+                <dt>Rating</dt>
+                <dd>{{ selectedReadingList.averageRating || 0 }} from {{ selectedReadingList.ratingCount }}</dd>
+              </div>
+              <div v-if="selectedReadingList?.modified">
+                <dt>Modified</dt>
+                <dd>{{ formatDate(selectedReadingList.modified) }}</dd>
+              </div>
+              <div v-if="selectedReadingList?.issues?.length">
+                <dt>Issues</dt>
+                <dd>{{ selectedReadingList.issues.length }}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+        <footer class="metron-detail-actions">
+          <button class="secondary-button" type="button" @click="closeReadingListDetail">Close</button>
+          <button
+            class="primary-button"
+            type="button"
+            :disabled="!selectedReadingList || rowImporting('readingList', selectedReadingList.id)"
+            @click="importReadingList(selectedReadingList)"
+          >
+            {{ selectedReadingList && rowImporting('readingList', selectedReadingList.id) ? 'Importing...' : 'Import' }}
+          </button>
+        </footer>
+      </section>
+    </div>
   </div>
 </template>

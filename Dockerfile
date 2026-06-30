@@ -7,7 +7,7 @@ COPY ui/package*.json ./
 RUN npm ci
 
 COPY ui/ ./
-ARG VITE_API_BASE=""
+ARG VITE_API_BASE="/api"
 ENV VITE_API_BASE=$VITE_API_BASE
 RUN npm run build
 
@@ -31,6 +31,7 @@ COPY --from=ui-build /src/ui/dist /app/public
 
 ENV PORT=8080
 ENV DB_PATH=/data/comicorder.db
+ENV COVER_CACHE_DIR=/data/covers
 ENV STATIC_DIR=/app/public
 
 EXPOSE 8080

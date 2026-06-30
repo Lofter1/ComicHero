@@ -14,7 +14,7 @@ CREATE TABLE comics (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     series          TEXT    NOT NULL,
     series_year     INTEGER NOT NULL DEFAULT 0,
-    issue           INTEGER NOT NULL,
+    issue           TEXT    NOT NULL,
     publisher       TEXT    NOT NULL,
     cover_date      TEXT    NOT NULL DEFAULT '',
     cover_image     TEXT    NOT NULL DEFAULT '',

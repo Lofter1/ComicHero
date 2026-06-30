@@ -1,7 +1,7 @@
 <script setup>
 import { assetURL } from '@/api/client.js'
 
-defineProps({
+const props = defineProps({
   comic: {
     type: Object,
     required: true,
@@ -25,6 +25,13 @@ defineProps({
 })
 
 defineEmits(['open', 'toggle-read'])
+
+function entryTags() {
+  return String(props.comic.tags || '')
+    .split(',')
+    .map(tag => tag.trim())
+    .filter(Boolean)
+}
 </script>
 
 <template>
@@ -39,7 +46,10 @@ defineEmits(['open', 'toggle-read'])
       <span class="issue-list-copy">
         <strong>{{ comic.title }}</strong>
         <small v-if="showComment && comic.comment">{{ comic.comment }}</small>
-        <small v-else>{{ comic.publisher || 'Unknown publisher' }} · {{ comic.coverDate || 'Unknown date' }}</small>
+        <span v-if="showComment && entryTags().length" class="entry-tags">
+          <span v-for="tag in entryTags()" :key="tag">{{ tag }}</span>
+        </span>
+        <small v-if="!showComment || (!comic.comment && !comic.tags)">{{ comic.publisher || 'Unknown publisher' }} · {{ comic.coverDate || 'Unknown date' }}</small>
       </span>
     </button>
 

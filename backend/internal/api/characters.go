@@ -127,7 +127,7 @@ func getCharacter(ctx context.Context, db *sqlx.DB, id int) (*CharacterDetailOut
 		SELECT c.* FROM comics c
 		JOIN comic_characters cc ON cc.comic_id = c.id
 		WHERE cc.character_id = ?
-		ORDER BY c.series, c.series_year, c.issue
+		ORDER BY c.series, c.series_year, CAST(c.issue AS REAL), c.issue
 	`, id); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch character appearances")
 	}
@@ -204,6 +204,11 @@ func hydrateCharacterAliases(ctx context.Context, db *sqlx.DB, characters []Char
 }
 
 func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, covers *CoverCache, comicID int, issue metron.Issue) error {
+	return syncMetronIssueCharactersWithOptions(ctx, db, nil, covers, comicID, issue, MetronImportOptions{Mode: "full"})
+}
+
+func syncMetronIssueCharactersWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, comicID int, issue metron.Issue, options MetronImportOptions) error {
+	options = resolveMetronImportOptions(options)
 	if issue.Characters == nil {
 		return nil
 	}
@@ -212,6 +217,32 @@ func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, covers *CoverCa
 			return huma.Error500InternalServerError("failed to clear comic characters")
 		}
 		return nil
+	}
+
+	type syncedCharacter struct {
+		metronID int
+		info     metron.FetchInfo
+	}
+	characters := make([]metron.MetronCharacter, 0, len(issue.Characters))
+	syncedCharacters := []syncedCharacter{}
+	notModifiedCharacters := []int{}
+	for _, character := range issue.Characters {
+		if options.Mode == "full" && client != nil && character.ID > 0 {
+			detail, info, err := fetchMetronCharacter(ctx, db, client, character.ID, options.Force)
+			if err != nil {
+				if isContextCanceledError(err) {
+					return err
+				}
+				return metronAPIError(err)
+			}
+			if info.NotModified {
+				notModifiedCharacters = append(notModifiedCharacters, character.ID)
+			} else {
+				character = *detail
+				syncedCharacters = append(syncedCharacters, syncedCharacter{metronID: character.ID, info: info})
+			}
+		}
+		characters = append(characters, character)
 	}
 
 	tx, err := db.BeginTxx(ctx, nil)
@@ -225,7 +256,7 @@ func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, covers *CoverCa
 	}
 
 	seen := map[int]bool{}
-	for _, character := range issue.Characters {
+	for _, character := range characters {
 		id, err := upsertMetronCharacter(ctx, tx, covers, character)
 		if err != nil {
 			return err
@@ -245,6 +276,16 @@ func syncMetronIssueCharacters(ctx context.Context, db *sqlx.DB, covers *CoverCa
 	if err := tx.Commit(); err != nil {
 		return huma.Error500InternalServerError("failed to save comic characters")
 	}
+	for _, metronID := range notModifiedCharacters {
+		if err := markMetronNotModified(ctx, db, metronResourceCharacter, metronID); err != nil {
+			return err
+		}
+	}
+	for _, synced := range syncedCharacters {
+		if err := markMetronSynced(ctx, db, metronResourceCharacter, synced.metronID, synced.info); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -256,10 +297,11 @@ func importCharacterAppearancesFromMetron(ctx context.Context, db *sqlx.DB, clie
 }
 
 func importCharacterAppearancesFromMetronWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int, progress func(int, int, string)) error {
-	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, characterID, progress, true)
+	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, characterID, progress, true, defaultMetronImportOptions())
 }
 
-func importCharacterAppearancesFromMetronWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int, progress func(int, int, string), refreshMetadata bool) error {
+func importCharacterAppearancesFromMetronWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, characterID int, progress func(int, int, string), refreshMetadata bool, options MetronImportOptions) error {
+	options = resolveMetronImportOptions(options)
 	character, err := getCharacterRow(ctx, db, characterID)
 	if err != nil {
 		return err
@@ -269,17 +311,27 @@ func importCharacterAppearancesFromMetronWithProgressOptions(ctx context.Context
 	}
 	if refreshMetadata {
 		progress(0, 0, "Fetching character metadata from Metron...")
-		metronCharacter, err := client.GetCharacter(ctx, *character.MetronCharacterID)
+		metronCharacter, info, err := fetchMetronCharacter(ctx, db, client, *character.MetronCharacterID, options.Force)
 		if err != nil {
 			return metronAPIError(err)
 		}
-		refreshedID, err := upsertMetronCharacter(ctx, db, covers, *metronCharacter)
-		if err != nil {
-			return err
-		}
-		if refreshedID > 0 {
-			characterID = refreshedID
-			if err := updateMetronCharacter(ctx, db, covers, refreshedID, *metronCharacter); err != nil {
+		if info.NotModified {
+			if err := markMetronNotModified(ctx, db, metronResourceCharacter, *character.MetronCharacterID); err != nil {
+				return err
+			}
+			progress(1, 1, "Character metadata already current.")
+		} else {
+			refreshedID, err := upsertMetronCharacter(ctx, db, covers, *metronCharacter)
+			if err != nil {
+				return err
+			}
+			if refreshedID > 0 {
+				characterID = refreshedID
+				if err := updateMetronCharacter(ctx, db, covers, refreshedID, *metronCharacter); err != nil {
+					return err
+				}
+			}
+			if err := markMetronSynced(ctx, db, metronResourceCharacter, *character.MetronCharacterID, info); err != nil {
 				return err
 			}
 		}
@@ -300,7 +352,7 @@ func importCharacterAppearancesFromMetronWithProgressOptions(ctx context.Context
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			comic, err := importMetronCharacterAppearanceIssue(ctx, db, client, covers, issue)
+			comic, err := importMetronCharacterAppearanceIssueWithOptions(ctx, db, client, covers, issue, options)
 			if err != nil {
 				return err
 			}
@@ -337,15 +389,29 @@ func importMetronCharacterAppearances(ctx context.Context, db *sqlx.DB, client *
 }
 
 func importMetronCharacterAppearancesWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int, progress func(int, int, string)) error {
+	return importMetronCharacterAppearancesWithProgressOptions(ctx, db, client, covers, metronCharacterID, progress, defaultMetronImportOptions())
+}
+
+func importMetronCharacterAppearancesWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int, progress func(int, int, string), options MetronImportOptions) error {
+	options = resolveMetronImportOptions(options)
 	localID, ok, err := characterIDByMetronID(ctx, db, metronCharacterID)
 	if err != nil {
 		return err
 	}
 	if !ok {
 		progress(0, 0, "Fetching character from Metron...")
-		character, err := client.GetCharacter(ctx, metronCharacterID)
+		character, info, err := fetchMetronCharacter(ctx, db, client, metronCharacterID, options.Force)
 		if err != nil {
 			return metronAPIError(err)
+		}
+		if info.NotModified {
+			if err := markMetronNotModified(ctx, db, metronResourceCharacter, metronCharacterID); err != nil {
+				return err
+			}
+			character, info, err = fetchMetronCharacter(ctx, db, client, metronCharacterID, true)
+			if err != nil {
+				return metronAPIError(err)
+			}
 		}
 		localID, err = upsertMetronCharacter(ctx, db, covers, *character)
 		if err != nil {
@@ -356,13 +422,21 @@ func importMetronCharacterAppearancesWithProgress(ctx context.Context, db *sqlx.
 				return err
 			}
 		}
+		if err := markMetronSynced(ctx, db, metronResourceCharacter, metronCharacterID, info); err != nil {
+			return err
+		}
 	}
 
-	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, localID, progress, ok)
+	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, localID, progress, ok, options)
 }
 
 func importMetronCharacterAppearanceIssue(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue) (Comic, error) {
-	if issue.ID > 0 {
+	return importMetronCharacterAppearanceIssueWithOptions(ctx, db, client, covers, issue, defaultMetronImportOptions())
+}
+
+func importMetronCharacterAppearanceIssueWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (Comic, error) {
+	options = resolveMetronImportOptions(options)
+	if options.Mode != "full" && !options.Force && issue.ID > 0 {
 		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 			return Comic{}, err
 		} else if ok {
@@ -370,30 +444,20 @@ func importMetronCharacterAppearanceIssue(ctx context.Context, db *sqlx.DB, clie
 		}
 	}
 
-	if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
-		return Comic{}, err
-	} else if ok {
-		if issue.ID > 0 {
-			if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
-				return Comic{}, err
+	if options.Mode != "full" && !options.Force {
+		if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
+			return Comic{}, err
+		} else if ok {
+			if issue.ID > 0 {
+				if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
+					return Comic{}, err
+				}
 			}
+			return getComicRow(ctx, db, id)
 		}
-		return getComicRow(ctx, db, id)
 	}
 
-	fullIssue := issue
-	if issue.ID > 0 {
-		detail, err := client.GetIssue(ctx, issue.ID)
-		if err != nil {
-			if isContextCanceledError(err) {
-				return Comic{}, err
-			}
-			return Comic{}, huma.Error502BadGateway(err.Error())
-		}
-		fullIssue = *detail
-	}
-
-	comic, err := importMetronComic(ctx, db, client, covers, fullIssue)
+	comic, err := importMetronComicSweep(ctx, db, client, covers, issue, options, true)
 	if err != nil {
 		return Comic{}, err
 	}

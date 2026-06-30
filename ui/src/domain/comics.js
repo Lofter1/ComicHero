@@ -4,7 +4,7 @@ export function emptyComic() {
     title: '',
     series: '',
     seriesYear: 0,
-    issue: 0,
+    issue: '',
     publisher: '',
     coverDate: '',
     coverImage: '',
@@ -17,7 +17,7 @@ export function comicPayload(comic) {
   return {
     series: comic.series,
     seriesYear: Number(comic.seriesYear),
-    issue: Number(comic.issue),
+    issue: String(comic.issue || '').trim(),
     publisher: comic.publisher,
     coverDate: comic.coverDate,
     coverImage: comic.coverImage,

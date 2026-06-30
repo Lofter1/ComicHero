@@ -29,17 +29,21 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+
+	apiRouter := chi.NewRouter()
+	router.Mount("/api", apiRouter)
 	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	humaAPI := humachi.New(router, api.DocsConfig())
+	humaAPI := humachi.New(apiRouter, api.DocsConfig())
 	covers := api.NewCoverCache(env("COVER_CACHE_DIR", "./public/covers"), "/covers")
 	if err := covers.EnsureDir(); err != nil {
 		log.Fatalf("failed to prepare cover cache: %v", err)
 	}
 
 	api.RegisterReadingOrderRoutes(humaAPI, database)
+	api.RegisterArcRoutes(humaAPI, database)
 	api.RegisterComicRoutes(humaAPI, database, covers)
 	metronClient := metron.New(metron.Config{
 		BaseURL:  env("METRON_BASE_URL", metron.DefaultBaseURL),
@@ -50,6 +54,7 @@ func main() {
 	api.RegisterSeriesRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
 	api.RegisterCharacterRoutes(humaAPI, database)
 	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
+	serveCovers(router, "/covers", covers.Dir())
 	serveStatic(router, env("STATIC_DIR", "./public"))
 
 	addr := ":" + env("PORT", "8080")
@@ -57,6 +62,21 @@ func main() {
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatalf("server stopped: %v", err)
 	}
+}
+
+func serveCovers(router chi.Router, publicPath, dir string) {
+	info, err := os.Stat(dir)
+	if err != nil || !info.IsDir() {
+		log.Printf("cover cache dir %q not found; covers unavailable", dir)
+		return
+	}
+
+	prefix := "/" + strings.Trim(strings.TrimSpace(publicPath), "/")
+	files := http.StripPrefix(prefix+"/", http.FileServer(http.Dir(dir)))
+	router.Handle(prefix+"/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		files.ServeHTTP(w, r)
+	}))
 }
 
 func serveStatic(router chi.Router, dir string) {
