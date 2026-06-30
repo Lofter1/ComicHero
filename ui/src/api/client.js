@@ -262,6 +262,10 @@ export async function listMetronImportJobs() {
   return Array.isArray(jobs) ? jobs : []
 }
 
+export function getMetronImportJob(id) {
+  return request(`/metron/imports/${id}`)
+}
+
 export function dismissMetronImportJob(id) {
   return request(`/metron/imports/${id}`, { method: 'DELETE' })
 }

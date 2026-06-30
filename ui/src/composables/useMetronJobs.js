@@ -3,6 +3,7 @@ import {
   cancelMetronImportJob,
   continueMetronImportJob,
   dismissMetronImportJob as removeMetronImportJob,
+  getMetronImportJob,
   getMetronQuota,
   importMetronArc,
   importMetronCharacterAppearances,
@@ -165,9 +166,31 @@ export function useMetronJobs({ activeView, error, handleImported }) {
     try {
       const job = await cancelMetronImportJob(id)
       upsertMetronImportJob(job)
+      if (job.status === 'canceling') {
+        pollCanceledMetronJob(id)
+      }
     } catch (err) {
       error.value = err.message
     }
+  }
+
+  async function pollCanceledMetronJob(id, attempts = 10) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      await wait(600)
+      const current = metronImportJobs.value.find(job => job.id === id)
+      if (!current || current.status !== 'canceling') return
+      try {
+        const next = await getMetronImportJob(id)
+        upsertMetronImportJob(next)
+        if (next.status !== 'canceling') return
+      } catch {
+        return
+      }
+    }
+  }
+
+  function wait(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms))
   }
 
   function closeMetronImportEvents() {

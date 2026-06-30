@@ -183,6 +183,15 @@ func (s *metronImportJobStore) cancelJob(id string) (MetronImportJob, bool) {
 	if cancel, ok := s.cancel[id]; ok {
 		cancel()
 	}
+	if job.Status == "queued" {
+		job.Status = "canceled"
+		job.Message = "Import canceled before it started."
+		job.EndedAt = time.Now().UTC().Format(time.RFC3339)
+		next := *job
+		s.mu.Unlock()
+		s.broadcast(next)
+		return next, true
+	}
 	job.Status = "canceling"
 	job.Message = "Canceling import..."
 	next := *job
