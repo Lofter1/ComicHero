@@ -103,7 +103,7 @@ export function useCharacters({ activeView, viewMode, error, loadPagedList, metr
   }
 
   async function loadCharacters(options = {}) {
-    await loadPagedList('characters', characters, listCharacters, { all: true, ...options })
+    await loadPagedList('characters', characters, listCharacters, options)
   }
 
   return {

@@ -92,7 +92,7 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
   }
 
   async function loadSeries(options = {}) {
-    await loadPagedList('series', series, listSeries, { all: true, ...options })
+    await loadPagedList('series', series, listSeries, options)
   }
 
   return {

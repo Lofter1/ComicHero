@@ -156,7 +156,7 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         }
     }
     async function loadReadingOrders(options = {}) {
-        await loadPagedList('readingOrders', readingOrders, listReadingOrders, { all: true, ...options })
+        await loadPagedList('readingOrders', readingOrders, listReadingOrders, options)
     }
 
     return {

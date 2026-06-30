@@ -146,7 +146,7 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
   }
 
   async function loadArcs(options = {}) {
-    await loadPagedList('arcs', arcs, listArcs, { all: true, ...options })
+    await loadPagedList('arcs', arcs, listArcs, options)
   }
 
   return {
