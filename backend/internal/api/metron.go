@@ -26,8 +26,9 @@ type MetronIDInput struct {
 }
 
 type MetronImportOptions struct {
-	Mode  string `json:"mode,omitempty"  doc:"Import depth preset. Use quick for the base Metron endpoints or full for detail expansion." enum:"quick,full" example:"quick"`
-	Force bool   `json:"force,omitempty" doc:"Bypass Metron conditional requests and download fresh metadata even when local sync state is current." example:"false"`
+	Mode     string   `json:"mode,omitempty"     doc:"Import depth preset. Use quick for the base Metron endpoints or full for detail expansion." enum:"quick,full" example:"quick"`
+	FullData []string `json:"fullData,omitempty" doc:"Full-import data areas to pull. Supported values are comics, series, arcs, and characters. Characters, arcs, and series imply comic issue details." example:"comics"`
+	Force    bool     `json:"force,omitempty"    doc:"Bypass Metron conditional requests and download fresh metadata even when local sync state is current." example:"false"`
 }
 
 type MetronImportInput struct {
@@ -531,7 +532,7 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 			if err := syncMetronIssueArcsWithOptions(ctx, db, client, id, issue, options); err != nil {
 				return nil, err
 			}
-			if options.Mode == "full" {
+			if options.includesCharacters() {
 				if err := syncMetronIssueCharactersWithOptions(ctx, db, client, covers, id, issue, options); err != nil {
 					return nil, err
 				}
@@ -554,7 +555,7 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 		if err := syncMetronIssueArcsWithOptions(ctx, db, client, id, issue, options); err != nil {
 			return nil, err
 		}
-		if options.Mode == "full" {
+		if options.includesCharacters() {
 			if err := syncMetronIssueCharactersWithOptions(ctx, db, client, covers, id, issue, options); err != nil {
 				return nil, err
 			}
@@ -568,8 +569,31 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions, fetchIssueDetail bool) (*ComicDetailOutput, error) {
 	options = resolveMetronImportOptions(options)
 	var issueInfo metron.FetchInfo
-	if options.Mode == "full" && fetchIssueDetail && client != nil && issue.ID > 0 {
-		detail, info, err := fetchMetronIssue(ctx, db, client, issue.ID, options.Force)
+	if options.needsIssueDetail() && fetchIssueDetail && client != nil && issue.ID > 0 {
+		if !options.Force {
+			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
+				return nil, err
+			} else if ok {
+				complete, err := comicHasRequestedMetronData(ctx, db, id, options)
+				if err != nil {
+					return nil, err
+				}
+				if complete {
+					return getComic(ctx, db, id)
+				}
+			}
+		}
+		forceIssue := options.Force
+		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
+			return nil, err
+		} else if ok {
+			complete, err := comicHasRequestedMetronData(ctx, db, id, options)
+			if err != nil {
+				return nil, err
+			}
+			forceIssue = forceIssue || !complete
+		}
+		detail, info, err := fetchMetronIssue(ctx, db, client, issue.ID, forceIssue)
 		if err != nil {
 			if isContextCanceledError(err) {
 				return nil, err
@@ -600,12 +624,12 @@ func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Cli
 	if err != nil {
 		return nil, err
 	}
-	if options.Mode == "full" && fetchIssueDetail && issue.ID > 0 {
+	if options.includesComics() && fetchIssueDetail && issue.ID > 0 {
 		if err := markMetronSynced(ctx, db, metronResourceIssue, issue.ID, issueInfo); err != nil {
 			return nil, err
 		}
 	}
-	if options.Mode == "full" && client != nil && issue.SeriesID > 0 {
+	if options.includesSeries() && client != nil && issue.SeriesID > 0 {
 		metadata, info, err := fetchMetronSeries(ctx, db, client, issue.SeriesID, options.Force)
 		if err != nil {
 			if isContextCanceledError(err) {
@@ -662,6 +686,53 @@ func existingComicIDByMetronIssueMatch(ctx context.Context, db *sqlx.DB, issue m
 	return id, true, nil
 }
 
+func comicHasRequestedMetronData(ctx context.Context, db *sqlx.DB, comicID int, options MetronImportOptions) (bool, error) {
+	if !options.needsIssueDetail() {
+		return true, nil
+	}
+	var comic Comic
+	if err := db.GetContext(ctx, &comic, `SELECT * FROM comics WHERE id = ?`, comicID); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, huma.Error500InternalServerError("failed to check imported comic")
+	}
+	if options.includesComics() && (comic.Description == "" || comic.CoverImage == "") {
+		return false, nil
+	}
+	if options.includesSeries() {
+		var count int
+		if err := db.GetContext(ctx, &count, `
+			SELECT COUNT(*) FROM series
+			WHERE name = ? AND series_year = ? AND (metron_series_id IS NOT NULL OR description <> '' OR issue_count > 0)
+		`, comic.Series, comic.SeriesYear); err != nil {
+			return false, huma.Error500InternalServerError("failed to check imported series metadata")
+		}
+		if count == 0 {
+			return false, nil
+		}
+	}
+	if options.includesArcs() {
+		var count int
+		if err := db.GetContext(ctx, &count, `SELECT COUNT(*) FROM arc_comics WHERE comic_id = ?`, comicID); err != nil {
+			return false, huma.Error500InternalServerError("failed to check imported arcs")
+		}
+		if count == 0 {
+			return false, nil
+		}
+	}
+	if options.includesCharacters() {
+		var count int
+		if err := db.GetContext(ctx, &count, `SELECT COUNT(*) FROM comic_characters WHERE comic_id = ?`, comicID); err != nil {
+			return false, huma.Error500InternalServerError("failed to check imported characters")
+		}
+		if count == 0 {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 func attachMetronIssueID(ctx context.Context, db *sqlx.DB, comicID, metronID int) error {
 	if _, err := db.ExecContext(ctx, `
 		UPDATE comics SET metron_issue_id = ? WHERE id = ? AND metron_issue_id IS NULL
@@ -711,7 +782,7 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 	if err := syncMetronIssueArcsWithOptions(ctx, db, client, int(id), issue, options); err != nil {
 		return nil, err
 	}
-	if options.Mode == "full" {
+	if options.includesCharacters() {
 		if err := syncMetronIssueCharactersWithOptions(ctx, db, client, covers, int(id), issue, options); err != nil {
 			return nil, err
 		}

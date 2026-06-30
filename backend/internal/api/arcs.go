@@ -335,7 +335,7 @@ func syncMetronIssueArcsWithOptions(ctx context.Context, db *sqlx.DB, client *me
 	seen := map[int]bool{}
 	arcIDs := make([]int, 0, len(issue.Arcs))
 	for _, arc := range issue.Arcs {
-		if options.Mode == "full" && client != nil && arc.ID > 0 {
+		if options.includesArcs() && client != nil && arc.ID > 0 {
 			detail, err := client.GetArcMetadata(ctx, arc.ID)
 			if err != nil {
 				if isContextCanceledError(err) {

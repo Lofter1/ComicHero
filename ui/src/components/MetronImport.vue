@@ -38,6 +38,7 @@ const importingKey = ref('')
 const importStatus = ref('')
 const importMode = ref('quick')
 const importForce = ref(false)
+const fullImportData = ref(['comics', 'series', 'arcs', 'characters'])
 const rateLimit = ref(null)
 const comicResults = ref([])
 const characterResults = ref([])
@@ -92,9 +93,17 @@ const quotaReset = computed(() => {
 const importOptions = computed(() => {
   const force = importForce.value
   if (importMode.value === 'full') {
-    return { mode: 'full', force }
+    return { mode: 'full', fullData: normalizedFullImportData.value, force }
   }
   return { mode: 'quick', force }
+})
+const normalizedFullImportData = computed(() => {
+  if (importMode.value !== 'full') return []
+  const selected = new Set(fullImportData.value)
+  if (selected.has('series') || selected.has('arcs') || selected.has('characters')) {
+    selected.add('comics')
+  }
+  return ['comics', 'series', 'arcs', 'characters'].filter(item => selected.has(item))
 })
 
 async function search() {
@@ -313,6 +322,22 @@ function setImportMode(mode) {
   importMode.value = mode
 }
 
+function toggleFullImportData(value, checked) {
+  const selected = new Set(fullImportData.value)
+  if (checked) {
+    selected.add(value)
+  } else {
+    selected.delete(value)
+  }
+  if (selected.has('series') || selected.has('arcs') || selected.has('characters')) {
+    selected.add('comics')
+  }
+  if (selected.size === 0) {
+    selected.add('comics')
+  }
+  fullImportData.value = ['comics', 'series', 'arcs', 'characters'].filter(item => selected.has(item))
+}
+
 function comicTitle(comic) {
   if (comic.title) return comic.title
   const seriesName = comic.series || 'Unknown series'
@@ -445,6 +470,40 @@ function formatDate(value) {
         <input v-model="importForce" type="checkbox" />
         Force refresh
       </label>
+      <fieldset v-if="importMode === 'full'" class="metron-data-options">
+        <label class="inline-toggle">
+          <input
+            type="checkbox"
+            :checked="fullImportData.includes('comics')"
+            @change="toggleFullImportData('comics', $event.target.checked)"
+          />
+          Comics
+        </label>
+        <label class="inline-toggle">
+          <input
+            type="checkbox"
+            :checked="fullImportData.includes('series')"
+            @change="toggleFullImportData('series', $event.target.checked)"
+          />
+          Series
+        </label>
+        <label class="inline-toggle">
+          <input
+            type="checkbox"
+            :checked="fullImportData.includes('arcs')"
+            @change="toggleFullImportData('arcs', $event.target.checked)"
+          />
+          Arcs
+        </label>
+        <label class="inline-toggle">
+          <input
+            type="checkbox"
+            :checked="fullImportData.includes('characters')"
+            @change="toggleFullImportData('characters', $event.target.checked)"
+          />
+          Characters
+        </label>
+      </fieldset>
     </div>
 
     <form class="metron-search" @submit.prevent="search">
