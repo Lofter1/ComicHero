@@ -174,24 +174,64 @@ func getReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDet
 }
 
 func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) (*ReadingOrderDetailOutput, error) {
+	comics, err := fetchReadingOrderComics(ctx, db, ro.ID)
+	if err != nil {
+		return nil, err
+	}
+	childOrders, err := fetchChildReadingOrders(ctx, db, ro.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, child := range childOrders {
+		childComics, err := fetchReadingOrderComics(ctx, db, child.ID)
+		if err != nil {
+			return nil, err
+		}
+		for i := range childComics {
+			if childComics[i].Comment == "" {
+				childComics[i].Comment = "From " + child.Name
+			} else {
+				childComics[i].Comment = "From " + child.Name + ": " + childComics[i].Comment
+			}
+		}
+		comics = append(comics, childComics...)
+	}
+
+	ro.Progress = computeProgress(comics)
+	return &ReadingOrderDetailOutput{
+		Body: ReadingOrderDetail{
+			ReadingOrder:       ro,
+			Comics:             comics,
+			ChildReadingOrders: childOrders,
+		},
+	}, nil
+}
+
+func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderComic, error) {
 	comics := []ReadingOrderComic{}
 	if err := db.SelectContext(ctx, &comics, `
 		SELECT c.*, roc.note AS comment, roc.tags AS tags FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
 		WHERE roc.reading_order_id = ?
 		ORDER BY roc.position
-	`, ro.ID); err != nil {
+	`, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
 	hydrateReadingOrderComicTitles(comics)
+	return comics, nil
+}
 
-	ro.Progress = computeProgress(comics)
-	return &ReadingOrderDetailOutput{
-		Body: ReadingOrderDetail{
-			ReadingOrder: ro,
-			Comics:       comics,
-		},
-	}, nil
+func fetchChildReadingOrders(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrder, error) {
+	orders := []ReadingOrder{}
+	if err := db.SelectContext(ctx, &orders, `
+		SELECT ro.* FROM reading_orders ro
+		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
+		WHERE roc.parent_reading_order_id = ?
+		ORDER BY roc.position, ro.name
+	`, readingOrderID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
+	}
+	return orders, nil
 }
 
 func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPayload) (*CreateReadingOrderOutput, error) {
@@ -260,6 +300,9 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 	if err := validateReadingOrderComicIDs(ctx, db, readingOrderComicIDs(comics)); err != nil {
 		return nil, err
 	}
+	if err := validateChildReadingOrderIDs(ctx, db, input.ID, input.Body.ReadingOrderIDs); err != nil {
+		return nil, err
+	}
 
 	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -272,6 +315,11 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 	`, input.ID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to clear comics")
 	}
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM reading_order_children WHERE parent_reading_order_id = ?
+	`, input.ID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to clear child reading orders")
+	}
 
 	for i, comic := range comics {
 		if _, err := tx.ExecContext(ctx, `
@@ -279,6 +327,14 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 			VALUES (?, ?, ?, ?, ?)
 		`, input.ID, comic.ComicID, i+1, comic.Comment, comic.Tags); err != nil {
 			return nil, huma.Error500InternalServerError("failed to insert comic")
+		}
+	}
+	for i, childID := range uniqueReadingOrderIDs(input.Body.ReadingOrderIDs) {
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO reading_order_children (parent_reading_order_id, child_reading_order_id, position)
+			VALUES (?, ?, ?)
+		`, input.ID, childID, i+1); err != nil {
+			return nil, huma.Error500InternalServerError("failed to insert child reading order")
 		}
 	}
 
@@ -299,6 +355,19 @@ func readingOrderComicItems(input *SetReadingOrderComicsInput) []ReadingOrderCom
 		comics = append(comics, ReadingOrderComicPayload{ComicID: comicID})
 	}
 	return comics
+}
+
+func uniqueReadingOrderIDs(ids []int) []int {
+	seen := map[int]bool{}
+	unique := make([]int, 0, len(ids))
+	for _, id := range ids {
+		if id <= 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+		unique = append(unique, id)
+	}
+	return unique
 }
 
 func readingOrderComicIDs(comics []ReadingOrderComicPayload) []int {
@@ -353,4 +422,53 @@ func validateReadingOrderComicIDs(ctx context.Context, db *sqlx.DB, comicIDs []i
 		missingIDStrings = append(missingIDStrings, fmt.Sprintf("%d", comicID))
 	}
 	return huma.Error400BadRequest(fmt.Sprintf("comic(s) not found: %s", strings.Join(missingIDStrings, ", ")))
+}
+
+func validateChildReadingOrderIDs(ctx context.Context, db *sqlx.DB, parentID int, childIDs []int) error {
+	if len(childIDs) == 0 {
+		return nil
+	}
+
+	seen := make(map[int]struct{}, len(childIDs))
+	for _, childID := range childIDs {
+		if childID == parentID {
+			return huma.Error400BadRequest("reading order cannot reference itself")
+		}
+		seen[childID] = struct{}{}
+	}
+
+	uniqueChildIDs := make([]int, 0, len(seen))
+	for childID := range seen {
+		uniqueChildIDs = append(uniqueChildIDs, childID)
+	}
+
+	query, args, err := sqlx.In("SELECT id FROM reading_orders WHERE id IN (?)", uniqueChildIDs)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to validate child reading orders")
+	}
+	query = db.Rebind(query)
+
+	foundIDs := []int{}
+	if err := db.SelectContext(ctx, &foundIDs, query, args...); err != nil {
+		return huma.Error500InternalServerError("failed to validate child reading orders")
+	}
+
+	for _, id := range foundIDs {
+		delete(seen, id)
+	}
+	if len(seen) == 0 {
+		return nil
+	}
+
+	missingIDs := make([]int, 0, len(seen))
+	for childID := range seen {
+		missingIDs = append(missingIDs, childID)
+	}
+	sort.Ints(missingIDs)
+
+	missingIDStrings := make([]string, 0, len(missingIDs))
+	for _, childID := range missingIDs {
+		missingIDStrings = append(missingIDStrings, fmt.Sprintf("%d", childID))
+	}
+	return huma.Error400BadRequest(fmt.Sprintf("reading order(s) not found: %s", strings.Join(missingIDStrings, ", ")))
 }

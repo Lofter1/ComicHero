@@ -122,6 +122,14 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			tags TEXT NOT NULL DEFAULT ''
 		);
 
+		CREATE TABLE reading_order_children (
+			parent_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			child_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (parent_reading_order_id, child_reading_order_id),
+			CHECK (parent_reading_order_id <> child_reading_order_id)
+		);
+
 		CREATE TABLE metron_sync_states (
 			resource_type TEXT NOT NULL,
 			metron_id INTEGER NOT NULL,

@@ -15,6 +15,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  readingOrders: {
+    type: Array,
+    default: () => [],
+  },
   saving: {
     type: Boolean,
     default: false,
@@ -38,11 +42,31 @@ const emit = defineEmits(['update:form', 'save', 'delete'])
 const draggedIndex = ref(null)
 const dragOverIndex = ref(null)
 const comicSearch = ref('')
+const readingOrderSearch = ref('')
 
 const comicSearchResults = computed(() => {
   const term = comicSearch.value.trim().toLowerCase()
   const matches = term ? props.comics.filter(comicMatchesAddSearch) : props.comics
   return matches.slice(0, 8)
+})
+const childOrderChoices = computed(() => {
+  const selected = new Set(props.form.childOrderIds || [])
+  const term = readingOrderSearch.value.trim().toLowerCase()
+  return props.readingOrders
+    .filter(order => order.id !== props.form.id && !selected.has(order.id))
+    .filter(order => {
+      if (!term) return true
+      return [order.name, order.description]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(term))
+    })
+    .slice(0, 6)
+})
+const selectedChildOrders = computed(() => {
+  const byID = new Map(props.readingOrders.map(order => [order.id, order]))
+  return (props.form.childOrderIds || [])
+    .map(id => byID.get(id))
+    .filter(Boolean)
 })
 
 function updateForm(patch) {
@@ -92,6 +116,19 @@ function addEntry(comicId) {
         tags: '',
       },
     ],
+  })
+}
+
+function addChildOrder(orderId) {
+  if (!orderId) return
+  const selected = new Set(props.form.childOrderIds || [])
+  selected.add(orderId)
+  updateForm({ childOrderIds: [...selected] })
+}
+
+function removeChildOrder(orderId) {
+  updateForm({
+    childOrderIds: (props.form.childOrderIds || []).filter(id => id !== orderId),
   })
 }
 
@@ -248,6 +285,53 @@ function endDrag() {
           <span aria-hidden="true">×</span>
         </button>
       </div>
+    </section>
+
+    <section class="entry-section">
+      <div class="section-title">
+        <h4>Included Reading Orders</h4>
+      </div>
+
+      <div v-if="readingOrders.length" class="comic-add-panel">
+        <div class="comic-add-search">
+          <input
+            v-model="readingOrderSearch"
+            type="search"
+            placeholder="Search reading orders"
+            @keydown.enter.prevent
+          />
+          <button v-if="readingOrderSearch" class="ghost-button" type="button" @click="readingOrderSearch = ''">Clear</button>
+        </div>
+        <div v-if="childOrderChoices.length" class="comic-add-results">
+          <button
+            v-for="order in childOrderChoices"
+            :key="order.id"
+            type="button"
+            class="comic-add-result"
+            @click="addChildOrder(order.id)"
+          >
+            <span>
+              <strong>{{ order.name }}</strong>
+              <small>{{ order.description || 'No description' }}</small>
+            </span>
+            <span class="status-pill">Add</span>
+          </button>
+        </div>
+        <p v-else class="muted">No reading orders match that search.</p>
+      </div>
+
+      <div v-if="selectedChildOrders.length" class="list">
+        <div v-for="order in selectedChildOrders" :key="order.id" class="order-entry compact-entry">
+          <div class="selected-order-comic">
+            <strong>{{ order.name }}</strong>
+            <small>{{ order.description || 'No description' }}</small>
+          </div>
+          <button type="button" class="remove-entry-button" :aria-label="`Remove ${order.name}`" title="Remove" @click="removeChildOrder(order.id)">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+      </div>
+      <div v-else class="empty-state">No nested reading orders included.</div>
     </section>
 
   </form>

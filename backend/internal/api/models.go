@@ -209,7 +209,8 @@ type ReadingOrderComic struct {
 
 type ReadingOrderDetail struct {
 	ReadingOrder
-	Comics []ReadingOrderComic `json:"comics" doc:"Comics in reading-order position order."`
+	Comics             []ReadingOrderComic `json:"comics"             doc:"Comics in reading-order position order, including child reading-order comics."`
+	ChildReadingOrders []ReadingOrder      `json:"childReadingOrders" doc:"Reading orders referenced by this reading order."`
 }
 
 type ReadingOrderListInput struct {
@@ -325,7 +326,8 @@ type UpdateReadingOrderInput struct {
 type SetReadingOrderComicsInput struct {
 	ID   int `path:"id" doc:"Local reading-order identifier." example:"7"`
 	Body struct {
-		ComicIDs []int                      `json:"comicIds,omitempty" doc:"Comic IDs in reading order. Use comics to include comments." example:"[42,43]"`
-		Comics   []ReadingOrderComicPayload `json:"comics,omitempty"   doc:"Comics in reading order with optional per-entry comments."`
+		ComicIDs        []int                      `json:"comicIds,omitempty"        doc:"Comic IDs in reading order. Use comics to include comments." example:"[42,43]"`
+		Comics          []ReadingOrderComicPayload `json:"comics,omitempty"          doc:"Comics in reading order with optional per-entry comments."`
+		ReadingOrderIDs []int                      `json:"readingOrderIds,omitempty" doc:"Child reading-order IDs referenced by this reading order." example:"[7,8]"`
 	}
 }

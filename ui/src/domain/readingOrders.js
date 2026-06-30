@@ -5,6 +5,7 @@ export function emptyReadingOrder() {
     description: '',
     favorite: false,
     comics: [],
+    childOrderIds: [],
   }
 }
 
@@ -14,6 +15,7 @@ export function readingOrderFormFromDetail(detail) {
     name: detail.name,
     description: detail.description,
     favorite: detail.favorite,
+    childOrderIds: (detail.childReadingOrders || []).map(order => order.id),
     comics: (detail.comics || []).map(comic => ({
       comicId: comic.id,
       comment: comic.comment || '',
@@ -32,6 +34,9 @@ export function readingOrderPayload(order) {
 
 export function readingOrderComicsPayload(order) {
   return {
+    readingOrderIds: (order.childOrderIds || [])
+      .map(id => Number(id))
+      .filter(id => id > 0),
     comics: order.comics
       .filter(comic => Number(comic.comicId) > 0)
       .map(comic => ({

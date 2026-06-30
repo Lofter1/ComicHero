@@ -15,6 +15,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  readingOrders: {
+    type: Array,
+    default: () => [],
+  },
   saving: {
     type: Boolean,
     default: false,
@@ -53,6 +57,7 @@ const formModel = computed({
         form-id="reading-order-editor-form"
         :selected-order="selectedOrder"
         :comics="comics"
+        :reading-orders="readingOrders"
         :saving="saving"
         @save="$emit('save')"
       />

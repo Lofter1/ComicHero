@@ -122,6 +122,7 @@ const {
 })
 
 const {
+  readingOrders,
   selectedOrder,
   quickSavingOrderID,
   orderForm,
@@ -652,6 +653,7 @@ onUnmounted(() => {
         v-model:form="orderForm"
         :selected-order="selectedOrder"
         :comics="comics"
+        :reading-orders="readingOrders"
         :saving="saving"
         @back="cancelEdit"
         @delete="deleteReadingOrder"
