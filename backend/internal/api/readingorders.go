@@ -128,6 +128,7 @@ func readingOrderListQuery(input *ReadingOrderListInput) (string, []any, error) 
 			ro.metron_reading_list_id,
 			ro.name,
 			ro.description,
+			ro.image,
 			ro.favorite,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0

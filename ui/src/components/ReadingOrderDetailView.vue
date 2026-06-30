@@ -1,4 +1,5 @@
 <script setup>
+import { assetURL } from '@/api/client.js'
 import ComicListView from '@/components/ComicListView.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
 
@@ -37,6 +38,10 @@ defineEmits(['back', 'edit', 'open-comic', 'toggle-read'])
             <h3>{{ selectedOrder.name }}</h3>
           </div>
         </header>
+
+        <div v-if="selectedOrder.image" class="character-portrait">
+          <img :src="assetURL(selectedOrder.image)" :alt="`${selectedOrder.name} thumbnail`" loading="lazy" />
+        </div>
 
         <p class="detail-description">{{ selectedOrder.description || 'No description' }}</p>
         <div class="progress-meter" aria-label="Reading order progress">

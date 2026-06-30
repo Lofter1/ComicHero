@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
 
@@ -139,9 +140,14 @@ function compareText(a, b) {
               :class="{ selected: selectedOrderId === order.id }"
             >
               <span class="order-row-content">
-                <button class="row-main" type="button" @click="$emit('open-order', order)">
-                  <strong>{{ order.name }}</strong>
-                  <small>{{ order.description || 'No description' }}</small>
+                <button class="row-main arc-row-main" type="button" @click="$emit('open-order', order)">
+                  <span v-if="order.image" class="issue-list-cover" aria-hidden="true">
+                    <img :src="assetURL(order.image)" alt="" loading="lazy" />
+                  </span>
+                  <span>
+                    <strong>{{ order.name }}</strong>
+                    <small>{{ order.description || 'No description' }}</small>
+                  </span>
                 </button>
                 <button
                   type="button"

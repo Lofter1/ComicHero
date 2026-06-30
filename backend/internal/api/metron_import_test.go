@@ -29,6 +29,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
 			metron_reading_list_id INTEGER
 		);

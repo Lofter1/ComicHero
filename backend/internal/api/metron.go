@@ -769,7 +769,7 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Cl
 		}
 	}
 
-	order, err := createMetronReadingOrder(ctx, db, list)
+	order, err := createMetronReadingOrder(ctx, db, covers, list)
 	if err != nil {
 		return nil, err
 	}
@@ -820,7 +820,7 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client
 	}
 
 	if orderID == 0 {
-		order, err := createMetronReadingOrder(ctx, db, list)
+		order, err := createMetronReadingOrder(ctx, db, covers, list)
 		if err != nil {
 			return err
 		}
@@ -995,11 +995,16 @@ func existingArcIDByMetronID(ctx context.Context, db *sqlx.DB, metronID int) (in
 	return id, true, nil
 }
 
-func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, list metron.ReadingList) (*CreateReadingOrderOutput, error) {
+func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, list metron.ReadingList) (*CreateReadingOrderOutput, error) {
+	image, err := localCoverURL(ctx, covers, list.Image)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, favorite, metron_reading_list_id)
-		VALUES (?, ?, ?, ?)
-	`, list.Name, list.Description, false, nullableMetronID(list.ID))
+		INSERT INTO reading_orders (name, description, image, favorite, metron_reading_list_id)
+		VALUES (?, ?, ?, ?, ?)
+	`, list.Name, list.Description, image, false, nullableMetronID(list.ID))
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to import Metron reading list")
 	}
