@@ -99,6 +99,14 @@ When the backend is running, Huma exposes interactive API documentation at:
 http://localhost:8080/api/docs
 ```
 
+## Roadmap
+
+- Import and export library data for backups, migrations, and sharing.
+- Optional login and user management for deployments that need multiple users.
+- Edit views for all stored data.
+- Sync read status with Metron when running in single-user mode.
+- Open Source like approach on Reading Orders
+
 ## Data and Privacy
 
 ComicHero is intended for self-hosted personal reading-order data. The repository does not include comic metadata, cover images, credentials, or a database. Local runtime data paths such as `backend/data`, `tmp`, and cached covers are ignored by Git.
