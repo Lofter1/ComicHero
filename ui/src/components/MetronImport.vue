@@ -8,6 +8,7 @@ import {
   importMetronReadingList,
   importMetronSeries,
   importMetronArc,
+  listMetronRequests,
   searchMetronCharacters,
   searchMetronComics,
   searchMetronReadingLists,
@@ -49,6 +50,7 @@ const selectedReadingList = ref(null)
 const readingListDetailOpen = ref(false)
 const readingListDetailLoading = ref(false)
 const readingListDetailStatus = ref('')
+const metronRequests = ref([])
 
 const busy = computed(() => searching.value)
 const searchLabel = computed(() => {
@@ -118,6 +120,7 @@ async function search() {
       })
       updateRateLimit(nextRateLimit)
       comicResults.value = Array.isArray(data) ? data : []
+      await refreshMetronRequests()
       return
     }
 
@@ -125,6 +128,7 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronReadingLists({ q: query.value })
       updateRateLimit(nextRateLimit)
       readingListResults.value = Array.isArray(data) ? data : []
+      await refreshMetronRequests()
       return
     }
 
@@ -132,6 +136,7 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronCharacters({ q: query.value })
       updateRateLimit(nextRateLimit)
       characterResults.value = Array.isArray(data) ? data : []
+      await refreshMetronRequests()
       return
     }
 
@@ -139,12 +144,14 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronArcs({ q: query.value })
       updateRateLimit(nextRateLimit)
       arcResults.value = Array.isArray(data) ? data : []
+      await refreshMetronRequests()
       return
     }
 
     const { data, rateLimit: nextRateLimit } = await searchMetronSeries({ q: query.value || series.value })
     updateRateLimit(nextRateLimit)
     seriesResults.value = Array.isArray(data) ? data : []
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -161,6 +168,7 @@ async function importComic(comic) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronComic(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, comic.title || `${comic.series} #${comic.number || comic.issue}`)
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -177,6 +185,7 @@ async function importReadingList(list) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronReadingList(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, list.name || 'Untitled reading list')
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -194,6 +203,7 @@ async function openReadingList(list) {
     const { data, rateLimit: nextRateLimit } = await getMetronReadingList(list.id)
     updateRateLimit(nextRateLimit)
     selectedReadingList.value = { ...list, ...(data || {}) }
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     readingListDetailStatus.value = err.message
@@ -217,6 +227,7 @@ async function importSeries(item) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronSeries(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, item.name || 'Untitled series')
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -233,6 +244,7 @@ async function importCharacter(character) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, character.name || 'Untitled character')
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -249,6 +261,7 @@ async function importArc(arc) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronArc(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, arc.name || 'Untitled arc')
+    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -275,6 +288,14 @@ function updateRateLimit(nextRateLimit) {
 function trackJob(job, displayName) {
   if (!job?.id) return
   emit('job-started', { ...job, displayName })
+}
+
+async function refreshMetronRequests() {
+  try {
+    metronRequests.value = (await listMetronRequests()).slice(0, 8)
+  } catch {
+    metronRequests.value = []
+  }
 }
 
 function limitText(label, remaining, limit) {
@@ -383,6 +404,11 @@ function formatDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function requestLine(request) {
+  const query = request.query ? `?${request.query}` : ''
+  return `${request.method || 'GET'} ${request.path || request.url || ''}${query}`
 }
 
 </script>
@@ -538,6 +564,21 @@ function formatDate(value) {
       <span v-if="rateLimitReset">Resets around {{ rateLimitReset }}</span>
       <span v-if="importStatus">{{ importStatus }}</span>
     </div>
+
+    <section v-if="metronRequests.length" class="metron-request-log">
+      <header>
+        <strong>Recent Metron calls</strong>
+        <small>{{ metronRequests.length }} shown</small>
+      </header>
+      <div class="metron-request-list">
+        <span v-for="request in metronRequests" :key="`${request.startedAt}-${request.path}-${request.query}`">
+          <code>{{ requestLine(request) }}</code>
+          <small>
+            {{ request.status || 'error' }} · {{ request.durationMillis }}ms<span v-if="request.conditional"> · conditional</span>
+          </small>
+        </span>
+      </div>
+    </section>
 
     <section class="metron-results single">
       <article class="detail-panel">

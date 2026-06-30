@@ -25,6 +25,8 @@ type Client struct {
 	cacheMu    sync.RWMutex
 	rateLimit  RateLimit
 	rateMu     sync.RWMutex
+	requestMu  sync.RWMutex
+	requestLog []RequestLogEntry
 }
 
 type Config struct {
@@ -125,6 +127,18 @@ type FetchInfo struct {
 	NotModified  bool
 }
 
+type RequestLogEntry struct {
+	StartedAt      string `json:"startedAt"`
+	Method         string `json:"method"`
+	URL            string `json:"url"`
+	Path           string `json:"path"`
+	Query          string `json:"query"`
+	Status         int    `json:"status"`
+	DurationMillis int64  `json:"durationMillis"`
+	Conditional    bool   `json:"conditional"`
+	Error          string `json:"error,omitempty"`
+}
+
 type RateLimitError struct {
 	Status    string
 	Body      string
@@ -158,6 +172,14 @@ func (c *Client) CurrentRateLimit() RateLimit {
 	c.rateMu.RLock()
 	defer c.rateMu.RUnlock()
 	return c.rateLimit
+}
+
+func (c *Client) RecentRequests() []RequestLogEntry {
+	c.requestMu.RLock()
+	defer c.requestMu.RUnlock()
+	requests := make([]RequestLogEntry, len(c.requestLog))
+	copy(requests, c.requestLog)
+	return requests
 }
 
 func New(config Config) *Client {
@@ -501,19 +523,24 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	c.authorize(req)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "ComicHero/0.1")
+	conditionalHeader := conditional.LastModified != ""
 	if conditional.LastModified != "" && !conditional.Force {
 		req.Header.Set("If-Modified-Since", conditional.LastModified)
 	} else if !conditional.Force {
 		if cached, ok := c.cached(cacheKey); ok && cached.lastModified != "" {
 			req.Header.Set("If-Modified-Since", cached.lastModified)
+			conditionalHeader = true
 		}
 	}
 
+	started := time.Now()
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.recordRequest(req, 0, started, conditionalHeader, err.Error())
 		return FetchInfo{}, err
 	}
 	defer resp.Body.Close()
+	c.recordRequest(req, resp.StatusCode, started, conditionalHeader, "")
 
 	if resp.StatusCode == http.StatusNotModified {
 		c.updateRateLimit(resp.Header)
@@ -549,6 +576,27 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	c.storeCache(cacheKey, lastModified, body)
 
 	return FetchInfo{LastModified: lastModified}, json.Unmarshal(body, target)
+}
+
+func (c *Client) recordRequest(req *http.Request, status int, started time.Time, conditional bool, errMessage string) {
+	entry := RequestLogEntry{
+		StartedAt:      started.UTC().Format(time.RFC3339),
+		Method:         req.Method,
+		URL:            req.URL.String(),
+		Path:           req.URL.Path,
+		Query:          req.URL.RawQuery,
+		Status:         status,
+		DurationMillis: time.Since(started).Milliseconds(),
+		Conditional:    conditional,
+		Error:          errMessage,
+	}
+
+	c.requestMu.Lock()
+	defer c.requestMu.Unlock()
+	c.requestLog = append([]RequestLogEntry{entry}, c.requestLog...)
+	if len(c.requestLog) > 200 {
+		c.requestLog = c.requestLog[:200]
+	}
 }
 
 func (c *Client) waitForRateLimit(ctx context.Context) error {

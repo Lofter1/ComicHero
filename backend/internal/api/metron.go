@@ -118,6 +118,10 @@ type MetronQuotaOutput struct {
 	Body MetronQuota
 }
 
+type MetronRequestLogOutput struct {
+	Body []metron.RequestLogEntry
+}
+
 func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
 	huma.Register(api, huma.Operation{
 		OperationID: "searchMetronComics",
@@ -376,6 +380,18 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *struct{}) (*MetronImportJobListOutput, error) {
 		return listMetronImportJobs(importJobs), nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listMetronRequests",
+		Tags:        []string{tagMetron},
+		Summary:     "List recent Metron requests",
+		Description: "Returns recent outbound Metron API calls recorded by this server, including path, query, status, duration, and conditional-request state.",
+		Method:      http.MethodGet,
+		Path:        "/metron/requests",
+		Errors:      errsRead,
+	}, func(ctx context.Context, input *struct{}) (*MetronRequestLogOutput, error) {
+		return &MetronRequestLogOutput{Body: client.RecentRequests()}, nil
 	})
 
 	sse.Register(api, huma.Operation{
