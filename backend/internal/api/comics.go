@@ -180,10 +180,22 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 	if err := hydrateCharacterAliases(ctx, db, characters); err != nil {
 		return nil, err
 	}
+	var seriesID *int
+	var localSeriesID int
+	if err := db.GetContext(ctx, &localSeriesID, `
+		SELECT id FROM series WHERE name = ? AND series_year = ?
+	`, comic.Series, comic.SeriesYear); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, huma.Error500InternalServerError("failed to fetch comic series")
+		}
+	} else {
+		seriesID = &localSeriesID
+	}
 
 	return &ComicDetailOutput{
 		Body: ComicDetail{
 			Comic:         comic,
+			SeriesID:      seriesID,
 			ReadingOrders: orders,
 			Arcs:          arcs,
 			Characters:    characters,

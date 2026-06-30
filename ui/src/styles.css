@@ -616,6 +616,24 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.metadata-link-button {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 0;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.metadata-link-button:hover {
+  text-decoration: underline;
+}
+
 .metadata-grid small {
   display: block;
   color: var(--muted);

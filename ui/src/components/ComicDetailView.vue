@@ -41,6 +41,7 @@ const emit = defineEmits([
   'toggle-read',
   'edit',
   'open-character',
+  'open-series',
 ])
 
 const metronActionDisabled = computed(() => props.metronMetadataSearching || props.metronMetadataApplyingId !== null)
@@ -112,7 +113,15 @@ function forceMetronRefresh() {
 
         <div class="metadata-grid">
           <span>
-            <strong>{{ selectedComic.series }}{{ selectedComic.seriesYear ? ` (${selectedComic.seriesYear})` : '' }} #{{ selectedComic.issue }}</strong>
+            <button
+              v-if="selectedComic.seriesId"
+              class="metadata-link-button"
+              type="button"
+              @click="$emit('open-series', { id: selectedComic.seriesId })"
+            >
+              {{ selectedComic.series }}{{ selectedComic.seriesYear ? ` (${selectedComic.seriesYear})` : '' }} #{{ selectedComic.issue }}
+            </button>
+            <strong v-else>{{ selectedComic.series }}{{ selectedComic.seriesYear ? ` (${selectedComic.seriesYear})` : '' }} #{{ selectedComic.issue }}</strong>
             <small>Series</small>
           </span>
           <span>

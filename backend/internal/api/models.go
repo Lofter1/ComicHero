@@ -28,6 +28,7 @@ type ComicPayload struct {
 
 type ComicDetail struct {
 	Comic
+	SeriesID      *int           `json:"seriesId,omitempty" doc:"Local series identifier for this comic's series, when available." example:"5"`
 	ReadingOrders []ReadingOrder `json:"readingOrders" doc:"Reading orders that include this comic."`
 	Arcs          []Arc          `json:"arcs"          doc:"Story arcs that include this comic."`
 	Characters    []Character    `json:"characters"    doc:"Characters appearing in this comic."`

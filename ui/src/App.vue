@@ -812,6 +812,7 @@ onUnmounted(() => {
         @toggle-read="toggleComicRead"
         @edit="editComic"
         @open-character="openCharacter"
+        @open-series="openSeries"
       />
 
       <div v-else class="browse-view">
