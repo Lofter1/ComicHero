@@ -140,7 +140,9 @@ export function useComics({
     try {
       const detail = await updateComicReadStatus(comic.id, !comic.read)
       applyComicReadState(detail)
-      await refreshActiveLibraryData()
+      refreshActiveLibraryData().catch(err => {
+        error.value = err.message
+      })
     } catch (err) {
       error.value = err.message
     } finally {
