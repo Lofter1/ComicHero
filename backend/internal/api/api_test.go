@@ -108,6 +108,105 @@ func TestReadingOrderHelpers(t *testing.T) {
 	}
 }
 
+func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
+	ctx := context.Background()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE reading_orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_reading_list_id INTEGER,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue TEXT NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			read INTEGER NOT NULL DEFAULT 0,
+			metron_issue_id INTEGER
+		);
+		CREATE TABLE reading_order_comics (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			tags TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE reading_order_children (
+			parent_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			child_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (parent_reading_order_id, child_reading_order_id),
+			CHECK (parent_reading_order_id <> child_reading_order_id)
+		);
+		INSERT INTO comics (series, series_year, issue, publisher)
+		VALUES ('Parent', 2026, '1', 'Publisher'),
+			('Child', 2026, '2', 'Publisher'),
+			('Parent', 2026, '3', 'Publisher');
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+
+	parent, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: "Parent"})
+	if err != nil {
+		t.Fatalf("create parent: %v", err)
+	}
+	child, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: "Child"})
+	if err != nil {
+		t.Fatalf("create child: %v", err)
+	}
+
+	childInput := &SetReadingOrderComicsInput{ID: child.Body.ID}
+	childInput.Body.Entries = []ReadingOrderEntryPayload{{Type: "comic", ComicID: 2}}
+	if _, err := setReadingOrderComics(ctx, db, childInput); err != nil {
+		t.Fatalf("set child entries: %v", err)
+	}
+
+	parentInput := &SetReadingOrderComicsInput{ID: parent.Body.ID}
+	parentInput.Body.Entries = []ReadingOrderEntryPayload{
+		{Type: "comic", ComicID: 1},
+		{Type: "readingOrder", ReadingOrderID: child.Body.ID, Comment: "Crossover break"},
+		{Type: "comic", ComicID: 3},
+	}
+	detail, err := setReadingOrderComics(ctx, db, parentInput)
+	if err != nil {
+		t.Fatalf("set parent entries: %v", err)
+	}
+
+	if len(detail.Body.Entries) != 3 || detail.Body.Entries[1].Type != "readingOrder" {
+		t.Fatalf("entries = %#v; want nested reading order in the middle", detail.Body.Entries)
+	}
+	if detail.Body.Entries[1].Comment != "Crossover break" {
+		t.Fatalf("nested order note = %q; want Crossover break", detail.Body.Entries[1].Comment)
+	}
+	if len(detail.Body.Comics) != 3 {
+		t.Fatalf("expanded comics = %d; want 3", len(detail.Body.Comics))
+	}
+	for i, issue := range []string{"1", "2", "3"} {
+		if detail.Body.Comics[i].Issue != issue {
+			t.Fatalf("comic %d issue = %q; want %q", i, detail.Body.Comics[i].Issue, issue)
+		}
+	}
+	if detail.Body.Comics[1].Comment != "From Child: Crossover break" {
+		t.Fatalf("nested comic comment = %q; want nested order note", detail.Body.Comics[1].Comment)
+	}
+}
+
 func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqlx.Open("sqlite", ":memory:")

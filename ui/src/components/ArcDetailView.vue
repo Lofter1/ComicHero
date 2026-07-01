@@ -22,7 +22,7 @@ defineProps({
   },
 })
 
-defineEmits(['back', 'edit', 'toggle-favorite', 'open-comic', 'toggle-read'])
+defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
 </script>
 
 <template>
@@ -42,7 +42,6 @@ defineEmits(['back', 'edit', 'toggle-favorite', 'open-comic', 'toggle-read'])
         >
           <span aria-hidden="true">{{ selectedArc.favorite ? '★' : '☆' }}</span>
         </button>
-        <button v-if="selectedArc" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
       </div>
     </header>
 

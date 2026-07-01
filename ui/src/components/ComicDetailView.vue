@@ -39,7 +39,6 @@ const emit = defineEmits([
   'apply-metron',
   'reset-metron',
   'toggle-read',
-  'edit',
   'open-character',
   'open-series',
 ])
@@ -94,7 +93,6 @@ function forceMetronRefresh() {
         >
           {{ selectedComic.read ? 'Mark unread' : 'Mark read' }}
         </button>
-        <button v-if="selectedComic" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
       </div>
     </header>
 

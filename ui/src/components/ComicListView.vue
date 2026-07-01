@@ -86,7 +86,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['open-comic', 'toggle-read', 'new-comic', 'update:search', 'update:status', 'update:sort', 'update:direction'])
+const emit = defineEmits(['open-comic', 'toggle-read', 'update:search', 'update:status', 'update:sort', 'update:direction'])
 
 const localSearch = ref('')
 const localStatus = ref('all')
@@ -318,16 +318,6 @@ watch(() => canLoadMoreLocal.value || canLoadMoreServer.value, () => {
           <p class="eyebrow">{{ title }}</p>
           <small>{{ summaryText }}</small>
         </div>
-        <button
-          v-if="showNewButton"
-          class="primary-button icon-text-button"
-          type="button"
-          aria-label="New comic"
-          title="New comic"
-          @click="$emit('new-comic')"
-        >
-          <span aria-hidden="true" class="button-icon">+</span>
-        </button>
       </header>
 
       <div v-if="sourceComics.length || serverSource" class="comic-list-tools">
@@ -386,13 +376,5 @@ watch(() => canLoadMoreLocal.value || canLoadMoreServer.value, () => {
         Load more issues
       </button>
     </template>
-
-    <div v-else class="empty-state">
-      {{ hasFilters ? filteredEmptyMessage : emptyMessage }}
-      <button v-if="showNewButton && !hasFilters" class="secondary-button" type="button" @click="$emit('new-comic')">
-        <span aria-hidden="true" class="button-icon">+</span>
-        Add the first comic
-      </button>
-    </div>
   </section>
 </template>

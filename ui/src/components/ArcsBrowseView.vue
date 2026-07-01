@@ -51,7 +51,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-arc', 'open-arc', 'toggle-favorite'])
+defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-arc', 'toggle-favorite'])
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -98,15 +98,6 @@ function sectionList(title, arcs) {
             @update:sort="$emit('update:sort', $event)"
             @update:direction="$emit('update:direction', $event)"
           />
-          <button
-            class="primary-button icon-text-button"
-            type="button"
-            aria-label="New arc"
-            title="New arc"
-            @click="$emit('new-arc')"
-          >
-            <span aria-hidden="true" class="button-icon">+</span>
-          </button>
         </div>
       </div>
       <div v-if="visibleArcs.length" class="sectioned-list">
@@ -150,13 +141,6 @@ function sectionList(title, arcs) {
             </div>
           </div>
         </section>
-      </div>
-      <div v-else class="empty-state">
-        {{ hasFilters ? 'No arcs match these filters.' : 'No arcs yet.' }}
-        <button v-if="!hasFilters" class="secondary-button" type="button" @click="$emit('new-arc')">
-          <span aria-hidden="true" class="button-icon">+</span>
-          Create the first arc
-        </button>
       </div>
     </div>
   </div>

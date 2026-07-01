@@ -101,7 +101,7 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         viewMode.value = 'edit'
         selectedOrder.value = null
         orderForm.value = emptyReadingOrder()
-        loadComics().catch(err => {
+        loadReadingOrderEditorOptions().catch(err => {
             error.value = err.message
         })
     }
@@ -111,9 +111,16 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         error.value = ''
         orderForm.value = readingOrderFormFromDetail(selectedOrder.value)
         viewMode.value = 'edit'
-        loadComics().catch(err => {
+        loadReadingOrderEditorOptions().catch(err => {
             error.value = err.message
         })
+    }
+
+    async function loadReadingOrderEditorOptions() {
+        await Promise.all([
+            loadComics(),
+            loadReadingOrders(),
+        ])
     }
 
     async function saveReadingOrder() {

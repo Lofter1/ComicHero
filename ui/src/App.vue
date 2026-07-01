@@ -1,14 +1,12 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import ArcDetailView from '@/components/ArcDetailView.vue'
-import ArcEditView from '@/components/ArcEditView.vue'
 import ArcsBrowseView from '@/components/ArcsBrowseView.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import AppToolbar from '@/components/AppToolbar.vue'
 import CharactersBrowseView from '@/components/CharactersBrowseView.vue'
 import CharacterDetailView from '@/components/CharacterDetailView.vue'
 import ComicDetailView from '@/components/ComicDetailView.vue'
-import ComicEditView from '@/components/ComicEditView.vue'
 import ComicListView from '@/components/ComicListView.vue'
 import MetronImport from '@/components/MetronImport.vue'
 import MetronImportMonitor from '@/components/MetronImportMonitor.vue'
@@ -722,16 +720,6 @@ onUnmounted(() => {
         @toggle-favorite="toggleReadingOrderFavorite"
       />
 
-      <ArcEditView
-        v-else-if="activeView === 'arcs' && isEditing"
-        v-model:form="arcForm"
-        :selected-arc="selectedArc"
-        :comics="comics"
-        :saving="saving"
-        @back="cancelEdit"
-        @delete="deleteArc"
-        @save="saveArc"
-      />
 
       <ArcDetailView
         v-else-if="activeView === 'arcs' && isDetail"
@@ -837,16 +825,6 @@ onUnmounted(() => {
         @update:direction="updateListOption('characters', 'direction', $event)"
         @open-character="openCharacter"
         @toggle-favorite="toggleCharacterFavorite"
-      />
-
-      <ComicEditView
-        v-else-if="activeView === 'comics' && isEditing"
-        v-model:form="comicForm"
-        :selected-comic="selectedComic"
-        :saving="saving"
-        @back="cancelEdit"
-        @delete="deleteComic"
-        @save="saveComic"
       />
 
       <ComicDetailView

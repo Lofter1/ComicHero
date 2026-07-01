@@ -42,8 +42,9 @@ export function usePagination({ activeView, loading, isEditing, isDetail, search
     if (!append && state.initialized && !force) return
 
     const offset = append ? state.nextOffset : 0
-    const params = { ...(listParams?.value || {}), limit: pageSize, offset }
-    if (searchTerm.value) {
+    const isActiveList = key === activeView.value
+    const params = { ...(isActiveList ? (listParams?.value || {}) : {}), limit: pageSize, offset }
+    if (isActiveList && searchTerm.value) {
       params.q = searchTerm.value
     }
     state.refreshing = !append

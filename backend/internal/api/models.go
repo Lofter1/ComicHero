@@ -211,14 +211,30 @@ type ReadingOrderComicPayload struct {
 	Tags    string `json:"tags"    doc:"Comma-separated tags for this reading-order entry." example:"Main Story"`
 }
 
+type ReadingOrderEntryPayload struct {
+	Type           string `json:"type"           enum:"comic,readingOrder" doc:"Entry type." example:"comic"`
+	ComicID        int    `json:"comicId,omitempty"        doc:"Local comic identifier for comic entries." example:"42"`
+	ReadingOrderID int    `json:"readingOrderId,omitempty" doc:"Child reading-order identifier for nested reading-order entries." example:"7"`
+	Comment        string `json:"comment,omitempty"        doc:"Optional note for comic or nested reading-order entries." example:"Read after issue 5"`
+	Tags           string `json:"tags,omitempty"           doc:"Comma-separated tags for comic entries." example:"Main Story"`
+}
+
 type ReadingOrderComic struct {
 	Comic
 	Comment string `json:"comment" db:"comment" doc:"Per-entry reading-order note." example:"Tie-in"`
 	Tags    string `json:"tags"    db:"tags"    doc:"Comma-separated entry tags synced from Metron or added locally." example:"Main Story"`
 }
 
+type ReadingOrderEntry struct {
+	Type         string             `json:"type" doc:"Entry type." example:"comic"`
+	Comic        *ReadingOrderComic `json:"comic,omitempty" doc:"Comic entry payload when type is comic."`
+	ReadingOrder *ReadingOrder      `json:"readingOrder,omitempty" doc:"Referenced reading order when type is readingOrder."`
+	Comment      string             `json:"comment,omitempty" doc:"Per-entry note for nested reading-order entries." example:"Read this crossover here"`
+}
+
 type ReadingOrderDetail struct {
 	ReadingOrder
+	Entries            []ReadingOrderEntry `json:"entries"            doc:"Direct reading-order entries in position order."`
 	Comics             []ReadingOrderComic `json:"comics"             doc:"Comics in reading-order position order, including child reading-order comics."`
 	ChildReadingOrders []ReadingOrder      `json:"childReadingOrders" doc:"Reading orders referenced by this reading order."`
 }
@@ -343,5 +359,6 @@ type SetReadingOrderComicsInput struct {
 		ComicIDs        []int                      `json:"comicIds,omitempty"        doc:"Comic IDs in reading order. Use comics to include comments." example:"[42,43]"`
 		Comics          []ReadingOrderComicPayload `json:"comics,omitempty"          doc:"Comics in reading order with optional per-entry comments."`
 		ReadingOrderIDs []int                      `json:"readingOrderIds,omitempty" doc:"Child reading-order IDs referenced by this reading order." example:"[7,8]"`
+		Entries         []ReadingOrderEntryPayload `json:"entries,omitempty"         doc:"Ordered comic and child reading-order entries."`
 	}
 }

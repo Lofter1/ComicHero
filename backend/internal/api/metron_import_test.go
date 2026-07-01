@@ -126,6 +126,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			parent_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			child_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (parent_reading_order_id, child_reading_order_id),
 			CHECK (parent_reading_order_id <> child_reading_order_id)
 		);

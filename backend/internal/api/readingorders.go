@@ -185,24 +185,36 @@ func getReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDet
 }
 
 func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) (*ReadingOrderDetailOutput, error) {
-	comics, err := fetchReadingOrderComics(ctx, db, ro.ID)
+	entries, err := fetchReadingOrderEntries(ctx, db, ro.ID)
 	if err != nil {
 		return nil, err
 	}
-	childOrders, err := fetchChildReadingOrders(ctx, db, ro.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, child := range childOrders {
+	comics := []ReadingOrderComic{}
+	childOrders := []ReadingOrder{}
+	for _, entry := range entries {
+		if entry.Type == "comic" && entry.Comic != nil {
+			comics = append(comics, *entry.Comic)
+			continue
+		}
+		if entry.Type != "readingOrder" || entry.ReadingOrder == nil {
+			continue
+		}
+
+		child := *entry.ReadingOrder
+		childOrders = append(childOrders, child)
 		childComics, err := fetchReadingOrderComics(ctx, db, child.ID)
 		if err != nil {
 			return nil, err
 		}
+		source := "From " + child.Name
+		if entry.Comment != "" {
+			source += ": " + entry.Comment
+		}
 		for i := range childComics {
 			if childComics[i].Comment == "" {
-				childComics[i].Comment = "From " + child.Name
+				childComics[i].Comment = source
 			} else {
-				childComics[i].Comment = "From " + child.Name + ": " + childComics[i].Comment
+				childComics[i].Comment = source + " - " + childComics[i].Comment
 			}
 		}
 		comics = append(comics, childComics...)
@@ -212,10 +224,84 @@ func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) 
 	return &ReadingOrderDetailOutput{
 		Body: ReadingOrderDetail{
 			ReadingOrder:       ro,
+			Entries:            entries,
 			Comics:             comics,
 			ChildReadingOrders: childOrders,
 		},
 	}, nil
+}
+
+func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderEntry, error) {
+	comics := []struct {
+		ReadingOrderComic
+		Position int `db:"position"`
+	}{}
+	if err := db.SelectContext(ctx, &comics, `
+		SELECT c.*, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
+		JOIN reading_order_comics roc ON roc.comic_id = c.id
+		WHERE roc.reading_order_id = ?
+		ORDER BY roc.position
+	`, readingOrderID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch comics")
+	}
+	for i := range comics {
+		hydrateComicTitle(&comics[i].ReadingOrderComic.Comic)
+	}
+
+	children := []struct {
+		ReadingOrder
+		Position int    `db:"position"`
+		Comment  string `db:"comment"`
+	}{}
+	if err := db.SelectContext(ctx, &children, `
+		SELECT ro.*, roc.position AS position, roc.note AS comment FROM reading_orders ro
+		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
+		WHERE roc.parent_reading_order_id = ?
+		ORDER BY roc.position, ro.name
+	`, readingOrderID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
+	}
+
+	positioned := make([]struct {
+		position int
+		entry    ReadingOrderEntry
+	}, 0, len(comics)+len(children))
+	for i := range comics {
+		comic := comics[i].ReadingOrderComic
+		positioned = append(positioned, struct {
+			position int
+			entry    ReadingOrderEntry
+		}{
+			position: comics[i].Position,
+			entry: ReadingOrderEntry{
+				Type:  "comic",
+				Comic: &comic,
+			},
+		})
+	}
+	for i := range children {
+		child := children[i].ReadingOrder
+		positioned = append(positioned, struct {
+			position int
+			entry    ReadingOrderEntry
+		}{
+			position: children[i].Position,
+			entry: ReadingOrderEntry{
+				Type:         "readingOrder",
+				ReadingOrder: &child,
+				Comment:      children[i].Comment,
+			},
+		})
+	}
+	sort.SliceStable(positioned, func(i, j int) bool {
+		return positioned[i].position < positioned[j].position
+	})
+
+	entries := make([]ReadingOrderEntry, 0, len(positioned))
+	for _, item := range positioned {
+		entries = append(entries, item.entry)
+	}
+	return entries, nil
 }
 
 func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderComic, error) {
@@ -307,11 +393,14 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 		return nil, huma.Error404NotFound("reading order not found")
 	}
 
-	comics := readingOrderComicItems(input)
-	if err := validateReadingOrderComicIDs(ctx, db, readingOrderComicIDs(comics)); err != nil {
+	entries := readingOrderEntryItems(input)
+	if err := validateReadingOrderEntries(entries); err != nil {
 		return nil, err
 	}
-	if err := validateChildReadingOrderIDs(ctx, db, input.ID, input.Body.ReadingOrderIDs); err != nil {
+	if err := validateReadingOrderComicIDs(ctx, db, readingOrderEntryComicIDs(entries)); err != nil {
+		return nil, err
+	}
+	if err := validateChildReadingOrderIDs(ctx, db, input.ID, readingOrderEntryChildIDs(entries)); err != nil {
 		return nil, err
 	}
 
@@ -332,20 +421,23 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 		return nil, huma.Error500InternalServerError("failed to clear child reading orders")
 	}
 
-	for i, comic := range comics {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note, tags)
-			VALUES (?, ?, ?, ?, ?)
-		`, input.ID, comic.ComicID, i+1, comic.Comment, comic.Tags); err != nil {
-			return nil, huma.Error500InternalServerError("failed to insert comic")
-		}
-	}
-	for i, childID := range uniqueReadingOrderIDs(input.Body.ReadingOrderIDs) {
-		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO reading_order_children (parent_reading_order_id, child_reading_order_id, position)
-			VALUES (?, ?, ?)
-		`, input.ID, childID, i+1); err != nil {
-			return nil, huma.Error500InternalServerError("failed to insert child reading order")
+	for i, entry := range entries {
+		position := i + 1
+		switch entry.Type {
+		case "comic":
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note, tags)
+				VALUES (?, ?, ?, ?, ?)
+			`, input.ID, entry.ComicID, position, entry.Comment, entry.Tags); err != nil {
+				return nil, huma.Error500InternalServerError("failed to insert comic")
+			}
+		case "readingOrder":
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO reading_order_children (parent_reading_order_id, child_reading_order_id, position, note)
+				VALUES (?, ?, ?, ?)
+			`, input.ID, entry.ReadingOrderID, position, entry.Comment); err != nil {
+				return nil, huma.Error500InternalServerError("failed to insert child reading order")
+			}
 		}
 	}
 
@@ -354,6 +446,65 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 	}
 
 	return fetchReadingOrderDetail(ctx, db, ro)
+}
+
+func readingOrderEntryItems(input *SetReadingOrderComicsInput) []ReadingOrderEntryPayload {
+	if len(input.Body.Entries) > 0 {
+		entries := make([]ReadingOrderEntryPayload, 0, len(input.Body.Entries))
+		for _, entry := range input.Body.Entries {
+			entries = append(entries, normalizeReadingOrderEntry(entry))
+		}
+		return entries
+	}
+
+	comics := readingOrderComicItems(input)
+	entries := make([]ReadingOrderEntryPayload, 0, len(comics)+len(input.Body.ReadingOrderIDs))
+	for _, comic := range comics {
+		entries = append(entries, ReadingOrderEntryPayload{
+			Type:    "comic",
+			ComicID: comic.ComicID,
+			Comment: comic.Comment,
+			Tags:    comic.Tags,
+		})
+	}
+	for _, childID := range uniqueReadingOrderIDs(input.Body.ReadingOrderIDs) {
+		entries = append(entries, ReadingOrderEntryPayload{
+			Type:           "readingOrder",
+			ReadingOrderID: childID,
+			Comment:        "",
+		})
+	}
+	return entries
+}
+
+func normalizeReadingOrderEntry(entry ReadingOrderEntryPayload) ReadingOrderEntryPayload {
+	entry.Type = strings.TrimSpace(entry.Type)
+	if entry.Type == "" {
+		if entry.ReadingOrderID > 0 {
+			entry.Type = "readingOrder"
+		} else {
+			entry.Type = "comic"
+		}
+	}
+	return entry
+}
+
+func validateReadingOrderEntries(entries []ReadingOrderEntryPayload) error {
+	for _, entry := range entries {
+		switch entry.Type {
+		case "comic":
+			if entry.ComicID <= 0 {
+				return huma.Error400BadRequest("comic entry requires comicId")
+			}
+		case "readingOrder":
+			if entry.ReadingOrderID <= 0 {
+				return huma.Error400BadRequest("reading order entry requires readingOrderId")
+			}
+		default:
+			return huma.Error400BadRequest("reading order entry type must be comic or readingOrder")
+		}
+	}
+	return nil
 }
 
 func readingOrderComicItems(input *SetReadingOrderComicsInput) []ReadingOrderComicPayload {
@@ -366,6 +517,26 @@ func readingOrderComicItems(input *SetReadingOrderComicsInput) []ReadingOrderCom
 		comics = append(comics, ReadingOrderComicPayload{ComicID: comicID})
 	}
 	return comics
+}
+
+func readingOrderEntryComicIDs(entries []ReadingOrderEntryPayload) []int {
+	comicIDs := make([]int, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Type == "comic" {
+			comicIDs = append(comicIDs, entry.ComicID)
+		}
+	}
+	return comicIDs
+}
+
+func readingOrderEntryChildIDs(entries []ReadingOrderEntryPayload) []int {
+	childIDs := make([]int, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Type == "readingOrder" {
+			childIDs = append(childIDs, entry.ReadingOrderID)
+		}
+	}
+	return childIDs
 }
 
 func uniqueReadingOrderIDs(ids []int) []int {
