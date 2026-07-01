@@ -462,8 +462,9 @@ func startMetronReadingListImportWithOptions(store *metronImportJobStore, db *sq
 	options = resolveMetronImportOptions(options)
 	return store.startWithOptions("readingList", metronID, options, "Importing reading list and issues from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Checking existing imports...")
-		if _, ok, err := existingReadingOrderIDByMetronID(ctx, db, metronID); err != nil || ok {
-			if ok && options.Mode != "full" && !options.Force {
+		existingID, existing, err := existingReadingOrderIDByMetronID(ctx, db, metronID)
+		if err != nil || existing {
+			if existing && options.Mode != "full" && !options.Force {
 				progress(1, 1, "Reading list already exists.")
 				return err
 			}
@@ -471,9 +472,17 @@ func startMetronReadingListImportWithOptions(store *metronImportJobStore, db *sq
 				return err
 			}
 		}
+		forceMetadata := options.Force
+		if existing && options.Mode == "full" && !forceMetadata {
+			missingImage, err := readingOrderImageMissing(ctx, db, existingID)
+			if err != nil {
+				return err
+			}
+			forceMetadata = missingImage
+		}
 
 		progress(0, 0, "Fetching reading list from Metron...")
-		list, info, err := fetchMetronReadingList(ctx, db, client, metronID, options.Force)
+		list, info, err := fetchMetronReadingList(ctx, db, client, metronID, forceMetadata)
 		if err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return ctxErr
@@ -749,8 +758,19 @@ func startMetronArcContinue(store *metronImportJobStore, db *sqlx.DB, client *me
 func startMetronReadingListContinue(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
 	return store.startWithOptions("readingList", metronID, options, "Continuing reading list import from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+		forceMetadata := options.Force
+		if existingID, ok, err := existingReadingOrderIDByMetronID(ctx, db, metronID); err != nil {
+			return err
+		} else if ok && !forceMetadata {
+			missingImage, err := readingOrderImageMissing(ctx, db, existingID)
+			if err != nil {
+				return err
+			}
+			forceMetadata = missingImage
+		}
+
 		progress(0, 0, "Fetching reading list from Metron...")
-		list, info, err := fetchMetronReadingList(ctx, db, client, metronID, options.Force)
+		list, info, err := fetchMetronReadingList(ctx, db, client, metronID, forceMetadata)
 		if err != nil {
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return ctxErr

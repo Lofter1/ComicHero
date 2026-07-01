@@ -848,6 +848,9 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Cl
 		if id, ok, err := existingReadingOrderIDByMetronID(ctx, db, list.ID); err != nil {
 			return nil, err
 		} else if ok {
+			if err := updateMetronReadingOrderMetadata(ctx, db, covers, id, list); err != nil {
+				return nil, err
+			}
 			return getReadingOrder(ctx, db, id)
 		}
 	}
@@ -900,6 +903,8 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client
 			return err
 		}
 		orderID = order.Body.ID
+	} else if err := updateMetronReadingOrderMetadata(ctx, db, covers, orderID, list); err != nil {
+		return err
 	}
 
 	input := &SetReadingOrderComicsInput{ID: orderID}
@@ -917,6 +922,9 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client
 			ComicID: comic.Body.ID,
 			Tags:    strings.Join(issue.Tags, ", "),
 		})
+		if _, err := setReadingOrderComics(ctx, db, input); err != nil {
+			return err
+		}
 		progress(i+1, total, "Importing reading-list issues...")
 	}
 
@@ -1057,6 +1065,19 @@ func existingReadingOrderIDByMetronID(ctx context.Context, db *sqlx.DB, metronID
 	return id, true, nil
 }
 
+func readingOrderImageMissing(ctx context.Context, db *sqlx.DB, id int) (bool, error) {
+	var image string
+	if err := db.GetContext(ctx, &image, `
+		SELECT image FROM reading_orders WHERE id = ?
+	`, id); err != nil {
+		if err == sql.ErrNoRows {
+			return false, huma.Error404NotFound("reading order not found")
+		}
+		return false, huma.Error500InternalServerError("failed to check reading order image")
+	}
+	return strings.TrimSpace(image) == "", nil
+}
+
 func existingArcIDByMetronID(ctx context.Context, db *sqlx.DB, metronID int) (int, bool, error) {
 	var id int
 	if err := db.GetContext(ctx, &id, `
@@ -1097,6 +1118,25 @@ func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCac
 	}
 
 	return &CreateReadingOrderOutput{Body: ro}, nil
+}
+
+func updateMetronReadingOrderMetadata(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, list metron.ReadingList) error {
+	image, err := localCoverURL(ctx, covers, list.Image)
+	if err != nil {
+		return err
+	}
+
+	if _, err := db.ExecContext(ctx, `
+		UPDATE reading_orders
+		SET name = COALESCE(NULLIF(?, ''), name),
+			description = COALESCE(NULLIF(?, ''), description),
+			image = COALESCE(NULLIF(?, ''), image),
+			metron_reading_list_id = COALESCE(?, metron_reading_list_id)
+		WHERE id = ?
+	`, list.Name, list.Description, image, nullableMetronID(list.ID), id); err != nil {
+		return huma.Error500InternalServerError("failed to update Metron reading list")
+	}
+	return nil
 }
 
 func createMetronArc(ctx context.Context, db *sqlx.DB, arc metron.MetronArc) (*CreateArcOutput, error) {

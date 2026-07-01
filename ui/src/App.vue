@@ -145,6 +145,7 @@ const {
   readingOrderProgress,
   openReadingOrder,
   toggleReadingOrderFavorite,
+  refreshSelectedReadingOrderDetail,
   newReadingOrder,
   saveReadingOrder,
   deleteReadingOrder,
@@ -529,9 +530,12 @@ function clearError() {
   error.value = ''
 }
 
-async function handleMetronImported() {
+async function handleMetronImported(job = null) {
   error.value = ''
   await refreshActiveLibraryData()
+  if (activeView.value === 'readingOrders' && viewMode.value === 'detail') {
+    await refreshSelectedReadingOrderDetail()
+  }
   if (activeView.value === 'characters' && viewMode.value === 'detail') {
     await refreshSelectedCharacterDetail()
   }

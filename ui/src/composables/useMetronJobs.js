@@ -98,8 +98,15 @@ export function useMetronJobs({ activeView, error, handleImported }) {
       const previous = metronImportJobs.value.find(item => item.id === job.id)
       upsertMetronImportJob(job)
 
+      if (job.type === 'readingList'
+        && job.status === 'running'
+        && previous
+        && (job.completed !== previous.completed || job.total !== previous.total)) {
+        await handleImported(job)
+        return
+      }
       if (job.status === 'succeeded' && previous && previous.status !== 'succeeded') {
-        await handleImported()
+        await handleImported(job)
         if (activeView.value === 'metron') {
           loadMetronQuota().catch(() => {})
         }

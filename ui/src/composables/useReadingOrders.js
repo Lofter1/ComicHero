@@ -63,6 +63,14 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         }
     }
 
+    async function refreshSelectedReadingOrderDetail() {
+        if (selectedOrder.value?.id) {
+            const detail = await getReadingOrder(selectedOrder.value.id)
+            selectedOrder.value = detail
+            orderForm.value = readingOrderFormFromDetail(detail)
+        }
+    }
+
     async function toggleReadingOrderFavorite(order) {
         if (!order?.id || quickSavingOrderID.value) return
 
@@ -236,6 +244,7 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         readingOrderProgress,
         openReadingOrder,
         openAdjacentReadingOrder,
+        refreshSelectedReadingOrderDetail,
         toggleReadingOrderFavorite,
         applyReadingOrderFavoriteState,
         newReadingOrder,

@@ -675,6 +675,7 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 		ID:          501,
 		Name:        "Event",
 		Description: "Big event",
+		Image:       "https://example.test/event.jpg",
 		Issues: []metron.Issue{
 			{
 				ID:         101,
@@ -697,6 +698,9 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 	}
 	if first.Body.ID != second.Body.ID {
 		t.Fatalf("order ids differ: first=%d second=%d", first.Body.ID, second.Body.ID)
+	}
+	if second.Body.Image != "https://example.test/event.jpg" {
+		t.Fatalf("image = %q; want Metron image", second.Body.Image)
 	}
 
 	var orderCount int
@@ -739,6 +743,7 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 		ID:          501,
 		Name:        "Event",
 		Description: "Big event",
+		Image:       "https://example.test/event.jpg",
 		Issues: []metron.Issue{
 			{
 				ID:         101,
@@ -760,6 +765,13 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 	if comicCount != 1 {
 		t.Fatalf("comic count = %d; want 1", comicCount)
 	}
+	var image string
+	if err := db.GetContext(ctx, &image, `SELECT image FROM reading_orders WHERE id = 1`); err != nil {
+		t.Fatalf("select image: %v", err)
+	}
+	if image != "https://example.test/event.jpg" {
+		t.Fatalf("image = %q; want Metron image", image)
+	}
 
 	var linkedCount int
 	if err := db.GetContext(ctx, &linkedCount, `SELECT COUNT(*) FROM reading_order_comics WHERE reading_order_id = 1`); err != nil {
@@ -767,6 +779,57 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 	}
 	if linkedCount != 1 {
 		t.Fatalf("linked comics = %d; want 1", linkedCount)
+	}
+}
+
+func TestMetronReadingListLinksComicsDuringImportProgress(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	progressLinkedCounts := []int{}
+	err := importMetronReadingListWithOptions(ctx, db, nil, nil, metron.ReadingList{
+		ID:          501,
+		Name:        "Event",
+		Description: "Big event",
+		Issues: []metron.Issue{
+			{
+				ID:         101,
+				Series:     "Series",
+				SeriesYear: 2026,
+				Issue:      "1",
+				Publisher:  "Publisher",
+			},
+			{
+				ID:         102,
+				Series:     "Series",
+				SeriesYear: 2026,
+				Issue:      "2",
+				Publisher:  "Publisher",
+			},
+		},
+	}, false, func(completed, total int, message string) {
+		if completed <= 0 {
+			return
+		}
+		var linkedCount int
+		if err := db.GetContext(ctx, &linkedCount, `
+			SELECT COUNT(*) FROM reading_order_comics roc
+			JOIN reading_orders ro ON ro.id = roc.reading_order_id
+			WHERE ro.metron_reading_list_id = 501
+		`); err != nil {
+			t.Fatalf("count linked comics during progress: %v", err)
+		}
+		progressLinkedCounts = append(progressLinkedCounts, linkedCount)
+	}, defaultMetronImportOptions())
+	if err != nil {
+		t.Fatalf("importMetronReadingListWithOptions: %v", err)
+	}
+
+	if len(progressLinkedCounts) < 2 {
+		t.Fatalf("progress linked counts = %#v; want counts during each issue", progressLinkedCounts)
+	}
+	if progressLinkedCounts[0] != 1 || progressLinkedCounts[1] != 2 {
+		t.Fatalf("progress linked counts = %#v; want [1 2]", progressLinkedCounts)
 	}
 }
 
