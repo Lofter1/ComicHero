@@ -17,6 +17,10 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
   series: {
     type: Array,
     default: () => [],
@@ -114,7 +118,11 @@ function seriesPublisherLabel(series) {
           @update:direction="$emit('update:direction', $event)"
         />
       </div>
-      <div v-if="visibleSeries.length" class="sectioned-list">
+      <div v-if="loading && !visibleSeries.length" class="inline-loading-panel" role="status" aria-live="polite">
+        <span class="loading-spinner small" aria-hidden="true"></span>
+        <strong>Loading series...</strong>
+      </div>
+      <div v-else-if="visibleSeries.length" class="sectioned-list">
         <section v-for="section in visibleSections" :key="section.key" class="list-section">
           <div class="list-section-header">
             <p class="eyebrow">{{ section.title }}</p>

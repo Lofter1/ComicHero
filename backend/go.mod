@@ -1,6 +1,6 @@
 module github.com/Lofter1/ComicHero/backend
 
-go 1.26.3
+go 1.24
 
 require (
 	github.com/danielgtaylor/huma/v2 v2.38.0

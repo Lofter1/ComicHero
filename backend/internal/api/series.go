@@ -74,7 +74,11 @@ func listSeries(ctx context.Context, db *sqlx.DB, input *ComicSeriesListInput) (
 	if err != nil {
 		return nil, err
 	}
-	total, err := countRows(ctx, db, query, args)
+	countQuery, countArgs, err := seriesListCountQuery(input)
+	if err != nil {
+		return nil, err
+	}
+	total, err := countRows(ctx, db, countQuery, countArgs)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to count series")
 	}
@@ -124,6 +128,26 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 		LEFT JOIN comics c ON c.series = s.name AND c.series_year = s.series_year
 	`)
 
+	if err := applySeriesListFilters(query, input); err != nil {
+		return "", nil, err
+	}
+
+	query.groupBy("GROUP BY s.id")
+	query.orderBy(seriesListOrder(input.Sort, input.Direction))
+	sql, args := query.build()
+	return sql, args, nil
+}
+
+func seriesListCountQuery(input *ComicSeriesListInput) (string, []any, error) {
+	query := newSelectQuery(`SELECT s.id FROM series s`)
+	if err := applySeriesListFilters(query, input); err != nil {
+		return "", nil, err
+	}
+	sql, args := query.build()
+	return sql, args, nil
+}
+
+func applySeriesListFilters(query *selectQuery, input *ComicSeriesListInput) error {
 	if input.Query != "" {
 		for _, token := range strings.Fields(input.Query) {
 			search := "%" + token + "%"
@@ -136,15 +160,11 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 		}
 	}
 	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
-		return "", nil, err
+		return err
 	} else if ok {
 		query.where("s.favorite = ?", favorite)
 	}
-
-	query.groupBy("GROUP BY s.id")
-	query.orderBy(seriesListOrder(input.Sort, input.Direction))
-	sql, args := query.build()
-	return sql, args, nil
+	return nil
 }
 
 func seriesListOrder(sort, direction string) string {
@@ -164,10 +184,6 @@ func seriesListOrder(sort, direction string) string {
 }
 
 func getSeries(ctx context.Context, db *sqlx.DB, id int) (*ComicSeriesDetailOutput, error) {
-	if err := syncSeriesRows(ctx, db); err != nil {
-		return nil, err
-	}
-
 	series, err := getSeriesRow(ctx, db, id)
 	if err != nil {
 		return nil, err

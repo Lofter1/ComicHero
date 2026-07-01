@@ -55,4 +55,35 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	`).Scan(&seriesTable); err != nil {
 		t.Fatal("series table missing")
 	}
+
+	rows, err = database.Query(`PRAGMA index_list(comics)`)
+	if err != nil {
+		t.Fatalf("comic indexes: %v", err)
+	}
+	defer rows.Close()
+
+	indexes := map[string]bool{}
+	for rows.Next() {
+		var seq int
+		var name string
+		var unique int
+		var origin string
+		var partial int
+		if err := rows.Scan(&seq, &name, &unique, &origin, &partial); err != nil {
+			t.Fatalf("scan index: %v", err)
+		}
+		indexes[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("indexes: %v", err)
+	}
+	for _, name := range []string{
+		"idx_comics_series_year_issue",
+		"idx_comics_series_year_publisher",
+		"idx_comics_series_year_cover",
+	} {
+		if !indexes[name] {
+			t.Fatalf("comics table missing index %s", name)
+		}
+	}
 }

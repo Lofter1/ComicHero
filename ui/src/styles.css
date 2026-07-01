@@ -425,6 +425,15 @@ textarea {
   font-size: 0.95rem;
 }
 
+.inline-loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .loading-spinner {
   width: 18px;
   height: 18px;

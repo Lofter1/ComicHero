@@ -62,6 +62,7 @@ const resolvedTheme = computed(() => themePreference.value === 'system' ? system
 const currentRoutePath = computed(() => routeForCurrentState())
 
 const {
+  pageState,
   showInfiniteScrollSentinel,
   activeListLoadingMore,
   listTotal,
@@ -226,6 +227,8 @@ const loadingLabel = computed(() => {
   if (activeView.value === 'metron') return 'Loading Metron...'
   return 'Loading...'
 })
+const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
+const seriesListLoading = computed(() => Boolean(pageState.value.series?.refreshing))
 
 function getInitialThemePreference() {
   if (typeof window === 'undefined') return 'system'
@@ -662,7 +665,7 @@ onUnmounted(() => {
         @dismiss="dismissMetronJob"
       />
 
-      <div v-if="loading" class="loading-panel" role="status" aria-live="polite">
+      <div v-if="showBlockingLoading" class="loading-panel" role="status" aria-live="polite">
         <span class="loading-spinner" aria-hidden="true"></span>
         <strong>{{ loadingLabel }}</strong>
       </div>
@@ -778,6 +781,7 @@ onUnmounted(() => {
         :total-count="listTotal('series')"
         :favorite-count="favoriteSeriesCount"
         :entry-count="series.reduce((total, item) => total + (item.entryCount || 0), 0)"
+        :loading="seriesListLoading"
         :series="visibleSeries"
         :sections="seriesBrowseSections"
         :selected-series-id="selectedSeries?.id"
