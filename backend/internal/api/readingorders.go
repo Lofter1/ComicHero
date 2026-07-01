@@ -25,6 +25,19 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID:   "importReadingOrderCBL",
+		Tags:          []string{tagReadingOrders},
+		Summary:       "Import a CBL reading order",
+		Description:   "Creates a reading order from CBL XML by matching CBL book entries to local comics by series, issue number, and volume or year.",
+		Method:        http.MethodPost,
+		Path:          "/readingOrders/cbl/import",
+		DefaultStatus: 201,
+		Errors:        errsWrite,
+	}, func(ctx context.Context, input *ReadingOrderCBLImportInput) (*ReadingOrderCBLImportOutput, error) {
+		return importReadingOrderCBL(ctx, db, input)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "getReadingOrder",
 		Tags:        []string{tagReadingOrders},
 		Summary:     "Get a reading order",
@@ -34,6 +47,18 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB) {
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *ReadingOrderInput) (*ReadingOrderDetailOutput, error) {
 		return getReadingOrder(ctx, db, input.ID)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "exportReadingOrderCBL",
+		Tags:        []string{tagReadingOrders},
+		Summary:     "Export a reading order as CBL",
+		Description: "Returns CBL XML for a reading order. Nested reading orders are flattened into their expanded comic issue order.",
+		Method:      http.MethodGet,
+		Path:        "/readingOrders/{id}/cbl",
+		Errors:      errsRead,
+	}, func(ctx context.Context, input *ReadingOrderInput) (*ReadingOrderCBLExportOutput, error) {
+		return exportReadingOrderCBL(ctx, db, input.ID)
 	})
 
 	huma.Register(api, huma.Operation{

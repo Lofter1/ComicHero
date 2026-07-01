@@ -207,6 +207,153 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	}
 }
 
+func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T) {
+	ctx := context.Background()
+	db := setupReadingOrderCBLTestDB(t)
+
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, series_year, issue, publisher, cover_date)
+		VALUES ('Frank Miller''s RoboCop', 2003, '1', 'Avatar Press', '2003-07-01'),
+			('Frank Miller''s RoboCop', 2003, '2', 'Avatar Press', '2003-08-01');
+	`); err != nil {
+		t.Fatalf("seed comics: %v", err)
+	}
+
+	input := &ReadingOrderCBLImportInput{}
+	input.Body.Filename = "fallback.cbl"
+	input.Body.Content = `<?xml version="1.0" encoding="utf-8"?>
+<ReadingList>
+	<Name>RoboCop Publication Order</Name>
+	<NumIssues>3</NumIssues>
+	<Books>
+		<Book Series="Frank Miller&apos;s RoboCop" Number="1" Volume="2003" Year="2003" />
+		<Book Series="Frank Miller&apos;s RoboCop" Number="2" Volume="2003" Year="2003" />
+		<Book Series="Missing Series" Number="1" Volume="2003" Year="2003" />
+	</Books>
+	<Matchers />
+</ReadingList>`
+
+	result, err := importReadingOrderCBL(ctx, db, input)
+	if err != nil {
+		t.Fatalf("importReadingOrderCBL: %v", err)
+	}
+
+	if result.Body.ReadingOrder.Name != "RoboCop Publication Order" {
+		t.Fatalf("name = %q; want CBL name", result.Body.ReadingOrder.Name)
+	}
+	if result.Body.MatchedCount != 2 || result.Body.UnmatchedCount != 1 {
+		t.Fatalf("matched/unmatched = %d/%d; want 2/1", result.Body.MatchedCount, result.Body.UnmatchedCount)
+	}
+	if len(result.Body.ReadingOrder.Comics) != 2 {
+		t.Fatalf("imported comics = %d; want 2", len(result.Body.ReadingOrder.Comics))
+	}
+	if result.Body.ReadingOrder.Comics[0].Issue != "1" || result.Body.ReadingOrder.Comics[1].Issue != "2" {
+		t.Fatalf("imported issue order = %#v; want 1 then 2", result.Body.ReadingOrder.Comics)
+	}
+	if len(result.Body.Unmatched) != 1 || result.Body.Unmatched[0].Series != "Missing Series" {
+		t.Fatalf("unmatched = %#v; want Missing Series", result.Body.Unmatched)
+	}
+}
+
+func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
+	ctx := context.Background()
+	db := setupReadingOrderCBLTestDB(t)
+
+	metronID := 98765
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, series_year, issue, publisher, cover_date, metron_issue_id)
+		VALUES ('Batman & Robin', 2011, '1', 'DC Comics', '2011-09-01', ?),
+			('Batman & Robin', 2011, '2', 'DC Comics', '2011-10-01', NULL);
+	`, metronID); err != nil {
+		t.Fatalf("seed comics: %v", err)
+	}
+
+	created, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: "Batman & Robin"})
+	if err != nil {
+		t.Fatalf("create order: %v", err)
+	}
+	input := &SetReadingOrderComicsInput{ID: created.Body.ID}
+	input.Body.Entries = []ReadingOrderEntryPayload{
+		{Type: "comic", ComicID: 1},
+		{Type: "comic", ComicID: 2},
+	}
+	if _, err := setReadingOrderComics(ctx, db, input); err != nil {
+		t.Fatalf("set entries: %v", err)
+	}
+
+	result, err := exportReadingOrderCBL(ctx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("exportReadingOrderCBL: %v", err)
+	}
+
+	for _, fragment := range []string{
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<Name>Batman &amp; Robin</Name>`,
+		`<NumIssues>2</NumIssues>`,
+		`Series="Batman &amp; Robin" Number="1" Volume="2011" Year="2011"`,
+		`<Database Name="metron" Issue="98765"></Database>`,
+	} {
+		if !strings.Contains(result.Body.Content, fragment) {
+			t.Fatalf("export missing %q in:\n%s", fragment, result.Body.Content)
+		}
+	}
+	if result.Body.Filename != "Batman-Robin.cbl" {
+		t.Fatalf("filename = %q; want Batman-Robin.cbl", result.Body.Filename)
+	}
+}
+
+func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
+	t.Helper()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE reading_orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_reading_list_id INTEGER,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue TEXT NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			read INTEGER NOT NULL DEFAULT 0,
+			metron_issue_id INTEGER
+		);
+		CREATE TABLE reading_order_comics (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			tags TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE reading_order_children (
+			parent_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			child_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (parent_reading_order_id, child_reading_order_id),
+			CHECK (parent_reading_order_id <> child_reading_order_id)
+		);
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+	return db
+}
+
 func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 	ctx := context.Background()
 	db, err := sqlx.Open("sqlite", ":memory:")

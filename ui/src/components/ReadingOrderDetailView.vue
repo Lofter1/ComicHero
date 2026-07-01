@@ -18,7 +18,7 @@ defineProps({
   },
 })
 
-defineEmits(['back', 'edit', 'open-comic', 'toggle-read'])
+defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
 </script>
 
 <template>
@@ -26,6 +26,7 @@ defineEmits(['back', 'edit', 'open-comic', 'toggle-read'])
     <header class="detail-nav sticky-toolbar">
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
+        <button v-if="selectedOrder" class="secondary-button" type="button" @click="$emit('export-cbl')">Export CBL</button>
         <button v-if="selectedOrder" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
       </div>
     </header>

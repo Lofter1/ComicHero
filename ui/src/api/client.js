@@ -245,6 +245,14 @@ export function setReadingOrderComics(id, payload) {
   return send(`/readingOrders/${id}/comics`, 'PUT', payload)
 }
 
+export function importReadingOrderCBL(payload) {
+  return send('/readingOrders/cbl/import', 'POST', payload)
+}
+
+export function exportReadingOrderCBL(id) {
+  return request(`/readingOrders/${id}/cbl`)
+}
+
 export function searchMetronComics(params) {
   return requestWithMeta(`/metron/comics${queryString(params)}`)
 }

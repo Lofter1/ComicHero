@@ -2,7 +2,9 @@ import { computed, ref } from 'vue'
 import {
     createReadingOrder,
     deleteReadingOrder as removeReadingOrder,
+    exportReadingOrderCBL,
     getReadingOrder,
+    importReadingOrderCBL,
     setReadingOrderComics,
     updateReadingOrder,
     listReadingOrders
@@ -162,6 +164,62 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
             saving.value = false
         }
     }
+
+    async function importReadingOrderCBLFile(file) {
+        if (!file) return null
+
+        saving.value = true
+        error.value = ''
+
+        try {
+            const result = await importReadingOrderCBL({
+                filename: file.name || '',
+                content: await file.text(),
+            })
+            selectedOrder.value = result.readingOrder
+            orderForm.value = readingOrderFormFromDetail(result.readingOrder)
+            await loadReadingOrders({ force: true })
+            activeView.value = 'readingOrders'
+            viewMode.value = 'detail'
+            return result
+        } catch (err) {
+            error.value = err.message
+            return null
+        } finally {
+            saving.value = false
+        }
+    }
+
+    async function exportSelectedReadingOrderCBL() {
+        if (!selectedOrder.value?.id) return
+
+        saving.value = true
+        error.value = ''
+
+        try {
+            const result = await exportReadingOrderCBL(selectedOrder.value.id)
+            downloadTextFile(result.filename, result.content, 'application/xml;charset=utf-8')
+        } catch (err) {
+            error.value = err.message
+        } finally {
+            saving.value = false
+        }
+    }
+
+    function downloadTextFile(filename, content, type) {
+        if (typeof document === 'undefined' || typeof URL === 'undefined') return
+
+        const blob = new Blob([content], { type })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename || 'reading-order.cbl'
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(url)
+    }
+
     async function loadReadingOrders(options = {}) {
         await loadPagedList('readingOrders', readingOrders, listReadingOrders, options)
     }
@@ -186,6 +244,8 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         editReadingOrder,
         saveReadingOrder,
         deleteReadingOrder,
+        importReadingOrderCBLFile,
+        exportSelectedReadingOrderCBL,
         loadReadingOrders
     }
 }

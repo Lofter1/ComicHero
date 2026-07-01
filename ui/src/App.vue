@@ -152,6 +152,8 @@ const {
   saveReadingOrder,
   deleteReadingOrder,
   editReadingOrder,
+  importReadingOrderCBLFile,
+  exportSelectedReadingOrderCBL,
   loadReadingOrders,
 } = useReadingOrders({
   activeView,
@@ -694,6 +696,7 @@ onUnmounted(() => {
         :quick-saving-comic-id="quickSavingComicID"
         @back="backToBrowse"
         @edit="editReadingOrder"
+        @export-cbl="exportSelectedReadingOrderCBL"
         @open-comic="openOrderComic"
         @toggle-read="toggleComicRead"
       />
@@ -718,6 +721,7 @@ onUnmounted(() => {
         @new-order="newReadingOrder"
         @open-order="openReadingOrder"
         @toggle-favorite="toggleReadingOrderFavorite"
+        @import-cbl="importReadingOrderCBLFile"
       />
 
 

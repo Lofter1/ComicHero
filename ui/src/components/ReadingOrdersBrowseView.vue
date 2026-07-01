@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
@@ -51,7 +51,9 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-order', 'open-order', 'toggle-favorite'])
+const emit = defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-order', 'open-order', 'toggle-favorite', 'import-cbl'])
+
+const cblFileInput = ref(null)
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -68,6 +70,16 @@ const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
 
 function sectionList(title, orders) {
   return orders.length ? [{ key: props.filter, title, orders }] : []
+}
+
+function chooseCBLFile() {
+  cblFileInput.value?.click()
+}
+
+function handleCBLFile(event) {
+  const file = event.target.files?.[0]
+  if (file) emit('import-cbl', file)
+  event.target.value = ''
 }
 </script>
 
@@ -98,15 +110,33 @@ function sectionList(title, orders) {
             @update:sort="$emit('update:sort', $event)"
             @update:direction="$emit('update:direction', $event)"
           />
-          <button
-            class="primary-button icon-text-button"
-            type="button"
-            aria-label="New order"
-            title="New order"
-            @click="$emit('new-order')"
-          >
-            <span aria-hidden="true" class="button-icon">+</span>
-          </button>
+          <div class="browse-header-actions">
+            <input
+              ref="cblFileInput"
+              hidden
+              type="file"
+              accept=".cbl,application/xml,text/xml"
+              @change="handleCBLFile"
+            />
+            <button
+              class="secondary-button icon-text-button cbl-import-button"
+              type="button"
+              aria-label="Import CBL"
+              title="Import CBL"
+              @click="chooseCBLFile"
+            >
+              Import CBL
+            </button>
+            <button
+              class="primary-button icon-text-button"
+              type="button"
+              aria-label="New order"
+              title="New order"
+              @click="$emit('new-order')"
+            >
+              <span aria-hidden="true" class="button-icon">+</span>
+            </button>
+          </div>
         </div>
       </div>
       <div v-if="visibleOrders.length" class="sectioned-list">

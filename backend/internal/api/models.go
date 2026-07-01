@@ -253,6 +253,42 @@ type ReadingOrderInput struct {
 	ID int `path:"id" doc:"Local reading-order identifier." example:"7"`
 }
 
+type ReadingOrderCBLImportInput struct {
+	Body struct {
+		Filename string `json:"filename,omitempty" doc:"Original CBL filename, used as a fallback reading-order name." example:"Infinity Gauntlet.cbl"`
+		Content  string `json:"content"            minLength:"1" doc:"CBL XML document content."`
+	}
+}
+
+type ReadingOrderCBLUnmatchedBook struct {
+	Position int    `json:"position" doc:"One-based book position in the CBL file." example:"3"`
+	Series   string `json:"series"   doc:"CBL book series attribute." example:"Batman"`
+	Number   string `json:"number"   doc:"CBL book number attribute." example:"6"`
+	Volume   string `json:"volume"   doc:"CBL book volume attribute." example:"2011"`
+	Year     string `json:"year"     doc:"CBL book year attribute." example:"2012"`
+	Reason   string `json:"reason"   doc:"Reason this CBL book could not be matched to a local comic." example:"no local comic matched"`
+}
+
+type ReadingOrderCBLImportResult struct {
+	ReadingOrder   ReadingOrderDetail             `json:"readingOrder"   doc:"Created reading order with matched local comics."`
+	MatchedCount   int                            `json:"matchedCount"   doc:"Number of CBL books matched to local comics." example:"12"`
+	UnmatchedCount int                            `json:"unmatchedCount" doc:"Number of CBL books that could not be matched." example:"2"`
+	Unmatched      []ReadingOrderCBLUnmatchedBook `json:"unmatched"      doc:"CBL books that were left out because no local comic matched."`
+}
+
+type ReadingOrderCBLImportOutput struct {
+	Body ReadingOrderCBLImportResult
+}
+
+type ReadingOrderCBLExport struct {
+	Filename string `json:"filename" doc:"Suggested CBL download filename." example:"Batman Court of Owls.cbl"`
+	Content  string `json:"content"  doc:"CBL XML document content."`
+}
+
+type ReadingOrderCBLExportOutput struct {
+	Body ReadingOrderCBLExport
+}
+
 type ReadingOrderListOutput struct {
 	PaginationHeaders
 	Body []ReadingOrder

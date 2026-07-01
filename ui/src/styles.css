@@ -1955,6 +1955,27 @@ textarea {
   gap: 12px;
 }
 
+.browse-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.browse-header-actions .icon-text-button {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.browse-header-actions .cbl-import-button {
+  width: auto;
+  min-width: max-content;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
 .comic-list-header .eyebrow {
   margin-bottom: 2px;
 }
