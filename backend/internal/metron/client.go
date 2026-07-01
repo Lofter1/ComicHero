@@ -352,10 +352,22 @@ func (c *Client) SearchArcs(ctx context.Context, query string) ([]MetronArc, err
 	return arcs, nil
 }
 
-func (c *Client) SearchSeries(ctx context.Context, query string) ([]Series, error) {
+type SeriesSearchOptions struct {
+	Query     string
+	YearBegan int
+	Volume    int
+}
+
+func (c *Client) SearchSeries(ctx context.Context, options SeriesSearchOptions) ([]Series, error) {
 	values := url.Values{}
-	if query != "" {
-		values.Set("name", query)
+	if options.Query != "" {
+		values.Set("name", options.Query)
+	}
+	if options.YearBegan > 0 {
+		values.Set("year_began", strconv.Itoa(options.YearBegan))
+	}
+	if options.Volume > 0 {
+		values.Set("volume", strconv.Itoa(options.Volume))
 	}
 
 	results, err := c.getList(ctx, "/series/", values)

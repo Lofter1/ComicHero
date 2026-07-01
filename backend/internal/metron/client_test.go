@@ -151,7 +151,9 @@ func TestClientUsesConditionalCacheForDetailRequests(t *testing.T) {
 }
 
 func TestClientTracksMetronRateLimitHeaders(t *testing.T) {
+	var gotPath string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.String()
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-RateLimit-Burst-Limit", "10")
 		w.Header().Set("X-RateLimit-Burst-Remaining", "4")
@@ -164,8 +166,15 @@ func TestClientTracksMetronRateLimitHeaders(t *testing.T) {
 	defer server.Close()
 
 	client := New(Config{BaseURL: server.URL})
-	if _, err := client.SearchSeries(context.Background(), "Series"); err != nil {
+	if _, err := client.SearchSeries(context.Background(), SeriesSearchOptions{
+		Query:     "Series",
+		YearBegan: 2018,
+		Volume:    2,
+	}); err != nil {
 		t.Fatalf("SearchSeries: %v", err)
+	}
+	if want := "/series/?name=Series&volume=2&year_began=2018"; gotPath != want {
+		t.Fatalf("path = %q, want %q", gotPath, want)
 	}
 
 	rateLimit := client.CurrentRateLimit()
@@ -184,7 +193,7 @@ func TestClientReturnsRateLimitErrorOnTooManyRequests(t *testing.T) {
 	defer server.Close()
 
 	client := New(Config{BaseURL: server.URL})
-	_, err := client.SearchSeries(context.Background(), "Series")
+	_, err := client.SearchSeries(context.Background(), SeriesSearchOptions{Query: "Series"})
 	var rateLimitErr *RateLimitError
 	if !errors.As(err, &rateLimitErr) {
 		t.Fatalf("err = %T %v, want RateLimitError", err, err)

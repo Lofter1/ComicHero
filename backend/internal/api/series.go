@@ -301,7 +301,7 @@ func resolveMetronSeriesID(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		return *series.MetronSeriesID, nil
 	}
 
-	matches, err := client.SearchSeries(ctx, series.Name)
+	matches, err := client.SearchSeries(ctx, metron.SeriesSearchOptions{Query: series.Name})
 	if err != nil {
 		return 0, metronAPIError(err)
 	}

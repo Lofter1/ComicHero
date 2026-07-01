@@ -45,7 +45,9 @@ type MetronArcInput struct {
 }
 
 type MetronSeriesInput struct {
-	Query string `query:"q" doc:"Search text for Metron series." example:"Batman"`
+	Query     string `query:"q" doc:"Search text for Metron series." example:"Batman"`
+	YearBegan int    `query:"year_began" doc:"Filter series by starting year." minimum:"1" example:"2018"`
+	Volume    int    `query:"volume" doc:"Filter series by volume number." minimum:"1" example:"1"`
 }
 
 type MetronCharacterInput struct {
@@ -303,7 +305,11 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/series",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronSeriesInput) (*MetronSeriesListOutput, error) {
-		series, err := client.SearchSeries(ctx, input.Query)
+		series, err := client.SearchSeries(ctx, metron.SeriesSearchOptions{
+			Query:     input.Query,
+			YearBegan: input.YearBegan,
+			Volume:    input.Volume,
+		})
 		if err != nil {
 			return nil, metronAPIError(err)
 		}

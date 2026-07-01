@@ -33,6 +33,8 @@ const query = ref('')
 const series = ref('')
 const issue = ref('')
 const arc = ref('')
+const seriesYearBegan = ref('')
+const seriesVolume = ref('')
 const searching = ref(false)
 const importingKey = ref('')
 const importStatus = ref('')
@@ -123,7 +125,11 @@ async function search() {
       return
     }
 
-    const { data, rateLimit: nextRateLimit } = await searchMetronSeries({ q: query.value || series.value })
+    const { data, rateLimit: nextRateLimit } = await searchMetronSeries({
+      q: query.value || series.value,
+      year_began: seriesYearBegan.value,
+      volume: seriesVolume.value,
+    })
     updateRateLimit(nextRateLimit)
     seriesResults.value = Array.isArray(data) ? data : []
   } catch (err) {
@@ -243,6 +249,10 @@ function setSearchMode(mode) {
   if (mode !== 'comics') {
     series.value = ''
     issue.value = ''
+  }
+  if (mode !== 'series') {
+    seriesYearBegan.value = ''
+    seriesVolume.value = ''
   }
 }
 
@@ -501,6 +511,14 @@ function formatDate(value) {
       <label v-if="activeSearch === 'comics'">
         Issue
         <input v-model="issue" />
+      </label>
+      <label v-if="activeSearch === 'series'">
+        Year began
+        <input v-model="seriesYearBegan" inputmode="numeric" placeholder="Optional year" />
+      </label>
+      <label v-if="activeSearch === 'series'">
+        Volume
+        <input v-model="seriesVolume" inputmode="numeric" placeholder="Optional volume" />
       </label>
       <button class="primary-button" type="submit" :disabled="busy">
         {{ searchLabel }}
