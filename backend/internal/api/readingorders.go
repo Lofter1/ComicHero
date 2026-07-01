@@ -343,19 +343,6 @@ func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID in
 	return comics, nil
 }
 
-func fetchChildReadingOrders(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrder, error) {
-	orders := []ReadingOrder{}
-	if err := db.SelectContext(ctx, &orders, `
-		SELECT ro.* FROM reading_orders ro
-		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
-		WHERE roc.parent_reading_order_id = ?
-		ORDER BY roc.position, ro.name
-	`, readingOrderID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
-	}
-	return orders, nil
-}
-
 func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPayload) (*CreateReadingOrderOutput, error) {
 	result, err := db.ExecContext(ctx, `
 		INSERT INTO reading_orders (name, description, favorite)

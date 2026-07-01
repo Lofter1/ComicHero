@@ -758,10 +758,6 @@ func attachMetronIssueID(ctx context.Context, db *sqlx.DB, comicID, metronID int
 	return nil
 }
 
-func createMetronComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, issue metron.Issue) (*ComicDetailOutput, error) {
-	return createMetronComicWithOptions(ctx, db, nil, covers, issue, defaultMetronImportOptions())
-}
-
 func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (*ComicDetailOutput, error) {
 	options = resolveMetronImportOptions(options)
 	payload := comicPayloadFromMetronIssue(issue)
@@ -876,16 +872,8 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Cl
 	return setReadingOrderComics(ctx, db, input)
 }
 
-func importMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
-	return importMetronReadingListWithProgressOptions(ctx, db, client, covers, list, progress, defaultMetronImportOptions())
-}
-
 func continueMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
 	return importMetronReadingListWithOptions(ctx, db, client, covers, list, true, progress, defaultMetronImportOptions())
-}
-
-func importMetronReadingListWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string), options MetronImportOptions) error {
-	return importMetronReadingListWithOptions(ctx, db, client, covers, list, false, progress, options)
 }
 
 func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, continueExisting bool, progress func(int, int, string), options MetronImportOptions) error {

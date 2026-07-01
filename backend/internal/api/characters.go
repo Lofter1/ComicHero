@@ -387,25 +387,6 @@ func importCharacterAppearancesFromMetronWithProgressOptions(ctx context.Context
 	return nil
 }
 
-func importMetronCharacterAppearances(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int) (*CharacterDetailOutput, error) {
-	if err := importMetronCharacterAppearancesWithProgress(ctx, db, client, covers, metronCharacterID, func(int, int, string) {}); err != nil {
-		return nil, err
-	}
-
-	localID, ok, err := characterIDByMetronID(ctx, db, metronCharacterID)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, huma.Error500InternalServerError("failed to fetch imported character")
-	}
-	return getCharacter(ctx, db, localID)
-}
-
-func importMetronCharacterAppearancesWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int, progress func(int, int, string)) error {
-	return importMetronCharacterAppearancesWithProgressOptions(ctx, db, client, covers, metronCharacterID, progress, defaultMetronImportOptions())
-}
-
 func importMetronCharacterAppearancesWithProgressOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronCharacterID int, progress func(int, int, string), options MetronImportOptions) error {
 	options = resolveMetronImportOptions(options)
 	localID, ok, err := characterIDByMetronID(ctx, db, metronCharacterID)
@@ -442,10 +423,6 @@ func importMetronCharacterAppearancesWithProgressOptions(ctx context.Context, db
 	}
 
 	return importCharacterAppearancesFromMetronWithProgressOptions(ctx, db, client, covers, localID, progress, ok, options)
-}
-
-func importMetronCharacterAppearanceIssue(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue) (Comic, error) {
-	return importMetronCharacterAppearanceIssueWithOptions(ctx, db, client, covers, issue, defaultMetronImportOptions())
 }
 
 func importMetronCharacterAppearanceIssueWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (Comic, error) {
