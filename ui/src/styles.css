@@ -463,6 +463,7 @@ textarea {
 
 .browse-view {
   max-width: 760px;
+  min-width: 0;
 }
 
 .loading-panel {
@@ -768,9 +769,17 @@ textarea {
   justify-content: space-between;
   gap: 12px;
   width: 100%;
+  min-width: 0;
 }
 
 .order-row-content > span:first-child {
+  min-width: 0;
+}
+
+.arc-row-main > span:last-child,
+.character-row-main > span:last-child,
+.series-row-main > span:last-child,
+.issue-list-main > span:last-child {
   min-width: 0;
 }
 
@@ -1960,6 +1969,7 @@ textarea {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -2327,7 +2337,27 @@ textarea {
   }
 
   .comic-list-tools {
-    grid-template-columns: minmax(220px, 1fr) minmax(230px, auto) repeat(2, minmax(130px, 1fr)) auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comic-list-tools input,
+  .comic-list-tools .inline-filter-tabs {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .browse-list-sticky .comic-list-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .browse-header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .browse-header-actions .cbl-import-button {
+    min-width: 0;
   }
 
   .import-monitor {
