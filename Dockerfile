@@ -11,7 +11,7 @@ ARG VITE_API_BASE="/api"
 ENV VITE_API_BASE=$VITE_API_BASE
 RUN npm run build
 
-FROM golang:1.26-alpine AS backend-build
+FROM golang:1.26.4-alpine AS backend-build
 WORKDIR /src/backend
 
 COPY backend/go.mod backend/go.sum ./
