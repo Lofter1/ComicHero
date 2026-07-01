@@ -282,11 +282,6 @@ export function getMetronQuota() {
   return requestWithMeta('/metron/quota')
 }
 
-export async function listMetronRequests() {
-  const requests = await request('/metron/requests')
-  return Array.isArray(requests) ? requests : []
-}
-
 export function cancelMetronImportJob(id) {
   return send(`/metron/imports/${id}/cancel`, 'POST', {})
 }

@@ -8,7 +8,6 @@ import {
   importMetronReadingList,
   importMetronSeries,
   importMetronArc,
-  listMetronRequests,
   searchMetronCharacters,
   searchMetronComics,
   searchMetronReadingLists,
@@ -40,7 +39,6 @@ const importStatus = ref('')
 const importMode = ref('quick')
 const importForce = ref(false)
 const fullImportData = ref(['comics', 'series', 'arcs', 'characters'])
-const rateLimit = ref(null)
 const comicResults = ref([])
 const characterResults = ref([])
 const readingListResults = ref([])
@@ -50,7 +48,6 @@ const selectedReadingList = ref(null)
 const readingListDetailOpen = ref(false)
 const readingListDetailLoading = ref(false)
 const readingListDetailStatus = ref('')
-const metronRequests = ref([])
 
 const busy = computed(() => searching.value)
 const searchLabel = computed(() => {
@@ -59,24 +56,6 @@ const searchLabel = computed(() => {
   if (activeSearch.value === 'readingLists') return 'Search Reading Lists'
   if (activeSearch.value === 'arcs') return 'Search Arcs'
   return `Search ${activeSearch.value}`
-})
-const rateLimitSummary = computed(() => {
-  if (!rateLimit.value) return ''
-
-  const burst = limitText('Burst', rateLimit.value.burstRemaining, rateLimit.value.burstLimit)
-  const sustained = limitText('Sustained', rateLimit.value.sustainedRemaining, rateLimit.value.sustainedLimit)
-  return [burst, sustained].filter(Boolean).join(' · ')
-})
-const rateLimitReset = computed(() => {
-  if (!rateLimit.value) return ''
-  const resets = [rateLimit.value.burstReset, rateLimit.value.sustainedReset].filter(Boolean)
-  if (resets.length === 0) return ''
-  const nextReset = Math.max(...resets)
-  return new Date(nextReset * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-})
-const rateLimitLow = computed(() => {
-  if (!rateLimit.value) return false
-  return rateLimit.value.burstRemaining === 0 || rateLimit.value.sustainedRemaining === 0
 })
 const quotaKnown = computed(() => Boolean(props.metronQuota?.known))
 const quotaSummary = computed(() => {
@@ -120,7 +99,6 @@ async function search() {
       })
       updateRateLimit(nextRateLimit)
       comicResults.value = Array.isArray(data) ? data : []
-      await refreshMetronRequests()
       return
     }
 
@@ -128,7 +106,6 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronReadingLists({ q: query.value })
       updateRateLimit(nextRateLimit)
       readingListResults.value = Array.isArray(data) ? data : []
-      await refreshMetronRequests()
       return
     }
 
@@ -136,7 +113,6 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronCharacters({ q: query.value })
       updateRateLimit(nextRateLimit)
       characterResults.value = Array.isArray(data) ? data : []
-      await refreshMetronRequests()
       return
     }
 
@@ -144,14 +120,12 @@ async function search() {
       const { data, rateLimit: nextRateLimit } = await searchMetronArcs({ q: query.value })
       updateRateLimit(nextRateLimit)
       arcResults.value = Array.isArray(data) ? data : []
-      await refreshMetronRequests()
       return
     }
 
     const { data, rateLimit: nextRateLimit } = await searchMetronSeries({ q: query.value || series.value })
     updateRateLimit(nextRateLimit)
     seriesResults.value = Array.isArray(data) ? data : []
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -168,7 +142,6 @@ async function importComic(comic) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronComic(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, comic.title || `${comic.series} #${comic.number || comic.issue}`)
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -185,7 +158,6 @@ async function importReadingList(list) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronReadingList(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, list.name || 'Untitled reading list')
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -203,7 +175,6 @@ async function openReadingList(list) {
     const { data, rateLimit: nextRateLimit } = await getMetronReadingList(list.id)
     updateRateLimit(nextRateLimit)
     selectedReadingList.value = { ...list, ...(data || {}) }
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     readingListDetailStatus.value = err.message
@@ -227,7 +198,6 @@ async function importSeries(item) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronSeries(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, item.name || 'Untitled series')
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -244,7 +214,6 @@ async function importCharacter(character) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, character.name || 'Untitled character')
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -261,7 +230,6 @@ async function importArc(arc) {
     const { data: job, rateLimit: nextRateLimit } = await importMetronArc(id, importOptions.value)
     updateRateLimit(nextRateLimit)
     trackJob(job, arc.name || 'Untitled arc')
-    await refreshMetronRequests()
   } catch (err) {
     updateRateLimit(err.rateLimit)
     emit('error', err.message)
@@ -280,7 +248,6 @@ function setSearchMode(mode) {
 
 function updateRateLimit(nextRateLimit) {
   if (nextRateLimit) {
-    rateLimit.value = nextRateLimit
     emit('quota-updated', quotaFromRateLimit(nextRateLimit))
   }
 }
@@ -288,20 +255,6 @@ function updateRateLimit(nextRateLimit) {
 function trackJob(job, displayName) {
   if (!job?.id) return
   emit('job-started', { ...job, displayName })
-}
-
-async function refreshMetronRequests() {
-  try {
-    metronRequests.value = (await listMetronRequests()).slice(0, 8)
-  } catch {
-    metronRequests.value = []
-  }
-}
-
-function limitText(label, remaining, limit) {
-  if (remaining === null || remaining === undefined) return ''
-  if (limit === null || limit === undefined) return `${label}: ${remaining} left`
-  return `${label}: ${remaining}/${limit}`
 }
 
 function quotaText(label, used, limit) {
@@ -404,11 +357,6 @@ function formatDate(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
-}
-
-function requestLine(request) {
-  const query = request.query ? `?${request.query}` : ''
-  return `${request.method || 'GET'} ${request.path || request.url || ''}${query}`
 }
 
 </script>
@@ -559,26 +507,9 @@ function requestLine(request) {
       </button>
     </form>
 
-    <div v-if="rateLimitSummary || importStatus" class="metron-status" :class="{ warning: rateLimitLow }">
-      <span v-if="rateLimitSummary">{{ rateLimitSummary }}</span>
-      <span v-if="rateLimitReset">Resets around {{ rateLimitReset }}</span>
-      <span v-if="importStatus">{{ importStatus }}</span>
+    <div v-if="importStatus" class="metron-status">
+      <span>{{ importStatus }}</span>
     </div>
-
-    <section v-if="metronRequests.length" class="metron-request-log">
-      <header>
-        <strong>Recent Metron calls</strong>
-        <small>{{ metronRequests.length }} shown</small>
-      </header>
-      <div class="metron-request-list">
-        <span v-for="request in metronRequests" :key="`${request.startedAt}-${request.path}-${request.query}`">
-          <code>{{ requestLine(request) }}</code>
-          <small>
-            {{ request.status || 'error' }} · {{ request.durationMillis }}ms<span v-if="request.conditional"> · conditional</span>
-          </small>
-        </span>
-      </div>
-    </section>
 
     <section class="metron-results single">
       <article class="detail-panel">
