@@ -367,7 +367,6 @@ h4 {
   --comic-list-sticky-top: 96px;
   padding: 28px;
   min-width: 0;
-  max-width: 1440px;
   width: 100%;
 }
 
@@ -462,8 +461,8 @@ textarea {
 }
 
 .browse-view {
-  max-width: 760px;
   min-width: 0;
+  width: 100%;
 }
 
 .loading-panel {
@@ -508,7 +507,7 @@ textarea {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: min(760px, 100%);
+  width: 100%;
   min-height: 42px;
   color: var(--muted);
   font-size: 0.9rem;
@@ -524,7 +523,7 @@ textarea {
 .detail-view {
   display: grid;
   gap: 16px;
-  max-width: 1040px;
+  width: 100%;
 }
 
 .detail-nav,
@@ -636,6 +635,32 @@ textarea {
 .detail-description {
   color: var(--body-copy);
   line-height: 1.5;
+}
+
+.reading-order-summary {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.reading-order-summary .detail-description {
+  margin: 0;
+}
+
+.reading-order-thumbnail {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.reading-order-thumbnail img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
 }
 
 .metadata-grid {
@@ -1497,7 +1522,7 @@ textarea {
 }
 
 .metron-results.single {
-  grid-template-columns: minmax(0, 760px);
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .metron-results .row:disabled {
@@ -2571,6 +2596,14 @@ textarea {
   }
 
   .metron-detail-image {
+    max-width: 220px;
+  }
+
+  .reading-order-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .reading-order-thumbnail {
     max-width: 220px;
   }
 

@@ -40,11 +40,13 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           </div>
         </header>
 
-        <div v-if="selectedOrder.image" class="character-portrait">
-          <img :src="assetURL(selectedOrder.image)" :alt="`${selectedOrder.name} thumbnail`" loading="lazy" />
+        <div class="reading-order-summary">
+          <div v-if="selectedOrder.image" class="reading-order-thumbnail">
+            <img :src="assetURL(selectedOrder.image)" :alt="`${selectedOrder.name} thumbnail`" loading="lazy" />
+          </div>
+          <p class="detail-description">{{ selectedOrder.description || 'No description' }}</p>
         </div>
 
-        <p class="detail-description">{{ selectedOrder.description || 'No description' }}</p>
         <div class="progress-meter" aria-label="Reading order progress">
           <span :style="{ width: formatProgress(selectedOrder.progress) }"></span>
         </div>

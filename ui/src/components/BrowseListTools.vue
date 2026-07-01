@@ -59,8 +59,5 @@ const searchModel = computed({
       <option value="asc">Ascending</option>
       <option value="desc">Descending</option>
     </select>
-    <button v-if="search" class="ghost-button" type="button" @click="$emit('update:search', '')">
-      Clear
-    </button>
   </div>
 </template>
