@@ -5,18 +5,6 @@ import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
 
 const props = defineProps({
-  totalCount: {
-    type: Number,
-    default: 0,
-  },
-  favoriteCount: {
-    type: Number,
-    default: 0,
-  },
-  appearanceCount: {
-    type: Number,
-    default: 0,
-  },
   characters: {
     type: Array,
     default: () => [],
@@ -85,20 +73,6 @@ function characterProgress(character) {
   <div class="browse-view">
     <div class="list-pane">
       <div class="browse-list-sticky">
-        <div class="overview-strip">
-          <span>
-            <strong>{{ totalCount }}</strong>
-            <small>Characters</small>
-          </span>
-          <span>
-            <strong>{{ favoriteCount }}</strong>
-            <small>Favorites</small>
-          </span>
-          <span>
-            <strong>{{ appearanceCount }}</strong>
-            <small>Appearances</small>
-          </span>
-        </div>
         <BrowseListTools
           :search="search"
           search-placeholder="Search characters"

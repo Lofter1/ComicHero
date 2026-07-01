@@ -32,7 +32,6 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
       { key: 'other', title: 'Other Arcs', arcs: remainingVisibleArcs.value },
     ].filter(section => section.arcs.length)
   })
-  const favoriteArcCount = computed(() => arcs.value.filter(arc => arc.favorite).length)
 
   function arcProgress(arcComics) {
     if (arcComics.length === 0) return 0
@@ -156,7 +155,6 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     arcForm,
     visibleArcs,
     arcBrowseSections,
-    favoriteArcCount,
     arcProgress,
     openArc,
     toggleArcFavorite,

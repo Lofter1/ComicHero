@@ -89,7 +89,6 @@ const {
   selectedSeries,
   visibleSeries,
   seriesBrowseSections,
-  favoriteSeriesCount,
   openSeries,
   toggleSeriesFavorite,
   importSelectedSeriesFromMetron,
@@ -104,7 +103,6 @@ const {
   quickSavingCharacterID,
   visibleCharacters,
   characterBrowseSections,
-  favoriteCharacterCount,
   openCharacter,
   toggleCharacterFavorite,
   importSelectedCharacterAppearances,
@@ -120,7 +118,6 @@ const {
   arcForm,
   visibleArcs,
   arcBrowseSections,
-  favoriteArcCount,
   arcProgress,
   openArc,
   toggleArcFavorite,
@@ -145,7 +142,6 @@ const {
   orderForm,
   visibleOrders,
   readingOrderBrowseSections,
-  favoriteOrderCount,
   readingOrderProgress,
   openReadingOrder,
   toggleReadingOrderFavorite,
@@ -706,8 +702,6 @@ onUnmounted(() => {
 
       <ReadingOrdersBrowseView
         v-else-if="activeView === 'readingOrders'"
-        :total-count="listTotal('readingOrders')"
-        :favorite-count="favoriteOrderCount"
         :orders="visibleOrders"
         :sections="readingOrderBrowseSections"
         :selected-order-id="selectedOrder?.id"
@@ -743,8 +737,6 @@ onUnmounted(() => {
 
       <ArcsBrowseView
         v-else-if="activeView === 'arcs'"
-        :total-count="listTotal('arcs')"
-        :favorite-count="favoriteArcCount"
         :arcs="visibleArcs"
         :sections="arcBrowseSections"
         :selected-arc-id="selectedArc?.id"
@@ -778,9 +770,6 @@ onUnmounted(() => {
 
       <SeriesBrowseView
         v-else-if="activeView === 'series'"
-        :total-count="listTotal('series')"
-        :favorite-count="favoriteSeriesCount"
-        :entry-count="series.reduce((total, item) => total + (item.entryCount || 0), 0)"
         :loading="seriesListLoading"
         :series="visibleSeries"
         :sections="seriesBrowseSections"
@@ -815,9 +804,6 @@ onUnmounted(() => {
 
       <CharactersBrowseView
         v-else-if="activeView === 'characters'"
-        :total-count="listTotal('characters')"
-        :favorite-count="favoriteCharacterCount"
-        :appearance-count="characters.reduce((total, character) => total + (character.appearanceCount || 0), 0)"
         :characters="visibleCharacters"
         :sections="characterBrowseSections"
         :selected-character-id="selectedCharacter?.id"

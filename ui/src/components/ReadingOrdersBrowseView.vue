@@ -5,14 +5,6 @@ import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
 
 const props = defineProps({
-  totalCount: {
-    type: Number,
-    default: 0,
-  },
-  favoriteCount: {
-    type: Number,
-    default: 0,
-  },
   orders: {
     type: Array,
     default: () => [],
@@ -87,16 +79,6 @@ function handleCBLFile(event) {
   <div class="browse-view">
     <div class="list-pane">
       <div class="browse-list-sticky">
-        <div class="overview-strip">
-          <span>
-            <strong>{{ totalCount }}</strong>
-            <small>Orders</small>
-          </span>
-          <span>
-            <strong>{{ favoriteCount }}</strong>
-            <small>Favorites</small>
-          </span>
-        </div>
         <div class="comic-list-header">
           <BrowseListTools
             :search="search"

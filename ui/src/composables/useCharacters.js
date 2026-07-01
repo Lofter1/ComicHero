@@ -24,7 +24,6 @@ export function useCharacters({ activeView, viewMode, error, loadPagedList, metr
       { key: 'other', title: 'Other Characters', characters: remainingVisibleCharacters.value },
     ].filter(section => section.characters.length)
   })
-  const favoriteCharacterCount = computed(() => characters.value.filter(character => character.favorite).length)
   const currentCharacterIndex = computed(() => {
     return visibleCharacters.value.findIndex(character => character.id === selectedCharacter.value?.id)
   })
@@ -112,7 +111,6 @@ export function useCharacters({ activeView, viewMode, error, loadPagedList, metr
     quickSavingCharacterID,
     visibleCharacters,
     characterBrowseSections,
-    favoriteCharacterCount,
     currentCharacterIndex,
     openCharacter,
     openAdjacentCharacter,

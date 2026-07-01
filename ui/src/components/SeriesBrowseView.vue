@@ -5,18 +5,6 @@ import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
 
 const props = defineProps({
-  totalCount: {
-    type: Number,
-    default: 0,
-  },
-  favoriteCount: {
-    type: Number,
-    default: 0,
-  },
-  entryCount: {
-    type: Number,
-    default: 0,
-  },
   loading: {
     type: Boolean,
     default: false,
@@ -91,20 +79,6 @@ function seriesPublisherLabel(series) {
   <div class="browse-view">
     <div class="list-pane">
       <div class="browse-list-sticky">
-        <div class="overview-strip">
-          <span>
-            <strong>{{ totalCount }}</strong>
-            <small>Series</small>
-          </span>
-          <span>
-            <strong>{{ favoriteCount }}</strong>
-            <small>Favorites</small>
-          </span>
-          <span>
-            <strong>{{ entryCount }}</strong>
-            <small>Entries</small>
-          </span>
-        </div>
         <BrowseListTools
           :search="search"
           search-placeholder="Search series"

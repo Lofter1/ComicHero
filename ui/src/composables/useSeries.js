@@ -22,7 +22,6 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
       { key: 'other', title: 'Other Series', series: remainingVisibleSeries.value },
     ].filter(section => section.series.length)
   })
-  const favoriteSeriesCount = computed(() => series.value.filter(item => item.favorite).length)
 
   function seriesYearLabel(item) {
     return item?.seriesYear ? ` (${item.seriesYear})` : ''
@@ -100,7 +99,6 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
     selectedSeries,
     visibleSeries,
     seriesBrowseSections,
-    favoriteSeriesCount,
     seriesYearLabel,
     seriesPublisherLabel,
     openSeries,

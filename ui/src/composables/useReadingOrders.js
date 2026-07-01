@@ -36,7 +36,6 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
             { key: 'other', title: 'Other Orders', orders: remainingVisibleOrders.value },
         ].filter(section => section.orders.length)
     })
-    const favoriteOrderCount = computed(() => readingOrders.value.filter(order => order.favorite).length)
     const currentOrderIndex = computed(() => {
         return visibleOrders.value.findIndex(order => order.id === selectedOrder.value?.id)
     })
@@ -233,7 +232,6 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         favoriteVisibleOrders,
         remainingVisibleOrders,
         readingOrderBrowseSections,
-        favoriteOrderCount,
         currentOrderIndex,
         readingOrderProgress,
         openReadingOrder,

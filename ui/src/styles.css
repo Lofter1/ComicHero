@@ -527,29 +527,6 @@ textarea {
   justify-content: flex-end;
 }
 
-.overview-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-}
-
-.overview-strip span {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-soft-bg);
-  padding: 10px 12px;
-}
-
-.overview-strip strong,
-.overview-strip small {
-  display: block;
-}
-
-.overview-strip small {
-  color: var(--muted);
-  margin-top: 2px;
-}
-
 .filter-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
