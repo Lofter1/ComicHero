@@ -31,6 +31,13 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const search = ref('')
+const listOptions = ref({
+  readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
+  arcs: { filter: 'all', sort: 'name', direction: 'asc' },
+  comics: { status: 'all', sort: 'series', direction: 'asc' },
+  series: { filter: 'all', sort: 'name', direction: 'asc' },
+  characters: { filter: 'all', sort: 'name', direction: 'asc' },
+})
 const loadMoreSentinel = ref(null)
 const themePreference = ref(getInitialThemePreference())
 const systemTheme = ref(getSystemTheme())
@@ -40,6 +47,17 @@ let themeMediaQuery = null
 let routeSyncPaused = false
 
 const searchTerm = computed(() => search.value.trim().toLowerCase())
+const activeListParams = computed(() => {
+  const options = listOptions.value[activeView.value] || {}
+  const params = {}
+  if (options.filter === 'favorites') params.favorite = true
+  if (options.filter === 'other') params.favorite = false
+  if (options.status === 'read') params.read = true
+  if (options.status === 'unread') params.read = false
+  if (options.sort) params.sort = options.sort
+  if (options.direction) params.direction = options.direction
+  return params
+})
 const isEditing = computed(() => viewMode.value === 'edit')
 const isDetail = computed(() => viewMode.value === 'detail')
 const resolvedTheme = computed(() => themePreference.value === 'system' ? systemTheme.value : themePreference.value)
@@ -50,7 +68,7 @@ const {
   activeListLoadingMore,
   listTotal,
   loadPagedList,
-} = usePagination({ activeView, loading, isEditing, isDetail, searchTerm })
+} = usePagination({ activeView, loading, isEditing, isDetail, searchTerm, listParams: activeListParams })
 
 const {
   metronImportJobs,
@@ -527,6 +545,17 @@ function updateSearch(value) {
   search.value = value
 }
 
+function updateListOption(view, key, value) {
+  listOptions.value = {
+    ...listOptions.value,
+    [view]: {
+      ...(listOptions.value[view] || {}),
+      [key]: value,
+    },
+  }
+  refreshActiveListData()
+}
+
 function setupLoadMoreObserver() {
   if (typeof IntersectionObserver === 'undefined') return
   loadMoreObserver = new IntersectionObserver((entries) => {
@@ -681,7 +710,13 @@ onUnmounted(() => {
         :quick-saving-order-id="quickSavingOrderID"
         :search="search"
         :search-term="searchTerm"
+        :filter="listOptions.readingOrders.filter"
+        :sort="listOptions.readingOrders.sort"
+        :direction="listOptions.readingOrders.direction"
         @update:search="updateSearch"
+        @update:filter="updateListOption('readingOrders', 'filter', $event)"
+        @update:sort="updateListOption('readingOrders', 'sort', $event)"
+        @update:direction="updateListOption('readingOrders', 'direction', $event)"
         @new-order="newReadingOrder"
         @open-order="openReadingOrder"
         @toggle-favorite="toggleReadingOrderFavorite"
@@ -721,7 +756,13 @@ onUnmounted(() => {
         :quick-saving-arc-id="quickSavingArcID"
         :search="search"
         :search-term="searchTerm"
+        :filter="listOptions.arcs.filter"
+        :sort="listOptions.arcs.sort"
+        :direction="listOptions.arcs.direction"
         @update:search="updateSearch"
+        @update:filter="updateListOption('arcs', 'filter', $event)"
+        @update:sort="updateListOption('arcs', 'sort', $event)"
+        @update:direction="updateListOption('arcs', 'direction', $event)"
         @new-arc="newArc"
         @open-arc="openArc"
         @toggle-favorite="toggleArcFavorite"
@@ -750,7 +791,13 @@ onUnmounted(() => {
         :selected-series-id="selectedSeries?.id"
         :search="search"
         :search-term="searchTerm"
+        :filter="listOptions.series.filter"
+        :sort="listOptions.series.sort"
+        :direction="listOptions.series.direction"
         @update:search="updateSearch"
+        @update:filter="updateListOption('series', 'filter', $event)"
+        @update:sort="updateListOption('series', 'sort', $event)"
+        @update:direction="updateListOption('series', 'direction', $event)"
         @open-series="openSeries"
         @toggle-favorite="toggleSeriesFavorite"
         @new-comic="newComic"
@@ -781,7 +828,13 @@ onUnmounted(() => {
         :quick-saving-character-id="quickSavingCharacterID"
         :search="search"
         :search-term="searchTerm"
+        :filter="listOptions.characters.filter"
+        :sort="listOptions.characters.sort"
+        :direction="listOptions.characters.direction"
         @update:search="updateSearch"
+        @update:filter="updateListOption('characters', 'filter', $event)"
+        @update:sort="updateListOption('characters', 'sort', $event)"
+        @update:direction="updateListOption('characters', 'direction', $event)"
         @open-character="openCharacter"
         @toggle-favorite="toggleCharacterFavorite"
       />
@@ -821,6 +874,9 @@ onUnmounted(() => {
           :comics="comics"
           :total-count="listTotal('comics')"
           :search="search"
+          :status="listOptions.comics.status"
+          :sort="listOptions.comics.sort"
+          :direction="listOptions.comics.direction"
           server-search
           :selected-comic-id="selectedComic?.id"
           :quick-saving-comic-id="quickSavingComicID"
@@ -830,6 +886,9 @@ onUnmounted(() => {
           filtered-empty-message="No comics match these filters."
           @new-comic="newComic"
           @update:search="updateSearch"
+          @update:status="updateListOption('comics', 'status', $event)"
+          @update:sort="updateListOption('comics', 'sort', $event)"
+          @update:direction="updateListOption('comics', 'direction', $event)"
           @open-comic="openComic"
           @toggle-read="toggleComicRead"
         />

@@ -77,8 +77,8 @@ func TestComicListQuery(t *testing.T) {
 			t.Fatalf("query missing %q: %s", fragment, query)
 		}
 	}
-	if len(args) != 9 {
-		t.Fatalf("len(args) = %d; want 9", len(args))
+	if len(args) != 10 {
+		t.Fatalf("len(args) = %d; want 10", len(args))
 	}
 }
 

@@ -127,16 +127,70 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 	}
 	if input.ReadingOrderID > 0 {
 		query.where(`
+			(
 			EXISTS (
 				SELECT 1 FROM reading_order_comics roc
 				WHERE roc.comic_id = c.id AND roc.reading_order_id = ?
 			)
-		`, input.ReadingOrderID)
+			OR EXISTS (
+				SELECT 1 FROM reading_order_children child
+				JOIN reading_order_comics child_roc ON child_roc.reading_order_id = child.child_reading_order_id
+				WHERE child.parent_reading_order_id = ? AND child_roc.comic_id = c.id
+			)
+			)
+		`, input.ReadingOrderID, input.ReadingOrderID)
+	}
+	if input.ArcID > 0 {
+		query.where(`
+			EXISTS (
+				SELECT 1 FROM arc_comics ac
+				WHERE ac.comic_id = c.id AND ac.arc_id = ?
+			)
+		`, input.ArcID)
+	}
+	if input.CharacterID > 0 {
+		query.where(`
+			EXISTS (
+				SELECT 1 FROM comic_characters cc
+				WHERE cc.comic_id = c.id AND cc.character_id = ?
+			)
+		`, input.CharacterID)
+	}
+	if input.SeriesID > 0 {
+		query.where(`
+			EXISTS (
+				SELECT 1 FROM series s
+				WHERE s.id = ? AND s.name = c.series AND s.series_year = c.series_year
+			)
+		`, input.SeriesID)
 	}
 
-	query.orderBy("ORDER BY c.series, c.series_year, CAST(c.issue AS REAL), c.issue")
+	query.orderBy(comicListOrder(input.Sort, input.Direction))
 	sql, args := query.build()
 	return sql, args, nil
+}
+
+func comicListOrder(sort, direction string) string {
+	dir := sortDirection(direction)
+	if dir == "ASC" {
+		dir = ""
+	}
+	spaceDir := ""
+	if dir != "" {
+		spaceDir = " " + dir
+	}
+	switch sort {
+	case "title":
+		return "ORDER BY c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
+	case "date":
+		return "ORDER BY c.cover_date" + spaceDir + ", c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
+	case "publisher":
+		return "ORDER BY c.publisher" + spaceDir + ", c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
+	case "read":
+		return "ORDER BY c.read" + spaceDir + ", c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
+	default:
+		return "ORDER BY c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
+	}
 }
 
 func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, error) {

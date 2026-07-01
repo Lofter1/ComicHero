@@ -112,6 +112,13 @@ func parseOptionalBool(value, field string) (bool, bool, error) {
 	return parsed, true, nil
 }
 
+func sortDirection(value string) string {
+	if strings.EqualFold(value, "desc") {
+		return "DESC"
+	}
+	return "ASC"
+}
+
 func requireRowsAffected(result sql.Result, notFoundMessage string) error {
 	rows, err := result.RowsAffected()
 	if err != nil {

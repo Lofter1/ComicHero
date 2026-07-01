@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
@@ -37,54 +37,37 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  filter: {
+    type: String,
+    default: 'all',
+  },
+  sort: {
+    type: String,
+    default: 'name',
+  },
+  direction: {
+    type: String,
+    default: 'asc',
+  },
 })
 
-defineEmits(['update:search', 'new-order', 'open-order', 'toggle-favorite'])
+defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-order', 'open-order', 'toggle-favorite'])
 
-const filter = ref('all')
-const sort = ref('name')
-const direction = ref('asc')
 const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'progress', label: 'Progress' },
 ]
 
-const visibleOrders = computed(() => {
-  return [...props.orders]
-    .filter(order => {
-      if (filter.value === 'favorites') return order.favorite
-      if (filter.value === 'other') return !order.favorite
-      return true
-    })
-    .sort((a, b) => {
-      const result = compareOrders(a, b)
-      return direction.value === 'desc' ? -result : result
-    })
-})
+const visibleOrders = computed(() => props.orders)
 const visibleSections = computed(() => {
-  if (filter.value === 'favorites') return sectionList('Favorites', visibleOrders.value)
-  if (filter.value === 'other') return sectionList('Other Orders', visibleOrders.value)
-
-  const favorites = visibleOrders.value.filter(order => order.favorite)
-  if (!favorites.length) return sectionList('All Orders', visibleOrders.value)
-  return [
-    { key: 'favorites', title: 'Favorites', orders: favorites },
-    { key: 'other', title: 'Other Orders', orders: visibleOrders.value.filter(order => !order.favorite) },
-  ].filter(section => section.orders.length)
+  if (props.filter === 'favorites') return sectionList('Favorites', visibleOrders.value)
+  if (props.filter === 'other') return sectionList('Other Orders', visibleOrders.value)
+  return sectionList('All Orders', visibleOrders.value)
 })
-const hasFilters = computed(() => props.searchTerm || filter.value !== 'all')
+const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
 
 function sectionList(title, orders) {
-  return orders.length ? [{ key: filter.value, title, orders }] : []
-}
-
-function compareOrders(a, b) {
-  if (sort.value === 'progress') return (a.progress ?? 0) - (b.progress ?? 0) || compareText(a.name, b.name)
-  return compareText(a.name, b.name)
-}
-
-function compareText(a, b) {
-  return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+  return orders.length ? [{ key: props.filter, title, orders }] : []
 }
 </script>
 
@@ -111,9 +94,9 @@ function compareText(a, b) {
             :direction="direction"
             :sort-options="sortOptions"
             @update:search="$emit('update:search', $event)"
-            @update:filter="filter = $event"
-            @update:sort="sort = $event"
-            @update:direction="direction = $event"
+            @update:filter="$emit('update:filter', $event)"
+            @update:sort="$emit('update:sort', $event)"
+            @update:direction="$emit('update:direction', $event)"
           />
           <button
             class="primary-button icon-text-button"

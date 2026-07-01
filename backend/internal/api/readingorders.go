@@ -157,9 +157,20 @@ func readingOrderListQuery(input *ReadingOrderListInput) (string, []any, error) 
 		`, input.ComicID)
 	}
 
-	query.orderBy("GROUP BY ro.id ORDER BY ro.name")
+	query.groupBy("GROUP BY ro.id")
+	query.orderBy(readingOrderListOrder(input.Sort, input.Direction))
 	sql, args := query.build()
 	return sql, args, nil
+}
+
+func readingOrderListOrder(sort, direction string) string {
+	dir := sortDirection(direction)
+	switch sort {
+	case "progress":
+		return "ORDER BY progress " + dir + ", ro.name " + dir
+	default:
+		return "ORDER BY ro.name " + dir
+	}
 }
 
 func getReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {

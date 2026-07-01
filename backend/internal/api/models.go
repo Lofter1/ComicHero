@@ -40,6 +40,11 @@ type ComicListInput struct {
 	Publisher      string `query:"publisher"      doc:"Filter comics by partial publisher name." example:"DC"`
 	Read           string `query:"read"           doc:"Filter comics by read status. Use true or false." enum:"true,false" example:"false"`
 	ReadingOrderID int    `query:"readingOrderId" doc:"Filter comics to those included in a reading order." example:"7"`
+	ArcID          int    `query:"arcId"          doc:"Filter comics to those included in an arc." example:"7"`
+	CharacterID    int    `query:"characterId"    doc:"Filter comics to those featuring a character." example:"12"`
+	SeriesID       int    `query:"seriesId"       doc:"Filter comics to a local series." example:"5"`
+	Sort           string `query:"sort"           doc:"Sort field." enum:"series,title,date,publisher,read" example:"series"`
+	Direction      string `query:"direction"      doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit          int    `query:"limit"          doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
 	Offset         int    `query:"offset"         doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
@@ -72,10 +77,12 @@ type CharacterDetail struct {
 }
 
 type CharacterListInput struct {
-	Query    string `query:"q"        doc:"Case-insensitive text search across character names and aliases." example:"bat"`
-	Favorite string `query:"favorite" doc:"Filter characters by favorite status. Use true or false." enum:"true,false" example:"true"`
-	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
-	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
+	Query     string `query:"q"        doc:"Case-insensitive text search across character names and aliases." example:"bat"`
+	Favorite  string `query:"favorite" doc:"Filter characters by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,appearances,aliases,progress" example:"name"`
+	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
+	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type CharacterInput struct {
@@ -119,10 +126,12 @@ type ComicSeriesDetail struct {
 }
 
 type ComicSeriesListInput struct {
-	Query    string `query:"q"        doc:"Case-insensitive text search across series names, publishers, years, and issue numbers." example:"batman"`
-	Favorite string `query:"favorite" doc:"Filter series by favorite status. Use true or false." enum:"true,false" example:"true"`
-	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
-	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
+	Query     string `query:"q"        doc:"Case-insensitive text search across series names, publishers, years, and issue numbers." example:"batman"`
+	Favorite  string `query:"favorite" doc:"Filter series by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,year,publisher,entries,progress" example:"name"`
+	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
+	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type ComicSeriesInput struct {
@@ -215,11 +224,13 @@ type ReadingOrderDetail struct {
 }
 
 type ReadingOrderListInput struct {
-	Query    string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
-	Favorite string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
-	ComicID  int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
-	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
-	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
+	Query     string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
+	Favorite  string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
+	ComicID   int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress" example:"name"`
+	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
+	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type ReadingOrderInput struct {
@@ -264,11 +275,13 @@ type ArcDetail struct {
 }
 
 type ArcListInput struct {
-	Query    string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
-	Favorite string `query:"favorite" doc:"Filter arcs by favorite status. Use true or false." enum:"true,false" example:"true"`
-	ComicID  int    `query:"comicId"  doc:"Filter arcs to those containing a comic." example:"42"`
-	Limit    int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
-	Offset   int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
+	Query     string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
+	Favorite  string `query:"favorite" doc:"Filter arcs by favorite status. Use true or false." enum:"true,false" example:"true"`
+	ComicID   int    `query:"comicId"  doc:"Filter arcs to those containing a comic." example:"42"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress" example:"name"`
+	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
+	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
+	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
 }
 
 type ArcInput struct {

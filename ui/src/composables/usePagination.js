@@ -11,7 +11,7 @@ export function emptyPageState() {
   }
 }
 
-export function usePagination({ activeView, loading, isEditing, isDetail, searchTerm, pageSize = 50 } = {}) {
+export function usePagination({ activeView, loading, isEditing, isDetail, searchTerm, listParams, pageSize = 50 } = {}) {
   const pageState = ref({
     readingOrders: emptyPageState(),
     arcs: emptyPageState(),
@@ -42,7 +42,7 @@ export function usePagination({ activeView, loading, isEditing, isDetail, search
     if (!append && state.initialized && !force) return
 
     const offset = append ? state.nextOffset : 0
-    const params = { limit: pageSize, offset }
+    const params = { ...(listParams?.value || {}), limit: pageSize, offset }
     if (searchTerm.value) {
       params.q = searchTerm.value
     }

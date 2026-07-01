@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
@@ -123,21 +125,15 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 	`)
 
 	if input.Query != "" {
-		search := "%" + input.Query + "%"
-		query.where(`(
-			s.name LIKE ?
-			OR CAST(s.series_year AS TEXT) LIKE ?
-			OR EXISTS (
-				SELECT 1 FROM comics matching_c
-				WHERE matching_c.series = s.name
-					AND matching_c.series_year = s.series_year
-					AND (
-						matching_c.publisher LIKE ?
-						OR CAST(matching_c.issue AS TEXT) LIKE ?
-						OR matching_c.cover_date LIKE ?
-					)
-			)
-		)`, search, search, search, search, search)
+		for _, token := range strings.Fields(input.Query) {
+			search := "%" + token + "%"
+			query.where(`(
+				s.name LIKE ?
+				OR CAST(s.series_year AS TEXT) LIKE ?
+				OR s.publisher LIKE ?
+				OR s.description LIKE ?
+			)`, search, search, search, search)
+		}
 	}
 	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
 		return "", nil, err
@@ -146,9 +142,25 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 	}
 
 	query.groupBy("GROUP BY s.id")
-	query.orderBy("ORDER BY s.name, s.series_year")
+	query.orderBy(seriesListOrder(input.Sort, input.Direction))
 	sql, args := query.build()
 	return sql, args, nil
+}
+
+func seriesListOrder(sort, direction string) string {
+	dir := sortDirection(direction)
+	switch sort {
+	case "year":
+		return "ORDER BY s.series_year " + dir + ", s.name " + dir
+	case "publisher":
+		return "ORDER BY s.publisher " + dir + ", s.name " + dir + ", s.series_year " + dir
+	case "entries":
+		return "ORDER BY entry_count " + dir + ", s.name " + dir + ", s.series_year " + dir
+	case "progress":
+		return "ORDER BY progress " + dir + ", s.name " + dir + ", s.series_year " + dir
+	default:
+		return "ORDER BY s.name " + dir + ", s.series_year " + dir
+	}
 }
 
 func getSeries(ctx context.Context, db *sqlx.DB, id int) (*ComicSeriesDetailOutput, error) {
@@ -308,6 +320,19 @@ func updateSeriesMetronMetadata(ctx context.Context, db *sqlx.DB, id int, metada
 	if metadata.ID <= 0 {
 		return nil
 	}
+	if err := updateSeriesMetronMetadataFull(ctx, db, id, metadata); err != nil {
+		if isConstraintError(err) {
+			if fallbackErr := updateSeriesMetronMetadataPartial(ctx, db, id, metadata); fallbackErr != nil {
+				return huma.Error500InternalServerError(fmt.Sprintf("failed to update series metadata: %v", fallbackErr))
+			}
+			return nil
+		}
+		return huma.Error500InternalServerError(fmt.Sprintf("failed to update series metadata: %v", err))
+	}
+	return nil
+}
+
+func updateSeriesMetronMetadataFull(ctx context.Context, db *sqlx.DB, id int, metadata metron.Series) error {
 	_, err := db.ExecContext(ctx, `
 		UPDATE series
 		SET metron_series_id = ?,
@@ -330,10 +355,33 @@ func updateSeriesMetronMetadata(ctx context.Context, db *sqlx.DB, id int, metada
 		metadata.Description,
 		id,
 	)
-	if err != nil {
-		return huma.Error500InternalServerError("failed to update series metadata")
+	return err
+}
+
+func updateSeriesMetronMetadataPartial(ctx context.Context, db *sqlx.DB, id int, metadata metron.Series) error {
+	_, err := db.ExecContext(ctx, `
+		UPDATE series
+		SET publisher = COALESCE(NULLIF(?, ''), publisher),
+			volume = ?,
+			year_end = ?,
+			issue_count = ?,
+			description = COALESCE(NULLIF(?, ''), description)
+		WHERE id = ?
+	`, metadata.Publisher,
+		metadata.Volume,
+		metadata.YearEnd,
+		metadata.IssueCount,
+		metadata.Description,
+		id,
+	)
+	return err
+}
+
+func isConstraintError(err error) bool {
+	if err == nil {
+		return false
 	}
-	return nil
+	return strings.Contains(strings.ToLower(err.Error()), "constraint")
 }
 
 func updateImportedSeriesMetadata(ctx context.Context, db *sqlx.DB, metadata metron.Series) error {
@@ -395,17 +443,50 @@ func hydrateSeriesPublishers(ctx context.Context, db *sqlx.DB, series []ComicSer
 		return nil
 	}
 
+	type publisherRow struct {
+		Series     string `db:"series"`
+		SeriesYear int    `db:"series_year"`
+		Publishers string `db:"publishers"`
+	}
+	keys := make([]string, 0, len(series))
 	for i := range series {
-		var publishers []string
-		if err := db.SelectContext(ctx, &publishers, `
-			SELECT DISTINCT publisher
-			FROM comics
-			WHERE series = ? AND series_year = ? AND publisher <> ''
-			ORDER BY publisher
-		`, series[i].Name, series[i].SeriesYear); err != nil {
-			return huma.Error500InternalServerError("failed to fetch series publishers")
+		keys = append(keys, seriesKey(series[i].Name, series[i].SeriesYear))
+		if series[i].Publisher != "" {
+			series[i].Publishers = []string{series[i].Publisher}
 		}
-		series[i].Publishers = publishers
+	}
+
+	query, args, err := sqlx.In(`
+		SELECT series, series_year, GROUP_CONCAT(publisher, '||') AS publishers
+		FROM (
+			SELECT DISTINCT series, series_year, publisher
+			FROM comics
+			WHERE publisher <> '' AND series || char(31) || series_year IN (?)
+			ORDER BY publisher
+		)
+		GROUP BY series, series_year
+	`, keys)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to prepare series publishers")
+	}
+	query = db.Rebind(query)
+
+	rows := []publisherRow{}
+	if err := db.SelectContext(ctx, &rows, query, args...); err != nil {
+		return huma.Error500InternalServerError("failed to fetch series publishers")
+	}
+	publishersBySeries := map[string][]string{}
+	for _, row := range rows {
+		publishersBySeries[seriesKey(row.Series, row.SeriesYear)] = strings.Split(row.Publishers, "||")
+	}
+	for i := range series {
+		if publishers := publishersBySeries[seriesKey(series[i].Name, series[i].SeriesYear)]; len(publishers) > 0 {
+			series[i].Publishers = publishers
+		}
 	}
 	return nil
+}
+
+func seriesKey(name string, year int) string {
+	return name + string(rune(31)) + strconv.Itoa(year)
 }

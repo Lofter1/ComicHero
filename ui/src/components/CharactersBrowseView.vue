@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
@@ -41,13 +41,22 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  filter: {
+    type: String,
+    default: 'all',
+  },
+  sort: {
+    type: String,
+    default: 'name',
+  },
+  direction: {
+    type: String,
+    default: 'asc',
+  },
 })
 
-defineEmits(['update:search', 'open-character', 'toggle-favorite'])
+defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-character', 'toggle-favorite'])
 
-const filter = ref('all')
-const sort = ref('name')
-const direction = ref('asc')
 const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'appearances', label: 'Appearances' },
@@ -55,44 +64,16 @@ const sortOptions = [
   { value: 'progress', label: 'Progress' },
 ]
 
-const visibleCharacters = computed(() => {
-  return [...props.characters]
-    .filter(character => {
-      if (filter.value === 'favorites') return character.favorite
-      if (filter.value === 'other') return !character.favorite
-      return true
-    })
-    .sort((a, b) => {
-      const result = compareCharacters(a, b)
-      return direction.value === 'desc' ? -result : result
-    })
-})
+const visibleCharacters = computed(() => props.characters)
 const visibleSections = computed(() => {
-  if (filter.value === 'favorites') return sectionList('Favorites', visibleCharacters.value)
-  if (filter.value === 'other') return sectionList('Other Characters', visibleCharacters.value)
-
-  const favorites = visibleCharacters.value.filter(character => character.favorite)
-  if (!favorites.length) return sectionList('All Characters', visibleCharacters.value)
-  return [
-    { key: 'favorites', title: 'Favorites', characters: favorites },
-    { key: 'other', title: 'Other Characters', characters: visibleCharacters.value.filter(character => !character.favorite) },
-  ].filter(section => section.characters.length)
+  if (props.filter === 'favorites') return sectionList('Favorites', visibleCharacters.value)
+  if (props.filter === 'other') return sectionList('Other Characters', visibleCharacters.value)
+  return sectionList('All Characters', visibleCharacters.value)
 })
-const hasFilters = computed(() => props.searchTerm || filter.value !== 'all')
+const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
 
 function sectionList(title, characters) {
-  return characters.length ? [{ key: filter.value, title, characters }] : []
-}
-
-function compareCharacters(a, b) {
-  if (sort.value === 'appearances') return (a.appearanceCount ?? 0) - (b.appearanceCount ?? 0) || compareText(a.name, b.name)
-  if (sort.value === 'aliases') return (a.aliases?.length ?? 0) - (b.aliases?.length ?? 0) || compareText(a.name, b.name)
-  if (sort.value === 'progress') return (a.progress ?? 0) - (b.progress ?? 0) || compareText(a.name, b.name)
-  return compareText(a.name, b.name)
-}
-
-function compareText(a, b) {
-  return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+  return characters.length ? [{ key: props.filter, title, characters }] : []
 }
 
 function characterProgress(character) {
@@ -126,9 +107,9 @@ function characterProgress(character) {
           :direction="direction"
           :sort-options="sortOptions"
           @update:search="$emit('update:search', $event)"
-          @update:filter="filter = $event"
-          @update:sort="sort = $event"
-          @update:direction="direction = $event"
+          @update:filter="$emit('update:filter', $event)"
+          @update:sort="$emit('update:sort', $event)"
+          @update:direction="$emit('update:direction', $event)"
         />
       </div>
       <div v-if="visibleCharacters.length" class="sectioned-list">

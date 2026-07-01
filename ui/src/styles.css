@@ -1804,6 +1804,16 @@ textarea {
   gap: 10px;
 }
 
+.issue-list-load-more {
+  justify-self: center;
+  margin-top: 10px;
+}
+
+.issue-list-sentinel {
+  width: 100%;
+  height: 1px;
+}
+
 .comic-add-panel {
   display: grid;
   gap: 10px;

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
@@ -37,54 +37,37 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  filter: {
+    type: String,
+    default: 'all',
+  },
+  sort: {
+    type: String,
+    default: 'name',
+  },
+  direction: {
+    type: String,
+    default: 'asc',
+  },
 })
 
-defineEmits(['update:search', 'new-arc', 'open-arc', 'toggle-favorite'])
+defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-arc', 'open-arc', 'toggle-favorite'])
 
-const filter = ref('all')
-const sort = ref('name')
-const direction = ref('asc')
 const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'progress', label: 'Progress' },
 ]
 
-const visibleArcs = computed(() => {
-  return [...props.arcs]
-    .filter(arc => {
-      if (filter.value === 'favorites') return arc.favorite
-      if (filter.value === 'other') return !arc.favorite
-      return true
-    })
-    .sort((a, b) => {
-      const result = compareArcs(a, b)
-      return direction.value === 'desc' ? -result : result
-    })
-})
+const visibleArcs = computed(() => props.arcs)
 const visibleSections = computed(() => {
-  if (filter.value === 'favorites') return sectionList('Favorites', visibleArcs.value)
-  if (filter.value === 'other') return sectionList('Other Arcs', visibleArcs.value)
-
-  const favorites = visibleArcs.value.filter(arc => arc.favorite)
-  if (!favorites.length) return sectionList('All Arcs', visibleArcs.value)
-  return [
-    { key: 'favorites', title: 'Favorites', arcs: favorites },
-    { key: 'other', title: 'Other Arcs', arcs: visibleArcs.value.filter(arc => !arc.favorite) },
-  ].filter(section => section.arcs.length)
+  if (props.filter === 'favorites') return sectionList('Favorites', visibleArcs.value)
+  if (props.filter === 'other') return sectionList('Other Arcs', visibleArcs.value)
+  return sectionList('All Arcs', visibleArcs.value)
 })
-const hasFilters = computed(() => props.searchTerm || filter.value !== 'all')
+const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
 
 function sectionList(title, arcs) {
-  return arcs.length ? [{ key: filter.value, title, arcs }] : []
-}
-
-function compareArcs(a, b) {
-  if (sort.value === 'progress') return (a.progress ?? 0) - (b.progress ?? 0) || compareText(a.name, b.name)
-  return compareText(a.name, b.name)
-}
-
-function compareText(a, b) {
-  return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+  return arcs.length ? [{ key: props.filter, title, arcs }] : []
 }
 </script>
 
@@ -111,9 +94,9 @@ function compareText(a, b) {
             :direction="direction"
             :sort-options="sortOptions"
             @update:search="$emit('update:search', $event)"
-            @update:filter="filter = $event"
-            @update:sort="sort = $event"
-            @update:direction="direction = $event"
+            @update:filter="$emit('update:filter', $event)"
+            @update:sort="$emit('update:sort', $event)"
+            @update:direction="$emit('update:direction', $event)"
           />
           <button
             class="primary-button icon-text-button"

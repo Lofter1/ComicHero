@@ -968,3 +968,42 @@ func TestImportLocalSeriesFromMetronUpdatesMetadataAndImportsMissingComics(t *te
 		t.Fatalf("comic count = %d; want 2", comicCount)
 	}
 }
+
+func TestUpdateSeriesMetronMetadataKeepsLocalRowOnNameYearConflict(t *testing.T) {
+	ctx := context.Background()
+	db := newMetronImportTestDB(t)
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO series (id, name, series_year)
+		VALUES (1, 'Local Series', 1976);
+		INSERT INTO series (id, name, series_year)
+		VALUES (2, 'Metron Series', 1997);
+	`); err != nil {
+		t.Fatalf("insert series: %v", err)
+	}
+
+	err := updateSeriesMetronMetadata(ctx, db, 1, metron.Series{
+		ID:          405,
+		Name:        "Metron Series",
+		YearBegan:   1997,
+		Publisher:   "Publisher",
+		Volume:      2,
+		YearEnd:     2000,
+		IssueCount:  259,
+		Description: "Metadata",
+	})
+	if err != nil {
+		t.Fatalf("updateSeriesMetronMetadata: %v", err)
+	}
+
+	var series ComicSeries
+	if err := db.GetContext(ctx, &series, `SELECT * FROM series WHERE id = 1`); err != nil {
+		t.Fatalf("get series: %v", err)
+	}
+	if series.Name != "Local Series" || series.SeriesYear != 1976 {
+		t.Fatalf("series identity = %s %d; want local identity preserved", series.Name, series.SeriesYear)
+	}
+	if series.Publisher != "Publisher" || series.IssueCount != 259 || series.Description != "Metadata" {
+		t.Fatalf("series metadata = %#v; want partial metadata applied", series)
+	}
+}

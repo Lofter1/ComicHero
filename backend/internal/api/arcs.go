@@ -142,9 +142,20 @@ func arcListQuery(input *ArcListInput) (string, []any, error) {
 		`, input.ComicID)
 	}
 
-	query.orderBy("GROUP BY a.id ORDER BY a.name")
+	query.groupBy("GROUP BY a.id")
+	query.orderBy(arcListOrder(input.Sort, input.Direction))
 	sql, args := query.build()
 	return sql, args, nil
+}
+
+func arcListOrder(sort, direction string) string {
+	dir := sortDirection(direction)
+	switch sort {
+	case "progress":
+		return "ORDER BY progress " + dir + ", a.name " + dir
+	default:
+		return "ORDER BY a.name " + dir
+	}
 }
 
 func getArc(ctx context.Context, db *sqlx.DB, id int) (*ArcDetailOutput, error) {

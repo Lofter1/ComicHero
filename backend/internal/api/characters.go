@@ -76,7 +76,7 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 		query.where("ch.favorite = ?", favorite)
 	}
 	query.groupBy("GROUP BY ch.id")
-	query.orderBy("ORDER BY ch.name")
+	query.orderBy(characterListOrder(input.Sort, input.Direction))
 
 	sql, args := query.build()
 	total, err := countRows(ctx, db, sql, args)
@@ -95,6 +95,20 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 		return nil, err
 	}
 	return &CharacterListOutput{PaginationHeaders: pagination, Body: characters}, nil
+}
+
+func characterListOrder(sort, direction string) string {
+	dir := sortDirection(direction)
+	switch sort {
+	case "appearances":
+		return "ORDER BY appearance_count " + dir + ", ch.name " + dir
+	case "aliases":
+		return "ORDER BY (SELECT COUNT(*) FROM character_aliases ca_count WHERE ca_count.character_id = ch.id) " + dir + ", ch.name " + dir
+	case "progress":
+		return "ORDER BY progress " + dir + ", ch.name " + dir
+	default:
+		return "ORDER BY ch.name " + dir
+	}
 }
 
 func updateCharacterFavorite(ctx context.Context, db *sqlx.DB, id int, favorite bool) (*CharacterDetailOutput, error) {

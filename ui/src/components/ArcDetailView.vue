@@ -78,9 +78,12 @@ defineEmits(['back', 'edit', 'toggle-favorite', 'open-comic', 'toggle-read'])
           class="preview-list"
           title="Comics"
           :comics="selectedArc.comics"
+          :source-params="{ arcId: selectedArc.id }"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
           show-comment
+          paginate-local
+          server-source
           empty-message="No comics in this arc yet."
           filtered-empty-message="No comics match these filters."
           @open-comic="$emit('open-comic', $event)"

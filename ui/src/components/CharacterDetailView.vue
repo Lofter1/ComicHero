@@ -103,8 +103,11 @@ function characterProgress(character) {
           class="preview-list"
           title="Appearances"
           :comics="selectedCharacter.comics || []"
+          :source-params="{ characterId: selectedCharacter.id }"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
+          paginate-local
+          server-source
           empty-message="No appearances saved yet."
           filtered-empty-message="No appearances match these filters."
           @open-comic="$emit('open-comic', $event)"

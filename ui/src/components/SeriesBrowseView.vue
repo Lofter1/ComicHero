@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
 import { formatProgress } from '@/domain/readingOrders.js'
@@ -37,13 +37,22 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  filter: {
+    type: String,
+    default: 'all',
+  },
+  sort: {
+    type: String,
+    default: 'name',
+  },
+  direction: {
+    type: String,
+    default: 'asc',
+  },
 })
 
-defineEmits(['update:search', 'open-series', 'toggle-favorite', 'new-comic'])
+defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-series', 'toggle-favorite', 'new-comic'])
 
-const filter = ref('all')
-const sort = ref('name')
-const direction = ref('asc')
 const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'year', label: 'Year' },
@@ -52,45 +61,16 @@ const sortOptions = [
   { value: 'progress', label: 'Progress' },
 ]
 
-const visibleSeries = computed(() => {
-  return [...props.series]
-    .filter(item => {
-      if (filter.value === 'favorites') return item.favorite
-      if (filter.value === 'other') return !item.favorite
-      return true
-    })
-    .sort((a, b) => {
-      const result = compareSeriesItems(a, b)
-      return direction.value === 'desc' ? -result : result
-    })
-})
+const visibleSeries = computed(() => props.series)
 const visibleSections = computed(() => {
-  if (filter.value === 'favorites') return sectionList('Favorites', visibleSeries.value)
-  if (filter.value === 'other') return sectionList('Other Series', visibleSeries.value)
-
-  const favorites = visibleSeries.value.filter(item => item.favorite)
-  if (!favorites.length) return sectionList('All Series', visibleSeries.value)
-  return [
-    { key: 'favorites', title: 'Favorites', series: favorites },
-    { key: 'other', title: 'Other Series', series: visibleSeries.value.filter(item => !item.favorite) },
-  ].filter(section => section.series.length)
+  if (props.filter === 'favorites') return sectionList('Favorites', visibleSeries.value)
+  if (props.filter === 'other') return sectionList('Other Series', visibleSeries.value)
+  return sectionList('All Series', visibleSeries.value)
 })
-const hasFilters = computed(() => props.searchTerm || filter.value !== 'all')
+const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
 
 function sectionList(title, series) {
-  return series.length ? [{ key: filter.value, title, series }] : []
-}
-
-function compareSeriesItems(a, b) {
-  if (sort.value === 'year') return (a.seriesYear ?? 0) - (b.seriesYear ?? 0) || compareText(a.name, b.name)
-  if (sort.value === 'publisher') return compareText(seriesPublisherLabel(a), seriesPublisherLabel(b)) || compareText(a.name, b.name)
-  if (sort.value === 'entries') return (a.entryCount ?? 0) - (b.entryCount ?? 0) || compareText(a.name, b.name)
-  if (sort.value === 'progress') return (a.progress ?? 0) - (b.progress ?? 0) || compareText(a.name, b.name)
-  return compareText(a.name, b.name) || (a.seriesYear ?? 0) - (b.seriesYear ?? 0)
-}
-
-function compareText(a, b) {
-  return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+  return series.length ? [{ key: props.filter, title, series }] : []
 }
 
 function seriesYearLabel(series) {
@@ -129,9 +109,9 @@ function seriesPublisherLabel(series) {
           :direction="direction"
           :sort-options="sortOptions"
           @update:search="$emit('update:search', $event)"
-          @update:filter="filter = $event"
-          @update:sort="sort = $event"
-          @update:direction="direction = $event"
+          @update:filter="$emit('update:filter', $event)"
+          @update:sort="$emit('update:sort', $event)"
+          @update:direction="$emit('update:direction', $event)"
         />
       </div>
       <div v-if="visibleSeries.length" class="sectioned-list">
