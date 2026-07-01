@@ -59,6 +59,11 @@ function forceMetronRefresh() {
   if (!props.selectedComic?.metronIssueId) return
   emit('apply-metron', props.selectedComic.metronIssueId, { force: true })
 }
+
+function seriesLabel(comic) {
+  if (!comic) return ''
+  return `${comic.series || 'Unknown series'}${comic.seriesYear ? ` (${comic.seriesYear})` : ''}`
+}
 </script>
 
 <template>
@@ -117,9 +122,9 @@ function forceMetronRefresh() {
               type="button"
               @click="$emit('open-series', { id: selectedComic.seriesId })"
             >
-              {{ selectedComic.series }}{{ selectedComic.seriesYear ? ` (${selectedComic.seriesYear})` : '' }} #{{ selectedComic.issue }}
+              {{ seriesLabel(selectedComic) }}
             </button>
-            <strong v-else>{{ selectedComic.series }}{{ selectedComic.seriesYear ? ` (${selectedComic.seriesYear})` : '' }} #{{ selectedComic.issue }}</strong>
+            <strong v-else>{{ seriesLabel(selectedComic) }}</strong>
             <small>Series</small>
           </span>
           <span>
