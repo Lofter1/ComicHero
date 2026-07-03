@@ -101,7 +101,6 @@ http://localhost:8080/api/docs
 
 ## Roadmap
 
-- Import and export library data for backups, migrations, and sharing.
 - Optional login and user management for deployments that need multiple users.
 - Edit views for all stored data.
 - Sync read status with Metron when running in single-user mode.
