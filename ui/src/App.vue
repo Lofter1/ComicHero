@@ -29,13 +29,14 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const search = ref('')
-const listOptions = ref({
+const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
   arcs: { filter: 'all', sort: 'name', direction: 'asc' },
   comics: { status: 'all', sort: 'series', direction: 'asc' },
   series: { filter: 'all', sort: 'name', direction: 'asc' },
   characters: { filter: 'all', sort: 'name', direction: 'asc' },
-})
+}
+const listOptions = ref(getInitialListOptions())
 const loadMoreSentinel = ref(null)
 const themePreference = ref(getInitialThemePreference())
 const systemTheme = ref(getSystemTheme())
@@ -232,6 +233,26 @@ function getInitialThemePreference() {
   const savedTheme = window.localStorage.getItem('comichero-theme')
   if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system') return savedTheme
   return 'system'
+}
+
+function getInitialListOptions() {
+  if (typeof window === 'undefined') return cloneDefaultListOptions()
+  try {
+    return mergeListOptions(JSON.parse(window.localStorage.getItem('comichero-list-options') || '{}'))
+  } catch {
+    return cloneDefaultListOptions()
+  }
+}
+
+function cloneDefaultListOptions() {
+  return mergeListOptions({})
+}
+
+function mergeListOptions(savedOptions) {
+  return Object.fromEntries(Object.entries(defaultListOptions).map(([view, defaults]) => {
+    const saved = savedOptions?.[view]
+    return [view, { ...defaults, ...(saved && typeof saved === 'object' ? saved : {}) }]
+  }))
 }
 
 function getSystemTheme() {
@@ -607,6 +628,11 @@ watch(themePreference, (value) => {
   if (typeof window === 'undefined') return
   window.localStorage.setItem('comichero-theme', value)
 }, { immediate: true })
+
+watch(listOptions, (value) => {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem('comichero-list-options', JSON.stringify(value))
+}, { deep: true })
 
 watch(search, () => {
   if (searchDebounceTimer) {
