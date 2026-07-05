@@ -170,6 +170,7 @@ const filteredComics = computed(() => {
     })
 })
 const visibleComics = computed(() => {
+  if (props.serverSource) return filteredComics.value
   if (!props.paginateLocal) return filteredComics.value
   return filteredComics.value.slice(0, visibleLimit.value)
 })
