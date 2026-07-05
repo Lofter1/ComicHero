@@ -106,6 +106,7 @@ function characterProgress(character) {
           :source-params="{ characterId: selectedCharacter.id }"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
+          initial-sort="date"
           paginate-local
           server-source
           empty-message="No appearances saved yet."
