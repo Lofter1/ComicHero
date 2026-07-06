@@ -1,36 +1,17 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+
+import { listComics } from '@/api/client.js'
 import { comicLabel } from '@/domain/comics.js'
 
 const props = defineProps({
-  form: {
-    type: Object,
-    required: true,
-  },
-  selectedOrder: {
-    type: Object,
-    default: null,
-  },
-  comics: {
-    type: Array,
-    required: true,
-  },
-  readingOrders: {
-    type: Array,
-    default: () => [],
-  },
-  saving: {
-    type: Boolean,
-    default: false,
-  },
-  formId: {
-    type: String,
-    default: 'reading-order-editor-form',
-  },
-  itemLabel: {
-    type: String,
-    default: 'reading order',
-  },
+  form: { type: Object, required: true },
+  selectedOrder: { type: Object, default: null },
+  comics: { type: Array, required: true },
+  readingOrders: { type: Array, default: () => [] },
+  saving: { type: Boolean, default: false },
+  formId: { type: String, default: 'reading-order-editor-form' },
+  itemLabel: { type: String, default: 'reading order' },
   emptyEntryMessage: {
     type: String,
     default: 'No comics in this reading order yet.',
@@ -42,29 +23,77 @@ const emit = defineEmits(['update:form', 'save', 'delete'])
 const draggedIndex = ref(null)
 const dragOverIndex = ref(null)
 const comicSearch = ref('')
+const comicSearchResults = ref([])
+const comicSearchLoading = ref(false)
+const comicSearchError = ref('')
 const readingOrderSearch = ref('')
 const activeAddType = ref('comic')
 const expandedEntryKeys = ref(new Set())
+
+let comicSearchTimer = null
+let comicSearchRequestId = 0
+
 const orderEntries = computed(() => props.form.entries || props.form.comics || [])
 
 watch(() => props.form.id, () => {
   expandedEntryKeys.value = new Set()
 })
 
-const comicSearchResults = computed(() => {
-  const term = comicSearch.value.trim().toLowerCase()
-  const matches = term ? props.comics.filter(comicMatchesAddSearch) : props.comics
-  return matches.slice(0, 8)
+watch(comicSearch, () => {
+  queueComicSearch()
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  clearTimeout(comicSearchTimer)
+  comicSearchRequestId += 1
 })
+
+function queueComicSearch() {
+  clearTimeout(comicSearchTimer)
+  comicSearchTimer = setTimeout(searchComicsForReadingOrder, 250)
+}
+
+async function searchComicsForReadingOrder() {
+  const requestId = ++comicSearchRequestId
+  const q = comicSearch.value.trim()
+
+  comicSearchLoading.value = true
+  comicSearchError.value = ''
+
+  try {
+    const page = await listComics({
+      q,
+      limit: 8,
+      offset: 0,
+    })
+
+    if (requestId === comicSearchRequestId) {
+      comicSearchResults.value = page.items
+    }
+  } catch (error) {
+    if (requestId === comicSearchRequestId) {
+      comicSearchResults.value = []
+      comicSearchError.value = error?.message || 'Could not search comics.'
+    }
+  } finally {
+    if (requestId === comicSearchRequestId) {
+      comicSearchLoading.value = false
+    }
+  }
+}
+
 const childOrderChoices = computed(() => {
   const selected = new Set(orderEntries.value
     .filter(entry => entry.type === 'readingOrder')
     .map(entry => Number(entry.readingOrderId)))
+
   const term = readingOrderSearch.value.trim().toLowerCase()
+
   return props.readingOrders
     .filter(order => order.id !== props.form.id && !selected.has(order.id))
     .filter(order => {
       if (!term) return true
+
       return [order.name, order.description]
         .filter(Boolean)
         .some(value => String(value).toLowerCase().includes(term))
@@ -83,20 +112,15 @@ function updateEntry(index, patch) {
   const entries = orderEntries.value.map((entry, entryIndex) => {
     return entryIndex === index ? { ...entry, ...patch } : entry
   })
-  updateForm({ entries })
-}
 
-function comicMatchesAddSearch(comic) {
-  const term = comicSearch.value.trim().toLowerCase()
-  return [comic.title, comic.series, comic.seriesYear, comic.publisher, comic.issue, comic.coverDate, comic.read ? 'read' : 'unread']
-    .filter(value => value !== undefined && value !== null)
-    .some(value => String(value).toLowerCase().includes(term))
+  updateForm({ entries })
 }
 
 function comicSeriesLine(comic) {
   const series = comic.series || 'Unknown series'
   const year = comic.seriesYear ? ` (${comic.seriesYear})` : ''
   const issue = comic.issue ? ` #${comic.issue}` : ''
+
   return `${series}${year}${issue}`
 }
 
@@ -111,6 +135,7 @@ function comicMetaLine(comic) {
 function insertEntryAt(entry, index) {
   const entries = [...orderEntries.value]
   const safeIndex = Math.max(0, Math.min(index, entries.length))
+
   entries.splice(safeIndex, 0, entry)
   updateForm({ entries })
 }
@@ -127,22 +152,26 @@ function isEntryExpanded(entry, index) {
 function toggleEntry(entry, index) {
   const key = entryKey(entry, index)
   const expanded = new Set(expandedEntryKeys.value)
+
   if (expanded.has(key)) {
     expanded.delete(key)
   } else {
     expanded.add(key)
   }
+
   expandedEntryKeys.value = expanded
 }
 
 function collapseRemovedEntry(index) {
   const expanded = new Set()
+
   orderEntries.value.forEach((entry, entryIndex) => {
     if (entryIndex !== index && expandedEntryKeys.value.has(entryKey(entry, entryIndex))) {
       const nextIndex = entryIndex > index ? entryIndex - 1 : entryIndex
       expanded.add(entryKey(entry, nextIndex))
     }
   })
+
   expandedEntryKeys.value = expanded
 }
 
@@ -177,7 +206,9 @@ function addNewEntryToEnd(entry) {
 
 function dropAt(event, index) {
   event.preventDefault()
+
   const newEntry = event.dataTransfer.getData('application/x-comichero-entry')
+
   if (newEntry) {
     insertEntryAt(JSON.parse(newEntry), index)
     endDrag()
@@ -185,9 +216,11 @@ function dropAt(event, index) {
   }
 
   const fromIndex = Number(event.dataTransfer.getData('application/x-comichero-move') || event.dataTransfer.getData('text/plain'))
+
   if (Number.isFinite(fromIndex)) {
     moveEntryTo(fromIndex, index)
   }
+
   endDrag()
 }
 
@@ -199,9 +232,11 @@ function overDropZone(event, index) {
 
 function moveEntryTo(fromIndex, insertIndex) {
   if (fromIndex < 0 || fromIndex >= orderEntries.value.length) return
+
   const entries = [...orderEntries.value]
   const [entry] = entries.splice(fromIndex, 1)
   const targetIndex = Math.max(0, Math.min(fromIndex < insertIndex ? insertIndex - 1 : insertIndex, entries.length))
+
   entries.splice(targetIndex, 0, entry)
   updateForm({ entries })
 }
@@ -212,6 +247,7 @@ function clearComicSearch() {
 
 function removeEntry(index) {
   collapseRemovedEntry(index)
+
   updateForm({
     entries: orderEntries.value.filter((_, entryIndex) => entryIndex !== index),
   })
@@ -219,6 +255,7 @@ function removeEntry(index) {
 
 function entryLabel(entry) {
   if (entry.type === 'readingOrder') return entry.title || 'Unknown reading order'
+
   return entry.title || comicLabel(props.comics, entry.comicId)
 }
 
@@ -237,6 +274,7 @@ function reorderEntry(fromIndex, toIndex) {
 
   const entries = [...orderEntries.value]
   const [entry] = entries.splice(fromIndex, 1)
+
   entries.splice(toIndex, 0, entry)
   updateForm({ entries })
 }
@@ -244,6 +282,7 @@ function reorderEntry(fromIndex, toIndex) {
 function startDrag(event, index) {
   draggedIndex.value = index
   dragOverIndex.value = index
+
   event.dataTransfer.effectAllowed = 'move'
   event.dataTransfer.setData('application/x-comichero-move', String(index))
   event.dataTransfer.setData('text/plain', String(index))
@@ -261,6 +300,7 @@ function endDrag() {
       Name
       <input :value="form.name" required @input="updateForm({ name: $event.target.value })" />
     </label>
+
     <label>
       Description
       <textarea :value="form.description" rows="3" @input="updateForm({ description: $event.target.value })" />
@@ -278,7 +318,7 @@ function endDrag() {
             <button type="button" :class="{ active: activeAddType === 'readingOrder' }" @click="activeAddType = 'readingOrder'">Reading Orders</button>
           </div>
 
-          <div v-if="activeAddType === 'comic' && comics.length" class="comic-add-panel">
+          <div v-if="activeAddType === 'comic'" class="comic-add-panel">
             <div class="comic-add-search">
               <input
                 v-model="comicSearch"
@@ -289,7 +329,10 @@ function endDrag() {
               <button v-if="comicSearch" class="ghost-button" type="button" @click="clearComicSearch">Clear</button>
             </div>
 
-            <div v-if="comicSearchResults.length" class="comic-add-results">
+            <p v-if="comicSearchLoading" class="muted">Searching comics...</p>
+            <p v-else-if="comicSearchError" class="muted">{{ comicSearchError }}</p>
+
+            <div v-else-if="comicSearchResults.length" class="comic-add-results">
               <button
                 v-for="comic in comicSearchResults"
                 :key="comic.id"
@@ -305,12 +348,13 @@ function endDrag() {
                   <small>{{ comicSeriesLine(comic) }}</small>
                   <small>{{ comicMetaLine(comic) }}</small>
                 </span>
+
                 <span class="status-pill">Add</span>
               </button>
             </div>
+
             <p v-else class="muted">No comics match that search.</p>
           </div>
-          <div v-else-if="activeAddType === 'comic'" class="empty-state">Add comics before building a reading order.</div>
 
           <div v-if="activeAddType === 'readingOrder' && readingOrders.length" class="comic-add-panel">
             <div class="comic-add-search">
@@ -322,6 +366,7 @@ function endDrag() {
               />
               <button v-if="readingOrderSearch" class="ghost-button" type="button" @click="readingOrderSearch = ''">Clear</button>
             </div>
+
             <div v-if="childOrderChoices.length" class="comic-add-results">
               <button
                 v-for="order in childOrderChoices"
@@ -337,11 +382,14 @@ function endDrag() {
                   <strong>{{ order.name }}</strong>
                   <small>{{ order.description || 'No description' }}</small>
                 </span>
+
                 <span class="status-pill">Add</span>
               </button>
             </div>
+
             <p v-else class="muted">No reading orders match that search.</p>
           </div>
+
           <div v-else-if="activeAddType === 'readingOrder'" class="empty-state">No reading orders available to include.</div>
         </section>
       </div>
@@ -371,6 +419,7 @@ function endDrag() {
               @dragleave="dragOverIndex = null"
               @drop="dropAt($event, index)"
             />
+
             <div
               class="order-entry"
               :class="{
@@ -394,10 +443,12 @@ function endDrag() {
                     <span aria-hidden="true" class="drag-icon">⋮⋮</span>
                   </span>
                 </span>
+
                 <span class="entry-summary-copy">
                   <span class="entry-type-pill">{{ entryTypeLabel(entry) }}</span>
                   <strong>{{ entryLabel(entry) }}</strong>
                 </span>
+
                 <span
                   aria-hidden="true"
                   class="button-icon entry-expand-icon"
@@ -405,14 +456,17 @@ function endDrag() {
                 >
                   {{ isEntryExpanded(entry, index) ? '▴' : '▾' }}
                 </span>
+
                 <span class="mobile-reorder" @click.stop>
                   <button type="button" :disabled="index === 0" @click="moveEntry(index, -1)">Up</button>
                   <button type="button" :disabled="index === orderEntries.length - 1" @click="moveEntry(index, 1)">Down</button>
                 </span>
               </button>
+
               <button type="button" class="remove-entry-button" :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`" title="Remove" @click="removeEntry(index)">
                 <span aria-hidden="true">×</span>
               </button>
+
               <div v-if="isEntryExpanded(entry, index)" class="entry-edit-panel">
                 <label class="comment-input-label">
                   Note
@@ -424,6 +478,7 @@ function endDrag() {
                     @input="updateEntry(index, { comment: $event.target.value })"
                   />
                 </label>
+
                 <label v-if="entry.type !== 'readingOrder'" class="comment-input-label">
                   Tags
                   <input
@@ -436,6 +491,7 @@ function endDrag() {
               </div>
             </div>
           </template>
+
           <div
             class="entry-drop-zone end-zone"
             :class="{ active: dragOverIndex === orderEntries.length }"
@@ -446,6 +502,5 @@ function endDrag() {
         </div>
       </section>
     </div>
-
   </form>
 </template>
