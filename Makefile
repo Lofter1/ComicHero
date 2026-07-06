@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-ui test test-backend test-ui build build-backend build-ui install-ui embed-ui build-standalone docker-build docker-run compose-up compose-down
+.PHONY: dev dev-backend dev-ui test test-backend test-ui build build-backend build-ui install-ui build-standalone docker-build docker-run compose-up compose-down
 
 GOCACHE ?= $(CURDIR)/tmp/go-build
 export GOCACHE
@@ -11,6 +11,8 @@ IMAGE ?= comichero:latest
 VITE_API_BASE ?= /api
 export VITE_API_BASE
 DIST_DIR ?= dist
+VERSION ?= dev
+BINARY_NAME ?= comichero
 
 dev:
 	@set -e; \
@@ -47,15 +49,13 @@ build-ui:
 install-ui:
 	npm --prefix ui install
 
-embed-ui: build-ui
+build-standalone: build-ui
 	rm -rf backend/internal/static/dist
 	mkdir -p backend/internal/static/dist
 	cp -r ui/dist/. backend/internal/static/dist/
-
-build-standalone: embed-ui
 	mkdir -p $(DIST_DIR)
-	cd backend && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o ../$(DIST_DIR)/comichero .
-	@echo "==> built $(DIST_DIR)/comichero (standalone binary, frontend embedded, no other files needed)"
+	cd backend && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)" -o ../$(DIST_DIR)/$(BINARY_NAME) .
+	@echo "==> built $(DIST_DIR)/$(BINARY_NAME) (standalone binary, frontend embedded, no other files needed)"
 
 docker-build:
 	docker build --build-arg VITE_API_BASE=$(VITE_API_BASE) -t $(IMAGE) .

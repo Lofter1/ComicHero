@@ -22,6 +22,8 @@ import (
 	"github.com/Lofter1/ComicHero/backend/internal/static"
 )
 
+var version = "dev"
+
 func main() {
 	loadEnvFiles(".env", "../.env")
 
@@ -65,7 +67,7 @@ func main() {
 	}
 
 	addr := ":" + env("PORT", "8080")
-	log.Printf("listening on %s", addr)
+	log.Printf("ComicHero %s listening on %s", version, addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatalf("server stopped: %v", err)
 	}

@@ -1,7 +1,9 @@
 services:
   comichero:
-    build: .
-    image: comichero:latest
+    image: ghcr.io/lofter1/comichero:latest
+    # Uncomment to build from a local checkout instead of pulling the
+    # published image (`docker compose up --build`):
+    # build: .
     ports:
       - "8080:8080"
     volumes:
@@ -10,7 +12,6 @@ services:
       PORT: "8080"
       DB_PATH: /data/comicorder.db
       COVER_CACHE_DIR: /data/covers
-      STATIC_DIR: /app/public
       METRON_BASE_URL: https://metron.cloud/api
       METRON_USERNAME: ${METRON_USERNAME:-}
       METRON_PASSWORD: ${METRON_PASSWORD:-}
