@@ -1,0 +1,4 @@
+# Populated by `npm run build` in ui/ + copy step before `go build`.
+# See static.go for details.
+dist/*
+!dist/.gitkeep
