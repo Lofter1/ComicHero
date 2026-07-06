@@ -58,7 +58,7 @@ jobs:
           name="comichero_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}"
           mkdir "$name"
           cp dist/comichero "$name/"
-          cp README.md LICENSE "$name/"
+          cp README.md LICENSE .env.example "$name/"
           tar -czf "$name.tar.gz" "$name"
 
       - name: Upload archive
