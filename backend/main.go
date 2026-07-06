@@ -2,11 +2,15 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
@@ -15,6 +19,7 @@ import (
 	"github.com/Lofter1/ComicHero/backend/internal/api"
 	"github.com/Lofter1/ComicHero/backend/internal/db"
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
+	"github.com/Lofter1/ComicHero/backend/internal/static"
 )
 
 func main() {
@@ -55,7 +60,9 @@ func main() {
 	api.RegisterCharacterRoutes(humaAPI, database)
 	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
 	serveCovers(router, "/covers", covers.Dir())
-	serveStatic(router, env("STATIC_DIR", "./public"))
+	if err := serveStatic(router, os.Getenv("STATIC_DIR")); err != nil {
+		log.Fatalf("failed to prepare static assets: %v", err)
+	}
 
 	addr := ":" + env("PORT", "8080")
 	log.Printf("listening on %s", addr)
@@ -79,24 +86,45 @@ func serveCovers(router chi.Router, publicPath, dir string) {
 	}))
 }
 
-func serveStatic(router chi.Router, dir string) {
-	info, err := os.Stat(dir)
-	if err != nil || !info.IsDir() {
-		log.Printf("static dir %q not found; serving API only", dir)
-		return
+// serveStatic serves the frontend. If diskDir is non-empty and exists, it's
+// served straight off disk (handy for local frontend dev). Otherwise it
+// falls back to the frontend embedded into the binary at build time.
+func serveStatic(router chi.Router, diskDir string) error {
+	var fsys fs.FS
+
+	if diskDir != "" {
+		if info, err := os.Stat(diskDir); err == nil && info.IsDir() {
+			log.Printf("serving frontend from disk: %s", diskDir)
+			fsys = os.DirFS(diskDir)
+		} else {
+			log.Printf("STATIC_DIR %q not found; falling back to embedded frontend", diskDir)
+		}
 	}
 
-	files := http.FileServer(http.Dir(dir))
+	if fsys == nil {
+		embedded, err := static.FS()
+		if err != nil {
+			return fmt.Errorf("embedded frontend: %w", err)
+		}
+		fsys = embedded
+	}
+
+	files := http.FileServer(http.FS(fsys))
 	router.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestPath := strings.TrimPrefix(filepath.Clean(r.URL.Path), string(filepath.Separator))
-		path := filepath.Join(dir, requestPath)
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		if info, err := fs.Stat(fsys, requestPath); err == nil && !info.IsDir() {
 			files.ServeHTTP(w, r)
 			return
 		}
 
-		http.ServeFile(w, r, filepath.Join(dir, "index.html"))
+		index, err := fs.ReadFile(fsys, "index.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(index))
 	}))
+	return nil
 }
 
 func env(key, fallback string) string {
