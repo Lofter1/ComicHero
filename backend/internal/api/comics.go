@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -111,8 +112,18 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 	query := newSelectQuery("SELECT c.* FROM comics c")
 
 	if input.Query != "" {
-		search := "%" + input.Query + "%"
-		query.where("(c.series LIKE ? OR CAST(c.series_year AS TEXT) LIKE ? OR CAST(c.issue AS TEXT) LIKE ? OR c.publisher LIKE ? OR c.description LIKE ?)", search, search, search, search, search)
+		terms := strings.Fields(strings.ReplaceAll(input.Query, "#", " "))
+
+		for _, term := range terms {
+			search := "%" + term + "%"
+			query.where(`(
+			c.series LIKE ?
+			OR CAST(c.series_year AS TEXT) LIKE ?
+			OR CAST(c.issue AS TEXT) LIKE ?
+			OR c.publisher LIKE ?
+			OR c.description LIKE ?
+		)`, search, search, search, search, search)
+		}
 	}
 	if input.Series != "" {
 		query.where("c.series LIKE ?", "%"+input.Series+"%")
