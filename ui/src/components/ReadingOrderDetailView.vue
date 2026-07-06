@@ -25,6 +25,7 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
   <div class="detail-view">
     <header class="detail-nav sticky-toolbar">
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
+
       <div class="detail-nav-actions">
         <button v-if="selectedOrder" class="secondary-button" type="button" @click="$emit('export-cbl')">Export CBL</button>
         <button v-if="selectedOrder" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
@@ -44,12 +45,14 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           <div v-if="selectedOrder.image" class="reading-order-thumbnail">
             <img :src="assetURL(selectedOrder.image)" :alt="`${selectedOrder.name} thumbnail`" loading="lazy" />
           </div>
+
           <p class="detail-description">{{ selectedOrder.description || 'No description' }}</p>
         </div>
 
         <div class="progress-meter" aria-label="Reading order progress">
           <span :style="{ width: formatProgress(selectedOrder.progress) }"></span>
         </div>
+
         <div class="metadata-grid">
           <span>
             <strong>{{ formatProgress(selectedOrder.progress) }}</strong>
@@ -65,20 +68,21 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           class="preview-list"
           title="Comics"
           :comics="selectedOrder.comics"
-          :source-params="{ readingOrderId: selectedOrder.id }"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
+          initial-sort="readingOrder"
+          show-reading-order-sort
           show-comment
           show-cover
           paginate-local
-          server-source
           empty-message="No comics in this reading order yet."
           filtered-empty-message="No comics match these filters."
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
         />
       </div>
-      <p v-else class="empty-state">Select a reading order to view it.</p>
+
+      <div v-else class="empty-state">Select a reading order to view details.</div>
     </article>
   </div>
 </template>

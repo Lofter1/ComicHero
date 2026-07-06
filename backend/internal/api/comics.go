@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -92,19 +93,23 @@ func listComics(ctx context.Context, db *sqlx.DB, input *ComicListInput) (*Comic
 	if err != nil {
 		return nil, err
 	}
+
 	total, err := countRows(ctx, db, query, args)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to count comics")
 	}
+
 	query, args, limit, offset := paginatedQuery(query, args, input.Limit, input.Offset)
 
 	comics := []Comic{}
 	if err := db.SelectContext(ctx, &comics, query, args...); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
+
 	var pagination PaginationHeaders
 	comics, pagination = pageItems(comics, limit, offset, total)
 	hydrateComicTitles(comics)
+
 	return &ComicListOutput{PaginationHeaders: pagination, Body: comics}, nil
 }
 
@@ -112,33 +117,45 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 	query := newSelectQuery("SELECT c.* FROM comics c")
 
 	if input.Query != "" {
-		terms := strings.Fields(strings.ReplaceAll(input.Query, "#", " "))
+		rawQuery := strings.TrimSpace(input.Query)
+		issuePattern := regexp.MustCompile(`#\s*([A-Za-z0-9.\-/]+)`)
+		issueMatches := issuePattern.FindAllStringSubmatch(rawQuery, -1)
+
+		for _, match := range issueMatches {
+			query.where("c.issue = ?", match[1])
+		}
+
+		textQuery := issuePattern.ReplaceAllString(rawQuery, " ")
+		terms := strings.Fields(textQuery)
 
 		for _, term := range terms {
 			search := "%" + term + "%"
 			query.where(`(
-			c.series LIKE ?
-			OR CAST(c.series_year AS TEXT) LIKE ?
-			OR CAST(c.issue AS TEXT) LIKE ?
-			OR c.publisher LIKE ?
-			OR c.description LIKE ?
-		)`, search, search, search, search, search)
+				c.series LIKE ?
+				OR CAST(c.series_year AS TEXT) LIKE ?
+				OR c.publisher LIKE ?
+				OR c.description LIKE ?
+			)`, search, search, search, search)
 		}
 	}
+
 	if input.Series != "" {
 		query.where("c.series LIKE ?", "%"+input.Series+"%")
 	}
+
 	if input.Publisher != "" {
 		query.where("c.publisher LIKE ?", "%"+input.Publisher+"%")
 	}
+
 	if read, ok, err := parseOptionalBool(input.Read, "read"); err != nil {
 		return "", nil, err
 	} else if ok {
 		query.where("c.read = ?", read)
 	}
+
 	if input.ReadingOrderID > 0 {
 		query.where(`
-			(
+		(
 			EXISTS (
 				SELECT 1 FROM reading_order_comics roc
 				WHERE roc.comic_id = c.id AND roc.reading_order_id = ?
@@ -148,9 +165,10 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 				JOIN reading_order_comics child_roc ON child_roc.reading_order_id = child.child_reading_order_id
 				WHERE child.parent_reading_order_id = ? AND child_roc.comic_id = c.id
 			)
-			)
+		)
 		`, input.ReadingOrderID, input.ReadingOrderID)
 	}
+
 	if input.ArcID > 0 {
 		query.where(`
 			EXISTS (
@@ -159,6 +177,7 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 			)
 		`, input.ArcID)
 	}
+
 	if input.CharacterID > 0 {
 		query.where(`
 			EXISTS (
@@ -167,6 +186,7 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 			)
 		`, input.CharacterID)
 	}
+
 	if input.SeriesID > 0 {
 		query.where(`
 			EXISTS (
@@ -177,6 +197,7 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 	}
 
 	query.orderBy(comicListOrder(input.Sort, input.Direction))
+
 	sql, args := query.build()
 	return sql, args, nil
 }
@@ -186,10 +207,12 @@ func comicListOrder(sort, direction string) string {
 	if dir == "ASC" {
 		dir = ""
 	}
+
 	spaceDir := ""
 	if dir != "" {
 		spaceDir = " " + dir
 	}
+
 	switch sort {
 	case "title":
 		return "ORDER BY c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
@@ -212,7 +235,8 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 
 	orders := []ReadingOrder{}
 	if err := db.SelectContext(ctx, &orders, `
-		SELECT ro.* FROM reading_orders ro
+		SELECT ro.*
+		FROM reading_orders ro
 		JOIN reading_order_comics roc ON roc.reading_order_id = ro.id
 		WHERE roc.comic_id = ?
 		ORDER BY ro.name
@@ -222,7 +246,8 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 
 	arcs := []Arc{}
 	if err := db.SelectContext(ctx, &arcs, `
-		SELECT a.* FROM arcs a
+		SELECT a.*
+		FROM arcs a
 		JOIN arc_comics ac ON ac.arc_id = a.id
 		WHERE ac.comic_id = ?
 		ORDER BY a.name
@@ -242,9 +267,11 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 	`, id); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch characters")
 	}
+
 	if err := hydrateCharacterAliases(ctx, db, characters); err != nil {
 		return nil, err
 	}
+
 	var seriesID *int
 	var localSeriesID int
 	if err := db.GetContext(ctx, &localSeriesID, `
@@ -270,14 +297,13 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 
 func getComicRow(ctx context.Context, db *sqlx.DB, id int) (Comic, error) {
 	var comic Comic
-	if err := db.GetContext(ctx, &comic, `
-		SELECT * FROM comics WHERE id = ?
-	`, id); err != nil {
+	if err := db.GetContext(ctx, &comic, `SELECT * FROM comics WHERE id = ?`, id); err != nil {
 		if err == sql.ErrNoRows {
 			return Comic{}, huma.Error404NotFound("comic not found")
 		}
 		return Comic{}, huma.Error500InternalServerError("failed to fetch comic")
 	}
+
 	hydrateComicTitle(&comic)
 	return comic, nil
 }
@@ -292,15 +318,7 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	result, err := db.ExecContext(ctx, `
 		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description, read)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, payload.Series,
-		payload.SeriesYear,
-		payload.Issue,
-		payload.Publisher,
-		payload.CoverDate,
-		payload.CoverImage,
-		payload.Description,
-		payload.Read,
-	)
+	`, payload.Series, payload.SeriesYear, payload.Issue, payload.Publisher, payload.CoverDate, payload.CoverImage, payload.Description, payload.Read)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create comic")
 	}
@@ -309,6 +327,7 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
+
 	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
@@ -327,22 +346,15 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 		UPDATE comics
 		SET series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?, read = ?
 		WHERE id = ?
-	`, payload.Series,
-		payload.SeriesYear,
-		payload.Issue,
-		payload.Publisher,
-		payload.CoverDate,
-		payload.CoverImage,
-		payload.Description,
-		payload.Read,
-		id,
-	)
+	`, payload.Series, payload.SeriesYear, payload.Issue, payload.Publisher, payload.CoverDate, payload.CoverImage, payload.Description, payload.Read, id)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to update comic")
 	}
+
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
 		return nil, err
 	}
+
 	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
@@ -351,14 +363,11 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 }
 
 func updateComicReadStatus(ctx context.Context, db *sqlx.DB, id int, read bool) (*ComicDetailOutput, error) {
-	result, err := db.ExecContext(ctx, `
-		UPDATE comics
-		SET read = ?
-		WHERE id = ?
-	`, read, id)
+	result, err := db.ExecContext(ctx, `UPDATE comics SET read = ? WHERE id = ?`, read, id)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to update comic read status")
 	}
+
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
 		return nil, err
 	}
@@ -367,12 +376,11 @@ func updateComicReadStatus(ctx context.Context, db *sqlx.DB, id int, read bool) 
 }
 
 func deleteComic(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
-	result, err := db.ExecContext(ctx, `
-		DELETE FROM comics WHERE id = ?
-	`, id)
+	result, err := db.ExecContext(ctx, `DELETE FROM comics WHERE id = ?`, id)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to delete comic")
 	}
+
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
 		return nil, err
 	}
@@ -401,12 +409,15 @@ func comicTitle(comic Comic) string {
 	if title == "" {
 		title = "Unknown Series"
 	}
+
 	if comic.SeriesYear > 0 {
 		title = fmt.Sprintf("%s (%d)", title, comic.SeriesYear)
 	}
+
 	if comic.Series != "" || comic.Issue != "" {
 		title = fmt.Sprintf("%s #%s", title, comic.Issue)
 	}
+
 	return title
 }
 
@@ -415,5 +426,6 @@ func localCoverURL(ctx context.Context, covers *CoverCache, source string) (stri
 	if err != nil {
 		return "", huma.Error502BadGateway(err.Error())
 	}
+
 	return localURL, nil
 }
