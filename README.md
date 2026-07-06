@@ -18,31 +18,42 @@ ComicHero is a self-hosted reading-order tracker for comics. It helps you build 
 
 ## Installation
 
+Metron credentials are optional and only needed if you want to import comics, reading lists, and series from [Metron](https://metron.cloud/). Every install option below supports setting them either as environment variables (`METRON_USERNAME` / `METRON_PASSWORD`) or via a `.env` file — pick whichever fits the option you're using.
+
 ### Option 1: Docker (recommended)
 
-Pull the published image and run it directly:
+Pull the published image and run it, passing Metron credentials as environment variables if you want them:
 
 ```sh
 docker run -d \
   --name comichero \
   -p 8080:8080 \
   -v comichero-data:/data \
+  -e METRON_USERNAME=your-metron-username \
+  -e METRON_PASSWORD=your-metron-password \
   ghcr.io/lofter1/comichero:latest
 ```
 
-Open `http://localhost:8080`. SQLite data and cached covers live in the `comichero-data` volume.
+Omit the two `-e` lines if you don't need Metron import. Open `http://localhost:8080`. SQLite data and cached covers live in the `comichero-data` volume.
 
 Images are published on every tagged release (`ghcr.io/lofter1/comichero:v1.2.3`) and `latest` always points at the most recent release. See the [Releases page](https://github.com/Lofter1/ComicHero/releases) for available tags.
 
 ### Option 2: Docker Compose
 
-1. Copy the example environment file and optionally add Metron credentials:
+1. Copy the example environment file:
 
    ```sh
    cp .env.example .env
    ```
 
-2. Start the app:
+2. Open `.env` and, if you want Metron import, fill in:
+
+   ```
+   METRON_USERNAME=your-metron-username
+   METRON_PASSWORD=your-metron-password
+   ```
+
+3. Start the app:
 
    ```sh
    docker compose up
@@ -50,26 +61,28 @@ Images are published on every tagged release (`ghcr.io/lofter1/comichero:v1.2.3`
 
    This pulls `ghcr.io/lofter1/comichero:latest` as defined in `compose.yaml`. To build from a local checkout instead, run `docker compose up --build` (see the commented-out `build: .` line in `compose.yaml`).
 
-3. Open `http://localhost:8080`.
+4. Open `http://localhost:8080`.
 
 ### Option 3: Prebuilt binary
 
-Each [release](https://github.com/Lofter1/ComicHero/releases) includes standalone binaries for Linux and macOS (amd64 and arm64), with the frontend already embedded. No Docker, Node, or Go required.
+Each [release](https://github.com/Lofter1/ComicHero/releases) includes standalone binaries for Linux and macOS (amd64 and arm64), with the frontend already embedded, plus a `.env.example` template. No Docker, Node, or Go required.
 
 ```sh
 curl -LO https://github.com/Lofter1/ComicHero/releases/latest/download/comichero_<version>_linux_amd64.tar.gz
 tar -xzf comichero_<version>_linux_amd64.tar.gz
 cd comichero_<version>_linux_amd64
+cp .env.example .env   # optional: fill in METRON_USERNAME / METRON_PASSWORD
 ./comichero
 ```
 
-Replace `linux_amd64` with `linux_arm64`, `darwin_amd64`, or `darwin_arm64` as needed. Configure via environment variables (see [Configuration](#configuration)) or a `.env` file next to the binary.
+Replace `linux_amd64` with `linux_arm64`, `darwin_amd64`, or `darwin_arm64` as needed. The binary reads `.env` from its own directory automatically; see [Configuration](#configuration) for all available variables.
 
 ### Option 4: Build from source
 
 Requirements: Go matching `backend/go.mod`, Node.js 24 LTS, npm.
 
 ```sh
+cp .env.example .env   # optional: fill in METRON_USERNAME / METRON_PASSWORD
 make install-ui
 make build-standalone
 ./dist/comichero
