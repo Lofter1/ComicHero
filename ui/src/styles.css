@@ -270,6 +270,154 @@ button:disabled {
   background: var(--primary-soft);
 }
 
+.account-menu {
+  position: relative;
+  min-width: 0;
+}
+
+.account-menu-trigger {
+  width: 100%;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--control-ink);
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.account-menu-trigger:hover,
+.account-menu-trigger:focus-visible,
+.account-menu.open .account-menu-trigger {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 8px 18px var(--shadow-soft);
+}
+
+.account-avatar {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.account-avatar.large {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  font-size: 1.15rem;
+}
+
+.account-trigger-copy,
+.account-menu-profile span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.account-trigger-copy strong,
+.account-menu-profile strong {
+  overflow-wrap: anywhere;
+}
+
+.account-trigger-copy small,
+.account-menu-profile small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.account-menu-caret {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.account-menu-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  z-index: 40;
+  width: min(320px, calc(100vw - 36px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px var(--shadow-panel);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.account-menu-profile {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 8px;
+}
+
+.account-menu-section {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.account-menu-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--label-ink);
+  padding: 0 8px;
+}
+
+.account-menu-label > span,
+.account-menu-item > span:first-child {
+  width: 22px;
+  min-width: 22px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.account-theme-selector {
+  margin: 0 8px;
+}
+
+.account-menu-item {
+  min-height: 42px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--control-ink);
+  padding: 10px 8px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.account-menu-item:hover:not(:disabled),
+.account-menu-item:focus-visible {
+  background: var(--surface-soft);
+}
+
+.account-menu-item.danger {
+  color: var(--danger);
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -2626,9 +2774,17 @@ textarea {
     display: grid;
   }
 
-  .sidebar:not(.menu-open) .nav-tabs,
-  .sidebar:not(.menu-open) .sidebar-actions {
+  .sidebar:not(.menu-open) .nav-tabs {
     display: none;
+  }
+
+  .sidebar-actions {
+    position: absolute;
+    top: 12px;
+    right: 72px;
+    display: block;
+    margin-top: 0;
+    width: auto;
   }
 
   .sidebar.menu-open .nav-tabs {
@@ -2637,12 +2793,32 @@ textarea {
     gap: 8px;
   }
 
-  .sidebar.menu-open .sidebar-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(130px, auto);
-    align-items: start;
-    gap: 10px;
-    margin-top: 0;
+  .account-menu-trigger {
+    width: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .account-menu-trigger .account-avatar {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+  }
+
+  .account-trigger-copy,
+  .account-menu-caret {
+    display: none;
+  }
+
+  .account-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: min(320px, calc(100vw - 36px));
   }
 
   .nav-tabs button {

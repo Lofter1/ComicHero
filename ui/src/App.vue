@@ -905,14 +905,12 @@ onUnmounted(() => {
   <main v-else-if="appReady" class="app-shell">
     <AppSidebar
       :active-view="activeView"
-      :loading="loading"
       :theme-preference="themePreference"
       :user="currentUser"
       :user-mode="userMode"
       :is-admin="isAdmin"
       :auth-saving="authSaving"
       @change-view="setView"
-      @refresh="loadData(true)"
       @set-theme="setThemePreference"
       @logout="signOut"
     />
