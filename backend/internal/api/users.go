@@ -25,6 +25,9 @@ const (
 	userModeSingle = "single"
 	userModeMulti  = "multi"
 
+	registrationModeInviteOnly = "invite_only"
+	registrationModeOpen       = "open"
+
 	sessionCookieName = "comichero_session"
 	defaultUserName   = "Default"
 
@@ -189,6 +192,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "updateRegistrationMode",
+		Tags:        []string{tagUsers},
+		Summary:     "Update registration mode",
+		Description: "Controls whether registration requires invite tokens or is open. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/registration-mode",
+		Errors:      []int{400, 401, 403, 500},
+	}, func(ctx context.Context, input *UpdateRegistrationModeInput) (*RegistrationModeOutput, error) {
+		return updateRegistrationMode(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "updateUserMetronPermissions",
 		Tags:        []string{tagUsers},
 		Summary:     "Update user Metron permissions",
@@ -301,12 +316,30 @@ func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
 	return mode, true, nil
 }
 
+func registrationMode(ctx context.Context, db *sqlx.DB) (string, error) {
+	var mode string
+	if err := db.GetContext(ctx, &mode, `SELECT value FROM app_settings WHERE key = 'registration_mode'`); err != nil {
+		if err == sql.ErrNoRows {
+			return registrationModeInviteOnly, nil
+		}
+		return "", err
+	}
+	if mode != registrationModeInviteOnly && mode != registrationModeOpen {
+		return "", fmt.Errorf("invalid registration mode %q", mode)
+	}
+	return mode, nil
+}
+
 func getUserStatus(ctx context.Context, db *sqlx.DB, sessionToken string) (*UserStatusOutput, error) {
 	mode, configured, err := userMode(ctx, db)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch user setup")
 	}
-	status := UserStatus{SetupRequired: !configured, Mode: mode}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
+	status := UserStatus{SetupRequired: !configured, Mode: mode, RegistrationMode: regMode}
 	if !configured {
 		return &UserStatusOutput{Body: status}, nil
 	}
@@ -464,6 +497,36 @@ func createUserInvite(ctx context.Context, db *sqlx.DB) (*UserInviteOutput, erro
 		return nil, huma.Error500InternalServerError("failed to save invite")
 	}
 	return &UserInviteOutput{Body: UserInvite{Token: token, ExpiresAt: expiresAt}}, nil
+}
+
+func updateRegistrationMode(ctx context.Context, db *sqlx.DB, payload UpdateRegistrationModePayload) (*RegistrationModeOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	mode := strings.TrimSpace(payload.Mode)
+	if mode != registrationModeInviteOnly && mode != registrationModeOpen {
+		return nil, huma.Error400BadRequest("mode must be invite_only or open")
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO app_settings (key, value) VALUES ('registration_mode', ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value
+	`, mode); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save registration mode")
+	}
+	currentMode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured {
+		return nil, huma.Error400BadRequest("user setup is not complete")
+	}
+	status, err := userStatusForUser(ctx, db, currentMode, userID, nil)
+	if err != nil {
+		return nil, err
+	}
+	status.Body.RegistrationMode = mode
+	return &RegistrationModeOutput{Body: status.Body}, nil
 }
 
 func consumeUserInvite(ctx context.Context, db sqlx.ExtContext, token string) error {
@@ -728,6 +791,10 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 	if err != nil {
 		return nil, err
 	}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
 	metronPermissions, err := metronPermissionsForUser(ctx, db, userID)
 	if err != nil {
 		return nil, err
@@ -737,6 +804,7 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 		Body: UserStatus{
 			SetupRequired:     false,
 			Mode:              mode,
+			RegistrationMode:  regMode,
 			User:              &user,
 			MetronPermissions: metronPermissions,
 		},

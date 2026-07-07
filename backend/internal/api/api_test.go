@@ -1079,6 +1079,37 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	}
 }
 
+func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
+		t.Fatalf("seed multi-user mode: %v", err)
+	}
+
+	mode, err := registrationMode(context.Background(), db)
+	if err != nil {
+		t.Fatalf("registrationMode default: %v", err)
+	}
+	if mode != registrationModeInviteOnly {
+		t.Fatalf("registrationMode default = %q; want %q", mode, registrationModeInviteOnly)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updateRegistrationMode(adminCtx, db, UpdateRegistrationModePayload{Mode: registrationModeOpen})
+	if err != nil {
+		t.Fatalf("updateRegistrationMode: %v", err)
+	}
+	if output.Body.RegistrationMode != registrationModeOpen {
+		t.Fatalf("output registrationMode = %q; want %q", output.Body.RegistrationMode, registrationModeOpen)
+	}
+	mode, err = registrationMode(context.Background(), db)
+	if err != nil {
+		t.Fatalf("registrationMode after update: %v", err)
+	}
+	if mode != registrationModeOpen {
+		t.Fatalf("registrationMode after update = %q; want %q", mode, registrationModeOpen)
+	}
+}
+
 func TestExpiredSessionTokenIsRejected(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`
