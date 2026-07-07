@@ -729,6 +729,43 @@ func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
 	}
 }
 
+func TestMetronPermissionsControlScopesAndHourlyLimit(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)
+	`); err != nil {
+		t.Fatalf("create reader user: %v", err)
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/comics"); err == nil {
+		t.Fatal("authorizeMetron returned nil for reader without Metron permissions")
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updateUserMetronPermissions(adminCtx, db, 2, UserMetronPermissions{
+		Allowed:     true,
+		Scopes:      []string{metronScopeSearch},
+		HourlyLimit: 1,
+	})
+	if err != nil {
+		t.Fatalf("updateUserMetronPermissions: %v", err)
+	}
+	if !output.Body.MetronPermissions.Allowed || output.Body.MetronPermissions.HourlyLimit != 1 {
+		t.Fatalf("permissions = %#v; want allowed with hourly limit 1", output.Body.MetronPermissions)
+	}
+
+	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/comics"); err != nil {
+		t.Fatalf("authorize search: %v", err)
+	}
+	if err := authorizeMetron(readerCtx, db, metronScopeImport, "POST /metron/comics/{id}/import"); err == nil {
+		t.Fatal("authorize import returned nil for search-only user")
+	}
+	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/series"); err == nil {
+		t.Fatal("authorize search returned nil after hourly limit was reached")
+	}
+}
+
 func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -756,6 +793,7 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			name TEXT NOT NULL UNIQUE,
 			password_hash TEXT NOT NULL DEFAULT '',
 			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE TABLE app_settings (
@@ -773,7 +811,23 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			read INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (comic_id, user_id)
 		);
-		INSERT INTO users (id, name, is_default) VALUES (1, 'Default', 1);
+		CREATE TABLE user_metron_permissions (
+			user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			allowed INTEGER NOT NULL DEFAULT 0,
+			scopes TEXT NOT NULL DEFAULT '',
+			hourly_limit INTEGER NOT NULL DEFAULT 0,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE user_metron_request_log (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			scope TEXT NOT NULL,
+			endpoint TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		INSERT INTO users (id, name, is_default, is_admin) VALUES (1, 'Default', 1, 1);
+		INSERT INTO user_metron_permissions (user_id, allowed, scopes, hourly_limit) VALUES (1, 1, '*', 0);
 		INSERT INTO comics (series, series_year, issue, publisher)
 		VALUES ('Amazing Spider-Man', 1963, '1', 'Marvel');
 		INSERT INTO user_comics (comic_id, user_id, read) VALUES (1, 1, 1);

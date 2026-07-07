@@ -237,6 +237,14 @@ export function logoutUser() {
   return request('/auth/logout', { method: 'POST' })
 }
 
+export function listUsers() {
+  return request('/users')
+}
+
+export function updateUserMetronPermissions(id, payload) {
+  return send(`/users/${id}/metron-permissions`, 'PUT', payload)
+}
+
 export function deleteComic(id) {
   return request(`/comics/${id}`, { method: 'DELETE' })
 }

@@ -15,6 +15,7 @@ import ReadingOrderEditView from '@/components/ReadingOrderEditView.vue'
 import ReadingOrdersBrowseView from '@/components/ReadingOrdersBrowseView.vue'
 import SeriesBrowseView from '@/components/SeriesBrowseView.vue'
 import SeriesDetailView from '@/components/SeriesDetailView.vue'
+import UserManagementView from '@/components/UserManagementView.vue'
 import { useArcs } from '@/composables/useArcs.js'
 import { useCharacters } from '@/composables/useCharacters.js'
 import { useComics } from '@/composables/useComics.js'
@@ -22,7 +23,15 @@ import { useMetronJobs } from '@/composables/useMetronJobs.js'
 import { usePagination } from '@/composables/usePagination.js'
 import { useReadingOrders } from '@/composables/useReadingOrders.js'
 import { useSeries } from '@/composables/useSeries.js'
-import { getUserStatus, loginUser, logoutUser, registerUser, setupUsers } from '@/api/client.js'
+import {
+  getUserStatus,
+  listUsers,
+  loginUser,
+  logoutUser,
+  registerUser,
+  setupUsers,
+  updateUserMetronPermissions,
+} from '@/api/client.js'
 
 const activeView = ref('readingOrders')
 const viewMode = ref('browse')
@@ -35,6 +44,8 @@ const userStatus = ref(null)
 const authMode = ref('login')
 const setupForm = ref({ mode: 'single', name: '', password: '' })
 const authForm = ref({ name: '', password: '' })
+const userAdminRows = ref([])
+const savingUserID = ref(null)
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -214,6 +225,7 @@ const toolbarResultCount = computed(() => {
   if (activeView.value === 'comics') return comics.value.length
   if (activeView.value === 'series') return visibleSeries.value.length
   if (activeView.value === 'characters') return visibleCharacters.value.length
+  if (activeView.value === 'users') return userAdminRows.value.length
   return 0
 })
 const toolbarTotalCount = computed(() => {
@@ -222,6 +234,7 @@ const toolbarTotalCount = computed(() => {
   if (activeView.value === 'comics') return listTotal('comics')
   if (activeView.value === 'series') return listTotal('series')
   if (activeView.value === 'characters') return listTotal('characters')
+  if (activeView.value === 'users') return userAdminRows.value.length
   return 0
 })
 const loadingLabel = computed(() => {
@@ -231,6 +244,7 @@ const loadingLabel = computed(() => {
   if (activeView.value === 'series') return 'Loading series...'
   if (activeView.value === 'characters') return 'Loading characters...'
   if (activeView.value === 'metron') return 'Loading Metron...'
+  if (activeView.value === 'users') return 'Loading users...'
   return 'Loading...'
 })
 const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
@@ -238,8 +252,22 @@ const seriesListLoading = computed(() => Boolean(pageState.value.series?.refresh
 const setupRequired = computed(() => Boolean(userStatus.value?.setupRequired))
 const userMode = computed(() => userStatus.value?.mode || '')
 const currentUser = computed(() => userStatus.value?.user || null)
+const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin))
+const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
+const canMetronSearch = computed(() => hasMetronScope('search'))
+const canMetronDetail = computed(() => hasMetronScope('detail'))
+const canMetronImport = computed(() => hasMetronScope('import'))
+const canMetronMonitor = computed(() => hasMetronScope('monitor'))
+const canAccessMetronArea = computed(() => canMetronSearch.value)
 const authRequired = computed(() => userMode.value === 'multi' && !currentUser.value)
 const appReady = computed(() => Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value)
+
+function hasMetronScope(scope) {
+  const permissions = metronPermissions.value
+  if (!permissions.allowed) return false
+  const scopes = Array.isArray(permissions.scopes) ? permissions.scopes : []
+  return scopes.includes('*') || scopes.includes(scope)
+}
 
 function getInitialThemePreference() {
   if (typeof window === 'undefined') return 'system'
@@ -329,6 +357,25 @@ async function submitAuth() {
   }
 }
 
+async function loadUserAdminRows() {
+  userAdminRows.value = await listUsers()
+}
+
+async function saveUserMetronPermissions(userID, payload) {
+  savingUserID.value = userID
+  error.value = ''
+  try {
+    const updated = await updateUserMetronPermissions(userID, payload)
+    userAdminRows.value = userAdminRows.value.map((entry) => (
+      entry.user.id === userID ? updated : entry
+    ))
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingUserID.value = null
+  }
+}
+
 async function signOut() {
   authSaving.value = true
   error.value = ''
@@ -363,6 +410,7 @@ function parseAppRoute(pathname) {
 
   const [section, rawID, action] = parts
   if (section === 'metron' && parts.length === 1) return { view: 'metron', mode: 'browse' }
+  if (section === 'users' && parts.length === 1) return { view: 'users', mode: 'browse' }
   if (section === 'comics') return parseEntityRoute('comics', rawID, action, parts.length)
   if (section === 'arcs') return parseEntityRoute('arcs', rawID, action, parts.length)
   if (section === 'series') return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
@@ -391,6 +439,7 @@ function browseRoutePath(view) {
   if (view === 'series') return '/series'
   if (view === 'characters') return '/characters'
   if (view === 'metron') return '/metron'
+  if (view === 'users') return '/users'
   return '/reading-orders'
 }
 
@@ -445,6 +494,18 @@ async function applyRoute(route, { replace = false, force = false } = {}) {
   error.value = ''
 
   try {
+    if (route.view === 'metron' && !canAccessMetronArea.value) {
+      activeView.value = 'readingOrders'
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
+    if (route.view === 'users' && !isAdmin.value) {
+      activeView.value = 'readingOrders'
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
     await activateRoute({ ...route, force })
   } catch (err) {
     error.value = err.message
@@ -530,10 +591,11 @@ async function loadData(force = false) {
   error.value = ''
 
   try {
-    await Promise.all([
-      loadActiveViewData({ force }),
-      loadMetronImportJobs(),
-    ])
+    const tasks = [loadActiveViewData({ force })]
+    if (activeView.value === 'metron' && canMetronMonitor.value) {
+      tasks.push(loadMetronImportJobs())
+    }
+    await Promise.all(tasks)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -563,7 +625,13 @@ async function loadActiveViewData(options = {}) {
     return
   }
   if (activeView.value === 'metron') {
-    await loadMetronQuota()
+    if (canMetronMonitor.value) {
+      await loadMetronQuota()
+    }
+    return
+  }
+  if (activeView.value === 'users') {
+    await loadUserAdminRows()
   }
 }
 
@@ -841,6 +909,7 @@ onUnmounted(() => {
       :theme-preference="themePreference"
       :user="currentUser"
       :user-mode="userMode"
+      :is-admin="isAdmin"
       :auth-saving="authSaving"
       @change-view="setView"
       @refresh="loadData(true)"
@@ -883,6 +952,13 @@ onUnmounted(() => {
         @error="showError"
         @job-started="trackMetronImportJob"
         @quota-updated="updateMetronQuota"
+      />
+
+      <UserManagementView
+        v-else-if="activeView === 'users'"
+        :users="userAdminRows"
+        :saving-user-id="savingUserID"
+        @save="saveUserMetronPermissions"
       />
 
       <ReadingOrderEditView

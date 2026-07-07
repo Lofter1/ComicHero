@@ -61,6 +61,9 @@ func RegisterSeriesRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *ComicSeriesInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /series/{id}/metron/import"); err != nil {
+			return nil, err
+		}
 		return importLocalSeriesFromMetron(ctx, db, client, covers, importJobs, input.ID)
 	})
 }

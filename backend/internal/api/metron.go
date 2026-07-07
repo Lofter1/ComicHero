@@ -134,6 +134,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/comics",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronIssueListInput) (*MetronIssueListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/comics"); err != nil {
+			return nil, err
+		}
 		issues, err := client.SearchIssues(ctx, input.Query, input.Series, input.Issue)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -150,6 +153,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/comics/{id}",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronIDInput) (*MetronIssueOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeDetail, "GET /metron/comics/{id}"); err != nil {
+			return nil, err
+		}
 		issue, err := client.GetIssue(ctx, input.ID)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -167,6 +173,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/comics/{id}/import"); err != nil {
+			return nil, err
+		}
 		job := startMetronComicImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
@@ -180,6 +189,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/comics/{id}/metron",
 		Errors:      errsMetronSync,
 	}, func(ctx context.Context, input *UpdateComicFromMetronInput) (*ComicDetailOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "PATCH /comics/{id}/metron"); err != nil {
+			return nil, err
+		}
 		issue, info, err := fetchMetronIssue(ctx, db, client, input.Body.MetronIssueID, input.Body.Force)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -213,6 +225,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/readingLists",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronReadingListInput) (*MetronReadingListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/readingLists"); err != nil {
+			return nil, err
+		}
 		lists, err := client.SearchReadingLists(ctx, input.Query)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -229,6 +244,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/readingLists/{id}",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronIDInput) (*MetronReadingListDetailOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeDetail, "GET /metron/readingLists/{id}"); err != nil {
+			return nil, err
+		}
 		list, err := client.GetReadingList(ctx, input.ID)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -246,6 +264,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/readingLists/{id}/import"); err != nil {
+			return nil, err
+		}
 		job := startMetronReadingListImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
@@ -259,6 +280,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/arcs",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronArcInput) (*MetronArcListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/arcs"); err != nil {
+			return nil, err
+		}
 		arcs, err := client.SearchArcs(ctx, input.Query)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -275,6 +299,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/arcs/{id}",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronIDInput) (*MetronArcDetailOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeDetail, "GET /metron/arcs/{id}"); err != nil {
+			return nil, err
+		}
 		arc, err := client.GetArc(ctx, input.ID)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -292,6 +319,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/arcs/{id}/import"); err != nil {
+			return nil, err
+		}
 		job := startMetronArcImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
@@ -305,6 +335,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/series",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronSeriesInput) (*MetronSeriesListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/series"); err != nil {
+			return nil, err
+		}
 		series, err := client.SearchSeries(ctx, metron.SeriesSearchOptions{
 			Query:     input.Query,
 			YearBegan: input.YearBegan,
@@ -325,6 +358,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/characters",
 		Errors:      errsMetronRead,
 	}, func(ctx context.Context, input *MetronCharacterInput) (*MetronCharacterListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/characters"); err != nil {
+			return nil, err
+		}
 		characters, err := client.SearchCharacters(ctx, input.Query)
 		if err != nil {
 			return nil, metronAPIError(err)
@@ -342,6 +378,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/characters/{id}/import"); err != nil {
+			return nil, err
+		}
 		job := startMetronCharacterAppearancesImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
@@ -356,6 +395,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/series/{id}/import"); err != nil {
+			return nil, err
+		}
 		job := startMetronSeriesImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
@@ -369,6 +411,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/quota",
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *struct{}) (*MetronQuotaOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeMonitor, "GET /metron/quota"); err != nil {
+			return nil, err
+		}
 		rateLimit := client.CurrentRateLimit()
 		return &MetronQuotaOutput{
 			MetronRateLimitHeaders: metronRateLimitHeaders(rateLimit),
@@ -385,6 +430,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/imports",
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *struct{}) (*MetronImportJobListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeMonitor, "GET /metron/imports"); err != nil {
+			return nil, err
+		}
 		return listMetronImportJobs(importJobs), nil
 	})
 
@@ -397,6 +445,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/requests",
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *struct{}) (*MetronRequestLogOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeMonitor, "GET /metron/requests"); err != nil {
+			return nil, err
+		}
 		return &MetronRequestLogOutput{Body: client.RecentRequests()}, nil
 	})
 
@@ -411,6 +462,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 	}, map[string]any{
 		"job": MetronImportJobEvent{},
 	}, func(ctx context.Context, input *struct{}, send sse.Sender) {
+		if err := authorizeMetron(ctx, db, metronScopeMonitor, "GET /metron/imports/events"); err != nil {
+			return
+		}
 		streamMetronImportJobs(ctx, importJobs, func(event MetronImportJobEvent) error {
 			return send.Data(event)
 		})
@@ -425,6 +479,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/imports/{id}",
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *MetronImportJobInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeMonitor, "GET /metron/imports/{id}"); err != nil {
+			return nil, err
+		}
 		return getMetronImportJob(importJobs, input.ID)
 	})
 
@@ -437,6 +494,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/imports/{id}",
 		Errors:      errsWrite,
 	}, func(ctx context.Context, input *MetronImportJobInput) (*struct{}, error) {
+		if err := authorizeMetron(ctx, db, metronScopeMonitor, "DELETE /metron/imports/{id}"); err != nil {
+			return nil, err
+		}
 		return deleteMetronImportJob(importJobs, input.ID)
 	})
 
@@ -449,6 +509,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		Path:        "/metron/imports/{id}/cancel",
 		Errors:      errsRead,
 	}, func(ctx context.Context, input *MetronImportJobInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/imports/{id}/cancel"); err != nil {
+			return nil, err
+		}
 		return cancelMetronImportJob(importJobs, input.ID)
 	})
 
@@ -462,6 +525,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *MetronImportJobInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/imports/{id}/continue"); err != nil {
+			return nil, err
+		}
 		return continueMetronImportJob(importJobs, db, client, covers, input.ID)
 	})
 }

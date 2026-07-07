@@ -79,6 +79,7 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	}{
 		{name: "password_hash", sql: `ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`},
 		{name: "is_default", sql: `ALTER TABLE users ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0`},
+		{name: "is_admin", sql: `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`},
 		{name: "created_at", sql: `ALTER TABLE users ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`},
 	}
 	for _, column := range columns {
@@ -124,6 +125,52 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`INSERT OR IGNORE INTO users (name, is_default) VALUES ('Default', 1)`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		UPDATE users
+		SET is_admin = 1
+		WHERE is_default = 1
+		   OR id = (SELECT MIN(id) FROM users)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_metron_permissions (
+			user_id      INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			allowed      INTEGER NOT NULL DEFAULT 0,
+			scopes       TEXT    NOT NULL DEFAULT '',
+			hourly_limit INTEGER NOT NULL DEFAULT 0,
+			created_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_metron_request_log (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			scope      TEXT    NOT NULL,
+			endpoint   TEXT    NOT NULL,
+			created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_user_metron_request_log_user_created
+		ON user_metron_request_log(user_id, created_at)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		INSERT INTO user_metron_permissions (user_id, allowed, scopes, hourly_limit)
+		SELECT id, 1, '*', 0
+		FROM users
+		WHERE is_admin = 1
+		ON CONFLICT(user_id) DO NOTHING
+	`); err != nil {
 		return err
 	}
 

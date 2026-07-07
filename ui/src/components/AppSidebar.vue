@@ -22,6 +22,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
   authSaving: {
     type: Boolean,
     default: false,
@@ -95,6 +99,9 @@ function logout() {
       </button>
       <button :class="{ active: activeView === 'metron' }" @click="changeView('metron')">
         <span>Metron</span>
+      </button>
+      <button v-if="isAdmin" :class="{ active: activeView === 'users' }" @click="changeView('users')">
+        <span>Users</span>
       </button>
     </nav>
 

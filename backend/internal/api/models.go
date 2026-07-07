@@ -29,14 +29,40 @@ type ComicPayload struct {
 }
 
 type User struct {
-	ID   int    `json:"id"   db:"id"   doc:"Local user identifier." example:"1"`
-	Name string `json:"name" db:"name" doc:"Display name." example:"Justin"`
+	ID      int    `json:"id"      db:"id"       doc:"Local user identifier." example:"1"`
+	Name    string `json:"name"    db:"name"     doc:"Display name." example:"Justin"`
+	IsAdmin bool   `json:"isAdmin" db:"is_admin" doc:"Whether the user can manage user permissions." example:"false"`
+}
+
+type UserMetronPermissions struct {
+	Allowed     bool     `json:"allowed"     doc:"Whether this user can call ComicHero Metron endpoints." example:"true"`
+	Scopes      []string `json:"scopes"      doc:"Allowed Metron scopes. Use * for all, or combine search, detail, import, and monitor." example:"search"`
+	HourlyLimit int      `json:"hourlyLimit" minimum:"0" doc:"Maximum Metron endpoint calls per rolling hour. Use 0 for unlimited." example:"60"`
+}
+
+type UserAdminView struct {
+	User              User                  `json:"user"              doc:"User account."`
+	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Metron endpoint permissions for this user."`
+}
+
+type UserListOutput struct {
+	Body []UserAdminView
+}
+
+type UpdateUserMetronPermissionsInput struct {
+	ID   int `path:"id" doc:"Local user identifier." example:"2"`
+	Body UserMetronPermissions
+}
+
+type UserAdminOutput struct {
+	Body UserAdminView
 }
 
 type UserStatus struct {
-	SetupRequired bool   `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
-	Mode          string `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
-	User          *User  `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
+	SetupRequired     bool                  `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
+	Mode              string                `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
+	User              *User                 `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
+	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Current user's Metron endpoint permissions."`
 }
 
 type UserStatusOutput struct {

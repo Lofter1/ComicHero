@@ -87,6 +87,30 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *LogoutUserInput) (*LogoutUserOutput, error) {
 		return logoutUser(ctx, db, input.Session)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "listUsers",
+		Tags:        []string{tagUsers},
+		Summary:     "List users",
+		Description: "Lists users and their Metron permissions. Admin users only.",
+		Method:      http.MethodGet,
+		Path:        "/users",
+		Errors:      []int{401, 403, 500},
+	}, func(ctx context.Context, input *struct{}) (*UserListOutput, error) {
+		return listUsers(ctx, db)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateUserMetronPermissions",
+		Tags:        []string{tagUsers},
+		Summary:     "Update user Metron permissions",
+		Description: "Controls whether a user can call Metron endpoints, which endpoint scopes are allowed, and the per-hour endpoint limit. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/{id}/metron-permissions",
+		Errors:      []int{400, 401, 403, 404, 500},
+	}, func(ctx context.Context, input *UpdateUserMetronPermissionsInput) (*UserAdminOutput, error) {
+		return updateUserMetronPermissions(ctx, db, input.ID, input.Body)
+	})
 }
 
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
@@ -126,7 +150,7 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 func isUserRouteAllowedWithoutSession(path string) bool {
 	path = strings.TrimPrefix(path, "/api")
 	switch path {
-	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/openapi.json", "/docs":
+	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/openapi.json", "/openapi.yaml", "/docs":
 		return true
 	default:
 		return false
@@ -356,7 +380,7 @@ func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
 func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 	var user User
 	if err := db.GetContext(ctx, &user, `
-		SELECT id, name FROM users WHERE id = ?
+		SELECT id, name, is_admin FROM users WHERE id = ?
 	`, id); err != nil {
 		if err == sql.ErrNoRows {
 			return User{}, huma.Error401Unauthorized("login required")
@@ -366,17 +390,40 @@ func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 	return user, nil
 }
 
+func requireAdminUser(ctx context.Context, db *sqlx.DB) (int, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return 0, err
+	}
+	var isAdmin bool
+	if err := db.GetContext(ctx, &isAdmin, `SELECT is_admin FROM users WHERE id = ?`, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return 0, huma.Error401Unauthorized("login required")
+		}
+		return 0, huma.Error500InternalServerError("failed to fetch user permissions")
+	}
+	if !isAdmin {
+		return 0, huma.Error403Forbidden("admin access required")
+	}
+	return userID, nil
+}
+
 func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int, cookie *http.Cookie) (*UserStatusOutput, error) {
 	user, err := getUserByID(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	metronPermissions, err := metronPermissionsForUser(ctx, db, userID)
 	if err != nil {
 		return nil, err
 	}
 	return &UserStatusOutput{
 		SetCookie: cookieHeader(cookie),
 		Body: UserStatus{
-			SetupRequired: false,
-			Mode:          mode,
-			User:          &user,
+			SetupRequired:     false,
+			Mode:              mode,
+			User:              &user,
+			MetronPermissions: metronPermissions,
 		},
 	}, nil
 }
