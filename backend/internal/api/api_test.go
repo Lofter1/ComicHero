@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -1125,6 +1126,32 @@ func TestSessionCookiesAreSecureByDefaultAndConfigurable(t *testing.T) {
 	}
 	if expired := expiredSessionCookie(); expired.Secure {
 		t.Fatal("expired session cookie Secure = true; want false when COOKIE_SECURE=false")
+	}
+}
+
+func TestPasswordHashUsesCurrentIterationsAndVerifiesOldHashes(t *testing.T) {
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hashPassword: %v", err)
+	}
+	parts := strings.Split(hash, "$")
+	if len(parts) != 4 || parts[1] != "600000" {
+		t.Fatalf("hash = %q; want current iteration count encoded", hash)
+	}
+	if !checkPassword("secret1", hash) {
+		t.Fatal("checkPassword rejected current hash")
+	}
+
+	salt := []byte("0123456789abcdef")
+	key := derivePasswordKey([]byte("secret1"), salt, 120000, 32)
+	oldHash := "pbkdf2_sha256$120000$" +
+		base64.RawStdEncoding.EncodeToString(salt) + "$" +
+		base64.RawStdEncoding.EncodeToString(key)
+	if !checkPassword("secret1", oldHash) {
+		t.Fatal("checkPassword rejected old iteration count")
+	}
+	if !passwordHashNeedsUpgrade(oldHash) {
+		t.Fatal("passwordHashNeedsUpgrade returned false for old hash")
 	}
 }
 

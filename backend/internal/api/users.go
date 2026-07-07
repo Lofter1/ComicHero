@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,7 @@ const (
 
 	loginRateLimitMaxAttempts = 5
 	loginRateLimitWindow      = time.Minute
+	passwordHashIterations    = 600000
 )
 
 type contextUserIDKey struct{}
@@ -511,6 +513,12 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 	if !checkPassword(payload.Password, row.PasswordHash) {
 		return nil, huma.Error401Unauthorized("invalid user name or password")
 	}
+	if passwordHashNeedsUpgrade(row.PasswordHash) {
+		passwordHash, err := hashPassword(payload.Password)
+		if err == nil {
+			_, _ = db.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, row.ID)
+		}
+	}
 	cookie, err := createSession(ctx, db, row.ID)
 	if err != nil {
 		return nil, err
@@ -812,13 +820,17 @@ func hashPassword(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	key := derivePasswordKey([]byte(password), salt, 120000, 32)
-	return fmt.Sprintf("pbkdf2_sha256$120000$%s$%s", base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
+	key := derivePasswordKey([]byte(password), salt, passwordHashIterations, 32)
+	return fmt.Sprintf("pbkdf2_sha256$%d$%s$%s", passwordHashIterations, base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
 }
 
 func checkPassword(password, encoded string) bool {
 	parts := strings.Split(encoded, "$")
-	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" || parts[1] != "120000" {
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		return false
+	}
+	iterations, err := strconv.Atoi(parts[1])
+	if err != nil || iterations <= 0 {
 		return false
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[2])
@@ -829,8 +841,17 @@ func checkPassword(password, encoded string) bool {
 	if err != nil {
 		return false
 	}
-	actual := derivePasswordKey([]byte(password), salt, 120000, len(expected))
+	actual := derivePasswordKey([]byte(password), salt, iterations, len(expected))
 	return subtle.ConstantTimeCompare(actual, expected) == 1
+}
+
+func passwordHashNeedsUpgrade(encoded string) bool {
+	parts := strings.Split(encoded, "$")
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		return false
+	}
+	iterations, err := strconv.Atoi(parts[1])
+	return err == nil && iterations < passwordHashIterations
 }
 
 func derivePasswordKey(password, salt []byte, iterations, keyLen int) []byte {
