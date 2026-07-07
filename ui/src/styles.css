@@ -2353,17 +2353,11 @@ textarea {
 }
 
 .comic-list-sticky {
-  position: sticky;
-  top: var(--comic-list-sticky-top);
-  z-index: 18;
   display: grid;
   gap: 10px;
-  margin-inline: calc(var(--sticky-toolbar-inline-offset) * -1);
-  padding: 12px var(--sticky-toolbar-inline-offset);
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--sticky-border);
   background: var(--sticky-bg);
-  box-shadow: 0 10px 22px var(--shadow-soft);
-  backdrop-filter: blur(14px);
 }
 
 .comic-list-header {

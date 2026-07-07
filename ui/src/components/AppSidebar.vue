@@ -32,13 +32,7 @@ const emit = defineEmits(['change-view', 'set-theme', 'logout'])
 const menuOpen = ref(false)
 const accountMenuOpen = ref(false)
 
-const themeLabel = computed(() => {
-  if (props.themePreference === 'light') return 'Light'
-  if (props.themePreference === 'dark') return 'Dark'
-  return 'System'
-})
 const userInitial = computed(() => (props.user?.name || '?').trim().slice(0, 1).toUpperCase() || '?')
-const userModeLabel = computed(() => props.userMode === 'multi' ? 'Multi user' : 'Single user')
 
 function changeView(view) {
   emit('change-view', view)
@@ -114,7 +108,6 @@ function toggleAccountMenu() {
           <span class="account-avatar" aria-hidden="true">{{ userInitial }}</span>
           <span class="account-trigger-copy">
             <strong>{{ user.name }}</strong>
-            <small>{{ userModeLabel }} · {{ themeLabel }}</small>
           </span>
           <span class="account-menu-caret" aria-hidden="true">▾</span>
         </button>
@@ -124,7 +117,6 @@ function toggleAccountMenu() {
             <span class="account-avatar large" aria-hidden="true">{{ userInitial }}</span>
             <span>
               <strong>{{ user.name }}</strong>
-              <small>Signed in · {{ userModeLabel }}</small>
             </span>
           </div>
 
