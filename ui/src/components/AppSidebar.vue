@@ -100,8 +100,19 @@ function logout() {
 
     <div class="sidebar-actions">
       <div v-if="user" class="user-menu">
-        <span>{{ user.name }}</span>
-        <small>{{ userMode === 'multi' ? 'Multi user' : 'Single user' }}</small>
+        <div class="user-menu-identity">
+          <span>{{ user.name }}</span>
+          <small>{{ userMode === 'multi' ? 'Multi user' : 'Single user' }}</small>
+        </div>
+        <button
+          v-if="userMode === 'multi'"
+          type="button"
+          class="user-menu-logout"
+          :disabled="authSaving"
+          @click="logout"
+        >
+          {{ authSaving ? 'Logging out...' : 'Log out' }}
+        </button>
       </div>
 
       <details class="theme-menu">
@@ -138,9 +149,6 @@ function logout() {
         Refresh
       </button>
 
-      <button v-if="userMode === 'multi'" class="refresh-button" :disabled="authSaving" @click="logout">
-        Log out
-      </button>
     </div>
   </aside>
 </template>

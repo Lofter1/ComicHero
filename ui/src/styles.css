@@ -234,13 +234,40 @@ button:disabled {
   border-radius: 8px;
   background: var(--surface-soft);
   padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-menu-identity {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .user-menu span {
   font-weight: 800;
   overflow-wrap: anywhere;
+}
+
+.user-menu-logout {
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--control-ink);
+  padding: 7px 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.user-menu-logout:hover:not(:disabled),
+.user-menu-logout:focus-visible {
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .sidebar {
