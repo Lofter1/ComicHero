@@ -437,6 +437,10 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if !configured || mode != userModeMulti {
 		return nil, huma.Error400BadRequest("registration is only available in multi-user mode")
 	}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
 	name := cleanUserName(payload.Name)
 	if name == "" {
 		return nil, huma.Error400BadRequest("name is required")
@@ -455,8 +459,10 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	}
 	defer tx.Rollback()
 
-	if err := consumeUserInvite(ctx, tx, payload.InviteToken); err != nil {
-		return nil, err
+	if regMode == registrationModeInviteOnly {
+		if err := consumeUserInvite(ctx, tx, payload.InviteToken); err != nil {
+			return nil, err
+		}
 	}
 
 	result, err := tx.ExecContext(ctx, `

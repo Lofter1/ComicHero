@@ -1084,6 +1084,9 @@ func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
 	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
 		t.Fatalf("seed multi-user mode: %v", err)
 	}
+	if _, err := db.Exec(`INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)`); err != nil {
+		t.Fatalf("seed reader user: %v", err)
+	}
 
 	mode, err := registrationMode(context.Background(), db)
 	if err != nil {
@@ -1091,6 +1094,17 @@ func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
 	}
 	if mode != registrationModeInviteOnly {
 		t.Fatalf("registrationMode default = %q; want %q", mode, registrationModeInviteOnly)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Default Blocked",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser without invite succeeded while registration mode is unset")
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := updateRegistrationMode(readerCtx, db, UpdateRegistrationModePayload{Mode: registrationModeOpen}); err == nil {
+		t.Fatal("non-admin updateRegistrationMode returned nil error")
 	}
 
 	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
@@ -1107,6 +1121,22 @@ func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
 	}
 	if mode != registrationModeOpen {
 		t.Fatalf("registrationMode after update = %q; want %q", mode, registrationModeOpen)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Open Signup",
+		Password: "secret1",
+	}); err != nil {
+		t.Fatalf("registerUser without invite in open mode: %v", err)
+	}
+
+	if _, err := updateRegistrationMode(adminCtx, db, UpdateRegistrationModePayload{Mode: registrationModeInviteOnly}); err != nil {
+		t.Fatalf("updateRegistrationMode back to invite_only: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Invite Blocked",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser without invite succeeded after switching back to invite_only")
 	}
 }
 
