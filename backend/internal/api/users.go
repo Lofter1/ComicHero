@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -723,11 +724,20 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
 		return nil, huma.Error500InternalServerError("failed to save session")
 	}
-	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, SameSite: http.SameSiteLaxMode}, nil
+	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}, nil
 }
 
 func expiredSessionCookie() *http.Cookie {
-	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode}
+	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}
+}
+
+func secureSessionCookies() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
+	case "false", "0", "no", "off":
+		return false
+	default:
+		return true
+	}
 }
 
 func cookieHeader(cookie *http.Cookie) []http.Cookie {

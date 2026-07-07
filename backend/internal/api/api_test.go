@@ -1053,6 +1053,34 @@ func TestExpiredSessionTokenIsRejected(t *testing.T) {
 	}
 }
 
+func TestSessionCookiesAreSecureByDefaultAndConfigurable(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	t.Setenv("COOKIE_SECURE", "")
+
+	cookie, err := createSession(context.Background(), db, 1)
+	if err != nil {
+		t.Fatalf("createSession: %v", err)
+	}
+	if !cookie.Secure {
+		t.Fatal("session cookie Secure = false; want true by default")
+	}
+	if expired := expiredSessionCookie(); !expired.Secure {
+		t.Fatal("expired session cookie Secure = false; want true by default")
+	}
+
+	t.Setenv("COOKIE_SECURE", "false")
+	cookie, err = createSession(context.Background(), db, 1)
+	if err != nil {
+		t.Fatalf("createSession with COOKIE_SECURE=false: %v", err)
+	}
+	if cookie.Secure {
+		t.Fatal("session cookie Secure = true; want false when COOKIE_SECURE=false")
+	}
+	if expired := expiredSessionCookie(); expired.Secure {
+		t.Fatal("expired session cookie Secure = true; want false when COOKIE_SECURE=false")
+	}
+}
+
 func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 	db, err := sqlx.Open("sqlite", ":memory:")
