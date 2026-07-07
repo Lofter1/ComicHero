@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -18,7 +17,7 @@ import (
 )
 
 func TestCreateComicDownloadsRemoteCover(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
@@ -66,7 +65,7 @@ func TestCreateComicDownloadsRemoteCover(t *testing.T) {
 }
 
 func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
@@ -89,7 +88,7 @@ func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
 }
 
 func TestSyncMetronCharactersDownloadsRemoteImage(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")

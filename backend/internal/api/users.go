@@ -196,7 +196,7 @@ func isUserRouteAllowedWithoutSession(path string) bool {
 func currentUserID(ctx context.Context) (int, error) {
 	userID, ok := ctx.Value(contextUserIDKey{}).(int)
 	if !ok || userID <= 0 {
-		return 1, nil
+		return 0, huma.Error401Unauthorized("login required")
 	}
 	return userID, nil
 }

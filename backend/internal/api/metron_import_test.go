@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -170,7 +169,7 @@ func serverNextURL(r *http.Request, path string) string {
 }
 
 func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	issue := metron.Issue{
 		ID:         101,
@@ -202,7 +201,7 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 }
 
 func TestMetronConditionalRequestRequiresFullSyncState(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	if _, err := db.ExecContext(ctx, `
 		INSERT INTO comics (series, series_year, issue, publisher, metron_issue_id)
@@ -267,7 +266,7 @@ func TestMetronConditionalRequestRequiresFullSyncState(t *testing.T) {
 }
 
 func TestImportMetronComicPreservesIssueNumberSuffix(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	comic, err := importMetronComic(ctx, db, nil, nil, metron.Issue{
@@ -299,7 +298,7 @@ func TestImportMetronComicPreservesIssueNumberSuffix(t *testing.T) {
 }
 
 func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	issue := metron.Issue{
 		ID:         101,
@@ -344,7 +343,7 @@ func TestImportMetronComicSavesCharacterAppearancesAndAliases(t *testing.T) {
 }
 
 func TestQuickImportMetronComicSavesArcRelationshipWithoutFetchingArc(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	requests := map[string]int{}
@@ -383,7 +382,7 @@ func TestQuickImportMetronComicSavesArcRelationshipWithoutFetchingArc(t *testing
 }
 
 func TestFullImportMetronComicExpandsArcMetadataWithoutIssueList(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	requests := map[string]int{}
@@ -432,7 +431,7 @@ func TestFullImportMetronComicExpandsArcMetadataWithoutIssueList(t *testing.T) {
 }
 
 func TestListCharactersReturnsFavoriteAndProgress(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -463,7 +462,7 @@ func TestListCharactersReturnsFavoriteAndProgress(t *testing.T) {
 }
 
 func TestImportMetronComicDoesNotFetchCharacterDetails(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	requests := map[string]int{}
@@ -494,7 +493,7 @@ func TestImportMetronComicDoesNotFetchCharacterDetails(t *testing.T) {
 }
 
 func TestImportMetronComicSkipsExistingCharacterImport(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -548,7 +547,7 @@ func TestImportMetronComicSkipsExistingCharacterImport(t *testing.T) {
 }
 
 func TestImportCharacterAppearancesFromMetron(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -659,7 +658,7 @@ func TestStartMetronCharacterAppearancesImport(t *testing.T) {
 
 	store := newMetronImportJobStore()
 	client := metron.New(metron.Config{BaseURL: server.URL})
-	job := startMetronCharacterAppearancesImport(store, db, client, nil, 301)
+	job := startMetronCharacterAppearancesImport(testUserContext(), store, db, client, nil, 301)
 
 	var current MetronImportJob
 	for range 100 {
@@ -685,7 +684,7 @@ func TestStartMetronCharacterAppearancesImport(t *testing.T) {
 }
 
 func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	list := metron.ReadingList{
 		ID:          501,
@@ -745,7 +744,7 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 }
 
 func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -799,7 +798,7 @@ func TestContinueMetronReadingListFillsExistingOrder(t *testing.T) {
 }
 
 func TestMetronReadingListLinksComicsDuringImportProgress(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	progressLinkedCounts := []int{}
@@ -850,7 +849,7 @@ func TestMetronReadingListLinksComicsDuringImportProgress(t *testing.T) {
 }
 
 func TestUpdateComicReadStatus(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -885,7 +884,7 @@ func TestUpdateComicReadStatus(t *testing.T) {
 }
 
 func TestImportMetronSeriesSkipsDetailFetchForExistingComic(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -928,7 +927,7 @@ func TestImportMetronSeriesSkipsDetailFetchForExistingComic(t *testing.T) {
 }
 
 func TestImportMetronSeriesOptionsControlDetailFetches(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 
 	requests := map[string]int{}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -975,7 +974,7 @@ func TestImportMetronSeriesOptionsControlDetailFetches(t *testing.T) {
 }
 
 func TestImportLocalSeriesFromMetronUpdatesMetadataAndImportsMissingComics(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `
@@ -1062,7 +1061,7 @@ func TestImportLocalSeriesFromMetronUpdatesMetadataAndImportsMissingComics(t *te
 }
 
 func TestUpdateSeriesMetronMetadataKeepsLocalRowOnNameYearConflict(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 
 	if _, err := db.ExecContext(ctx, `

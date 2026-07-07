@@ -52,6 +52,10 @@ func TestPaginationHelpers(t *testing.T) {
 	}
 }
 
+func testUserContext() context.Context {
+	return context.WithValue(context.Background(), contextUserIDKey{}, 1)
+}
+
 func TestComicListQuery(t *testing.T) {
 	query, args, err := comicListQuery(&ComicListInput{
 		Query:          "bat",
@@ -109,7 +113,7 @@ func TestReadingOrderHelpers(t *testing.T) {
 }
 
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -224,7 +228,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 
 func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	db := setupReadingOrderCBLTestDB(t)
-	ctx := context.Background()
+	ctx := testUserContext()
 	ownerCtx := context.WithValue(ctx, contextUserIDKey{}, 2)
 	otherCtx := context.WithValue(ctx, contextUserIDKey{}, 1)
 	if _, err := db.ExecContext(ctx, `INSERT INTO users (id, name, is_default) VALUES (2, 'Owner', 0)`); err != nil {
@@ -269,7 +273,7 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 }
 
 func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := setupReadingOrderCBLTestDB(t)
 
 	if _, err := db.Exec(`
@@ -317,7 +321,7 @@ func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T
 }
 
 func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := setupReadingOrderCBLTestDB(t)
 
 	metronID := 98765
@@ -431,7 +435,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 }
 
 func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -530,7 +534,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 }
 
 func TestSeriesFavoriteAndProgress(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -613,7 +617,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 }
 
 func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -776,6 +780,34 @@ func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
 	}
 	if !strings.Contains(withCookie.Body.String(), `"series":"Amazing Spider-Man"`) {
 		t.Fatalf("comics body = %s; want seeded comic", withCookie.Body.String())
+	}
+}
+
+func TestRequireAdminUserFailsWithoutUserContext(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	if userID, err := requireAdminUser(context.Background(), db); err == nil {
+		t.Fatalf("requireAdminUser without user context = %d, nil; want error", userID)
+	}
+}
+
+func TestPerUserEndpointFailsWithoutUserContext(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterComicRoutes(api, db, nil)
+
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"read":true}`)
+	req := httptest.NewRequest(http.MethodPatch, "/api/comic/1/read", body)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("read-status without user context status = %d; want 401: %s", recorder.Code, recorder.Body.String())
 	}
 }
 

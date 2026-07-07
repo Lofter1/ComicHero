@@ -311,7 +311,7 @@ func importLocalSeriesFromMetron(ctx context.Context, db *sqlx.DB, client *metro
 		return nil, err
 	}
 
-	job := startLocalSeriesMetronImport(importJobs, db, client, covers, id, metronID)
+	job := startLocalSeriesMetronImport(ctx, importJobs, db, client, covers, id, metronID)
 	return &MetronImportJobOutput{Body: job}, nil
 }
 
