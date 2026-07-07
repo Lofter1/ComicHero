@@ -33,6 +33,7 @@ import {
   registerUser,
   setupUsers,
   updateAccount,
+  updateUserAdmin,
   updateUserMetronPermissions,
 } from '@/api/client.js'
 
@@ -51,6 +52,7 @@ const userAdminRows = ref([])
 const accountSaving = ref(false)
 const accountDeleting = ref(false)
 const savingUserID = ref(null)
+const savingAdminUserID = ref(null)
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -381,6 +383,21 @@ async function saveUserMetronPermissions(userID, payload) {
     error.value = err.message
   } finally {
     savingUserID.value = null
+  }
+}
+
+async function saveUserAdmin(userID, payload) {
+  savingAdminUserID.value = userID
+  error.value = ''
+  try {
+    const updated = await updateUserAdmin(userID, payload)
+    userAdminRows.value = userAdminRows.value.map((entry) => (
+      entry.user.id === userID ? updated : entry
+    ))
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingAdminUserID.value = null
   }
 }
 
@@ -1003,7 +1020,10 @@ onUnmounted(() => {
         v-else-if="activeView === 'users'"
         :users="userAdminRows"
         :saving-user-id="savingUserID"
+        :saving-admin-user-id="savingAdminUserID"
+        :current-user-id="currentUser?.id"
         @save="saveUserMetronPermissions"
+        @save-admin="saveUserAdmin"
       />
 
       <AccountView

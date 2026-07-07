@@ -57,7 +57,8 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
-			is_default INTEGER NOT NULL DEFAULT 0
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,

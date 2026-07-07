@@ -144,7 +144,8 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -248,6 +249,19 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 
 	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Nope"}); err == nil {
 		t.Fatalf("updateReadingOrder as non-author succeeded; want error")
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE users SET is_admin = 1 WHERE id = 1`); err != nil {
+		t.Fatalf("promote admin: %v", err)
+	}
+	adminView, err := getReadingOrder(otherCtx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("getReadingOrder as admin: %v", err)
+	}
+	if !adminView.Body.CanEdit {
+		t.Fatalf("admin canEdit = false; want true")
+	}
+	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Admin update"}); err != nil {
+		t.Fatalf("updateReadingOrder as admin: %v", err)
 	}
 	if _, err := updateReadingOrder(ownerCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Updated"}); err != nil {
 		t.Fatalf("updateReadingOrder as author: %v", err)
@@ -385,7 +399,8 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -902,6 +917,32 @@ func TestMetronPermissionsControlScopesAndHourlyLimit(t *testing.T) {
 	}
 	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/series"); err == nil {
 		t.Fatal("authorize search returned nil after hourly limit was reached")
+	}
+}
+
+func TestAdminCanPromoteOtherUsers(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)
+	`); err != nil {
+		t.Fatalf("create reader user: %v", err)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updateUserAdmin(adminCtx, db, 2, UpdateUserAdminPayload{IsAdmin: true})
+	if err != nil {
+		t.Fatalf("updateUserAdmin promote: %v", err)
+	}
+	if !output.Body.User.IsAdmin {
+		t.Fatalf("promoted user isAdmin = false; want true")
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := updateUserAdmin(readerCtx, db, 1, UpdateUserAdminPayload{IsAdmin: false}); err != nil {
+		t.Fatalf("promoted user should be able to update admin roles: %v", err)
+	}
+	if _, err := updateUserAdmin(readerCtx, db, 2, UpdateUserAdminPayload{IsAdmin: false}); err == nil {
+		t.Fatal("updateUserAdmin allowed current user to remove own admin role")
 	}
 }
 

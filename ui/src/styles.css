@@ -790,6 +790,19 @@ textarea {
   font-weight: 700;
 }
 
+.user-permission-toggles {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
 .compact-toggle,
 .permission-scopes label {
   display: inline-flex;

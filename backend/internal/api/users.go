@@ -135,6 +135,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *UpdateUserMetronPermissionsInput) (*UserAdminOutput, error) {
 		return updateUserMetronPermissions(ctx, db, input.ID, input.Body)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateUserAdmin",
+		Tags:        []string{tagUsers},
+		Summary:     "Update user admin role",
+		Description: "Promotes or demotes a user account. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/{id}/admin",
+		Errors:      []int{400, 401, 403, 404, 500},
+	}, func(ctx context.Context, input *UpdateUserAdminInput) (*UserAdminOutput, error) {
+		return updateUserAdmin(ctx, db, input.ID, input.Body)
+	})
 }
 
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {

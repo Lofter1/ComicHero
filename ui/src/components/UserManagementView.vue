@@ -17,9 +17,17 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  savingAdminUserID: {
+    type: Number,
+    default: null,
+  },
+  currentUserID: {
+    type: Number,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['save'])
+const emit = defineEmits(['save', 'save-admin'])
 const drafts = reactive({})
 
 watch(
@@ -32,6 +40,7 @@ watch(
         allowed: Boolean(permissions.allowed),
         scopes: normalizeScopes(permissions.scopes),
         hourlyLimit: permissions.hourlyLimit ?? 0,
+        isAdmin: Boolean(entry.user.isAdmin),
       }
     })
   },
@@ -46,7 +55,7 @@ function normalizeScopes(scopes = []) {
 
 function draftFor(userID) {
   if (!drafts[userID]) {
-    drafts[userID] = { allowed: false, scopes: [], hourlyLimit: 0 }
+    drafts[userID] = { allowed: false, scopes: [], hourlyLimit: 0, isAdmin: false }
   }
   return drafts[userID]
 }
@@ -78,6 +87,12 @@ function save(entry) {
     hourlyLimit: Number(draft.hourlyLimit) || 0,
   })
 }
+
+function saveAdmin(entry) {
+  emit('save-admin', entry.user.id, {
+    isAdmin: Boolean(draftFor(entry.user.id).isAdmin),
+  })
+}
 </script>
 
 <template>
@@ -93,10 +108,28 @@ function save(entry) {
             <h3>{{ entry.user.name }}</h3>
             <p>{{ entry.user.isAdmin ? 'Admin' : 'User' }}</p>
           </div>
-          <label class="compact-toggle">
-            <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
-            <span>Metron access</span>
-          </label>
+          <div class="user-permission-toggles">
+            <label class="compact-toggle">
+              <input
+                v-model="draftFor(entry.user.id).isAdmin"
+                type="checkbox"
+                :disabled="entry.user.id === currentUserID"
+              >
+              <span>Admin user</span>
+            </label>
+            <button
+              type="button"
+              class="secondary-button compact-button"
+              :disabled="savingAdminUserID === entry.user.id || entry.user.id === currentUserID"
+              @click="saveAdmin(entry)"
+            >
+              {{ savingAdminUserID === entry.user.id ? 'Saving...' : 'Save role' }}
+            </button>
+            <label class="compact-toggle">
+              <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
+              <span>Metron access</span>
+            </label>
+          </div>
         </div>
 
         <fieldset class="permission-scopes" :disabled="!draftFor(entry.user.id).allowed">

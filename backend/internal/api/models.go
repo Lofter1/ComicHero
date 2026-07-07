@@ -54,6 +54,15 @@ type UpdateUserMetronPermissionsInput struct {
 	Body UserMetronPermissions
 }
 
+type UpdateUserAdminPayload struct {
+	IsAdmin bool `json:"isAdmin" doc:"Whether the user should be an admin." example:"true"`
+}
+
+type UpdateUserAdminInput struct {
+	ID   int `path:"id" doc:"Local user identifier." example:"2"`
+	Body UpdateUserAdminPayload
+}
+
 type UserAdminOutput struct {
 	Body UserAdminView
 }
