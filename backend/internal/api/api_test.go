@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
@@ -978,6 +979,58 @@ func TestAdminCanPromoteOtherUsers(t *testing.T) {
 	}
 }
 
+func TestRegisterUserRequiresValidInvite(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
+		t.Fatalf("seed multi-user mode: %v", err)
+	}
+
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "No Invite",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser without invite returned nil error")
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	invite, err := createUserInvite(adminCtx, db)
+	if err != nil {
+		t.Fatalf("createUserInvite: %v", err)
+	}
+	if invite.Body.Token == "" || invite.Body.ExpiresAt == "" {
+		t.Fatalf("invite = %#v; want token and expiry", invite.Body)
+	}
+
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:        "Invited",
+		Password:    "secret1",
+		InviteToken: invite.Body.Token,
+	}); err != nil {
+		t.Fatalf("registerUser with invite: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:        "Reuse",
+		Password:    "secret1",
+		InviteToken: invite.Body.Token,
+	}); err == nil {
+		t.Fatal("registerUser accepted a used invite")
+	}
+
+	if _, err := db.Exec(`
+		INSERT INTO user_invites (token, expires_at)
+		VALUES ('expired-token', ?)
+	`, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)); err != nil {
+		t.Fatalf("seed expired invite: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:        "Expired",
+		Password:    "secret1",
+		InviteToken: "expired-token",
+	}); err == nil {
+		t.Fatal("registerUser accepted an expired invite")
+	}
+}
+
 func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -1020,6 +1073,13 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE user_sessions (
 			token TEXT PRIMARY KEY,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE user_invites (
+			token TEXT PRIMARY KEY,
+			created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+			expires_at TEXT NOT NULL DEFAULT '',
+			used_at TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE user_comics (

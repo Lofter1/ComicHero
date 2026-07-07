@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -22,6 +23,9 @@ const (
 
 	sessionCookieName = "comichero_session"
 	defaultUserName   = "Default"
+
+	userInviteTokenBytes = 32
+	userInviteTTL        = 7 * 24 * time.Hour
 )
 
 type contextUserIDKey struct{}
@@ -122,6 +126,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 		Errors:      []int{401, 403, 500},
 	}, func(ctx context.Context, input *struct{}) (*UserListOutput, error) {
 		return listUsers(ctx, db)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "createUserInvite",
+		Tags:        []string{tagUsers},
+		Summary:     "Create user invite",
+		Description: "Creates a single-use registration invite. Admin users only.",
+		Method:      http.MethodPost,
+		Path:        "/users/invites",
+		Errors:      []int{401, 403, 500},
+	}, func(ctx context.Context, input *struct{}) (*UserInviteOutput, error) {
+		return createUserInvite(ctx, db)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -339,7 +355,18 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to hash password")
 	}
-	result, err := db.ExecContext(ctx, `
+
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start registration")
+	}
+	defer tx.Rollback()
+
+	if err := consumeUserInvite(ctx, tx, payload.InviteToken); err != nil {
+		return nil, err
+	}
+
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO users (name, password_hash)
 		VALUES (?, ?)
 	`, name, passwordHash)
@@ -350,11 +377,59 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get user id")
 	}
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to create user")
+	}
 	cookie, err := createSession(ctx, db, int(id))
 	if err != nil {
 		return nil, err
 	}
 	return userStatusForUser(ctx, db, mode, int(id), cookie)
+}
+
+func createUserInvite(ctx context.Context, db *sqlx.DB) (*UserInviteOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	token, err := randomToken(userInviteTokenBytes)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to create invite token")
+	}
+	expiresAt := time.Now().UTC().Add(userInviteTTL).Format(time.RFC3339)
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO user_invites (token, created_by_user_id, expires_at)
+		VALUES (?, ?, ?)
+	`, token, userID, expiresAt); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save invite")
+	}
+	return &UserInviteOutput{Body: UserInvite{Token: token, ExpiresAt: expiresAt}}, nil
+}
+
+func consumeUserInvite(ctx context.Context, db sqlx.ExtContext, token string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return huma.Error401Unauthorized("valid invite token is required")
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := db.ExecContext(ctx, `
+		UPDATE user_invites
+		SET used_at = ?
+		WHERE token = ?
+		  AND used_at = ''
+		  AND (expires_at = '' OR expires_at > ?)
+	`, now, token, now)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to consume invite")
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return huma.Error500InternalServerError("failed to check invite")
+	}
+	if rows == 0 {
+		return huma.Error401Unauthorized("valid invite token is required")
+	}
+	return nil
 }
 
 func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload) (*UserStatusOutput, error) {

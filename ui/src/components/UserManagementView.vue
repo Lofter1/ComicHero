@@ -25,9 +25,17 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  invite: {
+    type: Object,
+    default: null,
+  },
+  generatingInvite: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['save', 'save-admin'])
+const emit = defineEmits(['save', 'save-admin', 'generate-invite'])
 const drafts = reactive({})
 
 watch(
@@ -97,6 +105,22 @@ function saveAdmin(entry) {
 
 <template>
   <section class="browse-view user-management-view">
+    <section class="user-invite-panel">
+      <div>
+        <p class="eyebrow">Invites</p>
+        <h3>Invite a user</h3>
+        <p class="muted">New accounts need a single-use invite token to register.</p>
+      </div>
+      <button class="primary-button" type="button" :disabled="generatingInvite" @click="$emit('generate-invite')">
+        {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
+      </button>
+      <div v-if="invite?.token" class="invite-token-box">
+        <span>Invite token</span>
+        <code>{{ invite.token }}</code>
+        <small>Expires at {{ invite.expiresAt }}</small>
+      </div>
+    </section>
+
     <div v-if="users.length === 0" class="empty-panel">
       No users yet.
     </div>

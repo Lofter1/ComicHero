@@ -49,6 +49,15 @@ type UserListOutput struct {
 	Body []UserAdminView
 }
 
+type UserInvite struct {
+	Token     string `json:"token"     doc:"Single-use invite token."`
+	ExpiresAt string `json:"expiresAt" doc:"RFC3339 expiry time for this invite."`
+}
+
+type UserInviteOutput struct {
+	Body UserInvite
+}
+
 type UpdateUserMetronPermissionsInput struct {
 	ID   int `path:"id" doc:"Local user identifier." example:"2"`
 	Body UserMetronPermissions
@@ -102,8 +111,9 @@ type SetupUsersInput struct {
 }
 
 type UserCredentialsPayload struct {
-	Name     string `json:"name"     minLength:"1" doc:"User name." example:"Justin"`
-	Password string `json:"password" minLength:"6" doc:"Password." example:"correct horse battery staple"`
+	Name        string `json:"name"                  minLength:"1" doc:"User name." example:"Justin"`
+	Password    string `json:"password"              minLength:"6" doc:"Password." example:"correct horse battery staple"`
+	InviteToken string `json:"inviteToken,omitempty" doc:"Invite token required for registration in multi-user mode."`
 }
 
 type RegisterUserInput struct {

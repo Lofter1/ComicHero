@@ -746,6 +746,42 @@ textarea {
   gap: 12px;
 }
 
+.user-invite-panel {
+  display: grid;
+  gap: 12px;
+  max-width: 840px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 14px;
+}
+
+.user-invite-panel .primary-button {
+  justify-self: start;
+}
+
+.invite-token-box {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+}
+
+.invite-token-box span,
+.invite-token-box small {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.invite-token-box code {
+  overflow-wrap: anywhere;
+  color: var(--heading);
+  font-weight: 800;
+}
+
 .empty-panel {
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
