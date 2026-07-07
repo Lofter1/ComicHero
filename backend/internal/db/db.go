@@ -173,6 +173,9 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	`); err != nil {
 		return err
 	}
+	if err := ensureReadingOrderAuthors(db); err != nil {
+		return err
+	}
 
 	hasComicRead, err := columnExists(db, "comics", "read")
 	if err != nil {
@@ -188,6 +191,43 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		return err
 	}
 	return err
+}
+
+func ensureReadingOrderAuthors(db *sqlx.DB) error {
+	exists, err := tableExists(db, "reading_orders")
+	if err != nil || !exists {
+		return err
+	}
+
+	hasAuthor, err := columnExists(db, "reading_orders", "author_user_id")
+	if err != nil {
+		return err
+	}
+	if !hasAuthor {
+		if _, err := db.Exec(`ALTER TABLE reading_orders ADD COLUMN author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL`); err != nil {
+			return err
+		}
+	}
+	if _, err := db.Exec(`
+		UPDATE reading_orders
+		SET author_user_id = (
+			SELECT id
+			FROM users
+			WHERE is_default = 1 OR name = 'Default'
+			ORDER BY is_default DESC, id
+			LIMIT 1
+		)
+		WHERE author_user_id IS NULL
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_reading_orders_author_user_id
+		ON reading_orders(author_user_id)
+	`); err != nil {
+		return err
+	}
+	return nil
 }
 
 func tableExists(db *sqlx.DB, name string) (bool, error) {

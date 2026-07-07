@@ -72,7 +72,7 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
     }
 
     async function toggleReadingOrderFavorite(order) {
-        if (!order?.id || quickSavingOrderID.value) return
+        if (!order?.id || order.canEdit === false || quickSavingOrderID.value) return
 
         quickSavingOrderID.value = order.id
         error.value = ''
@@ -117,6 +117,10 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
 
     function editReadingOrder() {
         if (!selectedOrder.value) return
+        if (selectedOrder.value.canEdit === false) {
+            error.value = 'Only the author can edit this reading order.'
+            return
+        }
         error.value = ''
         orderForm.value = readingOrderFormFromDetail(selectedOrder.value)
         viewMode.value = 'edit'
@@ -133,6 +137,10 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
     }
 
     async function saveReadingOrder() {
+        if (orderForm.value.id && selectedOrder.value?.canEdit === false) {
+            error.value = 'Only the author can edit this reading order.'
+            return
+        }
         saving.value = true
         error.value = ''
 
@@ -154,6 +162,10 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
     }
 
     async function deleteReadingOrder() {
+        if (selectedOrder.value?.canEdit === false) {
+            error.value = 'Only the author can delete this reading order.'
+            return
+        }
         if (!orderForm.value.id || !confirm(`Delete ${orderForm.value.name}?`)) return
 
         saving.value = true

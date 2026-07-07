@@ -31,7 +31,8 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
-			metron_reading_list_id INTEGER
+			metron_reading_list_id INTEGER,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE UNIQUE INDEX idx_reading_orders_metron_reading_list_id
 		ON reading_orders(metron_reading_list_id)
@@ -55,7 +56,8 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 
 		CREATE TABLE users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE
+			name TEXT NOT NULL UNIQUE,
+			is_default INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -63,7 +65,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			read INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (comic_id, user_id)
 		);
-		INSERT OR IGNORE INTO users (name) VALUES ('Default');
+		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
 
 		CREATE TABLE series (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -125,7 +125,8 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
-			favorite INTEGER NOT NULL DEFAULT 0
+			favorite INTEGER NOT NULL DEFAULT 0,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -217,6 +218,39 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	}
 	if detail.Body.Comics[1].Comment != "From Child: Crossover break" {
 		t.Fatalf("nested comic comment = %q; want nested order note", detail.Body.Comics[1].Comment)
+	}
+}
+
+func TestReadingOrderWritesRequireAuthor(t *testing.T) {
+	db := setupReadingOrderCBLTestDB(t)
+	ctx := context.Background()
+	ownerCtx := context.WithValue(ctx, contextUserIDKey{}, 2)
+	otherCtx := context.WithValue(ctx, contextUserIDKey{}, 1)
+	if _, err := db.ExecContext(ctx, `INSERT INTO users (id, name, is_default) VALUES (2, 'Owner', 0)`); err != nil {
+		t.Fatalf("insert owner: %v", err)
+	}
+
+	created, err := createReadingOrder(ownerCtx, db, ReadingOrderPayload{Name: "Owner list"})
+	if err != nil {
+		t.Fatalf("createReadingOrder: %v", err)
+	}
+	if created.Body.AuthorUserID == nil || *created.Body.AuthorUserID != 2 {
+		t.Fatalf("author user id = %#v; want 2", created.Body.AuthorUserID)
+	}
+
+	view, err := getReadingOrder(otherCtx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("getReadingOrder as non-author: %v", err)
+	}
+	if view.Body.CanEdit {
+		t.Fatalf("non-author canEdit = true; want false")
+	}
+
+	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Nope"}); err == nil {
+		t.Fatalf("updateReadingOrder as non-author succeeded; want error")
+	}
+	if _, err := updateReadingOrder(ownerCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Updated"}); err != nil {
+		t.Fatalf("updateReadingOrder as author: %v", err)
 	}
 }
 
@@ -332,7 +366,8 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
-			favorite INTEGER NOT NULL DEFAULT 0
+			favorite INTEGER NOT NULL DEFAULT 0,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

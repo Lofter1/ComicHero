@@ -28,7 +28,7 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
 
       <div class="detail-nav-actions">
         <button v-if="selectedOrder" class="secondary-button" type="button" @click="$emit('export-cbl')">Export CBL</button>
-        <button v-if="selectedOrder" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
+        <button v-if="selectedOrder?.canEdit" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
       </div>
     </header>
 
@@ -61,6 +61,10 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           <span>
             <strong>{{ selectedOrder.comics.length }}</strong>
             <small>Comics</small>
+          </span>
+          <span v-if="selectedOrder.authorName">
+            <strong>{{ selectedOrder.authorName }}</strong>
+            <small>Author</small>
           </span>
         </div>
 

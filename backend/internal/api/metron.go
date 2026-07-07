@@ -948,7 +948,7 @@ func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Cl
 		})
 	}
 
-	return setReadingOrderComics(ctx, db, input)
+	return setReadingOrderComicsInternal(ctx, db, input)
 }
 
 func continueMetronReadingListWithProgress(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList, progress func(int, int, string)) error {
@@ -998,13 +998,13 @@ func importMetronReadingListWithOptions(ctx context.Context, db *sqlx.DB, client
 			ComicID: comic.Body.ID,
 			Tags:    strings.Join(issue.Tags, ", "),
 		})
-		if _, err := setReadingOrderComics(ctx, db, input); err != nil {
+		if _, err := setReadingOrderComicsInternal(ctx, db, input); err != nil {
 			return err
 		}
 		progress(i+1, total, "Importing reading-list issues...")
 	}
 
-	if _, err := setReadingOrderComics(ctx, db, input); err != nil {
+	if _, err := setReadingOrderComicsInternal(ctx, db, input); err != nil {
 		return err
 	}
 	progress(total, total, "Reading list imported.")
@@ -1172,11 +1172,15 @@ func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCac
 	if err != nil {
 		return nil, err
 	}
+	defaultUserID, err := ensureDefaultUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, metron_reading_list_id)
-		VALUES (?, ?, ?, ?, ?)
-	`, list.Name, list.Description, image, false, nullableMetronID(list.ID))
+		INSERT INTO reading_orders (name, description, image, favorite, metron_reading_list_id, author_user_id)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, list.Name, list.Description, image, false, nullableMetronID(list.ID), defaultUserID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to import Metron reading list")
 	}
@@ -1186,11 +1190,9 @@ func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCac
 		return nil, huma.Error500InternalServerError("failed to get imported reading order id")
 	}
 
-	var ro ReadingOrder
-	if err := db.GetContext(ctx, &ro, `
-		SELECT * FROM reading_orders WHERE id = ?
-	`, id); err != nil {
-		return nil, huma.Error500InternalServerError("failed to fetch imported reading order")
+	ro, err := getReadingOrderRow(ctx, db, int(id))
+	if err != nil {
+		return nil, err
 	}
 
 	return &CreateReadingOrderOutput{Body: ro}, nil
@@ -1201,15 +1203,20 @@ func updateMetronReadingOrderMetadata(ctx context.Context, db *sqlx.DB, covers *
 	if err != nil {
 		return err
 	}
+	defaultUserID, err := ensureDefaultUser(ctx, db)
+	if err != nil {
+		return err
+	}
 
 	if _, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
 		SET name = COALESCE(NULLIF(?, ''), name),
 			description = COALESCE(NULLIF(?, ''), description),
 			image = COALESCE(NULLIF(?, ''), image),
-			metron_reading_list_id = COALESCE(?, metron_reading_list_id)
+			metron_reading_list_id = COALESCE(?, metron_reading_list_id),
+			author_user_id = COALESCE(author_user_id, ?)
 		WHERE id = ?
-	`, list.Name, list.Description, image, nullableMetronID(list.ID), id); err != nil {
+	`, list.Name, list.Description, image, nullableMetronID(list.ID), defaultUserID, id); err != nil {
 		return huma.Error500InternalServerError("failed to update Metron reading list")
 	}
 	return nil

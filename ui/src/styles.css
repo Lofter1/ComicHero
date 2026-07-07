@@ -1300,6 +1300,22 @@ textarea {
   font-size: 0.8rem;
 }
 
+.author-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--label-ink);
+  padding: 4px 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .favorite-pill {
   background: var(--warning-soft);
   color: var(--warning-ink);

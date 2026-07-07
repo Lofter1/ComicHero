@@ -270,12 +270,15 @@ type UpdateComicFromMetronInput struct {
 type ReadingOrder struct {
 	ID                  int  `json:"id"                                  db:"id"                     doc:"Local reading-order identifier." example:"7"`
 	MetronReadingListID *int `json:"metronReadingListId,omitempty"       db:"metron_reading_list_id" doc:"Linked Metron reading-list identifier, when imported." example:"9876"`
+	AuthorUserID        *int `json:"authorUserId,omitempty"              db:"author_user_id"         doc:"User who created or owns this reading order." example:"1"`
 
 	Name        string  `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
 	Description string  `json:"description" db:"description" doc:"Reading-order description or notes."`
 	Image       string  `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
 	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
 	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+	AuthorName  string  `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
+	CanEdit     bool    `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
 }
 
 type ReadingOrderPayload struct {

@@ -142,9 +142,11 @@ function handleCBLFile(event) {
                   <span>
                     <strong>{{ order.name }}</strong>
                     <small>{{ order.description || 'No description' }}</small>
+                    <span v-if="order.authorName" class="author-pill">Author: {{ order.authorName }}</span>
                   </span>
                 </button>
                 <button
+                  v-if="order.canEdit"
                   type="button"
                   class="favorite-toggle"
                   :class="{ active: order.favorite }"
