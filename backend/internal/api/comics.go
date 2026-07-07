@@ -133,9 +133,10 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 			query.where(`(
 				c.series LIKE ?
 				OR CAST(c.series_year AS TEXT) LIKE ?
+				OR CAST(c.issue AS TEXT) LIKE ?
 				OR c.publisher LIKE ?
 				OR c.description LIKE ?
-			)`, search, search, search, search)
+			)`, search, search, search, search, search)
 		}
 	}
 
