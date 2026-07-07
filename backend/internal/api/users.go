@@ -9,9 +9,11 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -28,9 +30,51 @@ const (
 	userInviteTokenBytes = 32
 	userInviteTTL        = 7 * 24 * time.Hour
 	sessionTTL           = 30 * 24 * time.Hour
+
+	loginRateLimitMaxAttempts = 5
+	loginRateLimitWindow      = time.Minute
 )
 
 type contextUserIDKey struct{}
+
+var authLoginLimiter = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+
+type loginRateLimiter struct {
+	maxAttempts int
+	window      time.Duration
+	mu          sync.Mutex
+	attempts    map[string]loginRateLimitEntry
+}
+
+type loginRateLimitEntry struct {
+	count      int
+	windowEnds time.Time
+}
+
+func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimiter {
+	return &loginRateLimiter{
+		maxAttempts: maxAttempts,
+		window:      window,
+		attempts:    map[string]loginRateLimitEntry{},
+	}
+}
+
+func (l *loginRateLimiter) allow(key string, now time.Time) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	entry := l.attempts[key]
+	if entry.windowEnds.IsZero() || !now.Before(entry.windowEnds) {
+		l.attempts[key] = loginRateLimitEntry{count: 1, windowEnds: now.Add(l.window)}
+		return true
+	}
+	if entry.count >= l.maxAttempts {
+		return false
+	}
+	entry.count++
+	l.attempts[key] = entry
+	return true
+}
 
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
@@ -170,6 +214,10 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isLoginRequest(r) && !authLoginLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many login attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
 			if isUserRouteAllowedWithoutSession(r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
@@ -199,6 +247,24 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextUserIDKey{}, userID)))
 		})
 	}
+}
+
+func isLoginRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/login"
+}
+
+func clientIP(r *http.Request) string {
+	if forwardedFor := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwardedFor != "" {
+		if ip := strings.TrimSpace(strings.Split(forwardedFor, ",")[0]); ip != "" {
+			return ip
+		}
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	return r.RemoteAddr
 }
 
 func isUserRouteAllowedWithoutSession(path string) bool {
