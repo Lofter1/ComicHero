@@ -24,10 +24,6 @@ export function useCharacters({ activeView, viewMode, error, loadPagedList, metr
       { key: 'other', title: 'Other Characters', characters: remainingVisibleCharacters.value },
     ].filter(section => section.characters.length)
   })
-  const currentCharacterIndex = computed(() => {
-    return visibleCharacters.value.findIndex(character => character.id === selectedCharacter.value?.id)
-  })
-
   async function openCharacter(character) {
     error.value = ''
     activeView.value = 'characters'
@@ -35,13 +31,6 @@ export function useCharacters({ activeView, viewMode, error, loadPagedList, metr
     viewMode.value = 'detail'
     const detail = await getCharacter(character.id)
     selectedCharacter.value = detail
-  }
-
-  async function openAdjacentCharacter(offset) {
-    const nextCharacter = visibleCharacters.value[currentCharacterIndex.value + offset]
-    if (nextCharacter) {
-      await openCharacter(nextCharacter)
-    }
   }
 
   async function toggleCharacterFavorite(character) {
@@ -111,11 +100,8 @@ export function useCharacters({ activeView, viewMode, error, loadPagedList, metr
     quickSavingCharacterID,
     visibleCharacters,
     characterBrowseSections,
-    currentCharacterIndex,
     openCharacter,
-    openAdjacentCharacter,
     toggleCharacterFavorite,
-    applyCharacterFavoriteState,
     characterProgress,
     importSelectedCharacterAppearances,
     characterImportRunning,

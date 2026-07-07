@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 
-export function emptyPageState() {
+function emptyPageState() {
   return {
     initialized: false,
     hasMore: true,

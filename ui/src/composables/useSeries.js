@@ -23,15 +23,6 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
     ].filter(section => section.series.length)
   })
 
-  function seriesYearLabel(item) {
-    return item?.seriesYear ? ` (${item.seriesYear})` : ''
-  }
-
-  function seriesPublisherLabel(item) {
-    if (!item?.publishers?.length) return 'No publisher saved'
-    return item.publishers.join(', ')
-  }
-
   async function openSeries(item) {
     if (!item?.id) return
     error.value = ''
@@ -99,11 +90,8 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
     selectedSeries,
     visibleSeries,
     seriesBrowseSections,
-    seriesYearLabel,
-    seriesPublisherLabel,
     openSeries,
     toggleSeriesFavorite,
-    applySeriesFavoriteState,
     importSelectedSeriesFromMetron,
     seriesImportRunning,
     refreshSelectedSeriesDetail,

@@ -36,10 +36,6 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
             { key: 'other', title: 'Other Orders', orders: remainingVisibleOrders.value },
         ].filter(section => section.orders.length)
     })
-    const currentOrderIndex = computed(() => {
-        return visibleOrders.value.findIndex(order => order.id === selectedOrder.value?.id)
-    })
-
     function readingOrderProgress(orderComics) {
         if (orderComics.length === 0) return 0
         const readCount = orderComics.filter(comic => comic.read).length
@@ -54,13 +50,6 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         const detail = await getReadingOrder(order.id)
         selectedOrder.value = detail
         orderForm.value = readingOrderFormFromDetail(detail)
-    }
-
-    async function openAdjacentReadingOrder(offset) {
-        const nextOrder = visibleOrders.value[currentOrderIndex.value + offset]
-        if (nextOrder) {
-            await openReadingOrder(nextOrder)
-        }
     }
 
     async function refreshSelectedReadingOrderDetail() {
@@ -249,16 +238,11 @@ export function useReadingOrders({ activeView, viewMode, error, saving, loadComi
         quickSavingOrderID,
         orderForm,
         visibleOrders,
-        favoriteVisibleOrders,
-        remainingVisibleOrders,
         readingOrderBrowseSections,
-        currentOrderIndex,
         readingOrderProgress,
         openReadingOrder,
-        openAdjacentReadingOrder,
         refreshSelectedReadingOrderDetail,
         toggleReadingOrderFavorite,
-        applyReadingOrderFavoriteState,
         newReadingOrder,
         editReadingOrder,
         saveReadingOrder,

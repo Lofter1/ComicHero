@@ -26,14 +26,6 @@ export function comicPayload(comic) {
   }
 }
 
-export function comicMatchesSearch(comic, term) {
-  if (!term) return true
-
-  return [comic.title, comic.series, comic.publisher, comic.description]
-    .filter(Boolean)
-    .some(value => value.toLowerCase().includes(term))
-}
-
 export function comicLabel(comics, comicID) {
   const comic = comics.find(item => item.id === Number(comicID))
   if (!comic) return 'Unknown comic'

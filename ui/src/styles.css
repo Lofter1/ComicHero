@@ -184,8 +184,7 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.mode-options small,
-.user-menu small {
+.mode-options small {
   color: var(--muted);
 }
 
@@ -227,47 +226,6 @@ button:disabled {
   border-color: var(--primary);
   background: var(--primary);
   color: #ffffff;
-}
-
-.user-menu {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface-soft);
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-width: 0;
-}
-
-.user-menu-identity {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.user-menu span {
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
-
-.user-menu-logout {
-  min-height: 34px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--control-ink);
-  padding: 7px 10px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.user-menu-logout:hover:not(:disabled),
-.user-menu-logout:focus-visible {
-  border-color: var(--primary);
-  background: var(--primary-soft);
 }
 
 .account-menu {
@@ -503,7 +461,6 @@ h4 {
 }
 
 .nav-tabs button,
-.refresh-button,
 .row,
 .primary-button,
 .secondary-button,
@@ -517,7 +474,6 @@ h4 {
 }
 
 .nav-tabs button,
-.refresh-button,
 .primary-button,
 .secondary-button,
 .danger-button,
@@ -599,38 +555,10 @@ h4 {
   padding: 0;
 }
 
-.refresh-button {
-  margin-top: auto;
-}
-
 .sidebar-actions {
   display: grid;
   gap: 10px;
   margin-top: auto;
-}
-
-.sidebar-actions .refresh-button {
-  margin-top: 0;
-}
-
-.theme-menu {
-  min-width: 0;
-}
-
-.theme-menu summary {
-  min-height: 38px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--label-ink);
-  padding: 9px 12px;
-  font-size: 0.84rem;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.theme-menu[open] summary {
-  margin-bottom: 8px;
 }
 
 .theme-selector {
