@@ -59,7 +59,7 @@ func TestComicListQuery(t *testing.T) {
 		Publisher:      "DC",
 		Read:           "false",
 		ReadingOrderID: 12,
-	})
+	}, 1)
 	if err != nil {
 		t.Fatalf("comicListQuery returned error: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestComicListQuery(t *testing.T) {
 		"c.series_year AS TEXT",
 		"c.issue AS TEXT",
 		"c.publisher LIKE ?",
-		"c.read = ?",
+		"COALESCE(uc.read, 0) = ?",
 		"roc.reading_order_id = ?",
 		"ORDER BY c.series, c.series_year, CAST(c.issue AS REAL), c.issue",
 	} {
@@ -77,8 +77,8 @@ func TestComicListQuery(t *testing.T) {
 			t.Fatalf("query missing %q: %s", fragment, query)
 		}
 	}
-	if len(args) != 10 {
-		t.Fatalf("len(args) = %d; want 10", len(args))
+	if len(args) != 11 {
+		t.Fatalf("len(args) = %d; want 11", len(args))
 	}
 }
 
@@ -139,6 +139,19 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -333,6 +346,19 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -385,6 +411,17 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
 		CREATE TABLE arc_comics (
 			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -394,6 +431,8 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 		INSERT INTO comics (series, series_year, issue, publisher, read)
 		VALUES ('Series', 2026, 1, 'Publisher', 1),
 			('Series', 2026, 2, 'Publisher', 0);
+		INSERT INTO user_comics (comic_id, user_id, read)
+		SELECT id, (SELECT id FROM users WHERE name = 'Default'), read FROM comics;
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
@@ -480,9 +519,22 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
 		INSERT INTO comics (series, series_year, issue, publisher, read)
 		VALUES ('Series', 2026, 1, 'Publisher', 1),
 			('Series', 2026, 2, 'Publisher', 0);
+		INSERT INTO user_comics (comic_id, user_id, read)
+		SELECT id, (SELECT id FROM users WHERE name = 'Default'), read FROM comics;
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
@@ -547,6 +599,17 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
 		INSERT INTO series (name, series_year)
 		VALUES ('Stale', 2026);
 		INSERT INTO comics (series, series_year, issue, publisher)
@@ -583,8 +646,8 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 6 {
-		t.Fatalf("len(tags) = %d; want 6", len(openAPI.Tags))
+	if len(openAPI.Tags) != 7 {
+		t.Fatalf("len(tags) = %d; want 7", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get
@@ -622,6 +685,102 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if _, ok := importSeries.Responses["429"]; !ok {
 		t.Fatal("import series response docs missing 429 error")
 	}
+}
+
+func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(UserMiddleware(db))
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterUserRoutes(api, db)
+	RegisterComicRoutes(api, db, nil)
+
+	setup := httptest.NewRecorder()
+	setupBody := strings.NewReader(`{"mode":"multi","name":"Test","password":"secret1"}`)
+	setupReq := httptest.NewRequest(http.MethodPost, "/api/auth/setup", setupBody)
+	setupReq.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(setup, setupReq)
+	if setup.Code != http.StatusOK {
+		t.Fatalf("setup status = %d; want 200: %s", setup.Code, setup.Body.String())
+	}
+	cookies := setup.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != sessionCookieName || cookies[0].Value == "" {
+		t.Fatalf("setup cookies = %#v; want %s session cookie", cookies, sessionCookieName)
+	}
+
+	withoutCookie := httptest.NewRecorder()
+	router.ServeHTTP(withoutCookie, httptest.NewRequest(http.MethodGet, "/api/comics", nil))
+	if withoutCookie.Code != http.StatusUnauthorized {
+		t.Fatalf("comics without cookie status = %d; want 401", withoutCookie.Code)
+	}
+
+	withCookie := httptest.NewRecorder()
+	comicsReq := httptest.NewRequest(http.MethodGet, "/api/comics", nil)
+	comicsReq.AddCookie(cookies[0])
+	router.ServeHTTP(withCookie, comicsReq)
+	if withCookie.Code != http.StatusOK {
+		t.Fatalf("comics with cookie status = %d; want 200: %s", withCookie.Code, withCookie.Body.String())
+	}
+	if !strings.Contains(withCookie.Body.String(), `"series":"Amazing Spider-Man"`) {
+		t.Fatalf("comics body = %s; want seeded comic", withCookie.Body.String())
+	}
+}
+
+func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
+	t.Helper()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_issue_id INTEGER,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue TEXT NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0,
+			created_at TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE app_settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		);
+		CREATE TABLE user_sessions (
+			token TEXT PRIMARY KEY,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT INTO users (id, name, is_default) VALUES (1, 'Default', 1);
+		INSERT INTO comics (series, series_year, issue, publisher)
+		VALUES ('Amazing Spider-Man', 1963, '1', 'Marvel');
+		INSERT INTO user_comics (comic_id, user_id, read) VALUES (1, 1, 1);
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+	return db
 }
 
 func TestMountedDocsLoadMountedOpenAPISpec(t *testing.T) {

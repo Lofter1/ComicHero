@@ -23,6 +23,7 @@ async function request(path, options = {}) {
 async function requestWithMeta(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     headers: options.body ? { 'Content-Type': 'application/json' } : {},
+    credentials: 'include',
     ...options,
   })
   const rateLimit = metronRateLimitFromHeaders(response.headers)
@@ -214,6 +215,26 @@ export function updateComic(id, payload) {
 
 export function updateComicReadStatus(id, read) {
   return send(`/comic/${id}/read`, 'PATCH', { read })
+}
+
+export function getUserStatus() {
+  return request('/auth/status')
+}
+
+export function setupUsers(payload) {
+  return send('/auth/setup', 'POST', payload)
+}
+
+export function registerUser(payload) {
+  return send('/auth/register', 'POST', payload)
+}
+
+export function loginUser(payload) {
+  return send('/auth/login', 'POST', payload)
+}
+
+export function logoutUser() {
+  return request('/auth/logout', { method: 'POST' })
 }
 
 export function deleteComic(id) {

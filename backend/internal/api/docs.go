@@ -9,6 +9,7 @@ const (
 	tagArcs          = "Arcs"
 	tagReadingOrders = "Reading Orders"
 	tagMetron        = "Metron"
+	tagUsers         = "Users"
 )
 
 var (
@@ -31,6 +32,7 @@ func DocsConfig() huma.Config {
 		{Name: tagArcs, Description: "Manage story arcs and their ordered comic entries."},
 		{Name: tagReadingOrders, Description: "Manage reading orders and their ordered comic entries."},
 		{Name: tagMetron, Description: "Search, inspect, and import metadata from Metron."},
+		{Name: tagUsers, Description: "Choose single-user or multi-user mode and manage login sessions."},
 	}
 	return config
 }

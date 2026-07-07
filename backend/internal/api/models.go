@@ -1,5 +1,7 @@
 package api
 
+import "net/http"
+
 type Comic struct {
 	ID            int  `json:"id"                      db:"id"              doc:"Local comic identifier." example:"42"`
 	MetronIssueID *int `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
@@ -24,6 +26,57 @@ type ComicPayload struct {
 	CoverImage  string `json:"coverImage" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
 	Description string `json:"description" doc:"Issue synopsis or notes."`
 	Read        bool   `json:"read"       doc:"Whether the comic has been read." example:"false"`
+}
+
+type User struct {
+	ID   int    `json:"id"   db:"id"   doc:"Local user identifier." example:"1"`
+	Name string `json:"name" db:"name" doc:"Display name." example:"Justin"`
+}
+
+type UserStatus struct {
+	SetupRequired bool   `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
+	Mode          string `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
+	User          *User  `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
+}
+
+type UserStatusOutput struct {
+	SetCookie []http.Cookie `header:"Set-Cookie"`
+	Body      UserStatus
+}
+
+type UserStatusInput struct {
+	Session string `cookie:"comichero_session"`
+}
+
+type LogoutUserOutput struct {
+	SetCookie []http.Cookie `header:"Set-Cookie"`
+}
+
+type LogoutUserInput struct {
+	Session string `cookie:"comichero_session"`
+}
+
+type SetupUsersPayload struct {
+	Mode     string `json:"mode" doc:"User mode to enable: single avoids login, multi enables registration and login." enum:"single,multi" example:"multi"`
+	Name     string `json:"name,omitempty" doc:"Initial user name for multi-user mode. Existing read status is attached to this user." example:"Justin"`
+	Password string `json:"password,omitempty" doc:"Initial password for multi-user mode." example:"correct horse battery staple"`
+}
+
+type SetupUsersInput struct {
+	Body SetupUsersPayload
+}
+
+type UserCredentialsPayload struct {
+	Name     string `json:"name"     minLength:"1" doc:"User name." example:"Justin"`
+	Password string `json:"password" minLength:"6" doc:"Password." example:"correct horse battery staple"`
+}
+
+type RegisterUserInput struct {
+	Body UserCredentialsPayload
+}
+
+type LoginUserInput struct {
+	Body UserCredentialsPayload
 }
 
 type ComicDetail struct {

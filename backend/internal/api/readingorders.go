@@ -127,7 +127,11 @@ func computeProgress(comics []ReadingOrderComic) float64 {
 }
 
 func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderListInput) (*ReadingOrderListOutput, error) {
-	query, args, err := readingOrderListQuery(input)
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query, args, err := readingOrderListQuery(input, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +150,7 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	return &ReadingOrderListOutput{PaginationHeaders: pagination, Body: readingOrders}, nil
 }
 
-func readingOrderListQuery(input *ReadingOrderListInput) (string, []any, error) {
+func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT
 			ro.id,
@@ -157,12 +161,14 @@ func readingOrderListQuery(input *ReadingOrderListInput) (string, []any, error) 
 			ro.favorite,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
-				ELSE CAST(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
+				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
 			END as progress
 		FROM reading_orders ro
 		LEFT JOIN reading_order_comics roc ON roc.reading_order_id = ro.id
 		LEFT JOIN comics c ON c.id = roc.comic_id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
+	query.args = append(query.args, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -257,16 +263,21 @@ func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) 
 }
 
 func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderEntry, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []struct {
 		ReadingOrderComic
 		Position int `db:"position"`
 	}{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE roc.reading_order_id = ?
 		ORDER BY roc.position
-	`, readingOrderID); err != nil {
+	`, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
 	for i := range comics {
@@ -330,13 +341,18 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 }
 
 func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderComic, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []ReadingOrderComic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, roc.note AS comment, roc.tags AS tags FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, roc.note AS comment, roc.tags AS tags FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE roc.reading_order_id = ?
 		ORDER BY roc.position
-	`, readingOrderID); err != nil {
+	`, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
 	hydrateReadingOrderComicTitles(comics)

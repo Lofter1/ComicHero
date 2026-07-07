@@ -1,0 +1,501 @@
+package api
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
+	"database/sql"
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/jmoiron/sqlx"
+)
+
+const (
+	userModeSingle = "single"
+	userModeMulti  = "multi"
+
+	sessionCookieName = "comichero_session"
+	defaultUserName   = "Default"
+)
+
+type contextUserIDKey struct{}
+
+func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
+	huma.Register(api, huma.Operation{
+		OperationID: "getUserStatus",
+		Tags:        []string{tagUsers},
+		Summary:     "Get user setup and session status",
+		Description: "Returns whether ComicHero has been configured for single-user or multi-user use and, when logged in, the current user.",
+		Method:      http.MethodGet,
+		Path:        "/auth/status",
+		Errors:      errsRead,
+	}, func(ctx context.Context, input *UserStatusInput) (*UserStatusOutput, error) {
+		return getUserStatus(ctx, db, input.Session)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "setupUsers",
+		Tags:        []string{tagUsers},
+		Summary:     "Choose user mode",
+		Description: "Configures ComicHero for single-user use without login or multi-user use with login. Existing read status remains attached to the initial user.",
+		Method:      http.MethodPost,
+		Path:        "/auth/setup",
+		Errors:      []int{400, 409, 422, 500},
+	}, func(ctx context.Context, input *SetupUsersInput) (*UserStatusOutput, error) {
+		return setupUsers(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "registerUser",
+		Tags:        []string{tagUsers},
+		Summary:     "Register a user",
+		Description: "Creates a new user in multi-user mode and signs them in.",
+		Method:      http.MethodPost,
+		Path:        "/auth/register",
+		Errors:      []int{400, 409, 422, 500},
+	}, func(ctx context.Context, input *RegisterUserInput) (*UserStatusOutput, error) {
+		return registerUser(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "loginUser",
+		Tags:        []string{tagUsers},
+		Summary:     "Log in",
+		Description: "Starts a multi-user session.",
+		Method:      http.MethodPost,
+		Path:        "/auth/login",
+		Errors:      []int{400, 401, 500},
+	}, func(ctx context.Context, input *LoginUserInput) (*UserStatusOutput, error) {
+		return loginUser(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "logoutUser",
+		Tags:          []string{tagUsers},
+		Summary:       "Log out",
+		Description:   "Ends the current multi-user session.",
+		Method:        http.MethodPost,
+		Path:          "/auth/logout",
+		DefaultStatus: 204,
+		Errors:        []int{500},
+	}, func(ctx context.Context, input *LogoutUserInput) (*LogoutUserOutput, error) {
+		return logoutUser(ctx, db, input.Session)
+	})
+}
+
+func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isUserRouteAllowedWithoutSession(r.URL.Path) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			mode, configured, err := userMode(r.Context(), db)
+			if err != nil {
+				http.Error(w, "failed to read user setup", http.StatusInternalServerError)
+				return
+			}
+			if !configured {
+				http.Error(w, "user setup required", http.StatusPreconditionRequired)
+				return
+			}
+
+			var userID int
+			if mode == userModeSingle {
+				userID, err = ensureDefaultUser(r.Context(), db)
+			} else {
+				userID, err = sessionUserID(r, db)
+			}
+			if err != nil {
+				http.Error(w, "login required", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextUserIDKey{}, userID)))
+		})
+	}
+}
+
+func isUserRouteAllowedWithoutSession(path string) bool {
+	path = strings.TrimPrefix(path, "/api")
+	switch path {
+	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/openapi.json", "/docs":
+		return true
+	default:
+		return false
+	}
+}
+
+func currentUserID(ctx context.Context) (int, error) {
+	userID, ok := ctx.Value(contextUserIDKey{}).(int)
+	if !ok || userID <= 0 {
+		return 1, nil
+	}
+	return userID, nil
+}
+
+func contextWithDefaultUser(ctx context.Context, db *sqlx.DB) context.Context {
+	if _, err := currentUserID(ctx); err == nil {
+		return ctx
+	}
+	if userID, err := ensureDefaultUser(ctx, db); err == nil {
+		return context.WithValue(ctx, contextUserIDKey{}, userID)
+	}
+	return ctx
+}
+
+func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
+	var mode string
+	if err := db.GetContext(ctx, &mode, `SELECT value FROM app_settings WHERE key = 'user_mode'`); err != nil {
+		if err == sql.ErrNoRows {
+			return "", false, nil
+		}
+		return "", false, err
+	}
+	if mode != userModeSingle && mode != userModeMulti {
+		return "", false, fmt.Errorf("invalid user mode %q", mode)
+	}
+	return mode, true, nil
+}
+
+func getUserStatus(ctx context.Context, db *sqlx.DB, sessionToken string) (*UserStatusOutput, error) {
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	status := UserStatus{SetupRequired: !configured, Mode: mode}
+	if !configured {
+		return &UserStatusOutput{Body: status}, nil
+	}
+
+	if mode == userModeSingle {
+		userID, err := ensureDefaultUser(ctx, db)
+		if err != nil {
+			return nil, err
+		}
+		user, err := getUserByID(ctx, db, userID)
+		if err != nil {
+			return nil, err
+		}
+		status.User = &user
+		return &UserStatusOutput{Body: status}, nil
+	}
+
+	if userID, err := userIDFromSessionToken(ctx, db, sessionToken); err == nil {
+		user, err := getUserByID(ctx, db, userID)
+		if err != nil {
+			return nil, err
+		}
+		status.User = &user
+	}
+	return &UserStatusOutput{Body: status}, nil
+}
+
+func setupUsers(ctx context.Context, db *sqlx.DB, payload SetupUsersPayload) (*UserStatusOutput, error) {
+	mode := strings.TrimSpace(payload.Mode)
+	if mode != userModeSingle && mode != userModeMulti {
+		return nil, huma.Error400BadRequest("mode must be single or multi")
+	}
+	if _, configured, err := userMode(ctx, db); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	} else if configured {
+		return nil, huma.Error409Conflict("user setup is already complete")
+	}
+
+	userID, err := ensureDefaultUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start user setup")
+	}
+	defer tx.Rollback()
+
+	if mode == userModeMulti {
+		name := cleanUserName(payload.Name)
+		if name == "" {
+			return nil, huma.Error400BadRequest("name is required for multi-user setup")
+		}
+		if len(payload.Password) < 6 {
+			return nil, huma.Error400BadRequest("password must be at least 6 characters")
+		}
+		passwordHash, err := hashPassword(payload.Password)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("failed to hash password")
+		}
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE users
+			SET name = ?, password_hash = ?, is_default = 0
+			WHERE id = ?
+		`, name, passwordHash, userID); err != nil {
+			return nil, huma.Error409Conflict("user name already exists")
+		}
+	}
+
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', ?)
+	`, mode); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save user setup")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save user setup")
+	}
+
+	var cookie *http.Cookie
+	if mode == userModeMulti {
+		cookie, err = createSession(ctx, db, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return userStatusForUser(ctx, db, mode, userID, cookie)
+}
+
+func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload) (*UserStatusOutput, error) {
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured || mode != userModeMulti {
+		return nil, huma.Error400BadRequest("registration is only available in multi-user mode")
+	}
+	name := cleanUserName(payload.Name)
+	if name == "" {
+		return nil, huma.Error400BadRequest("name is required")
+	}
+	if len(payload.Password) < 6 {
+		return nil, huma.Error400BadRequest("password must be at least 6 characters")
+	}
+	passwordHash, err := hashPassword(payload.Password)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to hash password")
+	}
+	result, err := db.ExecContext(ctx, `
+		INSERT INTO users (name, password_hash)
+		VALUES (?, ?)
+	`, name, passwordHash)
+	if err != nil {
+		return nil, huma.Error409Conflict("user name already exists")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to get user id")
+	}
+	cookie, err := createSession(ctx, db, int(id))
+	if err != nil {
+		return nil, err
+	}
+	return userStatusForUser(ctx, db, mode, int(id), cookie)
+}
+
+func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload) (*UserStatusOutput, error) {
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured || mode != userModeMulti {
+		return nil, huma.Error400BadRequest("login is only available in multi-user mode")
+	}
+
+	var row struct {
+		ID           int    `db:"id"`
+		PasswordHash string `db:"password_hash"`
+	}
+	if err := db.GetContext(ctx, &row, `
+		SELECT id, password_hash FROM users WHERE name = ?
+	`, cleanUserName(payload.Name)); err != nil {
+		return nil, huma.Error401Unauthorized("invalid user name or password")
+	}
+	if !checkPassword(payload.Password, row.PasswordHash) {
+		return nil, huma.Error401Unauthorized("invalid user name or password")
+	}
+	cookie, err := createSession(ctx, db, row.ID)
+	if err != nil {
+		return nil, err
+	}
+	return userStatusForUser(ctx, db, mode, row.ID, cookie)
+}
+
+func logoutUser(ctx context.Context, db *sqlx.DB, token string) (*LogoutUserOutput, error) {
+	if token != "" {
+		if _, err := db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token); err != nil {
+			return nil, huma.Error500InternalServerError("failed to log out")
+		}
+	}
+	return &LogoutUserOutput{SetCookie: cookieHeader(expiredSessionCookie())}, nil
+}
+
+func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
+	var userID int
+	if err := sqlx.GetContext(ctx, db, &userID, `SELECT id FROM users WHERE is_default = 1 OR name = ? ORDER BY is_default DESC, id LIMIT 1`, defaultUserName); err != nil {
+		if err != sql.ErrNoRows {
+			return 0, huma.Error500InternalServerError("failed to fetch default user")
+		}
+		result, err := db.ExecContext(ctx, `INSERT INTO users (name, is_default) VALUES (?, 1)`, defaultUserName)
+		if err != nil {
+			return 0, huma.Error500InternalServerError("failed to create default user")
+		}
+		id, err := result.LastInsertId()
+		if err != nil {
+			return 0, huma.Error500InternalServerError("failed to get default user id")
+		}
+		return int(id), nil
+	}
+	return userID, nil
+}
+
+func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
+	var user User
+	if err := db.GetContext(ctx, &user, `
+		SELECT id, name FROM users WHERE id = ?
+	`, id); err != nil {
+		if err == sql.ErrNoRows {
+			return User{}, huma.Error401Unauthorized("login required")
+		}
+		return User{}, huma.Error500InternalServerError("failed to fetch user")
+	}
+	return user, nil
+}
+
+func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int, cookie *http.Cookie) (*UserStatusOutput, error) {
+	user, err := getUserByID(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &UserStatusOutput{
+		SetCookie: cookieHeader(cookie),
+		Body: UserStatus{
+			SetupRequired: false,
+			Mode:          mode,
+			User:          &user,
+		},
+	}, nil
+}
+
+func sessionUserID(r *http.Request, db *sqlx.DB) (int, error) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err != nil || cookie.Value == "" {
+		return 0, huma.Error401Unauthorized("login required")
+	}
+	userID, err := userIDFromSessionToken(r.Context(), db, cookie.Value)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int, error) {
+	if token == "" {
+		return 0, huma.Error401Unauthorized("login required")
+	}
+	var userID int
+	if err := db.GetContext(ctx, &userID, `
+		SELECT user_id FROM user_sessions WHERE token = ?
+	`, token); err != nil {
+		return 0, huma.Error401Unauthorized("login required")
+	}
+	return userID, nil
+}
+
+func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, error) {
+	token, err := randomToken(32)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to create session")
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO user_sessions (token, user_id)
+		VALUES (?, ?)
+	`, token, userID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save session")
+	}
+	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}, nil
+}
+
+func expiredSessionCookie() *http.Cookie {
+	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode}
+}
+
+func cookieHeader(cookie *http.Cookie) []http.Cookie {
+	if cookie == nil {
+		return nil
+	}
+	return []http.Cookie{*cookie}
+}
+
+func cleanUserName(name string) string {
+	return strings.Join(strings.Fields(name), " ")
+}
+
+func hashPassword(password string) (string, error) {
+	salt, err := randomBytes(16)
+	if err != nil {
+		return "", err
+	}
+	key := derivePasswordKey([]byte(password), salt, 120000, 32)
+	return fmt.Sprintf("pbkdf2_sha256$120000$%s$%s", base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
+}
+
+func checkPassword(password, encoded string) bool {
+	parts := strings.Split(encoded, "$")
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" || parts[1] != "120000" {
+		return false
+	}
+	salt, err := base64.RawStdEncoding.DecodeString(parts[2])
+	if err != nil {
+		return false
+	}
+	expected, err := base64.RawStdEncoding.DecodeString(parts[3])
+	if err != nil {
+		return false
+	}
+	actual := derivePasswordKey([]byte(password), salt, 120000, len(expected))
+	return subtle.ConstantTimeCompare(actual, expected) == 1
+}
+
+func derivePasswordKey(password, salt []byte, iterations, keyLen int) []byte {
+	hashLen := sha256.Size
+	blocks := (keyLen + hashLen - 1) / hashLen
+	out := make([]byte, 0, blocks*hashLen)
+	for block := 1; block <= blocks; block++ {
+		mac := hmac.New(sha256.New, password)
+		mac.Write(salt)
+		mac.Write([]byte{byte(block >> 24), byte(block >> 16), byte(block >> 8), byte(block)})
+		u := mac.Sum(nil)
+		t := append([]byte(nil), u...)
+		for i := 1; i < iterations; i++ {
+			mac = hmac.New(sha256.New, password)
+			mac.Write(u)
+			u = mac.Sum(nil)
+			for j := range t {
+				t[j] ^= u[j]
+			}
+		}
+		out = append(out, t...)
+	}
+	return out[:keyLen]
+}
+
+func randomToken(size int) (string, error) {
+	value, err := randomBytes(size)
+	if err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(value), nil
+}
+
+func randomBytes(size int) ([]byte, error) {
+	value := make([]byte, size)
+	if _, err := rand.Read(value); err != nil {
+		return nil, err
+	}
+	return value, nil
+}

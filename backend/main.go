@@ -38,6 +38,7 @@ func main() {
 	router.Use(middleware.Recoverer)
 
 	apiRouter := chi.NewRouter()
+	apiRouter.Use(api.UserMiddleware(database))
 	router.Mount("/api", apiRouter)
 	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
@@ -50,6 +51,7 @@ func main() {
 	}
 
 	api.RegisterReadingOrderRoutes(humaAPI, database)
+	api.RegisterUserRoutes(humaAPI, database)
 	api.RegisterArcRoutes(humaAPI, database)
 	api.RegisterComicRoutes(humaAPI, database, covers)
 	metronClient := metron.New(metron.Config{

@@ -559,7 +559,7 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 					return nil, err
 				}
 			}
-			return getComic(ctx, db, id)
+			return getComic(contextWithDefaultUser(ctx, db), db, id)
 		}
 	}
 
@@ -582,7 +582,7 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 				return nil, err
 			}
 		}
-		return getComic(ctx, db, id)
+		return getComic(contextWithDefaultUser(ctx, db), db, id)
 	}
 
 	return createMetronComicWithOptions(ctx, db, client, covers, issue, options)
@@ -601,7 +601,7 @@ func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Cli
 					return nil, err
 				}
 				if complete {
-					return getComic(ctx, db, id)
+					return getComic(contextWithDefaultUser(ctx, db), db, id)
 				}
 			}
 		}
@@ -630,7 +630,7 @@ func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Cli
 			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 				return nil, err
 			} else if ok {
-				return getComic(ctx, db, id)
+				return getComic(contextWithDefaultUser(ctx, db), db, id)
 			}
 			detail, issueInfo, err = fetchMetronIssue(ctx, db, client, issue.ID, true)
 			if err != nil {
@@ -774,8 +774,8 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description, read, metron_issue_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description, metron_issue_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`, payload.Series,
 		payload.SeriesYear,
 		payload.Issue,
@@ -783,7 +783,6 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 		payload.CoverDate,
 		payload.CoverImage,
 		payload.Description,
-		payload.Read,
 		nullableMetronID(issue.ID),
 	)
 	if err != nil {
@@ -793,6 +792,11 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 	id, err := result.LastInsertId()
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get imported comic id")
+	}
+	if payload.Read {
+		if err := setComicReadStatusForCurrentUser(contextWithDefaultUser(ctx, db), db, int(id), payload.Read); err != nil {
+			return nil, err
+		}
 	}
 	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
@@ -805,7 +809,7 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 			return nil, err
 		}
 	}
-	return getComic(ctx, db, int(id))
+	return getComic(contextWithDefaultUser(ctx, db), db, int(id))
 }
 
 func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, comicID int, issue metron.Issue) (*ComicDetailOutput, error) {
@@ -846,7 +850,7 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 	if err := syncMetronIssueCharacters(ctx, db, covers, comicID, issue); err != nil {
 		return nil, err
 	}
-	return getComic(ctx, db, comicID)
+	return getComic(contextWithDefaultUser(ctx, db), db, comicID)
 }
 
 func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList) (*ReadingOrderDetailOutput, error) {

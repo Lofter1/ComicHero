@@ -52,14 +52,20 @@ func RegisterCharacterRoutes(api huma.API, db *sqlx.DB) {
 }
 
 func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput) (*CharacterListOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	query := newSelectQuery(`
 		SELECT ch.*,
 			COUNT(cc.comic_id) AS appearance_count,
-			COALESCE(AVG(CASE WHEN c.read = 1 THEN 1.0 ELSE 0 END), 0) AS progress
+			COALESCE(AVG(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
 		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
 		LEFT JOIN comics c ON c.id = cc.comic_id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
+	query.args = append(query.args, userID)
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
 		query.where(`(
@@ -136,13 +142,18 @@ func getCharacter(ctx context.Context, db *sqlx.DB, id int) (*CharacterDetailOut
 		return nil, err
 	}
 
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []Comic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.* FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read FROM comics c
 		JOIN comic_characters cc ON cc.comic_id = c.id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE cc.character_id = ?
 		ORDER BY c.series, c.series_year, CAST(c.issue AS REAL), c.issue
-	`, id); err != nil {
+	`, userID, id); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch character appearances")
 	}
 	hydrateComicTitles(comics)
@@ -156,17 +167,22 @@ func getCharacter(ctx context.Context, db *sqlx.DB, id int) (*CharacterDetailOut
 }
 
 func getCharacterRow(ctx context.Context, db *sqlx.DB, id int) (Character, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return Character{}, err
+	}
 	var character Character
 	if err := db.GetContext(ctx, &character, `
 		SELECT ch.*,
 			COUNT(cc.comic_id) AS appearance_count,
-			COALESCE(AVG(CASE WHEN c.read = 1 THEN 1.0 ELSE 0 END), 0) AS progress
+			COALESCE(AVG(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
 		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
 		LEFT JOIN comics c ON c.id = cc.comic_id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE ch.id = ?
 		GROUP BY ch.id
-	`, id); err != nil {
+	`, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return Character{}, huma.Error404NotFound("character not found")
 		}

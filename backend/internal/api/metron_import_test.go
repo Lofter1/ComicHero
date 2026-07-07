@@ -53,6 +53,18 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		ON comics(metron_issue_id)
 		WHERE metron_issue_id IS NOT NULL;
 
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
+
 		CREATE TABLE series (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
@@ -425,6 +437,7 @@ func TestListCharactersReturnsFavoriteAndProgress(t *testing.T) {
 		INSERT INTO characters (id, name, favorite) VALUES (2, 'Villain', 0);
 		INSERT INTO comics (id, series, issue, publisher, read) VALUES (1, 'Series', 1, 'Publisher', 1);
 		INSERT INTO comics (id, series, issue, publisher, read) VALUES (2, 'Series', 2, 'Publisher', 0);
+		INSERT INTO user_comics (comic_id, user_id, read) SELECT id, (SELECT id FROM users WHERE name = 'Default'), read FROM comics WHERE id IN (1, 2);
 		INSERT INTO comic_characters (comic_id, character_id) VALUES (1, 1);
 		INSERT INTO comic_characters (comic_id, character_id) VALUES (2, 1);
 	`); err != nil {
@@ -853,6 +866,18 @@ func TestUpdateComicReadStatus(t *testing.T) {
 	}
 	if detail.Body.Title != "Series (2026) #1" {
 		t.Fatalf("comic metadata changed unexpectedly: %#v", detail.Body)
+	}
+
+	var storedRead int
+	if err := db.GetContext(ctx, &storedRead, `
+		SELECT read FROM user_comics WHERE comic_id = ? AND user_id = (
+			SELECT id FROM users WHERE name = 'Default'
+		)
+	`, 1); err != nil {
+		t.Fatalf("read status row lookup: %v", err)
+	}
+	if storedRead != 1 {
+		t.Fatalf("stored read flag = %d; want 1", storedRead)
 	}
 }
 

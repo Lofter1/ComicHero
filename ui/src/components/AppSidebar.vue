@@ -14,9 +14,21 @@ const props = defineProps({
     type: String,
     default: 'system',
   },
+  user: {
+    type: Object,
+    default: null,
+  },
+  userMode: {
+    type: String,
+    default: '',
+  },
+  authSaving: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['change-view', 'refresh', 'set-theme'])
+const emit = defineEmits(['change-view', 'refresh', 'set-theme', 'logout'])
 const menuOpen = ref(false)
 
 const themeLabel = computed(() => {
@@ -37,6 +49,11 @@ function refresh() {
 
 function setTheme(value) {
   emit('set-theme', value)
+}
+
+function logout() {
+  emit('logout')
+  menuOpen.value = false
 }
 </script>
 
@@ -82,6 +99,11 @@ function setTheme(value) {
     </nav>
 
     <div class="sidebar-actions">
+      <div v-if="user" class="user-menu">
+        <span>{{ user.name }}</span>
+        <small>{{ userMode === 'multi' ? 'Multi user' : 'Single user' }}</small>
+      </div>
+
       <details class="theme-menu">
         <summary>Theme: {{ themeLabel }}</summary>
         <div class="theme-selector" role="group" aria-label="Theme">
@@ -114,6 +136,10 @@ function setTheme(value) {
 
       <button class="refresh-button" :disabled="loading" @click="refresh">
         Refresh
+      </button>
+
+      <button v-if="userMode === 'multi'" class="refresh-button" :disabled="authSaving" @click="logout">
+        Log out
       </button>
     </div>
   </aside>

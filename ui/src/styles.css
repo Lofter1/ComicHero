@@ -120,6 +120,129 @@ button:disabled {
   grid-template-columns: 260px minmax(0, 1fr);
 }
 
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-panel {
+  width: min(100%, 460px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  box-shadow: 0 18px 60px var(--shadow-panel);
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+}
+
+.auth-panel h1 {
+  font-size: 1.9rem;
+}
+
+.mode-options {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.mode-options legend {
+  margin-bottom: 8px;
+  color: var(--label-ink);
+  font-weight: 800;
+}
+
+.mode-options label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+  min-width: 0;
+}
+
+.mode-options input {
+  margin-top: 4px;
+}
+
+.mode-options span,
+.auth-fields {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mode-options strong,
+.mode-options small {
+  overflow-wrap: anywhere;
+}
+
+.mode-options small,
+.user-menu small {
+  color: var(--muted);
+}
+
+.auth-fields label {
+  display: grid;
+  gap: 6px;
+  color: var(--label-ink);
+  font-weight: 800;
+}
+
+.auth-fields input {
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 12px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-tabs button,
+.primary-action {
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--control-ink);
+  padding: 10px 14px;
+  font-weight: 800;
+}
+
+.auth-tabs button.active,
+.primary-action {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.user-menu {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+}
+
+.user-menu span {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .sidebar {
   position: sticky;
   top: 0;
