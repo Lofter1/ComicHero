@@ -1031,6 +1031,28 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	}
 }
 
+func TestExpiredSessionTokenIsRejected(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO user_sessions (token, user_id, expires_at)
+		VALUES ('expired-session', 1, ?)
+	`, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)); err != nil {
+		t.Fatalf("seed expired session: %v", err)
+	}
+
+	if userID, err := userIDFromSessionToken(context.Background(), db, "expired-session"); err == nil {
+		t.Fatalf("expired session returned user %d, nil error; want error", userID)
+	}
+
+	var count int
+	if err := db.Get(&count, `SELECT COUNT(*) FROM user_sessions WHERE token = 'expired-session'`); err != nil {
+		t.Fatalf("count expired sessions: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expired session count = %d; want 0", count)
+	}
+}
+
 func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -1073,7 +1095,8 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE user_sessions (
 			token TEXT PRIMARY KEY,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE TABLE user_invites (
 			token TEXT PRIMARY KEY,

@@ -26,6 +26,7 @@ const (
 
 	userInviteTokenBytes = 32
 	userInviteTTL        = 7 * 24 * time.Hour
+	sessionTTL           = 30 * 24 * time.Hour
 )
 
 type contextUserIDKey struct{}
@@ -693,13 +694,21 @@ func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int
 	if token == "" {
 		return 0, huma.Error401Unauthorized("login required")
 	}
-	var userID int
-	if err := db.GetContext(ctx, &userID, `
-		SELECT user_id FROM user_sessions WHERE token = ?
+	var row struct {
+		UserID    int    `db:"user_id"`
+		ExpiresAt string `db:"expires_at"`
+	}
+	if err := db.GetContext(ctx, &row, `
+		SELECT user_id, expires_at FROM user_sessions WHERE token = ?
 	`, token); err != nil {
 		return 0, huma.Error401Unauthorized("login required")
 	}
-	return userID, nil
+	expiresAt, err := time.Parse(time.RFC3339, row.ExpiresAt)
+	if err != nil || !expiresAt.After(time.Now().UTC()) {
+		_, _ = db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token)
+		return 0, huma.Error401Unauthorized("login required")
+	}
+	return row.UserID, nil
 }
 
 func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, error) {
@@ -707,13 +716,14 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create session")
 	}
+	expiresAt := time.Now().UTC().Add(sessionTTL)
 	if _, err := db.ExecContext(ctx, `
-		INSERT INTO user_sessions (token, user_id)
-		VALUES (?, ?)
-	`, token, userID); err != nil {
+		INSERT INTO user_sessions (token, user_id, expires_at)
+		VALUES (?, ?, ?)
+	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
 		return nil, huma.Error500InternalServerError("failed to save session")
 	}
-	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}, nil
+	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, SameSite: http.SameSiteLaxMode}, nil
 }
 
 func expiredSessionCookie() *http.Cookie {
