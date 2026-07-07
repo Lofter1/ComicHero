@@ -285,16 +285,6 @@ func currentUserID(ctx context.Context) (int, error) {
 	return userID, nil
 }
 
-func contextWithDefaultUser(ctx context.Context, db *sqlx.DB) context.Context {
-	if _, err := currentUserID(ctx); err == nil {
-		return ctx
-	}
-	if userID, err := ensureDefaultUser(ctx, db); err == nil {
-		return context.WithValue(ctx, contextUserIDKey{}, userID)
-	}
-	return ctx
-}
-
 func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
 	var mode string
 	if err := db.GetContext(ctx, &mode, `SELECT value FROM app_settings WHERE key = 'user_mode'`); err != nil {
