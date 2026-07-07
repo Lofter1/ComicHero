@@ -699,6 +699,48 @@ textarea {
   width: 100%;
 }
 
+.account-view {
+  max-width: 960px;
+}
+
+.account-settings {
+  display: grid;
+  gap: 14px;
+}
+
+.account-settings-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 16px;
+}
+
+.account-settings-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.account-settings-heading h3 {
+  overflow-wrap: anywhere;
+}
+
+.account-metadata {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.account-save-button {
+  justify-self: start;
+}
+
+.danger-panel {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+}
+
 .user-management-view {
   display: grid;
   gap: 12px;

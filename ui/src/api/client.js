@@ -237,6 +237,14 @@ export function logoutUser() {
   return request('/auth/logout', { method: 'POST' })
 }
 
+export function updateAccount(payload) {
+  return send('/account', 'PUT', payload)
+}
+
+export function deleteAccount(payload) {
+  return send('/account', 'DELETE', payload)
+}
+
 export function listUsers() {
   return request('/users')
 }

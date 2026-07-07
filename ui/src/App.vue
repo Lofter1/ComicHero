@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import AccountView from '@/components/AccountView.vue'
 import ArcDetailView from '@/components/ArcDetailView.vue'
 import ArcsBrowseView from '@/components/ArcsBrowseView.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
@@ -24,12 +25,14 @@ import { usePagination } from '@/composables/usePagination.js'
 import { useReadingOrders } from '@/composables/useReadingOrders.js'
 import { useSeries } from '@/composables/useSeries.js'
 import {
+  deleteAccount as deleteAccountRequest,
   getUserStatus,
   listUsers,
   loginUser,
   logoutUser,
   registerUser,
   setupUsers,
+  updateAccount,
   updateUserMetronPermissions,
 } from '@/api/client.js'
 
@@ -45,6 +48,8 @@ const authMode = ref('login')
 const setupForm = ref({ mode: 'single', name: '', password: '' })
 const authForm = ref({ name: '', password: '' })
 const userAdminRows = ref([])
+const accountSaving = ref(false)
+const accountDeleting = ref(false)
 const savingUserID = ref(null)
 const search = ref('')
 const defaultListOptions = {
@@ -226,6 +231,7 @@ const toolbarResultCount = computed(() => {
   if (activeView.value === 'series') return visibleSeries.value.length
   if (activeView.value === 'characters') return visibleCharacters.value.length
   if (activeView.value === 'users') return userAdminRows.value.length
+  if (activeView.value === 'account') return 1
   return 0
 })
 const toolbarTotalCount = computed(() => {
@@ -235,6 +241,7 @@ const toolbarTotalCount = computed(() => {
   if (activeView.value === 'series') return listTotal('series')
   if (activeView.value === 'characters') return listTotal('characters')
   if (activeView.value === 'users') return userAdminRows.value.length
+  if (activeView.value === 'account') return 1
   return 0
 })
 const loadingLabel = computed(() => {
@@ -245,6 +252,7 @@ const loadingLabel = computed(() => {
   if (activeView.value === 'characters') return 'Loading characters...'
   if (activeView.value === 'metron') return 'Loading Metron...'
   if (activeView.value === 'users') return 'Loading users...'
+  if (activeView.value === 'account') return 'Loading account...'
   return 'Loading...'
 })
 const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
@@ -376,6 +384,39 @@ async function saveUserMetronPermissions(userID, payload) {
   }
 }
 
+async function saveAccount(payload, validationMessage = '') {
+  if (validationMessage) {
+    error.value = validationMessage
+    return
+  }
+  if (!payload) return
+
+  accountSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await updateAccount(payload)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    accountSaving.value = false
+  }
+}
+
+async function deleteCurrentAccount(payload) {
+  accountDeleting.value = true
+  error.value = ''
+  try {
+    activeView.value = 'readingOrders'
+    viewMode.value = 'browse'
+    userStatus.value = await deleteAccountRequest(payload)
+    authMode.value = 'login'
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    accountDeleting.value = false
+  }
+}
+
 async function signOut() {
   authSaving.value = true
   error.value = ''
@@ -411,6 +452,7 @@ function parseAppRoute(pathname) {
   const [section, rawID, action] = parts
   if (section === 'metron' && parts.length === 1) return { view: 'metron', mode: 'browse' }
   if (section === 'users' && parts.length === 1) return { view: 'users', mode: 'browse' }
+  if (section === 'account' && parts.length === 1) return { view: 'account', mode: 'browse' }
   if (section === 'comics') return parseEntityRoute('comics', rawID, action, parts.length)
   if (section === 'arcs') return parseEntityRoute('arcs', rawID, action, parts.length)
   if (section === 'series') return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
@@ -440,6 +482,7 @@ function browseRoutePath(view) {
   if (view === 'characters') return '/characters'
   if (view === 'metron') return '/metron'
   if (view === 'users') return '/users'
+  if (view === 'account') return '/account'
   return '/reading-orders'
 }
 
@@ -632,6 +675,10 @@ async function loadActiveViewData(options = {}) {
   }
   if (activeView.value === 'users') {
     await loadUserAdminRows()
+    return
+  }
+  if (activeView.value === 'account') {
+    return
   }
 }
 
@@ -957,6 +1004,16 @@ onUnmounted(() => {
         :users="userAdminRows"
         :saving-user-id="savingUserID"
         @save="saveUserMetronPermissions"
+      />
+
+      <AccountView
+        v-else-if="activeView === 'account'"
+        :user="currentUser"
+        :user-mode="userMode"
+        :saving="accountSaving"
+        :deleting="accountDeleting"
+        @save="saveAccount"
+        @delete-account="deleteCurrentAccount"
       />
 
       <ReadingOrderEditView

@@ -105,6 +105,24 @@ type LoginUserInput struct {
 	Body UserCredentialsPayload
 }
 
+type UpdateAccountPayload struct {
+	Name            string `json:"name"                      minLength:"1" doc:"New display name." example:"Justin"`
+	CurrentPassword string `json:"currentPassword,omitempty" doc:"Current password, required when changing password in multi-user mode."`
+	NewPassword     string `json:"newPassword,omitempty"     doc:"New password. Leave empty to keep the current password."`
+}
+
+type UpdateAccountInput struct {
+	Body UpdateAccountPayload
+}
+
+type DeleteAccountPayload struct {
+	CurrentPassword string `json:"currentPassword,omitempty" doc:"Current password for multi-user account deletion."`
+}
+
+type DeleteAccountInput struct {
+	Body DeleteAccountPayload
+}
+
 type ComicDetail struct {
 	Comic
 	SeriesID      *int           `json:"seriesId,omitempty" doc:"Local series identifier for this comic's series, when available." example:"5"`

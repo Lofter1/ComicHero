@@ -153,6 +153,10 @@ function toggleAccountMenu() {
             </div>
           </div>
 
+          <button type="button" class="account-menu-item" @click="changeView('account')">
+            <span aria-hidden="true">@</span>
+            <span>Account settings</span>
+          </button>
           <button v-if="isAdmin" type="button" class="account-menu-item" @click="changeView('users')">
             <span aria-hidden="true">⚙</span>
             <span>Manage users</span>
