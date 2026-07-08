@@ -1,5 +1,7 @@
 package api
 
+import "net/http"
+
 type Comic struct {
 	ID            int  `json:"id"                      db:"id"              doc:"Local comic identifier." example:"42"`
 	MetronIssueID *int `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
@@ -24,6 +26,101 @@ type ComicPayload struct {
 	CoverImage  string `json:"coverImage" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
 	Description string `json:"description" doc:"Issue synopsis or notes."`
 	Read        bool   `json:"read"       doc:"Whether the comic has been read." example:"false"`
+}
+
+type User struct {
+	ID      int    `json:"id"      db:"id"       doc:"Local user identifier." example:"1"`
+	Name    string `json:"name"    db:"name"     doc:"Display name." example:"Justin"`
+	IsAdmin bool   `json:"isAdmin" db:"is_admin" doc:"Whether the user can manage user permissions." example:"false"`
+}
+
+type UserMetronPermissions struct {
+	Allowed     bool     `json:"allowed"     doc:"Whether this user can call ComicHero Metron endpoints." example:"true"`
+	Scopes      []string `json:"scopes"      doc:"Allowed Metron scopes. Use * for all, or combine search, detail, import, and monitor." example:"search"`
+	HourlyLimit int      `json:"hourlyLimit" minimum:"0" doc:"Maximum Metron endpoint calls per rolling hour. Use 0 for unlimited." example:"60"`
+}
+
+type UserAdminView struct {
+	User              User                  `json:"user"              doc:"User account."`
+	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Metron endpoint permissions for this user."`
+}
+
+type UserListOutput struct {
+	Body []UserAdminView
+}
+
+type UpdateUserMetronPermissionsInput struct {
+	ID   int `path:"id" doc:"Local user identifier." example:"2"`
+	Body UserMetronPermissions
+}
+
+type UserAdminOutput struct {
+	Body UserAdminView
+}
+
+type UserStatus struct {
+	SetupRequired     bool                  `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
+	Mode              string                `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
+	User              *User                 `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
+	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Current user's Metron endpoint permissions."`
+}
+
+type UserStatusOutput struct {
+	SetCookie []http.Cookie `header:"Set-Cookie"`
+	Body      UserStatus
+}
+
+type UserStatusInput struct {
+	Session string `cookie:"comichero_session"`
+}
+
+type LogoutUserOutput struct {
+	SetCookie []http.Cookie `header:"Set-Cookie"`
+}
+
+type LogoutUserInput struct {
+	Session string `cookie:"comichero_session"`
+}
+
+type SetupUsersPayload struct {
+	Mode     string `json:"mode" doc:"User mode to enable: single avoids login, multi enables registration and login." enum:"single,multi" example:"multi"`
+	Name     string `json:"name,omitempty" doc:"Initial user name for multi-user mode. Existing read status is attached to this user." example:"Justin"`
+	Password string `json:"password,omitempty" doc:"Initial password for multi-user mode." example:"correct horse battery staple"`
+}
+
+type SetupUsersInput struct {
+	Body SetupUsersPayload
+}
+
+type UserCredentialsPayload struct {
+	Name     string `json:"name"     minLength:"1" doc:"User name." example:"Justin"`
+	Password string `json:"password" minLength:"6" doc:"Password." example:"correct horse battery staple"`
+}
+
+type RegisterUserInput struct {
+	Body UserCredentialsPayload
+}
+
+type LoginUserInput struct {
+	Body UserCredentialsPayload
+}
+
+type UpdateAccountPayload struct {
+	Name            string `json:"name"                      minLength:"1" doc:"New display name." example:"Justin"`
+	CurrentPassword string `json:"currentPassword,omitempty" doc:"Current password, required when changing password in multi-user mode."`
+	NewPassword     string `json:"newPassword,omitempty"     doc:"New password. Leave empty to keep the current password."`
+}
+
+type UpdateAccountInput struct {
+	Body UpdateAccountPayload
+}
+
+type DeleteAccountPayload struct {
+	CurrentPassword string `json:"currentPassword,omitempty" doc:"Current password for multi-user account deletion."`
+}
+
+type DeleteAccountInput struct {
+	Body DeleteAccountPayload
 }
 
 type ComicDetail struct {
@@ -191,12 +288,15 @@ type UpdateComicFromMetronInput struct {
 type ReadingOrder struct {
 	ID                  int  `json:"id"                                  db:"id"                     doc:"Local reading-order identifier." example:"7"`
 	MetronReadingListID *int `json:"metronReadingListId,omitempty"       db:"metron_reading_list_id" doc:"Linked Metron reading-list identifier, when imported." example:"9876"`
+	AuthorUserID        *int `json:"authorUserId,omitempty"              db:"author_user_id"         doc:"User who created or owns this reading order." example:"1"`
 
 	Name        string  `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
 	Description string  `json:"description" db:"description" doc:"Reading-order description or notes."`
 	Image       string  `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
 	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
 	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+	AuthorName  string  `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
+	CanEdit     bool    `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
 }
 
 type ReadingOrderPayload struct {

@@ -121,9 +121,9 @@ const searchText = computed({
 const searchTerm = computed(() => searchText.value.trim().toLowerCase())
 
 const statusModel = computed({
-  get: () => props.status === null ? localStatus.value : props.status,
+  get: () => props.status == null ? localStatus.value : props.status,
   set(value) {
-    if (props.status === null) {
+    if (props.status == null) {
       localStatus.value = value
       return
     }
@@ -133,11 +133,11 @@ const statusModel = computed({
 })
 
 const sortModel = computed({
-  get: () => normalizeSort(props.sort === null ? localSort.value : props.sort),
+  get: () => normalizeSort(props.sort == null ? localSort.value : props.sort),
   set(value) {
     const normalized = normalizeSort(value)
 
-    if (props.sort === null) {
+    if (props.sort == null) {
       localSort.value = normalized
       return
     }
@@ -147,9 +147,9 @@ const sortModel = computed({
 })
 
 const directionModel = computed({
-  get: () => props.direction === null ? localDirection.value : props.direction,
+  get: () => props.direction == null ? localDirection.value : props.direction,
   set(value) {
-    if (props.direction === null) {
+    if (props.direction == null) {
       localDirection.value = value
       return
     }

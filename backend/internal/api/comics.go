@@ -89,7 +89,11 @@ func RegisterComicRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 }
 
 func listComics(ctx context.Context, db *sqlx.DB, input *ComicListInput) (*ComicListOutput, error) {
-	query, args, err := comicListQuery(input)
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query, args, err := comicListQuery(input, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -113,8 +117,14 @@ func listComics(ctx context.Context, db *sqlx.DB, input *ComicListInput) (*Comic
 	return &ComicListOutput{PaginationHeaders: pagination, Body: comics}, nil
 }
 
-func comicListQuery(input *ComicListInput) (string, []any, error) {
-	query := newSelectQuery("SELECT c.* FROM comics c")
+func comicListQuery(input *ComicListInput, userID int) (string, []any, error) {
+	query := newSelectQuery(`
+		SELECT c.*,
+			COALESCE(uc.read, 0) AS read
+		FROM comics c
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+	`)
+	query.args = append(query.args, userID)
 
 	if input.Query != "" {
 		rawQuery := strings.TrimSpace(input.Query)
@@ -151,7 +161,7 @@ func comicListQuery(input *ComicListInput) (string, []any, error) {
 	if read, ok, err := parseOptionalBool(input.Read, "read"); err != nil {
 		return "", nil, err
 	} else if ok {
-		query.where("c.read = ?", read)
+		query.where("COALESCE(uc.read, 0) = ?", read)
 	}
 
 	if input.ReadingOrderID > 0 {
@@ -222,7 +232,7 @@ func comicListOrder(sort, direction string) string {
 	case "publisher":
 		return "ORDER BY c.publisher" + spaceDir + ", c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
 	case "read":
-		return "ORDER BY c.read" + spaceDir + ", c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
+		return "ORDER BY COALESCE(uc.read, 0)" + spaceDir + ", c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
 	default:
 		return "ORDER BY c.series" + spaceDir + ", c.series_year" + spaceDir + ", CAST(c.issue AS REAL)" + spaceDir + ", c.issue" + spaceDir
 	}
@@ -297,8 +307,18 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 }
 
 func getComicRow(ctx context.Context, db *sqlx.DB, id int) (Comic, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return Comic{}, err
+	}
 	var comic Comic
-	if err := db.GetContext(ctx, &comic, `SELECT * FROM comics WHERE id = ?`, id); err != nil {
+	if err := db.GetContext(ctx, &comic, `
+		SELECT c.*,
+			COALESCE(uc.read, 0) AS read
+		FROM comics c
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		WHERE c.id = ?
+	`, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return Comic{}, huma.Error404NotFound("comic not found")
 		}
@@ -317,9 +337,16 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description, read)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, payload.Series, payload.SeriesYear, payload.Issue, payload.Publisher, payload.CoverDate, payload.CoverImage, payload.Description, payload.Read)
+		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, payload.Series,
+		payload.SeriesYear,
+		payload.Issue,
+		payload.Publisher,
+		payload.CoverDate,
+		payload.CoverImage,
+		payload.Description,
+	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create comic")
 	}
@@ -328,7 +355,9 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
-
+	if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read); err != nil {
+		return nil, err
+	}
 	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
@@ -345,9 +374,17 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 
 	result, err := db.ExecContext(ctx, `
 		UPDATE comics
-		SET series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?, read = ?
+		SET series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?
 		WHERE id = ?
-	`, payload.Series, payload.SeriesYear, payload.Issue, payload.Publisher, payload.CoverDate, payload.CoverImage, payload.Description, payload.Read, id)
+	`, payload.Series,
+		payload.SeriesYear,
+		payload.Issue,
+		payload.Publisher,
+		payload.CoverDate,
+		payload.CoverImage,
+		payload.Description,
+		id,
+	)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to update comic")
 	}
@@ -359,21 +396,46 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
 		return nil, err
 	}
+	if err := setComicReadStatusForCurrentUser(ctx, db, id, payload.Read); err != nil {
+		return nil, err
+	}
 
 	return getComic(ctx, db, id)
 }
 
 func updateComicReadStatus(ctx context.Context, db *sqlx.DB, id int, read bool) (*ComicDetailOutput, error) {
-	result, err := db.ExecContext(ctx, `UPDATE comics SET read = ? WHERE id = ?`, read, id)
-	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to update comic read status")
-	}
-
-	if err := requireRowsAffected(result, "comic not found"); err != nil {
+	if err := setComicReadStatusForCurrentUser(ctx, db, id, read); err != nil {
 		return nil, err
 	}
 
 	return getComic(ctx, db, id)
+}
+
+func setComicReadStatusForCurrentUser(ctx context.Context, db *sqlx.DB, comicID int, read bool) error {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := db.ExecContext(ctx, `
+		INSERT INTO user_comics (comic_id, user_id, read)
+		VALUES (?, ?, ?)
+		ON CONFLICT(comic_id, user_id) DO UPDATE SET read = excluded.read
+	`, comicID, userID, boolInt(read))
+	if err != nil {
+		return huma.Error500InternalServerError("failed to update comic read status")
+	}
+	if _, err := result.RowsAffected(); err != nil {
+		return huma.Error500InternalServerError("failed to check comic read status update")
+	}
+	return nil
+}
+
+func boolInt(value bool) int {
+	if value {
+		return 1
+	}
+	return 0
 }
 
 func deleteComic(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {

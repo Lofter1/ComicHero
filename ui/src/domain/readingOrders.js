@@ -100,14 +100,6 @@ export function readingOrderComicsPayload(order) {
   }
 }
 
-export function readingOrderMatchesSearch(order, term) {
-  if (!term) return true
-
-  return [order.name, order.description]
-    .filter(Boolean)
-    .some(value => value.toLowerCase().includes(term))
-}
-
 export function formatProgress(progress) {
   return `${Math.round((progress ?? 0) * 100)}%`
 }

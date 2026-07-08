@@ -6,37 +6,52 @@ const props = defineProps({
     type: String,
     required: true,
   },
-  loading: {
-    type: Boolean,
-    default: false,
-  },
   themePreference: {
     type: String,
     default: 'system',
   },
+  user: {
+    type: Object,
+    default: null,
+  },
+  userMode: {
+    type: String,
+    default: '',
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false,
+  },
+  authSaving: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['change-view', 'refresh', 'set-theme'])
+const emit = defineEmits(['change-view', 'set-theme', 'logout'])
 const menuOpen = ref(false)
+const accountMenuOpen = ref(false)
 
-const themeLabel = computed(() => {
-  if (props.themePreference === 'light') return 'Light'
-  if (props.themePreference === 'dark') return 'Dark'
-  return 'System'
-})
+const userInitial = computed(() => (props.user?.name || '?').trim().slice(0, 1).toUpperCase() || '?')
 
 function changeView(view) {
   emit('change-view', view)
   menuOpen.value = false
-}
-
-function refresh() {
-  emit('refresh')
-  menuOpen.value = false
+  accountMenuOpen.value = false
 }
 
 function setTheme(value) {
   emit('set-theme', value)
+}
+
+function logout() {
+  emit('logout')
+  menuOpen.value = false
+  accountMenuOpen.value = false
+}
+
+function toggleAccountMenu() {
+  accountMenuOpen.value = !accountMenuOpen.value
 }
 </script>
 
@@ -82,39 +97,83 @@ function setTheme(value) {
     </nav>
 
     <div class="sidebar-actions">
-      <details class="theme-menu">
-        <summary>Theme: {{ themeLabel }}</summary>
-        <div class="theme-selector" role="group" aria-label="Theme">
-          <button
-            type="button"
-            :class="{ active: themePreference === 'light' }"
-            :aria-pressed="themePreference === 'light'"
-            @click="setTheme('light')"
-          >
-            Light
+      <div v-if="user" class="account-menu" :class="{ open: accountMenuOpen }">
+        <button
+          type="button"
+          class="account-menu-trigger"
+          :aria-expanded="accountMenuOpen"
+          aria-controls="account-menu-panel"
+          @click="toggleAccountMenu"
+        >
+          <span class="account-avatar" aria-hidden="true">{{ userInitial }}</span>
+          <span class="account-trigger-copy">
+            <strong>{{ user.name }}</strong>
+          </span>
+          <span class="account-menu-caret" aria-hidden="true">▾</span>
+        </button>
+
+        <div v-if="accountMenuOpen" id="account-menu-panel" class="account-menu-panel">
+          <div class="account-menu-profile">
+            <span class="account-avatar large" aria-hidden="true">{{ userInitial }}</span>
+            <span>
+              <strong>{{ user.name }}</strong>
+            </span>
+          </div>
+
+          <div class="account-menu-section">
+            <div class="account-menu-label">
+              <span aria-hidden="true">◐</span>
+              <strong>Display Mode</strong>
+            </div>
+            <div class="theme-selector account-theme-selector" role="group" aria-label="Theme">
+              <button
+                type="button"
+                :class="{ active: themePreference === 'light' }"
+                :aria-pressed="themePreference === 'light'"
+                @click="setTheme('light')"
+              >
+                Light
+              </button>
+              <button
+                type="button"
+                :class="{ active: themePreference === 'dark' }"
+                :aria-pressed="themePreference === 'dark'"
+                @click="setTheme('dark')"
+              >
+                Dark
+              </button>
+              <button
+                type="button"
+                :class="{ active: themePreference === 'system' }"
+                :aria-pressed="themePreference === 'system'"
+                @click="setTheme('system')"
+              >
+                System
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="account-menu-item" @click="changeView('account')">
+            <span aria-hidden="true">@</span>
+            <span>Account settings</span>
+          </button>
+          <button v-if="isAdmin" type="button" class="account-menu-item" @click="changeView('users')">
+            <span aria-hidden="true">⚙</span>
+            <span>Manage users</span>
           </button>
           <button
+            v-if="userMode === 'multi'"
             type="button"
-            :class="{ active: themePreference === 'dark' }"
-            :aria-pressed="themePreference === 'dark'"
-            @click="setTheme('dark')"
+            class="account-menu-item danger"
+            :disabled="authSaving"
+            @click="logout"
           >
-            Dark
-          </button>
-          <button
-            type="button"
-            :class="{ active: themePreference === 'system' }"
-            :aria-pressed="themePreference === 'system'"
-            @click="setTheme('system')"
-          >
-            System
+            <span aria-hidden="true">⇥</span>
+            <span>{{ authSaving ? 'Logging out...' : 'Log out' }}</span>
           </button>
         </div>
-      </details>
+      </div>
 
-      <button class="refresh-button" :disabled="loading" @click="refresh">
-        Refresh
-      </button>
     </div>
   </aside>
 </template>

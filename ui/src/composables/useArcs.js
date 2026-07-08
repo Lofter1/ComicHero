@@ -158,7 +158,6 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     arcProgress,
     openArc,
     toggleArcFavorite,
-    applyArcFavoriteState,
     newArc,
     editArc,
     saveArc,

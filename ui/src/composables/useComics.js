@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import {
   createComic,
   deleteComic as removeComic,
@@ -36,10 +36,6 @@ export function useComics({
   const metronMetadataStatus = ref('')
   const metronMetadataResults = ref([])
 
-  const currentComicIndex = computed(() => {
-    return comics.value.findIndex(comic => comic.id === selectedComic.value?.id)
-  })
-
   async function loadComics(options = {}) {
     await loadPagedList('comics', comics, listComics, options)
   }
@@ -66,13 +62,6 @@ export function useComics({
   async function openOrderComic(comic) {
     if (!comic?.id) return
     await openComic(comic)
-  }
-
-  async function openAdjacentComic(offset) {
-    const nextComic = comics.value[currentComicIndex.value + offset]
-    if (nextComic) {
-      await openComic(nextComic, { preserveReturnTarget: true })
-    }
   }
 
   function newComic() {
@@ -315,18 +304,14 @@ export function useComics({
     metronMetadataApplyingID,
     metronMetadataStatus,
     metronMetadataResults,
-    currentComicIndex,
     loadComics,
     openComic,
     openOrderComic,
-    openAdjacentComic,
     newComic,
     editComic,
     saveComic,
     deleteComic,
     toggleComicRead,
-    applyComicReadState,
-    applyComicDetailState,
     resetMetronMetadata,
     searchSelectedComicMetron,
     applyMetronMetadata,

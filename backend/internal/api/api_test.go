@@ -59,7 +59,7 @@ func TestComicListQuery(t *testing.T) {
 		Publisher:      "DC",
 		Read:           "false",
 		ReadingOrderID: 12,
-	})
+	}, 1)
 	if err != nil {
 		t.Fatalf("comicListQuery returned error: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestComicListQuery(t *testing.T) {
 		"c.series_year AS TEXT",
 		"c.issue AS TEXT",
 		"c.publisher LIKE ?",
-		"c.read = ?",
+		"COALESCE(uc.read, 0) = ?",
 		"roc.reading_order_id = ?",
 		"ORDER BY c.series, c.series_year, CAST(c.issue AS REAL), c.issue",
 	} {
@@ -77,8 +77,8 @@ func TestComicListQuery(t *testing.T) {
 			t.Fatalf("query missing %q: %s", fragment, query)
 		}
 	}
-	if len(args) != 10 {
-		t.Fatalf("len(args) = %d; want 10", len(args))
+	if len(args) != 11 {
+		t.Fatalf("len(args) = %d; want 11", len(args))
 	}
 }
 
@@ -125,7 +125,8 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
-			favorite INTEGER NOT NULL DEFAULT 0
+			favorite INTEGER NOT NULL DEFAULT 0,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,6 +140,19 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -204,6 +218,39 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	}
 	if detail.Body.Comics[1].Comment != "From Child: Crossover break" {
 		t.Fatalf("nested comic comment = %q; want nested order note", detail.Body.Comics[1].Comment)
+	}
+}
+
+func TestReadingOrderWritesRequireAuthor(t *testing.T) {
+	db := setupReadingOrderCBLTestDB(t)
+	ctx := context.Background()
+	ownerCtx := context.WithValue(ctx, contextUserIDKey{}, 2)
+	otherCtx := context.WithValue(ctx, contextUserIDKey{}, 1)
+	if _, err := db.ExecContext(ctx, `INSERT INTO users (id, name, is_default) VALUES (2, 'Owner', 0)`); err != nil {
+		t.Fatalf("insert owner: %v", err)
+	}
+
+	created, err := createReadingOrder(ownerCtx, db, ReadingOrderPayload{Name: "Owner list"})
+	if err != nil {
+		t.Fatalf("createReadingOrder: %v", err)
+	}
+	if created.Body.AuthorUserID == nil || *created.Body.AuthorUserID != 2 {
+		t.Fatalf("author user id = %#v; want 2", created.Body.AuthorUserID)
+	}
+
+	view, err := getReadingOrder(otherCtx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("getReadingOrder as non-author: %v", err)
+	}
+	if view.Body.CanEdit {
+		t.Fatalf("non-author canEdit = true; want false")
+	}
+
+	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Nope"}); err == nil {
+		t.Fatalf("updateReadingOrder as non-author succeeded; want error")
+	}
+	if _, err := updateReadingOrder(ownerCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Updated"}); err != nil {
+		t.Fatalf("updateReadingOrder as author: %v", err)
 	}
 }
 
@@ -319,7 +366,8 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
-			favorite INTEGER NOT NULL DEFAULT 0
+			favorite INTEGER NOT NULL DEFAULT 0,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,6 +381,19 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -385,6 +446,17 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
 		CREATE TABLE arc_comics (
 			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -394,6 +466,8 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 		INSERT INTO comics (series, series_year, issue, publisher, read)
 		VALUES ('Series', 2026, 1, 'Publisher', 1),
 			('Series', 2026, 2, 'Publisher', 0);
+		INSERT INTO user_comics (comic_id, user_id, read)
+		SELECT id, (SELECT id FROM users WHERE name = 'Default'), read FROM comics;
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
@@ -480,9 +554,22 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
 		INSERT INTO comics (series, series_year, issue, publisher, read)
 		VALUES ('Series', 2026, 1, 'Publisher', 1),
 			('Series', 2026, 2, 'Publisher', 0);
+		INSERT INTO user_comics (comic_id, user_id, read)
+		SELECT id, (SELECT id FROM users WHERE name = 'Default'), read FROM comics;
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
@@ -547,6 +634,17 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		INSERT OR IGNORE INTO users (name) VALUES ('Default');
 		INSERT INTO series (name, series_year)
 		VALUES ('Stale', 2026);
 		INSERT INTO comics (series, series_year, issue, publisher)
@@ -583,8 +681,8 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 6 {
-		t.Fatalf("len(tags) = %d; want 6", len(openAPI.Tags))
+	if len(openAPI.Tags) != 7 {
+		t.Fatalf("len(tags) = %d; want 7", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get
@@ -622,6 +720,265 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if _, ok := importSeries.Responses["429"]; !ok {
 		t.Fatal("import series response docs missing 429 error")
 	}
+}
+
+func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(UserMiddleware(db))
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterUserRoutes(api, db)
+	RegisterComicRoutes(api, db, nil)
+
+	setup := httptest.NewRecorder()
+	setupBody := strings.NewReader(`{"mode":"multi","name":"Test","password":"secret1"}`)
+	setupReq := httptest.NewRequest(http.MethodPost, "/api/auth/setup", setupBody)
+	setupReq.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(setup, setupReq)
+	if setup.Code != http.StatusOK {
+		t.Fatalf("setup status = %d; want 200: %s", setup.Code, setup.Body.String())
+	}
+	cookies := setup.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != sessionCookieName || cookies[0].Value == "" {
+		t.Fatalf("setup cookies = %#v; want %s session cookie", cookies, sessionCookieName)
+	}
+
+	withoutCookie := httptest.NewRecorder()
+	router.ServeHTTP(withoutCookie, httptest.NewRequest(http.MethodGet, "/api/comics", nil))
+	if withoutCookie.Code != http.StatusUnauthorized {
+		t.Fatalf("comics without cookie status = %d; want 401", withoutCookie.Code)
+	}
+
+	withCookie := httptest.NewRecorder()
+	comicsReq := httptest.NewRequest(http.MethodGet, "/api/comics", nil)
+	comicsReq.AddCookie(cookies[0])
+	router.ServeHTTP(withCookie, comicsReq)
+	if withCookie.Code != http.StatusOK {
+		t.Fatalf("comics with cookie status = %d; want 200: %s", withCookie.Code, withCookie.Body.String())
+	}
+	if !strings.Contains(withCookie.Body.String(), `"series":"Amazing Spider-Man"`) {
+		t.Fatalf("comics body = %s; want seeded comic", withCookie.Body.String())
+	}
+}
+
+func TestUpdateAccountRenamesAndRequiresCurrentPassword(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users SET name = 'Test', password_hash = ? WHERE id = 1;
+	`, hash); err != nil {
+		t.Fatalf("seed account: %v", err)
+	}
+
+	ctx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := updateAccount(ctx, db, UpdateAccountPayload{
+		Name:            "Renamed",
+		CurrentPassword: "wrong",
+		NewPassword:     "secret2",
+	}); err == nil {
+		t.Fatal("updateAccount accepted an incorrect current password")
+	}
+
+	output, err := updateAccount(ctx, db, UpdateAccountPayload{
+		Name:            "Renamed",
+		CurrentPassword: "secret1",
+		NewPassword:     "secret2",
+	})
+	if err != nil {
+		t.Fatalf("updateAccount: %v", err)
+	}
+	if output.Body.User == nil || output.Body.User.Name != "Renamed" {
+		t.Fatalf("user = %#v; want renamed current user", output.Body.User)
+	}
+
+	var newHash string
+	if err := db.Get(&newHash, `SELECT password_hash FROM users WHERE id = 1`); err != nil {
+		t.Fatalf("fetch password hash: %v", err)
+	}
+	if !checkPassword("secret2", newHash) {
+		t.Fatal("new password hash does not match updated password")
+	}
+}
+
+func TestDeleteAccountRequiresPasswordAndAnotherAdmin(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users SET name = 'Test', password_hash = ? WHERE id = 1;
+		INSERT INTO users (id, name, password_hash) VALUES (2, 'Other', 'hash');
+		INSERT INTO user_sessions (token, user_id) VALUES ('session-1', 1);
+		INSERT INTO reading_orders (name, author_user_id) VALUES ('Mine', 1);
+	`, hash); err != nil {
+		t.Fatalf("seed accounts: %v", err)
+	}
+
+	ctx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := deleteAccount(ctx, db, DeleteAccountPayload{CurrentPassword: "wrong"}); err == nil {
+		t.Fatal("deleteAccount accepted an incorrect current password")
+	}
+	if _, err := deleteAccount(ctx, db, DeleteAccountPayload{CurrentPassword: "secret1"}); err == nil {
+		t.Fatal("deleteAccount deleted the only admin account")
+	}
+
+	if _, err := db.Exec(`UPDATE users SET is_admin = 1 WHERE id = 2`); err != nil {
+		t.Fatalf("promote other account: %v", err)
+	}
+	output, err := deleteAccount(ctx, db, DeleteAccountPayload{CurrentPassword: "secret1"})
+	if err != nil {
+		t.Fatalf("deleteAccount: %v", err)
+	}
+	if output.Body.User != nil || output.Body.Mode != userModeMulti {
+		t.Fatalf("status = %#v; want logged-out multi-user status", output.Body)
+	}
+	if len(output.SetCookie) != 1 || output.SetCookie[0].MaxAge >= 0 {
+		t.Fatalf("cookies = %#v; want expired session cookie", output.SetCookie)
+	}
+
+	var userCount int
+	if err := db.Get(&userCount, `SELECT COUNT(*) FROM users WHERE id = 1`); err != nil {
+		t.Fatalf("count deleted user: %v", err)
+	}
+	if userCount != 0 {
+		t.Fatalf("deleted user count = %d; want 0", userCount)
+	}
+	var sessionCount int
+	if err := db.Get(&sessionCount, `SELECT COUNT(*) FROM user_sessions WHERE user_id = 1`); err != nil {
+		t.Fatalf("count sessions: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("deleted user's sessions = %d; want 0", sessionCount)
+	}
+	var authorCount int
+	if err := db.Get(&authorCount, `SELECT COUNT(*) FROM reading_orders WHERE author_user_id = 1`); err != nil {
+		t.Fatalf("count authored orders: %v", err)
+	}
+	if authorCount != 0 {
+		t.Fatalf("authored orders = %d; want 0", authorCount)
+	}
+}
+
+func TestMetronPermissionsControlScopesAndHourlyLimit(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)
+	`); err != nil {
+		t.Fatalf("create reader user: %v", err)
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/comics"); err == nil {
+		t.Fatal("authorizeMetron returned nil for reader without Metron permissions")
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updateUserMetronPermissions(adminCtx, db, 2, UserMetronPermissions{
+		Allowed:     true,
+		Scopes:      []string{metronScopeSearch},
+		HourlyLimit: 1,
+	})
+	if err != nil {
+		t.Fatalf("updateUserMetronPermissions: %v", err)
+	}
+	if !output.Body.MetronPermissions.Allowed || output.Body.MetronPermissions.HourlyLimit != 1 {
+		t.Fatalf("permissions = %#v; want allowed with hourly limit 1", output.Body.MetronPermissions)
+	}
+
+	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/comics"); err != nil {
+		t.Fatalf("authorize search: %v", err)
+	}
+	if err := authorizeMetron(readerCtx, db, metronScopeImport, "POST /metron/comics/{id}/import"); err == nil {
+		t.Fatal("authorize import returned nil for search-only user")
+	}
+	if err := authorizeMetron(readerCtx, db, metronScopeSearch, "GET /metron/series"); err == nil {
+		t.Fatal("authorize search returned nil after hourly limit was reached")
+	}
+}
+
+func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
+	t.Helper()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_issue_id INTEGER,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue TEXT NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0,
+			created_at TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE app_settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		);
+		CREATE TABLE reading_orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE user_sessions (
+			token TEXT PRIMARY KEY,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			PRIMARY KEY (comic_id, user_id)
+		);
+		CREATE TABLE user_metron_permissions (
+			user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			allowed INTEGER NOT NULL DEFAULT 0,
+			scopes TEXT NOT NULL DEFAULT '',
+			hourly_limit INTEGER NOT NULL DEFAULT 0,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		CREATE TABLE user_metron_request_log (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			scope TEXT NOT NULL,
+			endpoint TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+		INSERT INTO users (id, name, is_default, is_admin) VALUES (1, 'Default', 1, 1);
+		INSERT INTO user_metron_permissions (user_id, allowed, scopes, hourly_limit) VALUES (1, 1, '*', 0);
+		INSERT INTO comics (series, series_year, issue, publisher)
+		VALUES ('Amazing Spider-Man', 1963, '1', 'Marvel');
+		INSERT INTO user_comics (comic_id, user_id, read) VALUES (1, 1, 1);
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+	return db
 }
 
 func TestMountedDocsLoadMountedOpenAPISpec(t *testing.T) {

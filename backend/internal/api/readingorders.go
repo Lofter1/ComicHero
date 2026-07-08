@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"sort"
@@ -127,7 +128,11 @@ func computeProgress(comics []ReadingOrderComic) float64 {
 }
 
 func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderListInput) (*ReadingOrderListOutput, error) {
-	query, args, err := readingOrderListQuery(input)
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query, args, err := readingOrderListQuery(input, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,23 +151,29 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	return &ReadingOrderListOutput{PaginationHeaders: pagination, Body: readingOrders}, nil
 }
 
-func readingOrderListQuery(input *ReadingOrderListInput) (string, []any, error) {
+func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT
 			ro.id,
 			ro.metron_reading_list_id,
+			ro.author_user_id,
 			ro.name,
 			ro.description,
 			ro.image,
 			ro.favorite,
+			COALESCE(author.name, '') AS author_name,
+			CASE WHEN ro.author_user_id = ? THEN 1 ELSE 0 END AS can_edit,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
-				ELSE CAST(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
+				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
 			END as progress
 		FROM reading_orders ro
+		LEFT JOIN users author ON author.id = ro.author_user_id
 		LEFT JOIN reading_order_comics roc ON roc.reading_order_id = ro.id
 		LEFT JOIN comics c ON c.id = roc.comic_id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
+	query.args = append(query.args, userID, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -199,14 +210,42 @@ func readingOrderListOrder(sort, direction string) string {
 }
 
 func getReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
-	var readingOrder ReadingOrder
-	if err := db.GetContext(ctx, &readingOrder, `
-		SELECT * FROM reading_orders WHERE id = ?
-	`, id); err != nil {
-		return nil, huma.Error404NotFound("reading order not found")
+	readingOrder, err := getReadingOrderRow(ctx, db, id)
+	if err != nil {
+		return nil, err
 	}
 
 	return fetchReadingOrderDetail(ctx, db, readingOrder)
+}
+
+func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return ReadingOrder{}, err
+	}
+	var readingOrder ReadingOrder
+	if err := db.GetContext(ctx, &readingOrder, `
+		SELECT
+			ro.id,
+			ro.metron_reading_list_id,
+			ro.author_user_id,
+			ro.name,
+			ro.description,
+			ro.image,
+			ro.favorite,
+			0.0 AS progress,
+			COALESCE(author.name, '') AS author_name,
+			CASE WHEN ro.author_user_id = ? THEN 1 ELSE 0 END AS can_edit
+		FROM reading_orders ro
+		LEFT JOIN users author ON author.id = ro.author_user_id
+		WHERE ro.id = ?
+	`, userID, id); err != nil {
+		if err == sql.ErrNoRows {
+			return ReadingOrder{}, huma.Error404NotFound("reading order not found")
+		}
+		return ReadingOrder{}, huma.Error500InternalServerError("failed to fetch reading order")
+	}
+	return readingOrder, nil
 }
 
 func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) (*ReadingOrderDetailOutput, error) {
@@ -257,16 +296,21 @@ func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) 
 }
 
 func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderEntry, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []struct {
 		ReadingOrderComic
 		Position int `db:"position"`
 	}{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE roc.reading_order_id = ?
 		ORDER BY roc.position
-	`, readingOrderID); err != nil {
+	`, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
 	for i := range comics {
@@ -279,11 +323,25 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 		Comment  string `db:"comment"`
 	}{}
 	if err := db.SelectContext(ctx, &children, `
-		SELECT ro.*, roc.position AS position, roc.note AS comment FROM reading_orders ro
+		SELECT
+			ro.id,
+			ro.metron_reading_list_id,
+			ro.author_user_id,
+			ro.name,
+			ro.description,
+			ro.image,
+			ro.favorite,
+			0.0 AS progress,
+			COALESCE(author.name, '') AS author_name,
+			CASE WHEN ro.author_user_id = ? THEN 1 ELSE 0 END AS can_edit,
+			roc.position AS position,
+			roc.note AS comment
+		FROM reading_orders ro
+		LEFT JOIN users author ON author.id = ro.author_user_id
 		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
 		WHERE roc.parent_reading_order_id = ?
 		ORDER BY roc.position, ro.name
-	`, readingOrderID); err != nil {
+	`, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
 	}
 
@@ -330,13 +388,18 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 }
 
 func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID int) ([]ReadingOrderComic, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []ReadingOrderComic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, roc.note AS comment, roc.tags AS tags FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, roc.note AS comment, roc.tags AS tags FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE roc.reading_order_id = ?
 		ORDER BY roc.position
-	`, readingOrderID); err != nil {
+	`, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
 	hydrateReadingOrderComicTitles(comics)
@@ -344,10 +407,14 @@ func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID in
 }
 
 func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPayload) (*CreateReadingOrderOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, favorite)
-		VALUES (?, ?, ?)
-	`, payload.Name, payload.Description, payload.Favorite)
+		INSERT INTO reading_orders (name, description, favorite, author_user_id)
+		VALUES (?, ?, ?, ?)
+	`, payload.Name, payload.Description, payload.Favorite, userID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create reading order")
 	}
@@ -357,17 +424,18 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPa
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
 
-	var ro ReadingOrder
-	if err := db.GetContext(ctx, &ro, `
-		SELECT * FROM reading_orders WHERE id = ?
-	`, id); err != nil {
-		return nil, huma.Error500InternalServerError("failed to fetch created reading order")
+	ro, err := getReadingOrderRow(ctx, db, int(id))
+	if err != nil {
+		return nil, err
 	}
 
 	return &CreateReadingOrderOutput{Body: ro}, nil
 }
 
 func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload ReadingOrderPayload) (*ReadingOrderDetailOutput, error) {
+	if err := requireReadingOrderAuthor(ctx, db, id); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
 		SET name = ?, description = ?, favorite = ?
@@ -384,6 +452,9 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload Readin
 }
 
 func deleteReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
+	if err := requireReadingOrderAuthor(ctx, db, id); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `
 		DELETE FROM reading_orders WHERE id = ?
 	`, id)
@@ -398,11 +469,22 @@ func deleteReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*struct{}, er
 }
 
 func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOrderComicsInput) (*ReadingOrderDetailOutput, error) {
-	var ro ReadingOrder
-	if err := db.GetContext(ctx, &ro, `
-		SELECT * FROM reading_orders WHERE id = ?
-	`, input.ID); err != nil {
-		return nil, huma.Error404NotFound("reading order not found")
+	return setReadingOrderComicsWithAuth(ctx, db, input, true)
+}
+
+func setReadingOrderComicsInternal(ctx context.Context, db *sqlx.DB, input *SetReadingOrderComicsInput) (*ReadingOrderDetailOutput, error) {
+	return setReadingOrderComicsWithAuth(ctx, db, input, false)
+}
+
+func setReadingOrderComicsWithAuth(ctx context.Context, db *sqlx.DB, input *SetReadingOrderComicsInput, enforceAuthor bool) (*ReadingOrderDetailOutput, error) {
+	ro, err := getReadingOrderRow(ctx, db, input.ID)
+	if err != nil {
+		return nil, err
+	}
+	if enforceAuthor {
+		if err := requireReadingOrderAuthor(ctx, db, input.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	entries := readingOrderEntryItems(input)
@@ -458,6 +540,25 @@ func setReadingOrderComics(ctx context.Context, db *sqlx.DB, input *SetReadingOr
 	}
 
 	return fetchReadingOrderDetail(ctx, db, ro)
+}
+
+func requireReadingOrderAuthor(ctx context.Context, db *sqlx.DB, id int) error {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return err
+	}
+
+	var authorID sql.NullInt64
+	if err := db.GetContext(ctx, &authorID, `SELECT author_user_id FROM reading_orders WHERE id = ?`, id); err != nil {
+		if err == sql.ErrNoRows {
+			return huma.Error404NotFound("reading order not found")
+		}
+		return huma.Error500InternalServerError("failed to check reading order author")
+	}
+	if !authorID.Valid || int(authorID.Int64) != userID {
+		return huma.Error403Forbidden("only the reading order author can edit it")
+	}
+	return nil
 }
 
 func readingOrderEntryItems(input *SetReadingOrderComicsInput) []ReadingOrderEntryPayload {

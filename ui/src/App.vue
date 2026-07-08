@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import AccountView from '@/components/AccountView.vue'
 import ArcDetailView from '@/components/ArcDetailView.vue'
 import ArcsBrowseView from '@/components/ArcsBrowseView.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
@@ -15,6 +16,7 @@ import ReadingOrderEditView from '@/components/ReadingOrderEditView.vue'
 import ReadingOrdersBrowseView from '@/components/ReadingOrdersBrowseView.vue'
 import SeriesBrowseView from '@/components/SeriesBrowseView.vue'
 import SeriesDetailView from '@/components/SeriesDetailView.vue'
+import UserManagementView from '@/components/UserManagementView.vue'
 import { useArcs } from '@/composables/useArcs.js'
 import { useCharacters } from '@/composables/useCharacters.js'
 import { useComics } from '@/composables/useComics.js'
@@ -22,12 +24,33 @@ import { useMetronJobs } from '@/composables/useMetronJobs.js'
 import { usePagination } from '@/composables/usePagination.js'
 import { useReadingOrders } from '@/composables/useReadingOrders.js'
 import { useSeries } from '@/composables/useSeries.js'
+import {
+  deleteAccount as deleteAccountRequest,
+  getUserStatus,
+  listUsers,
+  loginUser,
+  logoutUser,
+  registerUser,
+  setupUsers,
+  updateAccount,
+  updateUserMetronPermissions,
+} from '@/api/client.js'
 
 const activeView = ref('readingOrders')
 const viewMode = ref('browse')
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
+const authLoading = ref(true)
+const authSaving = ref(false)
+const userStatus = ref(null)
+const authMode = ref('login')
+const setupForm = ref({ mode: 'single', name: '', password: '' })
+const authForm = ref({ name: '', password: '' })
+const userAdminRows = ref([])
+const accountSaving = ref(false)
+const accountDeleting = ref(false)
+const savingUserID = ref(null)
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -36,6 +59,7 @@ const defaultListOptions = {
   series: { filter: 'all', sort: 'name', direction: 'asc' },
   characters: { filter: 'all', sort: 'name', direction: 'asc' },
 }
+const listOptionsStorageKey = 'comichero-list-options-v2'
 const listOptions = ref(getInitialListOptions())
 const loadMoreSentinel = ref(null)
 const themePreference = ref(getInitialThemePreference())
@@ -206,6 +230,8 @@ const toolbarResultCount = computed(() => {
   if (activeView.value === 'comics') return comics.value.length
   if (activeView.value === 'series') return visibleSeries.value.length
   if (activeView.value === 'characters') return visibleCharacters.value.length
+  if (activeView.value === 'users') return userAdminRows.value.length
+  if (activeView.value === 'account') return 1
   return 0
 })
 const toolbarTotalCount = computed(() => {
@@ -214,6 +240,8 @@ const toolbarTotalCount = computed(() => {
   if (activeView.value === 'comics') return listTotal('comics')
   if (activeView.value === 'series') return listTotal('series')
   if (activeView.value === 'characters') return listTotal('characters')
+  if (activeView.value === 'users') return userAdminRows.value.length
+  if (activeView.value === 'account') return 1
   return 0
 })
 const loadingLabel = computed(() => {
@@ -223,10 +251,31 @@ const loadingLabel = computed(() => {
   if (activeView.value === 'series') return 'Loading series...'
   if (activeView.value === 'characters') return 'Loading characters...'
   if (activeView.value === 'metron') return 'Loading Metron...'
+  if (activeView.value === 'users') return 'Loading users...'
+  if (activeView.value === 'account') return 'Loading account...'
   return 'Loading...'
 })
 const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
 const seriesListLoading = computed(() => Boolean(pageState.value.series?.refreshing))
+const setupRequired = computed(() => Boolean(userStatus.value?.setupRequired))
+const userMode = computed(() => userStatus.value?.mode || '')
+const currentUser = computed(() => userStatus.value?.user || null)
+const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin))
+const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
+const canMetronSearch = computed(() => hasMetronScope('search'))
+const canMetronDetail = computed(() => hasMetronScope('detail'))
+const canMetronImport = computed(() => hasMetronScope('import'))
+const canMetronMonitor = computed(() => hasMetronScope('monitor'))
+const canAccessMetronArea = computed(() => canMetronSearch.value)
+const authRequired = computed(() => userMode.value === 'multi' && !currentUser.value)
+const appReady = computed(() => Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value)
+
+function hasMetronScope(scope) {
+  const permissions = metronPermissions.value
+  if (!permissions.allowed) return false
+  const scopes = Array.isArray(permissions.scopes) ? permissions.scopes : []
+  return scopes.includes('*') || scopes.includes(scope)
+}
 
 function getInitialThemePreference() {
   if (typeof window === 'undefined') return 'system'
@@ -238,7 +287,7 @@ function getInitialThemePreference() {
 function getInitialListOptions() {
   if (typeof window === 'undefined') return cloneDefaultListOptions()
   try {
-    return mergeListOptions(JSON.parse(window.localStorage.getItem('comichero-list-options') || '{}'))
+    return mergeListOptions(JSON.parse(window.localStorage.getItem(listOptionsStorageKey) || '{}'))
   } catch {
     return cloneDefaultListOptions()
   }
@@ -270,6 +319,117 @@ function setThemePreference(value) {
   themePreference.value = value
 }
 
+async function loadUserStatus() {
+  authLoading.value = true
+  error.value = ''
+  try {
+    userStatus.value = await getUserStatus()
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authLoading.value = false
+  }
+}
+
+async function submitSetup() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    const payload = { mode: setupForm.value.mode }
+    if (setupForm.value.mode === 'multi') {
+      payload.name = setupForm.value.name
+      payload.password = setupForm.value.password
+    }
+    userStatus.value = await setupUsers(payload)
+    if (!authRequired.value) {
+      await applyCurrentRoute({ replace: true, force: true })
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function submitAuth() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    const payload = { name: authForm.value.name, password: authForm.value.password }
+    userStatus.value = authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
+    await applyCurrentRoute({ replace: true, force: true })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function loadUserAdminRows() {
+  userAdminRows.value = await listUsers()
+}
+
+async function saveUserMetronPermissions(userID, payload) {
+  savingUserID.value = userID
+  error.value = ''
+  try {
+    const updated = await updateUserMetronPermissions(userID, payload)
+    userAdminRows.value = userAdminRows.value.map((entry) => (
+      entry.user.id === userID ? updated : entry
+    ))
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingUserID.value = null
+  }
+}
+
+async function saveAccount(payload, validationMessage = '') {
+  if (validationMessage) {
+    error.value = validationMessage
+    return
+  }
+  if (!payload) return
+
+  accountSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await updateAccount(payload)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    accountSaving.value = false
+  }
+}
+
+async function deleteCurrentAccount(payload) {
+  accountDeleting.value = true
+  error.value = ''
+  try {
+    activeView.value = 'readingOrders'
+    viewMode.value = 'browse'
+    userStatus.value = await deleteAccountRequest(payload)
+    authMode.value = 'login'
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    accountDeleting.value = false
+  }
+}
+
+async function signOut() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    await logoutUser()
+    userStatus.value = await getUserStatus()
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
 function handleSystemThemeChange(event) {
   systemTheme.value = event.matches ? 'dark' : 'light'
 }
@@ -291,6 +451,8 @@ function parseAppRoute(pathname) {
 
   const [section, rawID, action] = parts
   if (section === 'metron' && parts.length === 1) return { view: 'metron', mode: 'browse' }
+  if (section === 'users' && parts.length === 1) return { view: 'users', mode: 'browse' }
+  if (section === 'account' && parts.length === 1) return { view: 'account', mode: 'browse' }
   if (section === 'comics') return parseEntityRoute('comics', rawID, action, parts.length)
   if (section === 'arcs') return parseEntityRoute('arcs', rawID, action, parts.length)
   if (section === 'series') return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
@@ -319,6 +481,8 @@ function browseRoutePath(view) {
   if (view === 'series') return '/series'
   if (view === 'characters') return '/characters'
   if (view === 'metron') return '/metron'
+  if (view === 'users') return '/users'
+  if (view === 'account') return '/account'
   return '/reading-orders'
 }
 
@@ -362,18 +526,30 @@ function updateBrowserRoute(path, { replace = false } = {}) {
 
 async function applyCurrentRoute(options = {}) {
   if (typeof window === 'undefined') {
-    await loadData()
+    await loadData(Boolean(options.force))
     return
   }
   await applyRoute(parseAppRoute(window.location.pathname), options)
 }
 
-async function applyRoute(route, { replace = false } = {}) {
+async function applyRoute(route, { replace = false, force = false } = {}) {
   routeSyncPaused = true
   error.value = ''
 
   try {
-    await activateRoute(route)
+    if (route.view === 'metron' && !canAccessMetronArea.value) {
+      activeView.value = 'readingOrders'
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
+    if (route.view === 'users' && !isAdmin.value) {
+      activeView.value = 'readingOrders'
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
+    await activateRoute({ ...route, force })
   } catch (err) {
     error.value = err.message
     activeView.value = route.view || 'readingOrders'
@@ -393,7 +569,7 @@ async function activateRoute(route) {
     comicReturnTarget.value = null
     activeView.value = route.view
     viewMode.value = 'browse'
-    await loadData()
+    await loadData(Boolean(route.force))
     return
   }
 
@@ -444,9 +620,13 @@ function handleRoutePop() {
 async function setView(view) {
   error.value = ''
   comicReturnTarget.value = null
+  const viewChanged = view !== activeView.value
+  if (viewChanged) {
+    search.value = ''
+  }
   activeView.value = view
   viewMode.value = 'browse'
-  await loadData()
+  await loadData(viewChanged)
 }
 
 async function loadData(force = false) {
@@ -454,10 +634,11 @@ async function loadData(force = false) {
   error.value = ''
 
   try {
-    await Promise.all([
-      loadActiveViewData({ force }),
-      loadMetronImportJobs(),
-    ])
+    const tasks = [loadActiveViewData({ force })]
+    if (activeView.value === 'metron' && canMetronMonitor.value) {
+      tasks.push(loadMetronImportJobs())
+    }
+    await Promise.all(tasks)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -487,7 +668,17 @@ async function loadActiveViewData(options = {}) {
     return
   }
   if (activeView.value === 'metron') {
-    await loadMetronQuota()
+    if (canMetronMonitor.value) {
+      await loadMetronQuota()
+    }
+    return
+  }
+  if (activeView.value === 'users') {
+    await loadUserAdminRows()
+    return
+  }
+  if (activeView.value === 'account') {
+    return
   }
 }
 
@@ -598,14 +789,17 @@ function observeLoadMoreSentinel() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   setupLoadMoreObserver()
   if (typeof window !== 'undefined') {
     window.addEventListener('popstate', handleRoutePop)
     themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
     themeMediaQuery?.addEventListener('change', handleSystemThemeChange)
   }
-  applyCurrentRoute({ replace: true })
+  await loadUserStatus()
+  if (appReady.value) {
+    await applyCurrentRoute({ replace: true, force: true })
+  }
 })
 
 watch(showInfiniteScrollSentinel, () => {
@@ -617,6 +811,7 @@ watch(activeView, () => {
 })
 
 watch(currentRoutePath, (path) => {
+  if (!appReady.value) return
   updateBrowserRoute(path)
 })
 
@@ -631,7 +826,7 @@ watch(themePreference, (value) => {
 
 watch(listOptions, (value) => {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem('comichero-list-options', JSON.stringify(value))
+  window.localStorage.setItem(listOptionsStorageKey, JSON.stringify(value))
 }, { deep: true })
 
 watch(search, () => {
@@ -659,14 +854,112 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <main class="app-shell">
+  <main v-if="authLoading" class="auth-shell">
+    <section class="auth-panel" role="status" aria-live="polite">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <h1>ComicHero</h1>
+      <p>Loading user setup...</p>
+    </section>
+  </main>
+
+  <main v-else-if="setupRequired" class="auth-shell">
+    <form class="auth-panel" @submit.prevent="submitSetup">
+      <div>
+        <p class="eyebrow">First Run</p>
+        <h1>Choose user mode</h1>
+      </div>
+
+      <fieldset class="mode-options">
+        <legend>User environment</legend>
+        <label>
+          <input v-model="setupForm.mode" type="radio" value="single">
+          <span>
+            <strong>Single user</strong>
+            <small>No login. Existing read status stays with the default user.</small>
+          </span>
+        </label>
+        <label>
+          <input v-model="setupForm.mode" type="radio" value="multi">
+          <span>
+            <strong>Multi user</strong>
+            <small>Register and log in. Existing read status becomes the first account.</small>
+          </span>
+        </label>
+      </fieldset>
+
+      <div v-if="setupForm.mode === 'multi'" class="auth-fields">
+        <label>
+          <span>Name</span>
+          <input v-model.trim="setupForm.name" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input v-model="setupForm.password" type="password" autocomplete="new-password" minlength="6" required>
+        </label>
+      </div>
+
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <button class="primary-action" type="submit" :disabled="authSaving">
+        {{ authSaving ? 'Saving...' : 'Continue' }}
+      </button>
+    </form>
+  </main>
+
+  <main v-else-if="authRequired" class="auth-shell">
+    <form class="auth-panel" @submit.prevent="submitAuth">
+      <div>
+        <p class="eyebrow">Multi User</p>
+        <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
+      </div>
+
+      <div class="auth-tabs" role="group" aria-label="Authentication mode">
+        <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">Log in</button>
+        <button type="button" :class="{ active: authMode === 'register' }" @click="authMode = 'register'">Register</button>
+      </div>
+
+      <div class="auth-fields">
+        <label>
+          <span>Name</span>
+          <input v-model.trim="authForm.name" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            v-model="authForm.password"
+            type="password"
+            :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
+            minlength="6"
+            required
+          >
+        </label>
+      </div>
+
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <button class="primary-action" type="submit" :disabled="authSaving">
+        {{ authSaving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
+      </button>
+    </form>
+  </main>
+
+  <main v-else-if="appReady" class="app-shell">
     <AppSidebar
       :active-view="activeView"
-      :loading="loading"
       :theme-preference="themePreference"
+      :user="currentUser"
+      :user-mode="userMode"
+      :is-admin="isAdmin"
+      :auth-saving="authSaving"
       @change-view="setView"
-      @refresh="loadData(true)"
       @set-theme="setThemePreference"
+      @logout="signOut"
     />
 
     <section class="content">
@@ -704,6 +997,23 @@ onUnmounted(() => {
         @error="showError"
         @job-started="trackMetronImportJob"
         @quota-updated="updateMetronQuota"
+      />
+
+      <UserManagementView
+        v-else-if="activeView === 'users'"
+        :users="userAdminRows"
+        :saving-user-id="savingUserID"
+        @save="saveUserMetronPermissions"
+      />
+
+      <AccountView
+        v-else-if="activeView === 'account'"
+        :user="currentUser"
+        :user-mode="userMode"
+        :saving="accountSaving"
+        :deleting="accountDeleting"
+        @save="saveAccount"
+        @delete-account="deleteCurrentAccount"
       />
 
       <ReadingOrderEditView
@@ -882,11 +1192,9 @@ onUnmounted(() => {
           server-search
           :selected-comic-id="selectedComic?.id"
           :quick-saving-comic-id="quickSavingComicID"
-          show-new-button
           show-cover
           empty-message="No comics yet."
           filtered-empty-message="No comics match these filters."
-          @new-comic="newComic"
           @update:search="updateSearch"
           @update:status="updateListOption('comics', 'status', $event)"
           @update:sort="updateListOption('comics', 'sort', $event)"
@@ -900,6 +1208,22 @@ onUnmounted(() => {
         <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>
+    </section>
+  </main>
+
+  <main v-else class="auth-shell">
+    <section class="auth-panel">
+      <div>
+        <p class="eyebrow">Setup</p>
+        <h1>Could not load user setup</h1>
+      </div>
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+      <button class="primary-action" type="button" :disabled="authLoading" @click="loadUserStatus">
+        Retry
+      </button>
     </section>
   </main>
 </template>

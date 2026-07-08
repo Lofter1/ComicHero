@@ -24,6 +24,14 @@ const labels = {
     eyebrow: 'Metron',
     title: 'Import from Metron',
   },
+  users: {
+    eyebrow: 'Users',
+    title: 'Manage users',
+  },
+  account: {
+    eyebrow: 'Account',
+    title: 'Account settings',
+  },
 }
 
 defineProps({
@@ -48,7 +56,7 @@ defineProps({
     <div>
       <p class="eyebrow">{{ labels[activeView].eyebrow }}</p>
       <h2>{{ labels[activeView].title }}</h2>
-      <p v-if="activeView !== 'metron'" class="toolbar-summary">
+      <p v-if="!['metron', 'users', 'account'].includes(activeView)" class="toolbar-summary">
         Showing {{ resultCount }} of {{ totalCount }}
       </p>
     </div>

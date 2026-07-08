@@ -87,7 +87,11 @@ func RegisterArcRoutes(api huma.API, db *sqlx.DB) {
 }
 
 func listArcs(ctx context.Context, db *sqlx.DB, input *ArcListInput) (*ArcListOutput, error) {
-	query, args, err := arcListQuery(input)
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query, args, err := arcListQuery(input, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +110,7 @@ func listArcs(ctx context.Context, db *sqlx.DB, input *ArcListInput) (*ArcListOu
 	return &ArcListOutput{PaginationHeaders: pagination, Body: arcs}, nil
 }
 
-func arcListQuery(input *ArcListInput) (string, []any, error) {
+func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT
 			a.id,
@@ -117,12 +121,14 @@ func arcListQuery(input *ArcListInput) (string, []any, error) {
 			a.favorite,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
-				ELSE CAST(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
+				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
 			END as progress
 		FROM arcs a
 		LEFT JOIN arc_comics ac ON ac.arc_id = a.id
 		LEFT JOIN comics c ON c.id = ac.comic_id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
+	query.args = append(query.args, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -170,13 +176,18 @@ func getArc(ctx context.Context, db *sqlx.DB, id int) (*ArcDetailOutput, error) 
 }
 
 func fetchArcDetail(ctx context.Context, db *sqlx.DB, arc Arc) (*ArcDetailOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []ArcComic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, ac.note AS comment FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, ac.note AS comment FROM comics c
 		JOIN arc_comics ac ON ac.comic_id = c.id
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE ac.arc_id = ?
 		ORDER BY ac.position
-	`, arc.ID); err != nil {
+	`, userID, arc.ID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch arc comics")
 	}
 	hydrateArcComicTitles(comics)

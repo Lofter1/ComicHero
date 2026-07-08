@@ -61,6 +61,9 @@ func RegisterSeriesRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		DefaultStatus: http.StatusAccepted,
 		Errors:        errsMetronSync,
 	}, func(ctx context.Context, input *ComicSeriesInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /series/{id}/metron/import"); err != nil {
+			return nil, err
+		}
 		return importLocalSeriesFromMetron(ctx, db, client, covers, importJobs, input.ID)
 	})
 }
@@ -70,7 +73,11 @@ func listSeries(ctx context.Context, db *sqlx.DB, input *ComicSeriesListInput) (
 		return nil, err
 	}
 
-	query, args, err := seriesListQuery(input)
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	query, args, err := seriesListQuery(input, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +103,7 @@ func listSeries(ctx context.Context, db *sqlx.DB, input *ComicSeriesListInput) (
 	return &ComicSeriesListOutput{PaginationHeaders: pagination, Body: series}, nil
 }
 
-func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
+func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT
 			s.id,
@@ -110,10 +117,10 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 			s.issue_count,
 			s.description,
 			COUNT(c.id) AS entry_count,
-			COALESCE(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END), 0) AS read_count,
+			COALESCE(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END), 0) AS read_count,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
-				ELSE CAST(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
+				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
 			END AS progress,
 			COALESCE((
 				SELECT c2.cover_image
@@ -126,7 +133,9 @@ func seriesListQuery(input *ComicSeriesListInput) (string, []any, error) {
 			), '') AS cover_image
 		FROM series s
 		LEFT JOIN comics c ON c.series = s.name AND c.series_year = s.series_year
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
+	query.args = append(query.args, userID)
 
 	if err := applySeriesListFilters(query, input); err != nil {
 		return "", nil, err
@@ -189,12 +198,17 @@ func getSeries(ctx context.Context, db *sqlx.DB, id int) (*ComicSeriesDetailOutp
 		return nil, err
 	}
 
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	comics := []Comic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.* FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read FROM comics c
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE c.series = ? AND c.series_year = ?
 		ORDER BY c.series_year, CAST(c.issue AS REAL), c.issue
-	`, series.Name, series.SeriesYear); err != nil {
+	`, userID, series.Name, series.SeriesYear); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch series entries")
 	}
 	hydrateComicTitles(comics)
@@ -208,6 +222,10 @@ func getSeries(ctx context.Context, db *sqlx.DB, id int) (*ComicSeriesDetailOutp
 }
 
 func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return ComicSeries{}, err
+	}
 	var series ComicSeries
 	if err := db.GetContext(ctx, &series, `
 		SELECT
@@ -222,10 +240,10 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 			s.issue_count,
 			s.description,
 			COUNT(c.id) AS entry_count,
-			COALESCE(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END), 0) AS read_count,
+			COALESCE(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END), 0) AS read_count,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
-				ELSE CAST(SUM(CASE WHEN c.read = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
+				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
 			END AS progress,
 			COALESCE((
 				SELECT c2.cover_image
@@ -238,9 +256,10 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 			), '') AS cover_image
 		FROM series s
 		LEFT JOIN comics c ON c.series = s.name AND c.series_year = s.series_year
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE s.id = ?
 		GROUP BY s.id
-	`, id); err != nil {
+	`, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return ComicSeries{}, huma.Error404NotFound("series not found")
 		}
