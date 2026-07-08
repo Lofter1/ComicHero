@@ -100,16 +100,20 @@ const activeListParams = computed(() => {
 })
 const isEditing = computed(() => viewMode.value === 'edit')
 const isDetail = computed(() => viewMode.value === 'detail')
-const resolvedTheme = computed(() => themePreference.value === 'system' ? systemTheme.value : themePreference.value)
+const resolvedTheme = computed(() =>
+  themePreference.value === 'system' ? systemTheme.value : themePreference.value,
+)
 const currentRoutePath = computed(() => routeForCurrentState())
 
-const {
-  pageState,
-  showInfiniteScrollSentinel,
-  activeListLoadingMore,
-  listTotal,
-  loadPagedList,
-} = usePagination({ activeView, loading, isEditing, isDetail, searchTerm, listParams: activeListParams })
+const { pageState, showInfiniteScrollSentinel, activeListLoadingMore, listTotal, loadPagedList } =
+  usePagination({
+    activeView,
+    loading,
+    isEditing,
+    isDetail,
+    searchTerm,
+    listParams: activeListParams,
+  })
 
 const {
   metronImportJobs,
@@ -127,7 +131,6 @@ const {
 } = useMetronJobs({ activeView, error, handleImported: handleMetronImported })
 
 const {
-  series,
   selectedSeries,
   visibleSeries,
   seriesBrowseSections,
@@ -137,10 +140,16 @@ const {
   seriesImportRunning,
   refreshSelectedSeriesDetail,
   loadSeries,
-} = useSeries({ activeView, viewMode, error, loadPagedList, metronImportJobs, trackMetronImportJob })
+} = useSeries({
+  activeView,
+  viewMode,
+  error,
+  loadPagedList,
+  metronImportJobs,
+  trackMetronImportJob,
+})
 
 const {
-  characters,
   selectedCharacter,
   quickSavingCharacterID,
   visibleCharacters,
@@ -151,10 +160,16 @@ const {
   characterImportRunning,
   refreshSelectedCharacterDetail,
   loadCharacters,
-} = useCharacters({ activeView, viewMode, error, loadPagedList, metronImportJobs, trackMetronImportJob })
+} = useCharacters({
+  activeView,
+  viewMode,
+  error,
+  loadPagedList,
+  metronImportJobs,
+  trackMetronImportJob,
+})
 
 const {
-  arcs,
   selectedArc,
   quickSavingArcID,
   arcForm,
@@ -164,8 +179,6 @@ const {
   openArc,
   toggleArcFavorite,
   newArc,
-  saveArc,
-  deleteArc,
   editArc,
   loadArcs,
 } = useArcs({
@@ -220,8 +233,6 @@ const {
   openOrderComic,
   newComic,
   editComic,
-  saveComic,
-  deleteComic,
   toggleComicRead,
   resetMetronMetadata,
   searchSelectedComicMetron,
@@ -281,15 +292,23 @@ const registrationMode = computed(() => userStatus.value?.registrationMode || 'i
 const publicAccess = computed(() => Boolean(userStatus.value?.publicAccess))
 const currentUser = computed(() => userStatus.value?.user || null)
 const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin))
-const isReadOnlyGuest = computed(() => userMode.value === 'multi' && publicAccess.value && !currentUser.value)
+const isReadOnlyGuest = computed(
+  () => userMode.value === 'multi' && publicAccess.value && !currentUser.value,
+)
 const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
 const canMetronSearch = computed(() => hasMetronScope('search'))
-const canMetronDetail = computed(() => hasMetronScope('detail'))
-const canMetronImport = computed(() => hasMetronScope('import'))
 const canMetronMonitor = computed(() => hasMetronScope('monitor'))
 const canAccessMetronArea = computed(() => canMetronSearch.value)
-const authRequired = computed(() => userMode.value === 'multi' && !currentUser.value && (!publicAccess.value || loginRequested.value))
-const appReady = computed(() => Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value)
+const authRequired = computed(
+  () =>
+    userMode.value === 'multi' &&
+    !currentUser.value &&
+    (!publicAccess.value || loginRequested.value),
+)
+const appReady = computed(
+  () =>
+    Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value,
+)
 
 function hasMetronScope(scope) {
   const permissions = metronPermissions.value
@@ -319,10 +338,12 @@ function cloneDefaultListOptions() {
 }
 
 function mergeListOptions(savedOptions) {
-  return Object.fromEntries(Object.entries(defaultListOptions).map(([view, defaults]) => {
-    const saved = savedOptions?.[view]
-    return [view, { ...defaults, ...(saved && typeof saved === 'object' ? saved : {}) }]
-  }))
+  return Object.fromEntries(
+    Object.entries(defaultListOptions).map(([view, defaults]) => {
+      const saved = savedOptions?.[view]
+      return [view, { ...defaults, ...(saved && typeof saved === 'object' ? saved : {}) }]
+    }),
+  )
 }
 
 function getSystemTheme() {
@@ -380,7 +401,8 @@ async function submitAuth() {
     if (authMode.value === 'register' && registrationMode.value === 'invite_only') {
       payload.inviteToken = authForm.value.inviteToken
     }
-    userStatus.value = authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
+    userStatus.value =
+      authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
     loginRequested.value = false
     await applyCurrentRoute({ replace: true, force: true })
   } catch (err) {
@@ -412,7 +434,9 @@ async function saveRegistrationMode(mode) {
     mode === 'open' &&
     registrationMode.value !== 'open' &&
     typeof window !== 'undefined' &&
-    !window.confirm('Anyone who can reach this server will be able to create an account with full read/write access to your shared library. Only enable open registration if you understand the risk.')
+    !window.confirm(
+      'Anyone who can reach this server will be able to create an account with full read/write access to your shared library. Only enable open registration if you understand the risk.',
+    )
   ) {
     return
   }
@@ -433,7 +457,9 @@ async function savePublicAccess(enabled) {
   if (
     enabled &&
     typeof window !== 'undefined' &&
-    !window.confirm('Anonymous visitors will be able to browse your shared library and export reading lists as CBL. They will not be able to edit data.')
+    !window.confirm(
+      'Anonymous visitors will be able to browse your shared library and export reading lists as CBL. They will not be able to edit data.',
+    )
   ) {
     return
   }
@@ -454,9 +480,9 @@ async function saveUserMetronPermissions(userID, payload) {
   error.value = ''
   try {
     const updated = await updateUserMetronPermissions(userID, payload)
-    userAdminRows.value = userAdminRows.value.map((entry) => (
-      entry.user.id === userID ? updated : entry
-    ))
+    userAdminRows.value = userAdminRows.value.map((entry) =>
+      entry.user.id === userID ? updated : entry,
+    )
   } catch (err) {
     error.value = err.message
   } finally {
@@ -469,9 +495,9 @@ async function saveUserAdmin(userID, payload) {
   error.value = ''
   try {
     const updated = await updateUserAdmin(userID, payload)
-    userAdminRows.value = userAdminRows.value.map((entry) => (
-      entry.user.id === userID ? updated : entry
-    ))
+    userAdminRows.value = userAdminRows.value.map((entry) =>
+      entry.user.id === userID ? updated : entry,
+    )
   } catch (err) {
     error.value = err.message
   } finally {
@@ -482,7 +508,9 @@ async function saveUserAdmin(userID, payload) {
 async function removeUser(userID) {
   if (
     typeof window !== 'undefined' &&
-    !window.confirm('Delete this account? Their sessions, read status, Metron permissions, and account data will be removed.')
+    !window.confirm(
+      'Delete this account? Their sessions, read status, Metron permissions, and account data will be removed.',
+    )
   ) {
     return
   }
@@ -592,11 +620,14 @@ function parseAppRoute(pathname) {
   if (section === 'metron' && parts.length === 1) return { view: 'metron', mode: 'browse' }
   if (section === 'users' && parts.length === 1) return { view: 'users', mode: 'browse' }
   if (section === 'account' && parts.length === 1) return { view: 'account', mode: 'browse' }
-  if ((section === 'progress' || section === 'achievements') && parts.length === 1) return { view: 'progress', mode: 'browse' }
+  if ((section === 'progress' || section === 'achievements') && parts.length === 1)
+    return { view: 'progress', mode: 'browse' }
   if (section === 'comics') return parseEntityRoute('comics', rawID, action, parts.length)
   if (section === 'arcs') return parseEntityRoute('arcs', rawID, action, parts.length)
-  if (section === 'series') return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
-  if (section === 'characters') return parseEntityRoute('characters', rawID, action, parts.length, { canEdit: false })
+  if (section === 'series')
+    return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
+  if (section === 'characters')
+    return parseEntityRoute('characters', rawID, action, parts.length, { canEdit: false })
   if (section === 'reading-orders' || section === 'readingOrders') {
     return parseEntityRoute('readingOrders', rawID, action, parts.length)
   }
@@ -642,16 +673,23 @@ function editRoutePath(view, id) {
 function routeForCurrentState() {
   if (viewMode.value === 'browse') return browseRoutePath(activeView.value)
   if (viewMode.value === 'detail') {
-    if (activeView.value === 'readingOrders') return detailRoutePath(activeView.value, selectedOrder.value?.id)
+    if (activeView.value === 'readingOrders')
+      return detailRoutePath(activeView.value, selectedOrder.value?.id)
     if (activeView.value === 'arcs') return detailRoutePath(activeView.value, selectedArc.value?.id)
-    if (activeView.value === 'comics') return detailRoutePath(activeView.value, selectedComic.value?.id)
-    if (activeView.value === 'series') return detailRoutePath(activeView.value, selectedSeries.value?.id)
-    if (activeView.value === 'characters') return detailRoutePath(activeView.value, selectedCharacter.value?.id)
+    if (activeView.value === 'comics')
+      return detailRoutePath(activeView.value, selectedComic.value?.id)
+    if (activeView.value === 'series')
+      return detailRoutePath(activeView.value, selectedSeries.value?.id)
+    if (activeView.value === 'characters')
+      return detailRoutePath(activeView.value, selectedCharacter.value?.id)
   }
   if (viewMode.value === 'edit') {
-    if (activeView.value === 'readingOrders') return editRoutePath(activeView.value, orderForm.value?.id || selectedOrder.value?.id)
-    if (activeView.value === 'arcs') return editRoutePath(activeView.value, arcForm.value?.id || selectedArc.value?.id)
-    if (activeView.value === 'comics') return editRoutePath(activeView.value, comicForm.value?.id || selectedComic.value?.id)
+    if (activeView.value === 'readingOrders')
+      return editRoutePath(activeView.value, orderForm.value?.id || selectedOrder.value?.id)
+    if (activeView.value === 'arcs')
+      return editRoutePath(activeView.value, arcForm.value?.id || selectedArc.value?.id)
+    if (activeView.value === 'comics')
+      return editRoutePath(activeView.value, comicForm.value?.id || selectedComic.value?.id)
   }
   return ''
 }
@@ -910,7 +948,7 @@ function clearError() {
   error.value = ''
 }
 
-async function handleMetronImported(job = null) {
+async function handleMetronImported() {
   error.value = ''
   await refreshActiveLibraryData()
   if (activeView.value === 'readingOrders' && viewMode.value === 'detail') {
@@ -941,11 +979,14 @@ function updateListOption(view, key, value) {
 
 function setupLoadMoreObserver() {
   if (typeof IntersectionObserver === 'undefined') return
-  loadMoreObserver = new IntersectionObserver((entries) => {
-    if (entries.some(entry => entry.isIntersecting)) {
-      loadMoreActiveViewData()
-    }
-  }, { rootMargin: '360px 0px' })
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        loadMoreActiveViewData()
+      }
+    },
+    { rootMargin: '360px 0px' },
+  )
   observeLoadMoreSentinel()
 }
 
@@ -983,19 +1024,31 @@ watch(currentRoutePath, (path) => {
   updateBrowserRoute(path)
 })
 
-watch(resolvedTheme, (value) => {
-  applyTheme(value)
-}, { immediate: true })
+watch(
+  resolvedTheme,
+  (value) => {
+    applyTheme(value)
+  },
+  { immediate: true },
+)
 
-watch(themePreference, (value) => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem('comichero-theme', value)
-}, { immediate: true })
+watch(
+  themePreference,
+  (value) => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('comichero-theme', value)
+  },
+  { immediate: true },
+)
 
-watch(listOptions, (value) => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(listOptionsStorageKey, JSON.stringify(value))
-}, { deep: true })
+watch(
+  listOptions,
+  (value) => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(listOptionsStorageKey, JSON.stringify(value))
+  },
+  { deep: true },
+)
 
 watch(search, () => {
   if (searchDebounceTimer) {
@@ -1040,14 +1093,14 @@ onUnmounted(() => {
       <fieldset class="mode-options">
         <legend>User environment</legend>
         <label>
-          <input v-model="setupForm.mode" type="radio" value="single">
+          <input v-model="setupForm.mode" type="radio" value="single" />
           <span>
             <strong>Single user</strong>
             <small>No login. Existing read status stays with the default user.</small>
           </span>
         </label>
         <label>
-          <input v-model="setupForm.mode" type="radio" value="multi">
+          <input v-model="setupForm.mode" type="radio" value="multi" />
           <span>
             <strong>Multi user</strong>
             <small>Register and log in. Existing read status becomes the first account.</small>
@@ -1058,11 +1111,17 @@ onUnmounted(() => {
       <div v-if="setupForm.mode === 'multi'" class="auth-fields">
         <label>
           <span>Name</span>
-          <input v-model.trim="setupForm.name" type="text" autocomplete="username" required>
+          <input v-model.trim="setupForm.name" type="text" autocomplete="username" required />
         </label>
         <label>
           <span>Password</span>
-          <input v-model="setupForm.password" type="password" autocomplete="new-password" minlength="6" required>
+          <input
+            v-model="setupForm.password"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            required
+          />
         </label>
       </div>
 
@@ -1085,14 +1144,22 @@ onUnmounted(() => {
       </div>
 
       <div class="auth-tabs" role="group" aria-label="Authentication mode">
-        <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">Log in</button>
-        <button type="button" :class="{ active: authMode === 'register' }" @click="authMode = 'register'">Register</button>
+        <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">
+          Log in
+        </button>
+        <button
+          type="button"
+          :class="{ active: authMode === 'register' }"
+          @click="authMode = 'register'"
+        >
+          Register
+        </button>
       </div>
 
       <div class="auth-fields">
         <label>
           <span>Name</span>
-          <input v-model.trim="authForm.name" type="text" autocomplete="username" required>
+          <input v-model.trim="authForm.name" type="text" autocomplete="username" required />
         </label>
         <label>
           <span>Password</span>
@@ -1102,11 +1169,16 @@ onUnmounted(() => {
             :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
             minlength="6"
             required
-          >
+          />
         </label>
         <label v-if="authMode === 'register' && registrationMode === 'invite_only'">
           <span>Invite token</span>
-          <input v-model.trim="authForm.inviteToken" type="text" autocomplete="one-time-code" required>
+          <input
+            v-model.trim="authForm.inviteToken"
+            type="text"
+            autocomplete="one-time-code"
+            required
+          />
         </label>
       </div>
 
@@ -1261,7 +1333,6 @@ onUnmounted(() => {
         @import-cbl="importReadingOrderCBLFile"
       />
 
-
       <ArcDetailView
         v-else-if="activeView === 'arcs' && isDetail"
         :selected-arc="selectedArc"
@@ -1412,7 +1483,12 @@ onUnmounted(() => {
         />
       </div>
 
-      <div v-if="showInfiniteScrollSentinel" ref="loadMoreSentinel" class="load-more-sentinel" aria-live="polite">
+      <div
+        v-if="showInfiniteScrollSentinel"
+        ref="loadMoreSentinel"
+        class="load-more-sentinel"
+        aria-live="polite"
+      >
         <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>

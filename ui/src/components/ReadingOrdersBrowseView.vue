@@ -47,7 +47,16 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-order', 'open-order', 'toggle-favorite', 'import-cbl'])
+const emit = defineEmits([
+  'update:search',
+  'update:filter',
+  'update:sort',
+  'update:direction',
+  'new-order',
+  'open-order',
+  'toggle-favorite',
+  'import-cbl',
+])
 
 const cblFileInput = ref(null)
 
@@ -139,14 +148,20 @@ function handleCBLFile(event) {
               :class="{ selected: selectedOrderId === order.id }"
             >
               <span class="order-row-content">
-                <button class="row-main arc-row-main" type="button" @click="$emit('open-order', order)">
+                <button
+                  class="row-main arc-row-main"
+                  type="button"
+                  @click="$emit('open-order', order)"
+                >
                   <span v-if="order.image" class="issue-list-cover" aria-hidden="true">
                     <img :src="assetURL(order.image)" alt="" loading="lazy" />
                   </span>
                   <span>
                     <strong>{{ order.name }}</strong>
                     <small>{{ order.description || 'No description' }}</small>
-                    <span v-if="order.authorName" class="author-pill">Author: {{ order.authorName }}</span>
+                    <span v-if="order.authorName" class="author-pill"
+                      >Author: {{ order.authorName }}</span
+                    >
                   </span>
                 </button>
                 <button
@@ -171,7 +186,12 @@ function handleCBLFile(event) {
       </div>
       <div v-else class="empty-state">
         {{ hasFilters ? 'No reading orders match these filters.' : 'No reading orders yet.' }}
-        <button v-if="!hasFilters && !readOnly" class="secondary-button" type="button" @click="$emit('new-order')">
+        <button
+          v-if="!hasFilters && !readOnly"
+          class="secondary-button"
+          type="button"
+          @click="$emit('new-order')"
+        >
           <span aria-hidden="true" class="button-icon">+</span>
           Create the first order
         </button>

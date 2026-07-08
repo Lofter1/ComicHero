@@ -12,7 +12,7 @@ import {
   searchMetronComics,
   searchMetronReadingLists,
   searchMetronSeries,
-  searchMetronArcs
+  searchMetronArcs,
 } from '@/api/client.js'
 
 const props = defineProps({
@@ -32,7 +32,6 @@ const activeSearch = ref('comics')
 const query = ref('')
 const series = ref('')
 const issue = ref('')
-const arc = ref('')
 const seriesYearBegan = ref('')
 const seriesVolume = ref('')
 const searching = ref(false)
@@ -63,7 +62,11 @@ const quotaKnown = computed(() => Boolean(props.metronQuota?.known))
 const quotaSummary = computed(() => {
   if (!quotaKnown.value) return 'Quota appears after the first Metron response'
   const burst = quotaText('Burst', props.metronQuota.burstUsed, props.metronQuota.burstLimit)
-  const sustained = quotaText('Sustained', props.metronQuota.sustainedUsed, props.metronQuota.sustainedLimit)
+  const sustained = quotaText(
+    'Sustained',
+    props.metronQuota.sustainedUsed,
+    props.metronQuota.sustainedLimit,
+  )
   return [burst, sustained].filter(Boolean).join(' · ')
 })
 const quotaReset = computed(() => {
@@ -86,7 +89,7 @@ const normalizedFullImportData = computed(() => {
   if (selected.has('series') || selected.has('arcs') || selected.has('characters')) {
     selected.add('comics')
   }
-  return ['comics', 'series', 'arcs', 'characters'].filter(item => selected.has(item))
+  return ['comics', 'series', 'arcs', 'characters'].filter((item) => selected.has(item))
 })
 
 async function search() {
@@ -161,7 +164,10 @@ async function importReadingList(list) {
   importingKey.value = `readingList:${id}`
   importStatus.value = 'Reading list import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronReadingList(id, importOptions.value)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronReadingList(
+      id,
+      importOptions.value,
+    )
     updateRateLimit(nextRateLimit)
     trackJob(job, list.name || 'Untitled reading list')
   } catch (err) {
@@ -201,7 +207,10 @@ async function importSeries(item) {
   importingKey.value = `series:${id}`
   importStatus.value = 'Series import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronSeries(id, importOptions.value)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronSeries(
+      id,
+      importOptions.value,
+    )
     updateRateLimit(nextRateLimit)
     trackJob(job, item.name || 'Untitled series')
   } catch (err) {
@@ -217,7 +226,10 @@ async function importCharacter(character) {
   importingKey.value = `character:${id}`
   importStatus.value = 'Character import started in the background.'
   try {
-    const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(id, importOptions.value)
+    const { data: job, rateLimit: nextRateLimit } = await importMetronCharacterAppearances(
+      id,
+      importOptions.value,
+    )
     updateRateLimit(nextRateLimit)
     trackJob(job, character.name || 'Untitled character')
   } catch (err) {
@@ -288,14 +300,18 @@ function quotaFromRateLimit(nextRateLimit) {
 }
 
 function usedQuota(limit, remaining) {
-  if (limit === null || limit === undefined || remaining === null || remaining === undefined) return 0
+  if (limit === null || limit === undefined || remaining === null || remaining === undefined)
+    return 0
   return Math.max(0, limit - remaining)
 }
 
 function rowImporting(type, id) {
-  return importingKey.value === `${type}:${id}` || props.importJobs.some(job => {
-    return job.type === type && job.metronId === id && isActiveJob(job)
-  })
+  return (
+    importingKey.value === `${type}:${id}` ||
+    props.importJobs.some((job) => {
+      return job.type === type && job.metronId === id && isActiveJob(job)
+    })
+  )
 }
 
 function isActiveJob(job) {
@@ -319,7 +335,9 @@ function toggleFullImportData(value, checked) {
   if (selected.size === 0) {
     selected.add('comics')
   }
-  fullImportData.value = ['comics', 'series', 'arcs', 'characters'].filter(item => selected.has(item))
+  fullImportData.value = ['comics', 'series', 'arcs', 'characters'].filter((item) =>
+    selected.has(item),
+  )
 }
 
 function comicTitle(comic) {
@@ -337,7 +355,9 @@ function comicMeta(comic) {
     comic.publisher || '',
     comic.storeDate ? `Store ${formatDate(comic.storeDate)}` : '',
     comic.coverDate ? `Cover ${formatDate(comic.coverDate)}` : '',
-  ].filter(Boolean).join(' · ')
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function comicStoryLine(comic) {
@@ -352,14 +372,18 @@ function readingListSummary(list) {
     list.attributionSource ? `via ${list.attributionSource}` : '',
     list.ratingCount ? `${list.averageRating || 0} avg from ${list.ratingCount} ratings` : '',
     list.modified ? `Modified ${formatDate(list.modified)}` : '',
-  ].filter(Boolean).join(' · ')
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function arcSummary(item) {
   return [
     item.modified ? `Modified ${formatDate(item.modified)}` : '',
     item.id ? `Metron ID ${item.id}` : '',
-  ].filter(Boolean).join(' · ')
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 function formatDate(value) {
@@ -368,7 +392,6 @@ function formatDate(value) {
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
 }
-
 </script>
 
 <template>
@@ -499,8 +522,9 @@ function formatDate(value) {
               ? 'Reading List'
               : activeSearch === 'characters'
                 ? 'Character'
-                : activeSearch === 'series' ?
-                  'Series' : 'Arc'
+                : activeSearch === 'series'
+                  ? 'Series'
+                  : 'Arc'
         }}
         <input v-model="query" placeholder="Batman, X-Men, Civil War" />
       </label>
@@ -547,14 +571,18 @@ function formatDate(value) {
               <small v-if="comicMeta(comic)">{{ comicMeta(comic) }}</small>
               <small v-if="comicStoryLine(comic)">{{ comicStoryLine(comic) }}</small>
             </span>
-            <span class="status-pill">{{ rowImporting('comic', comic.id) ? 'Importing...' : 'Import' }}</span>
+            <span class="status-pill">{{
+              rowImporting('comic', comic.id) ? 'Importing...' : 'Import'
+            }}</span>
           </button>
         </template>
 
         <template v-else-if="activeSearch === 'readingLists'">
           <h3>Reading Lists</h3>
           <p v-if="searching" class="muted">Searching Metron reading lists...</p>
-          <p v-else-if="readingListResults.length === 0" class="muted">No Metron reading-list results yet.</p>
+          <p v-else-if="readingListResults.length === 0" class="muted">
+            No Metron reading-list results yet.
+          </p>
           <button
             v-for="list in readingListResults"
             :key="list.id"
@@ -566,7 +594,9 @@ function formatDate(value) {
               <strong>{{ list.name || 'Untitled reading list' }}</strong>
               <small>{{ readingListSummary(list) }}</small>
             </span>
-            <span class="status-pill">{{ rowImporting('readingList', list.id) ? 'Importing...' : 'Details' }}</span>
+            <span class="status-pill">{{
+              rowImporting('readingList', list.id) ? 'Importing...' : 'Details'
+            }}</span>
           </button>
         </template>
 
@@ -584,10 +614,13 @@ function formatDate(value) {
             <span>
               <strong>{{ item.name || 'Untitled series' }}</strong>
               <small>
-                Vol. {{ item.volume }} · {{ item.yearBegan || 'Unknown year' }} · {{ item.issueCount }} issues
+                Vol. {{ item.volume }} · {{ item.yearBegan || 'Unknown year' }} ·
+                {{ item.issueCount }} issues
               </small>
             </span>
-            <span class="status-pill">{{ rowImporting('series', item.id) ? 'Importing...' : 'Import' }}</span>
+            <span class="status-pill">{{
+              rowImporting('series', item.id) ? 'Importing...' : 'Import'
+            }}</span>
           </button>
         </template>
 
@@ -606,14 +639,18 @@ function formatDate(value) {
               <strong>{{ item.name || 'Untitled arc' }}</strong>
               <small>{{ arcSummary(item) }}</small>
             </span>
-            <span class="status-pill">{{ rowImporting('arc', item.id) ? 'Importing...' : 'Import' }}</span>
+            <span class="status-pill">{{
+              rowImporting('arc', item.id) ? 'Importing...' : 'Import'
+            }}</span>
           </button>
         </template>
 
         <template v-else>
           <h3>Characters</h3>
           <p v-if="searching" class="muted">Searching Metron characters...</p>
-          <p v-else-if="characterResults.length === 0" class="muted">No Metron character results yet.</p>
+          <p v-else-if="characterResults.length === 0" class="muted">
+            No Metron character results yet.
+          </p>
           <button
             v-for="character in characterResults"
             :key="character.id"
@@ -634,13 +671,27 @@ function formatDate(value) {
     </section>
 
     <div v-if="readingListDetailOpen" class="modal-backdrop" @click.self="closeReadingListDetail">
-      <section class="metron-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="reading-list-detail-title">
+      <section
+        class="metron-detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reading-list-detail-title"
+      >
         <header class="metron-detail-header">
           <span>
-            <strong id="reading-list-detail-title">{{ selectedReadingList?.name || 'Reading list' }}</strong>
+            <strong id="reading-list-detail-title">{{
+              selectedReadingList?.name || 'Reading list'
+            }}</strong>
             <small>{{ selectedReadingList ? readingListSummary(selectedReadingList) : '' }}</small>
           </span>
-          <button class="icon-button" type="button" aria-label="Close reading list detail" @click="closeReadingListDetail">×</button>
+          <button
+            class="icon-button"
+            type="button"
+            aria-label="Close reading list detail"
+            @click="closeReadingListDetail"
+          >
+            ×
+          </button>
         </header>
         <div class="metron-detail-body">
           <img
@@ -651,7 +702,9 @@ function formatDate(value) {
           />
           <div class="metron-detail-copy">
             <p v-if="readingListDetailLoading" class="muted">Loading reading-list details...</p>
-            <p v-else-if="readingListDetailStatus" class="error-text">{{ readingListDetailStatus }}</p>
+            <p v-else-if="readingListDetailStatus" class="error-text">
+              {{ readingListDetailStatus }}
+            </p>
             <p v-else>{{ selectedReadingList?.description || 'No description from Metron.' }}</p>
             <dl class="metron-detail-facts">
               <div v-if="selectedReadingList?.user?.username">
@@ -668,7 +721,10 @@ function formatDate(value) {
               </div>
               <div v-if="selectedReadingList?.ratingCount">
                 <dt>Rating</dt>
-                <dd>{{ selectedReadingList.averageRating || 0 }} from {{ selectedReadingList.ratingCount }}</dd>
+                <dd>
+                  {{ selectedReadingList.averageRating || 0 }} from
+                  {{ selectedReadingList.ratingCount }}
+                </dd>
               </div>
               <div v-if="selectedReadingList?.modified">
                 <dt>Modified</dt>
@@ -682,14 +738,20 @@ function formatDate(value) {
           </div>
         </div>
         <footer class="metron-detail-actions">
-          <button class="secondary-button" type="button" @click="closeReadingListDetail">Close</button>
+          <button class="secondary-button" type="button" @click="closeReadingListDetail">
+            Close
+          </button>
           <button
             class="primary-button"
             type="button"
             :disabled="!selectedReadingList || rowImporting('readingList', selectedReadingList.id)"
             @click="importReadingList(selectedReadingList)"
           >
-            {{ selectedReadingList && rowImporting('readingList', selectedReadingList.id) ? 'Importing...' : 'Import' }}
+            {{
+              selectedReadingList && rowImporting('readingList', selectedReadingList.id)
+                ? 'Importing...'
+                : 'Import'
+            }}
           </button>
         </footer>
       </section>

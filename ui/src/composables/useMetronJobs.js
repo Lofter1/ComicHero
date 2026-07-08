@@ -56,19 +56,26 @@ export function useMetronJobs({ activeView, error, handleImported }) {
 
   function upsertMetronImportJob(job) {
     const normalizedJob = normalizeMetronImportJob(job)
-    const index = metronImportJobs.value.findIndex(item => item.id === job.id)
+    const index = metronImportJobs.value.findIndex((item) => item.id === job.id)
     if (index === -1) {
       metronImportJobs.value = [normalizedJob, ...metronImportJobs.value]
       return
     }
 
-    metronImportJobs.value = metronImportJobs.value.map(item => {
-      return item.id === job.id ? { ...item, ...normalizedJob, displayName: normalizedJob.displayName || item.displayName } : item
+    metronImportJobs.value = metronImportJobs.value.map((item) => {
+      return item.id === job.id
+        ? { ...item, ...normalizedJob, displayName: normalizedJob.displayName || item.displayName }
+        : item
     })
   }
 
   function normalizeMetronImportJob(job) {
-    if (job.status === 'failed' && String(job.message || '').toLowerCase().includes('context canceled')) {
+    if (
+      job.status === 'failed' &&
+      String(job.message || '')
+        .toLowerCase()
+        .includes('context canceled')
+    ) {
       return { ...job, status: 'canceled', message: 'Import canceled.' }
     }
     return job
@@ -78,13 +85,13 @@ export function useMetronJobs({ activeView, error, handleImported }) {
     if (metronImportEvents || typeof EventSource === 'undefined') return
 
     metronImportEvents = new EventSource(metronImportEventsURL())
-    metronImportEvents.addEventListener('job', event => {
+    metronImportEvents.addEventListener('job', (event) => {
       handleMetronJobEvent(event)
     })
     metronImportEvents.onerror = () => {
       if (metronImportEvents?.readyState === EventSource.CLOSED) {
         closeMetronImportEvents()
-        loadMetronImportJobSnapshot().catch(err => {
+        loadMetronImportJobSnapshot().catch((err) => {
           error.value = err.message
         })
       }
@@ -95,13 +102,15 @@ export function useMetronJobs({ activeView, error, handleImported }) {
     try {
       const payload = JSON.parse(event.data)
       const job = normalizeMetronImportJob(payload.job || payload)
-      const previous = metronImportJobs.value.find(item => item.id === job.id)
+      const previous = metronImportJobs.value.find((item) => item.id === job.id)
       upsertMetronImportJob(job)
 
-      if (job.type === 'readingList'
-        && job.status === 'running'
-        && previous
-        && (job.completed !== previous.completed || job.total !== previous.total)) {
+      if (
+        job.type === 'readingList' &&
+        job.status === 'running' &&
+        previous &&
+        (job.completed !== previous.completed || job.total !== previous.total)
+      ) {
         await handleImported(job)
         return
       }
@@ -127,7 +136,7 @@ export function useMetronJobs({ activeView, error, handleImported }) {
   async function loadMetronImportJobSnapshot() {
     const jobs = await listMetronImportJobs()
     metronImportJobs.value = []
-    jobs.forEach(job => {
+    jobs.forEach((job) => {
       upsertMetronImportJob(job)
     })
     if (jobs.length) {
@@ -137,7 +146,7 @@ export function useMetronJobs({ activeView, error, handleImported }) {
 
   function dismissMetronJob(id) {
     removeMetronImportJob(id).catch(() => {})
-    metronImportJobs.value = metronImportJobs.value.filter(job => job.id !== id)
+    metronImportJobs.value = metronImportJobs.value.filter((job) => job.id !== id)
   }
 
   async function retryMetronJob(job) {
@@ -184,7 +193,7 @@ export function useMetronJobs({ activeView, error, handleImported }) {
   async function pollCanceledMetronJob(id, attempts = 10) {
     for (let attempt = 0; attempt < attempts; attempt += 1) {
       await wait(600)
-      const current = metronImportJobs.value.find(job => job.id === id)
+      const current = metronImportJobs.value.find((job) => job.id === id)
       if (!current || current.status !== 'canceling') return
       try {
         const next = await getMetronImportJob(id)
@@ -197,7 +206,7 @@ export function useMetronJobs({ activeView, error, handleImported }) {
   }
 
   function wait(ms) {
-    return new Promise(resolve => window.setTimeout(resolve, ms))
+    return new Promise((resolve) => window.setTimeout(resolve, ms))
   }
 
   function closeMetronImportEvents() {

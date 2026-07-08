@@ -31,8 +31,22 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
 
       <div class="detail-nav-actions">
-        <button v-if="selectedOrder" class="secondary-button" type="button" @click="$emit('export-cbl')">Export CBL</button>
-        <button v-if="selectedOrder?.canEdit" class="primary-button" type="button" @click="$emit('edit')">Edit</button>
+        <button
+          v-if="selectedOrder"
+          class="secondary-button"
+          type="button"
+          @click="$emit('export-cbl')"
+        >
+          Export CBL
+        </button>
+        <button
+          v-if="selectedOrder?.canEdit"
+          class="primary-button"
+          type="button"
+          @click="$emit('edit')"
+        >
+          Edit
+        </button>
       </div>
     </header>
 
@@ -47,7 +61,11 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
 
         <div class="reading-order-summary">
           <div v-if="selectedOrder.image" class="reading-order-thumbnail">
-            <img :src="assetURL(selectedOrder.image)" :alt="`${selectedOrder.name} thumbnail`" loading="lazy" />
+            <img
+              :src="assetURL(selectedOrder.image)"
+              :alt="`${selectedOrder.name} thumbnail`"
+              loading="lazy"
+            />
           </div>
 
           <p class="detail-description">{{ selectedOrder.description || 'No description' }}</p>

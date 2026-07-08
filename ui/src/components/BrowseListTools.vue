@@ -32,7 +32,7 @@ const emit = defineEmits(['update:search', 'update:filter', 'update:sort', 'upda
 
 const searchModel = computed({
   get: () => props.search,
-  set: value => emit('update:search', value),
+  set: (value) => emit('update:search', value),
 })
 </script>
 
@@ -40,22 +40,48 @@ const searchModel = computed({
   <div class="comic-list-tools browse-list-tools">
     <input v-model="searchModel" type="search" :placeholder="searchPlaceholder" />
     <div class="inline-filter-tabs" role="tablist" aria-label="Favorite filter">
-      <button type="button" :class="{ active: filter === 'all' }" role="tab" :aria-selected="filter === 'all'" @click="$emit('update:filter', 'all')">
+      <button
+        type="button"
+        :class="{ active: filter === 'all' }"
+        role="tab"
+        :aria-selected="filter === 'all'"
+        @click="$emit('update:filter', 'all')"
+      >
         All
       </button>
-      <button type="button" :class="{ active: filter === 'favorites' }" role="tab" :aria-selected="filter === 'favorites'" @click="$emit('update:filter', 'favorites')">
+      <button
+        type="button"
+        :class="{ active: filter === 'favorites' }"
+        role="tab"
+        :aria-selected="filter === 'favorites'"
+        @click="$emit('update:filter', 'favorites')"
+      >
         Favorites
       </button>
-      <button type="button" :class="{ active: filter === 'other' }" role="tab" :aria-selected="filter === 'other'" @click="$emit('update:filter', 'other')">
+      <button
+        type="button"
+        :class="{ active: filter === 'other' }"
+        role="tab"
+        :aria-selected="filter === 'other'"
+        @click="$emit('update:filter', 'other')"
+      >
         Other
       </button>
     </div>
-    <select :value="sort" aria-label="Sort list" @change="$emit('update:sort', $event.target.value)">
+    <select
+      :value="sort"
+      aria-label="Sort list"
+      @change="$emit('update:sort', $event.target.value)"
+    >
       <option v-for="option in sortOptions" :key="option.value" :value="option.value">
         {{ option.label }}
       </option>
     </select>
-    <select :value="direction" aria-label="Sort direction" @change="$emit('update:direction', $event.target.value)">
+    <select
+      :value="direction"
+      aria-label="Sort direction"
+      @change="$emit('update:direction', $event.target.value)"
+    >
       <option value="asc">Ascending</option>
       <option value="desc">Descending</option>
     </select>

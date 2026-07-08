@@ -7,12 +7,7 @@ import {
   setArcComics,
   updateArc,
 } from '@/api/client.js'
-import {
-  arcComicsPayload,
-  arcFormFromDetail,
-  arcPayload,
-  emptyArc,
-} from '@/domain/arcs.js'
+import { arcComicsPayload, arcFormFromDetail, arcPayload, emptyArc } from '@/domain/arcs.js'
 
 export function useArcs({ activeView, viewMode, error, saving, loadComics, loadPagedList }) {
   const arcs = ref([])
@@ -21,8 +16,8 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
   const arcForm = ref(emptyArc())
 
   const visibleArcs = computed(() => arcs.value)
-  const favoriteVisibleArcs = computed(() => arcs.value.filter(arc => arc.favorite))
-  const remainingVisibleArcs = computed(() => arcs.value.filter(arc => !arc.favorite))
+  const favoriteVisibleArcs = computed(() => arcs.value.filter((arc) => arc.favorite))
+  const remainingVisibleArcs = computed(() => arcs.value.filter((arc) => !arc.favorite))
   const arcBrowseSections = computed(() => {
     if (!favoriteVisibleArcs.value.length) {
       return [{ key: 'all', title: 'All Arcs', arcs: arcs.value }]
@@ -30,12 +25,12 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     return [
       { key: 'favorites', title: 'Favorites', arcs: favoriteVisibleArcs.value },
       { key: 'other', title: 'Other Arcs', arcs: remainingVisibleArcs.value },
-    ].filter(section => section.arcs.length)
+    ].filter((section) => section.arcs.length)
   })
 
   function arcProgress(arcComics) {
     if (arcComics.length === 0) return 0
-    const readCount = arcComics.filter(comic => comic.read).length
+    const readCount = arcComics.filter((comic) => comic.read).length
     return readCount / arcComics.length
   }
 
@@ -71,7 +66,7 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
   }
 
   function applyArcFavoriteState(detail) {
-    arcs.value = arcs.value.map(arc => {
+    arcs.value = arcs.value.map((arc) => {
       return arc.id === detail.id ? { ...arc, favorite: detail.favorite } : arc
     })
 
@@ -89,7 +84,7 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     viewMode.value = 'edit'
     selectedArc.value = null
     arcForm.value = emptyArc()
-    loadComics().catch(err => {
+    loadComics().catch((err) => {
       error.value = err.message
     })
   }
@@ -99,7 +94,7 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     error.value = ''
     arcForm.value = arcFormFromDetail(selectedArc.value)
     viewMode.value = 'edit'
-    loadComics().catch(err => {
+    loadComics().catch((err) => {
       error.value = err.message
     })
   }

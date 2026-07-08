@@ -47,7 +47,15 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-series', 'toggle-favorite', 'new-comic'])
+defineEmits([
+  'update:search',
+  'update:filter',
+  'update:sort',
+  'update:direction',
+  'open-series',
+  'toggle-favorite',
+  'new-comic',
+])
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -96,7 +104,12 @@ function seriesPublisherLabel(series) {
           @update:direction="$emit('update:direction', $event)"
         />
       </div>
-      <div v-if="loading && !visibleSeries.length" class="inline-loading-panel" role="status" aria-live="polite">
+      <div
+        v-if="loading && !visibleSeries.length"
+        class="inline-loading-panel"
+        role="status"
+        aria-live="polite"
+      >
         <span class="loading-spinner small" aria-hidden="true"></span>
         <strong>Loading series...</strong>
       </div>
@@ -114,7 +127,11 @@ function seriesPublisherLabel(series) {
               :class="{ selected: selectedSeriesId === item.id }"
             >
               <span class="order-row-content">
-                <button class="row-main series-row-main" type="button" @click="$emit('open-series', item)">
+                <button
+                  class="row-main series-row-main"
+                  type="button"
+                  @click="$emit('open-series', item)"
+                >
                   <span v-if="item.coverImage" class="series-list-cover" aria-hidden="true">
                     <img :src="assetURL(item.coverImage)" alt="" loading="lazy" />
                   </span>
@@ -124,9 +141,9 @@ function seriesPublisherLabel(series) {
                   </span>
                 </button>
                 <button
+                  v-if="!readOnly"
                   type="button"
                   class="favorite-toggle"
-                  v-if="!readOnly"
                   :class="{ active: item.favorite }"
                   :aria-label="item.favorite ? 'Remove from favorites' : 'Add to favorites'"
                   :title="item.favorite ? 'Remove from favorites' : 'Add to favorites'"
@@ -148,7 +165,12 @@ function seriesPublisherLabel(series) {
       </div>
       <div v-else class="empty-state">
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
-        <button v-if="!hasFilters && !readOnly" class="secondary-button" type="button" @click="$emit('new-comic')">
+        <button
+          v-if="!hasFilters && !readOnly"
+          class="secondary-button"
+          type="button"
+          @click="$emit('new-comic')"
+        >
           <span aria-hidden="true" class="button-icon">+</span>
           Add the first comic
         </button>

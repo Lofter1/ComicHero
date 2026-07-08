@@ -6,13 +6,20 @@ import {
   updateSeriesFavorite,
 } from '@/api/client.js'
 
-export function useSeries({ activeView, viewMode, error, loadPagedList, metronImportJobs, trackMetronImportJob }) {
+export function useSeries({
+  activeView,
+  viewMode,
+  error,
+  loadPagedList,
+  metronImportJobs,
+  trackMetronImportJob,
+}) {
   const series = ref([])
   const selectedSeries = ref(null)
 
   const visibleSeries = computed(() => series.value)
-  const favoriteVisibleSeries = computed(() => series.value.filter(item => item.favorite))
-  const remainingVisibleSeries = computed(() => series.value.filter(item => !item.favorite))
+  const favoriteVisibleSeries = computed(() => series.value.filter((item) => item.favorite))
+  const remainingVisibleSeries = computed(() => series.value.filter((item) => !item.favorite))
   const seriesBrowseSections = computed(() => {
     if (!favoriteVisibleSeries.value.length) {
       return [{ key: 'all', title: 'All Series', series: series.value }]
@@ -20,7 +27,7 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
     return [
       { key: 'favorites', title: 'Favorites', series: favoriteVisibleSeries.value },
       { key: 'other', title: 'Other Series', series: remainingVisibleSeries.value },
-    ].filter(section => section.series.length)
+    ].filter((section) => section.series.length)
   })
 
   async function openSeries(item) {
@@ -45,7 +52,7 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
   }
 
   function applySeriesFavoriteState(detail) {
-    series.value = series.value.map(item => {
+    series.value = series.value.map((item) => {
       return item.id === detail.id ? { ...item, favorite: detail.favorite } : item
     })
 
@@ -68,10 +75,12 @@ export function useSeries({ activeView, viewMode, error, loadPagedList, metronIm
 
   function seriesImportRunning(item) {
     if (!item?.id) return false
-    return metronImportJobs.value.some(job => {
-      return job.type === 'series'
-        && (job.status === 'queued' || job.status === 'running' || job.status === 'canceling')
-        && (job.metronId === item.metronSeriesId || job.displayName === item.name)
+    return metronImportJobs.value.some((job) => {
+      return (
+        job.type === 'series' &&
+        (job.status === 'queued' || job.status === 'running' || job.status === 'canceling') &&
+        (job.metronId === item.metronSeriesId || job.displayName === item.name)
+      )
     })
   }
 

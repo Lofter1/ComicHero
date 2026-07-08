@@ -14,7 +14,7 @@ export function arcFormFromDetail(detail) {
     name: detail.name,
     description: detail.description,
     favorite: detail.favorite,
-    comics: (detail.comics || []).map(comic => ({
+    comics: (detail.comics || []).map((comic) => ({
       comicId: comic.id,
       comment: comic.comment || '',
     })),
@@ -32,8 +32,8 @@ export function arcPayload(arc) {
 export function arcComicsPayload(arc) {
   return {
     comics: arc.comics
-      .filter(comic => Number(comic.comicId) > 0)
-      .map(comic => ({
+      .filter((comic) => Number(comic.comicId) > 0)
+      .map((comic) => ({
         comicId: Number(comic.comicId),
         comment: comic.comment,
       })),

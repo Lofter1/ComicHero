@@ -76,7 +76,11 @@ function characterProgress(character) {
         </header>
 
         <div v-if="selectedCharacter.image" class="character-portrait">
-          <img :src="assetURL(selectedCharacter.image)" :alt="`${selectedCharacter.name} portrait`" loading="lazy" />
+          <img
+            :src="assetURL(selectedCharacter.image)"
+            :alt="`${selectedCharacter.name} portrait`"
+            loading="lazy"
+          />
         </div>
 
         <div class="metadata-grid">

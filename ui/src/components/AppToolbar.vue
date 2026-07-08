@@ -52,7 +52,6 @@ defineProps({
     default: 0,
   },
 })
-
 </script>
 
 <template>
@@ -60,7 +59,10 @@ defineProps({
     <div>
       <p class="eyebrow">{{ labels[activeView].eyebrow }}</p>
       <h2>{{ labels[activeView].title }}</h2>
-      <p v-if="!['metron', 'users', 'account', 'progress'].includes(activeView)" class="toolbar-summary">
+      <p
+        v-if="!['metron', 'users', 'account', 'progress'].includes(activeView)"
+        class="toolbar-summary"
+      >
         Showing {{ resultCount }} of {{ totalCount }}
       </p>
     </div>

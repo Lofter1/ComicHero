@@ -38,7 +38,9 @@ async function requestWithMeta(path, options = {}) {
       // Keep the status-based message for empty error responses.
     }
     if (response.status === 429) {
-      message = resetLabel(rateLimit) ? `Metron rate limit reached. Try again ${resetLabel(rateLimit)}.` : message
+      message = resetLabel(rateLimit)
+        ? `Metron rate limit reached. Try again ${resetLabel(rateLimit)}.`
+        : message
     }
     throw new ApiError(message, { status: response.status, rateLimit })
   }
@@ -352,7 +354,10 @@ export function continueMetronImportJob(id) {
 }
 
 export function updateComicFromMetron(id, metronIssueId, options = {}) {
-  return sendWithMeta(`/comics/${id}/metron`, 'PATCH', { metronIssueId, force: Boolean(options.force) })
+  return sendWithMeta(`/comics/${id}/metron`, 'PATCH', {
+    metronIssueId,
+    force: Boolean(options.force),
+  })
 }
 
 export function searchMetronReadingLists(params) {

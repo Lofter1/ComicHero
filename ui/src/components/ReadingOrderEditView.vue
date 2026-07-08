@@ -29,7 +29,7 @@ const emit = defineEmits(['update:form', 'back', 'delete', 'save'])
 
 const formModel = computed({
   get: () => props.form,
-  set: value => emit('update:form', value),
+  set: (value) => emit('update:form', value),
 })
 </script>
 
@@ -42,10 +42,21 @@ const formModel = computed({
         <h2>{{ form.id ? 'Edit reading order' : 'New reading order' }}</h2>
       </div>
       <div class="editor-actions">
-        <button v-if="form.id" type="button" class="danger-button" :disabled="saving" @click="$emit('delete')">
+        <button
+          v-if="form.id"
+          type="button"
+          class="danger-button"
+          :disabled="saving"
+          @click="$emit('delete')"
+        >
           Delete
         </button>
-        <button class="primary-button" type="submit" form="reading-order-editor-form" :disabled="saving">
+        <button
+          class="primary-button"
+          type="submit"
+          form="reading-order-editor-form"
+          :disabled="saving"
+        >
           {{ saving ? 'Saving...' : 'Save Reading Order' }}
         </button>
       </div>

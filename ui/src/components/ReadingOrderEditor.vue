@@ -35,13 +35,20 @@ let comicSearchRequestId = 0
 
 const orderEntries = computed(() => props.form.entries || props.form.comics || [])
 
-watch(() => props.form.id, () => {
-  expandedEntryKeys.value = new Set()
-})
+watch(
+  () => props.form.id,
+  () => {
+    expandedEntryKeys.value = new Set()
+  },
+)
 
-watch(comicSearch, () => {
-  queueComicSearch()
-}, { immediate: true })
+watch(
+  comicSearch,
+  () => {
+    queueComicSearch()
+  },
+  { immediate: true },
+)
 
 onBeforeUnmount(() => {
   clearTimeout(comicSearchTimer)
@@ -83,20 +90,22 @@ async function searchComicsForReadingOrder() {
 }
 
 const childOrderChoices = computed(() => {
-  const selected = new Set(orderEntries.value
-    .filter(entry => entry.type === 'readingOrder')
-    .map(entry => Number(entry.readingOrderId)))
+  const selected = new Set(
+    orderEntries.value
+      .filter((entry) => entry.type === 'readingOrder')
+      .map((entry) => Number(entry.readingOrderId)),
+  )
 
   const term = readingOrderSearch.value.trim().toLowerCase()
 
   return props.readingOrders
-    .filter(order => order.id !== props.form.id && !selected.has(order.id))
-    .filter(order => {
+    .filter((order) => order.id !== props.form.id && !selected.has(order.id))
+    .filter((order) => {
       if (!term) return true
 
       return [order.name, order.description]
         .filter(Boolean)
-        .some(value => String(value).toLowerCase().includes(term))
+        .some((value) => String(value).toLowerCase().includes(term))
     })
     .slice(0, 6)
 })
@@ -215,7 +224,10 @@ function dropAt(event, index) {
     return
   }
 
-  const fromIndex = Number(event.dataTransfer.getData('application/x-comichero-move') || event.dataTransfer.getData('text/plain'))
+  const fromIndex = Number(
+    event.dataTransfer.getData('application/x-comichero-move') ||
+      event.dataTransfer.getData('text/plain'),
+  )
 
   if (Number.isFinite(fromIndex)) {
     moveEntryTo(fromIndex, index)
@@ -227,7 +239,11 @@ function dropAt(event, index) {
 function overDropZone(event, index) {
   event.preventDefault()
   dragOverIndex.value = index
-  event.dataTransfer.dropEffect = Array.from(event.dataTransfer.types).includes('application/x-comichero-entry') ? 'copy' : 'move'
+  event.dataTransfer.dropEffect = Array.from(event.dataTransfer.types).includes(
+    'application/x-comichero-entry',
+  )
+    ? 'copy'
+    : 'move'
 }
 
 function moveEntryTo(fromIndex, insertIndex) {
@@ -235,7 +251,10 @@ function moveEntryTo(fromIndex, insertIndex) {
 
   const entries = [...orderEntries.value]
   const [entry] = entries.splice(fromIndex, 1)
-  const targetIndex = Math.max(0, Math.min(fromIndex < insertIndex ? insertIndex - 1 : insertIndex, entries.length))
+  const targetIndex = Math.max(
+    0,
+    Math.min(fromIndex < insertIndex ? insertIndex - 1 : insertIndex, entries.length),
+  )
 
   entries.splice(targetIndex, 0, entry)
   updateForm({ entries })
@@ -303,7 +322,11 @@ function endDrag() {
 
     <label>
       Description
-      <textarea :value="form.description" rows="3" @input="updateForm({ description: $event.target.value })" />
+      <textarea
+        :value="form.description"
+        rows="3"
+        @input="updateForm({ description: $event.target.value })"
+      />
     </label>
 
     <div class="reading-order-editor-layout">
@@ -314,8 +337,20 @@ function endDrag() {
           </div>
 
           <div class="add-entry-tabs" role="tablist" aria-label="Entry source">
-            <button type="button" :class="{ active: activeAddType === 'comic' }" @click="activeAddType = 'comic'">Issues</button>
-            <button type="button" :class="{ active: activeAddType === 'readingOrder' }" @click="activeAddType = 'readingOrder'">Reading Orders</button>
+            <button
+              type="button"
+              :class="{ active: activeAddType === 'comic' }"
+              @click="activeAddType = 'comic'"
+            >
+              Issues
+            </button>
+            <button
+              type="button"
+              :class="{ active: activeAddType === 'readingOrder' }"
+              @click="activeAddType = 'readingOrder'"
+            >
+              Reading Orders
+            </button>
           </div>
 
           <div v-if="activeAddType === 'comic'" class="comic-add-panel">
@@ -326,7 +361,14 @@ function endDrag() {
                 placeholder="Search title, series, issue, publisher, status"
                 @keydown.enter.prevent
               />
-              <button v-if="comicSearch" class="ghost-button" type="button" @click="clearComicSearch">Clear</button>
+              <button
+                v-if="comicSearch"
+                class="ghost-button"
+                type="button"
+                @click="clearComicSearch"
+              >
+                Clear
+              </button>
             </div>
 
             <p v-if="comicSearchLoading" class="muted">Searching comics...</p>
@@ -356,7 +398,10 @@ function endDrag() {
             <p v-else class="muted">No comics match that search.</p>
           </div>
 
-          <div v-if="activeAddType === 'readingOrder' && readingOrders.length" class="comic-add-panel">
+          <div
+            v-if="activeAddType === 'readingOrder' && readingOrders.length"
+            class="comic-add-panel"
+          >
             <div class="comic-add-search">
               <input
                 v-model="readingOrderSearch"
@@ -364,7 +409,14 @@ function endDrag() {
                 placeholder="Search reading orders"
                 @keydown.enter.prevent
               />
-              <button v-if="readingOrderSearch" class="ghost-button" type="button" @click="readingOrderSearch = ''">Clear</button>
+              <button
+                v-if="readingOrderSearch"
+                class="ghost-button"
+                type="button"
+                @click="readingOrderSearch = ''"
+              >
+                Clear
+              </button>
             </div>
 
             <div v-if="childOrderChoices.length" class="comic-add-results">
@@ -390,7 +442,9 @@ function endDrag() {
             <p v-else class="muted">No reading orders match that search.</p>
           </div>
 
-          <div v-else-if="activeAddType === 'readingOrder'" class="empty-state">No reading orders available to include.</div>
+          <div v-else-if="activeAddType === 'readingOrder'" class="empty-state">
+            No reading orders available to include.
+          </div>
         </section>
       </div>
 
@@ -428,7 +482,11 @@ function endDrag() {
                 expanded: isEntryExpanded(entry, index),
               }"
             >
-              <button type="button" class="selected-order-comic entry-summary-button" @click="toggleEntry(entry, index)">
+              <button
+                type="button"
+                class="selected-order-comic entry-summary-button"
+                @click="toggleEntry(entry, index)"
+              >
                 <span class="entry-drag-cell">
                   <span
                     class="drag-handle"
@@ -458,12 +516,26 @@ function endDrag() {
                 </span>
 
                 <span class="mobile-reorder" @click.stop>
-                  <button type="button" :disabled="index === 0" @click="moveEntry(index, -1)">Up</button>
-                  <button type="button" :disabled="index === orderEntries.length - 1" @click="moveEntry(index, 1)">Down</button>
+                  <button type="button" :disabled="index === 0" @click="moveEntry(index, -1)">
+                    Up
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="index === orderEntries.length - 1"
+                    @click="moveEntry(index, 1)"
+                  >
+                    Down
+                  </button>
                 </span>
               </button>
 
-              <button type="button" class="remove-entry-button" :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`" title="Remove" @click="removeEntry(index)">
+              <button
+                type="button"
+                class="remove-entry-button"
+                :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`"
+                title="Remove"
+                @click="removeEntry(index)"
+              >
                 <span aria-hidden="true">×</span>
               </button>
 
@@ -474,7 +546,11 @@ function endDrag() {
                     :value="entry.comment"
                     rows="3"
                     aria-label="Entry comment"
-                    :placeholder="entry.type === 'readingOrder' ? 'Optional note for this reading order' : 'Optional note for this spot'"
+                    :placeholder="
+                      entry.type === 'readingOrder'
+                        ? 'Optional note for this reading order'
+                        : 'Optional note for this spot'
+                    "
                     @input="updateEntry(index, { comment: $event.target.value })"
                   />
                 </label>

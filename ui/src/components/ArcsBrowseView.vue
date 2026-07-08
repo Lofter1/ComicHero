@@ -47,7 +47,14 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-arc', 'toggle-favorite'])
+defineEmits([
+  'update:search',
+  'update:filter',
+  'update:sort',
+  'update:direction',
+  'open-arc',
+  'toggle-favorite',
+])
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -60,7 +67,6 @@ const visibleSections = computed(() => {
   if (props.filter === 'other') return sectionList('Other Arcs', visibleArcs.value)
   return sectionList('All Arcs', visibleArcs.value)
 })
-const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
 
 function sectionList(title, arcs) {
   return arcs.length ? [{ key: props.filter, title, arcs }] : []
@@ -110,9 +116,9 @@ function sectionList(title, arcs) {
                   </span>
                 </button>
                 <button
+                  v-if="!readOnly"
                   type="button"
                   class="favorite-toggle"
-                  v-if="!readOnly"
                   :class="{ active: arc.favorite }"
                   :disabled="quickSavingArcId === arc.id"
                   :aria-label="arc.favorite ? 'Remove from favorites' : 'Add to favorites'"

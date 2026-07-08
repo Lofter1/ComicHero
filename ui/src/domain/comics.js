@@ -27,7 +27,7 @@ export function comicPayload(comic) {
 }
 
 export function comicLabel(comics, comicID) {
-  const comic = comics.find(item => item.id === Number(comicID))
+  const comic = comics.find((item) => item.id === Number(comicID))
   if (!comic) return 'Unknown comic'
   return comic.title
 }

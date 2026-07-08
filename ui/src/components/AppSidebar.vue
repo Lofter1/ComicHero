@@ -44,7 +44,9 @@ const emit = defineEmits(['change-view', 'set-theme', 'login', 'logout'])
 const menuOpen = ref(false)
 const accountMenuOpen = ref(false)
 
-const userInitial = computed(() => (props.user?.name || '?').trim().slice(0, 1).toUpperCase() || '?')
+const userInitial = computed(
+  () => (props.user?.name || '?').trim().slice(0, 1).toUpperCase() || '?',
+)
 
 function changeView(view) {
   emit('change-view', view)
@@ -94,7 +96,10 @@ function toggleAccountMenu() {
     </div>
 
     <nav id="primary-navigation" class="nav-tabs" aria-label="Primary">
-      <button :class="{ active: activeView === 'readingOrders' }" @click="changeView('readingOrders')">
+      <button
+        :class="{ active: activeView === 'readingOrders' }"
+        @click="changeView('readingOrders')"
+      >
         <span>Orders</span>
       </button>
       <button :class="{ active: activeView === 'arcs' }" @click="changeView('arcs')">
@@ -103,7 +108,11 @@ function toggleAccountMenu() {
       <button :class="{ active: activeView === 'comics' }" @click="changeView('comics')">
         <span>Comics</span>
       </button>
-      <button v-if="user" :class="{ active: activeView === 'progress' }" @click="changeView('progress')">
+      <button
+        v-if="user"
+        :class="{ active: activeView === 'progress' }"
+        @click="changeView('progress')"
+      >
         <span>Progress</span>
       </button>
       <button :class="{ active: activeView === 'series' }" @click="changeView('series')">
@@ -112,7 +121,11 @@ function toggleAccountMenu() {
       <button :class="{ active: activeView === 'characters' }" @click="changeView('characters')">
         <span>Characters</span>
       </button>
-      <button v-if="showMetron" :class="{ active: activeView === 'metron' }" @click="changeView('metron')">
+      <button
+        v-if="showMetron"
+        :class="{ active: activeView === 'metron' }"
+        @click="changeView('metron')"
+      >
         <span>Metron</span>
       </button>
     </nav>
@@ -182,7 +195,12 @@ function toggleAccountMenu() {
             <span aria-hidden="true">%</span>
             <span>Progress</span>
           </button>
-          <button v-if="isAdmin" type="button" class="account-menu-item" @click="changeView('users')">
+          <button
+            v-if="isAdmin"
+            type="button"
+            class="account-menu-item"
+            @click="changeView('users')"
+          >
             <span aria-hidden="true">⚙</span>
             <span>Manage users</span>
           </button>
@@ -203,7 +221,6 @@ function toggleAccountMenu() {
         <span>Read-only library</span>
         <button type="button" class="secondary-action" @click="login">Log in</button>
       </div>
-
     </div>
   </aside>
 </template>

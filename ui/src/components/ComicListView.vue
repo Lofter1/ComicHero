@@ -95,12 +95,22 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['open-comic', 'toggle-read', 'update:search', 'update:status', 'update:sort', 'update:direction', 'new-comic'])
+const emit = defineEmits([
+  'open-comic',
+  'toggle-read',
+  'update:search',
+  'update:status',
+  'update:sort',
+  'update:direction',
+  'new-comic',
+])
 
 const localSearch = ref('')
 const localStatus = ref('all')
 const tag = ref('all')
-const localSort = ref(props.showReadingOrderSort ? props.initialSort : normalizeSort(props.initialSort))
+const localSort = ref(
+  props.showReadingOrderSort ? props.initialSort : normalizeSort(props.initialSort),
+)
 const localDirection = ref('asc')
 const visibleLimit = ref(props.localPageSize)
 const loadMoreSentinel = ref(null)
@@ -125,7 +135,7 @@ const searchText = computed({
 const searchTerm = computed(() => searchText.value.trim().toLowerCase())
 
 const statusModel = computed({
-  get: () => props.status == null ? localStatus.value : props.status,
+  get: () => (props.status == null ? localStatus.value : props.status),
   set(value) {
     if (props.status == null) {
       localStatus.value = value
@@ -151,7 +161,7 @@ const sortModel = computed({
 })
 
 const directionModel = computed({
-  get: () => props.direction == null ? localDirection.value : props.direction,
+  get: () => (props.direction == null ? localDirection.value : props.direction),
   set(value) {
     if (props.direction == null) {
       localDirection.value = value
@@ -169,7 +179,7 @@ const serverHasMore = ref(false)
 const serverLoading = ref(false)
 
 const effectiveServerMode = computed(() => props.serverSearch || props.serverSource)
-const sourceComics = computed(() => props.serverSource ? serverComics.value : props.comics)
+const sourceComics = computed(() => (props.serverSource ? serverComics.value : props.comics))
 
 // In server-source mode, serverComics is fetched independently of the
 // `comics` prop. The parent already updates the read status of the
@@ -178,31 +188,43 @@ const sourceComics = computed(() => props.serverSource ? serverComics.value : pr
 // serverComics so the visible list actually reflects it instead of only
 // the parent's own copy of the data.
 watch(
-  () => props.serverSource ? props.comics.map(comic => `${comic.id}:${comic.read ? 1 : 0}`).join('|') : '',
+  () =>
+    props.serverSource
+      ? props.comics.map((comic) => `${comic.id}:${comic.read ? 1 : 0}`).join('|')
+      : '',
   () => {
     if (!props.serverSource) return
-    const readById = new Map(props.comics.map(comic => [comic.id, Boolean(comic.read)]))
-    serverComics.value = serverComics.value.map(comic => {
+    const readById = new Map(props.comics.map((comic) => [comic.id, Boolean(comic.read)]))
+    serverComics.value = serverComics.value.map((comic) => {
       const read = readById.get(comic.id)
       return read !== undefined && read !== comic.read ? { ...comic, read } : comic
     })
-  }
+  },
 )
 const sourceParamsKey = computed(() => JSON.stringify(props.sourceParams || {}))
 
 const filteredComics = computed(() => {
-  const filtered = sourceComics.value.filter(comic => {
+  const filtered = sourceComics.value.filter((comic) => {
     if (!effectiveServerMode.value) {
       if (statusModel.value === 'read' && !comic.read) return false
       if (statusModel.value === 'unread' && comic.read) return false
-      if (tag.value !== 'all' && !comicTags(comic).some(item => item.toLowerCase() === tag.value)) return false
+      if (tag.value !== 'all' && !comicTags(comic).some((item) => item.toLowerCase() === tag.value))
+        return false
     }
 
     if (effectiveServerMode.value || !searchTerm.value) return true
 
-    return [comic.title, comic.series, comic.issue, comic.publisher, comic.coverDate, comic.comment, comic.tags]
-      .filter(value => value !== undefined && value !== null && value !== '')
-      .some(value => String(value).toLowerCase().includes(searchTerm.value))
+    return [
+      comic.title,
+      comic.series,
+      comic.issue,
+      comic.publisher,
+      comic.coverDate,
+      comic.comment,
+      comic.tags,
+    ]
+      .filter((value) => value !== undefined && value !== null && value !== '')
+      .some((value) => String(value).toLowerCase().includes(searchTerm.value))
   })
 
   if (effectiveServerMode.value) return filtered
@@ -227,8 +249,8 @@ const visibleComics = computed(() => {
 const tagOptions = computed(() => {
   const seen = new Set()
 
-  sourceComics.value.forEach(comic => {
-    comicTags(comic).forEach(item => {
+  sourceComics.value.forEach((comic) => {
+    comicTags(comic).forEach((item) => {
       const value = item.trim()
       if (value) seen.add(value)
     })
@@ -237,9 +259,16 @@ const tagOptions = computed(() => {
   return [...seen].sort((a, b) => compareText(a, b))
 })
 
-const readCount = computed(() => sourceComics.value.filter(comic => comic.read).length)
-const hasFilters = computed(() => searchTerm.value || statusModel.value !== 'all' || (!effectiveServerMode.value && tag.value !== 'all'))
-const totalComics = computed(() => props.serverSource ? serverTotal.value : (props.totalCount ?? props.comics.length))
+const readCount = computed(() => sourceComics.value.filter((comic) => comic.read).length)
+const hasFilters = computed(
+  () =>
+    searchTerm.value ||
+    statusModel.value !== 'all' ||
+    (!effectiveServerMode.value && tag.value !== 'all'),
+)
+const totalComics = computed(() =>
+  props.serverSource ? serverTotal.value : (props.totalCount ?? props.comics.length),
+)
 
 const summaryText = computed(() => {
   const loaded = sourceComics.value.length
@@ -252,9 +281,18 @@ const summaryText = computed(() => {
   return `${loaded} of ${total} loaded · ${readCount.value} loaded read`
 })
 
-const canLoadMoreServer = computed(() => props.serverSource && serverHasMore.value && !serverLoading.value)
-const canLoadMoreLocal = computed(() => !props.serverSource && props.paginateLocal && visibleComics.value.length < filteredComics.value.length)
-const showManualLoadMore = computed(() => (canLoadMoreLocal.value || canLoadMoreServer.value) && !autoLoadSupported.value)
+const canLoadMoreServer = computed(
+  () => props.serverSource && serverHasMore.value && !serverLoading.value,
+)
+const canLoadMoreLocal = computed(
+  () =>
+    !props.serverSource &&
+    props.paginateLocal &&
+    visibleComics.value.length < filteredComics.value.length,
+)
+const showManualLoadMore = computed(
+  () => (canLoadMoreLocal.value || canLoadMoreServer.value) && !autoLoadSupported.value,
+)
 
 function normalizeSort(sort) {
   if (sort === 'readingOrder' && !props.showReadingOrderSort) return 'series'
@@ -271,22 +309,26 @@ function compareComics(a, b, mode) {
   return compareSeries(a, b)
 }
 
-
 function compareSeries(a, b) {
-  return compareText(a.series, b.series)
-    || (a.seriesYear ?? 0) - (b.seriesYear ?? 0)
-    || compareText(a.issue, b.issue)
-    || compareText(a.title, b.title)
+  return (
+    compareText(a.series, b.series) ||
+    (a.seriesYear ?? 0) - (b.seriesYear ?? 0) ||
+    compareText(a.issue, b.issue) ||
+    compareText(a.title, b.title)
+  )
 }
 
 function compareText(a, b) {
-  return String(a || '').localeCompare(String(b || ''), undefined, { numeric: true, sensitivity: 'base' })
+  return String(a || '').localeCompare(String(b || ''), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  })
 }
 
 function comicTags(comic) {
   return String(comic.tags || '')
     .split(',')
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean)
 }
 
@@ -340,11 +382,14 @@ function setupLoadMoreObserver() {
   if (typeof IntersectionObserver === 'undefined') return
 
   autoLoadSupported.value = true
-  loadMoreObserver = new IntersectionObserver((entries) => {
-    if (entries.some(entry => entry.isIntersecting)) {
-      loadMoreLocal()
-    }
-  }, { rootMargin: '320px 0px' })
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        loadMoreLocal()
+      }
+    },
+    { rootMargin: '320px 0px' },
+  )
 
   observeLoadMoreSentinel()
 }
@@ -396,25 +441,54 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <small>{{ summaryText }}</small>
         </div>
 
-        <button v-if="showNewButton && !readOnly" class="primary-button" type="button" @click="$emit('new-comic')">New Comic</button>
+        <button
+          v-if="showNewButton && !readOnly"
+          class="primary-button"
+          type="button"
+          @click="$emit('new-comic')"
+        >
+          New Comic
+        </button>
       </header>
 
       <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
         <div class="inline-filter-tabs" role="tablist" aria-label="Issue read status filter">
-          <button type="button" :class="{ active: statusModel === 'all' }" role="tab" :aria-selected="statusModel === 'all'" @click="statusModel = 'all'">
+          <button
+            type="button"
+            :class="{ active: statusModel === 'all' }"
+            role="tab"
+            :aria-selected="statusModel === 'all'"
+            @click="statusModel = 'all'"
+          >
             All
           </button>
-          <button type="button" :class="{ active: statusModel === 'unread' }" role="tab" :aria-selected="statusModel === 'unread'" @click="statusModel = 'unread'">
+          <button
+            type="button"
+            :class="{ active: statusModel === 'unread' }"
+            role="tab"
+            :aria-selected="statusModel === 'unread'"
+            @click="statusModel = 'unread'"
+          >
             Unread
           </button>
-          <button type="button" :class="{ active: statusModel === 'read' }" role="tab" :aria-selected="statusModel === 'read'" @click="statusModel = 'read'">
+          <button
+            type="button"
+            :class="{ active: statusModel === 'read' }"
+            role="tab"
+            :aria-selected="statusModel === 'read'"
+            @click="statusModel = 'read'"
+          >
             Read
           </button>
         </div>
 
-        <select v-if="!effectiveServerMode && tagOptions.length" v-model="tag" aria-label="Filter by tag">
+        <select
+          v-if="!effectiveServerMode && tagOptions.length"
+          v-model="tag"
+          aria-label="Filter by tag"
+        >
           <option value="all">All Tags</option>
           <option v-for="option in tagOptions" :key="option" :value="option.toLowerCase()">
             {{ option }}
@@ -457,9 +531,19 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         />
       </div>
 
-      <div v-if="canLoadMoreLocal || canLoadMoreServer" ref="loadMoreSentinel" class="issue-list-sentinel" aria-hidden="true"></div>
+      <div
+        v-if="canLoadMoreLocal || canLoadMoreServer"
+        ref="loadMoreSentinel"
+        class="issue-list-sentinel"
+        aria-hidden="true"
+      ></div>
 
-      <button v-if="showManualLoadMore" class="ghost-button load-more-button" type="button" @click="loadMoreLocal">
+      <button
+        v-if="showManualLoadMore"
+        class="ghost-button load-more-button"
+        type="button"
+        @click="loadMoreLocal"
+      >
         Load more
       </button>
     </template>

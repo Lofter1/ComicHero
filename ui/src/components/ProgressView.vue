@@ -43,9 +43,7 @@ function achievementTimestampLabel(achievement) {
 
 <template>
   <section class="browse-view progress-view">
-    <div v-if="loading && !statisticsView" class="empty-state">
-      Loading progress...
-    </div>
+    <div v-if="loading && !statisticsView" class="empty-state">Loading progress...</div>
     <div v-else-if="error" class="empty-state">
       {{ error }}
     </div>
@@ -56,7 +54,12 @@ function achievementTimestampLabel(achievement) {
             <p class="eyebrow">Progress</p>
             <h3>Reading progress</h3>
           </div>
-          <button class="secondary-button compact-button" type="button" :disabled="loading" @click="emit('refresh')">
+          <button
+            class="secondary-button compact-button"
+            type="button"
+            :disabled="loading"
+            @click="emit('refresh')"
+          >
             {{ loading ? 'Refreshing...' : 'Refresh' }}
           </button>
         </div>
@@ -120,7 +123,9 @@ function achievementTimestampLabel(achievement) {
             :class="{ earned: achievement.earned }"
           >
             <div class="achievement-card-heading">
-              <span class="achievement-badge" aria-hidden="true">{{ achievement.earned ? 'OK' : '--' }}</span>
+              <span class="achievement-badge" aria-hidden="true">{{
+                achievement.earned ? 'OK' : '--'
+              }}</span>
               <div>
                 <strong>{{ achievement.name }}</strong>
                 <small>{{ achievement.category }}</small>
@@ -128,7 +133,10 @@ function achievementTimestampLabel(achievement) {
             </div>
             <p>{{ achievement.description }}</p>
             <div class="achievement-progress">
-              <span>{{ Math.min(achievement.progress, achievement.target) }} / {{ achievement.target }}</span>
+              <span
+                >{{ Math.min(achievement.progress, achievement.target) }} /
+                {{ achievement.target }}</span
+              >
               <div class="progress-track" aria-hidden="true">
                 <span :style="{ width: percentLabel(achievement.percent) }"></span>
               </div>
@@ -136,9 +144,7 @@ function achievementTimestampLabel(achievement) {
             </div>
           </article>
         </div>
-        <div v-else class="empty-state">
-          No achievements yet.
-        </div>
+        <div v-else class="empty-state">No achievements yet.</div>
       </article>
     </template>
   </section>

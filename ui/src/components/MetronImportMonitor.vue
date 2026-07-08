@@ -63,13 +63,14 @@ function isActiveJob(job) {
 }
 
 function jobTitle(job) {
-  const type = job.type === 'readingList'
-    ? 'Reading list'
-    : job.type === 'character'
-      ? 'Character'
-      : job.type === 'arc'
-        ? 'Arc'
-        : job.type
+  const type =
+    job.type === 'readingList'
+      ? 'Reading list'
+      : job.type === 'character'
+        ? 'Character'
+        : job.type === 'arc'
+          ? 'Arc'
+          : job.type
   return job.displayName ? `${type} import for ${job.displayName}` : `${type} import`
 }
 
@@ -82,12 +83,7 @@ function jobMessage(job) {
 </script>
 
 <template>
-  <div
-    v-if="jobs.length"
-    class="import-monitor"
-    :class="{ collapsed: !open }"
-    aria-live="polite"
-  >
+  <div v-if="jobs.length" class="import-monitor" :class="{ collapsed: !open }" aria-live="polite">
     <header>
       <button
         class="import-monitor-toggle"
@@ -106,7 +102,11 @@ function jobMessage(job) {
           <strong>{{ jobTitle(job) }}</strong>
           <small>{{ jobMessage(job) }}</small>
           <small>{{ progressLabel(job) }}</small>
-          <span class="job-progress" :class="{ indeterminate: progressIndeterminate(job) }" aria-hidden="true">
+          <span
+            class="job-progress"
+            :class="{ indeterminate: progressIndeterminate(job) }"
+            aria-hidden="true"
+          >
             <span :style="{ width: `${progressPercent(job)}%` }"></span>
           </span>
         </span>
@@ -122,10 +122,20 @@ function jobMessage(job) {
           >
             <span aria-hidden="true" class="button-icon">↻</span>
           </button>
-          <button v-if="canContinue(job)" class="ghost-button" type="button" @click="$emit('continue', job)">
+          <button
+            v-if="canContinue(job)"
+            class="ghost-button"
+            type="button"
+            @click="$emit('continue', job)"
+          >
             Continue
           </button>
-          <button v-if="canCancel(job)" class="ghost-button" type="button" @click="$emit('cancel', job.id)">
+          <button
+            v-if="canCancel(job)"
+            class="ghost-button"
+            type="button"
+            @click="$emit('cancel', job.id)"
+          >
             Cancel
           </button>
           <button

@@ -33,7 +33,7 @@ defineEmits(['open', 'toggle-read'])
 function entryTags() {
   return String(props.comic.tags || '')
     .split(',')
-    .map(tag => tag.trim())
+    .map((tag) => tag.trim())
     .filter(Boolean)
 }
 </script>
@@ -53,7 +53,10 @@ function entryTags() {
         <span v-if="showComment && entryTags().length" class="entry-tags">
           <span v-for="tag in entryTags()" :key="tag">{{ tag }}</span>
         </span>
-        <small v-if="!showComment || (!comic.comment && !comic.tags)">{{ comic.publisher || 'Unknown publisher' }} · {{ comic.coverDate || 'Unknown date' }}</small>
+        <small v-if="!showComment || (!comic.comment && !comic.tags)"
+          >{{ comic.publisher || 'Unknown publisher' }} ·
+          {{ comic.coverDate || 'Unknown date' }}</small
+        >
       </span>
     </button>
 

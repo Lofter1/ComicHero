@@ -65,19 +65,18 @@ function deleteAccount() {
   if (!window.confirm('Delete this account permanently? This cannot be undone.')) return
   emit('delete-account', { currentPassword: deleteForm.currentPassword })
 }
-
 </script>
 
 <template>
   <section class="browse-view account-view">
-    <div v-if="!user" class="empty-panel">
-      No active account.
-    </div>
+    <div v-if="!user" class="empty-panel">No active account.</div>
 
     <form v-else class="account-settings" @submit.prevent="save">
       <article class="account-settings-panel">
         <div class="account-settings-heading">
-          <span class="account-avatar large" aria-hidden="true">{{ (user.name || '?').slice(0, 1).toUpperCase() }}</span>
+          <span class="account-avatar large" aria-hidden="true">{{
+            (user.name || '?').slice(0, 1).toUpperCase()
+          }}</span>
           <div>
             <p class="eyebrow">Profile</p>
             <h3>{{ user.name }}</h3>
@@ -101,7 +100,7 @@ function deleteAccount() {
         <div class="auth-fields">
           <label>
             <span>Display name</span>
-            <input v-model.trim="form.name" type="text" autocomplete="name" required>
+            <input v-model.trim="form.name" type="text" autocomplete="name" required />
           </label>
         </div>
       </article>
@@ -115,15 +114,25 @@ function deleteAccount() {
         <div class="auth-fields">
           <label>
             <span>Current password</span>
-            <input v-model="form.currentPassword" type="password" autocomplete="current-password">
+            <input v-model="form.currentPassword" type="password" autocomplete="current-password" />
           </label>
           <label>
             <span>New password</span>
-            <input v-model="form.newPassword" type="password" autocomplete="new-password" minlength="6">
+            <input
+              v-model="form.newPassword"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+            />
           </label>
           <label>
             <span>Confirm new password</span>
-            <input v-model="form.confirmPassword" type="password" autocomplete="new-password" minlength="6">
+            <input
+              v-model="form.confirmPassword"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+            />
           </label>
         </div>
       </article>
@@ -136,17 +145,30 @@ function deleteAccount() {
         <div>
           <p class="eyebrow">Danger Zone</p>
           <h3>Delete account</h3>
-          <p class="muted">This removes your account, sessions, read status, and Metron permissions. Reading lists you authored stay in the library without an author.</p>
+          <p class="muted">
+            This removes your account, sessions, read status, and Metron permissions. Reading lists
+            you authored stay in the library without an author.
+          </p>
         </div>
 
         <div class="auth-fields">
           <label>
             <span>Current password</span>
-            <input v-model="deleteForm.currentPassword" type="password" autocomplete="current-password" @keydown.enter.prevent="deleteAccount">
+            <input
+              v-model="deleteForm.currentPassword"
+              type="password"
+              autocomplete="current-password"
+              @keydown.enter.prevent="deleteAccount"
+            />
           </label>
         </div>
 
-        <button class="danger-button account-save-button" type="button" :disabled="deleting" @click="deleteAccount">
+        <button
+          class="danger-button account-save-button"
+          type="button"
+          :disabled="deleting"
+          @click="deleteAccount"
+        >
           {{ deleting ? 'Deleting...' : 'Delete account' }}
         </button>
       </article>

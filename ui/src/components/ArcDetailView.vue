@@ -59,7 +59,11 @@ defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
         </header>
 
         <div v-if="selectedArc.image" class="character-portrait">
-          <img :src="assetURL(selectedArc.image)" :alt="`${selectedArc.name} arc artwork`" loading="lazy" />
+          <img
+            :src="assetURL(selectedArc.image)"
+            :alt="`${selectedArc.name} arc artwork`"
+            loading="lazy"
+          />
         </div>
 
         <p class="detail-description">{{ selectedArc.description || 'No description' }}</p>

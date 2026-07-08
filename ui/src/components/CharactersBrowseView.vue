@@ -47,7 +47,14 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-character', 'toggle-favorite'])
+defineEmits([
+  'update:search',
+  'update:filter',
+  'update:sort',
+  'update:direction',
+  'open-character',
+  'toggle-favorite',
+])
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -104,20 +111,26 @@ function characterProgress(character) {
               :class="{ selected: selectedCharacterId === character.id }"
             >
               <span class="order-row-content">
-                <button class="row-main character-row-main" type="button" @click="$emit('open-character', character)">
+                <button
+                  class="row-main character-row-main"
+                  type="button"
+                  @click="$emit('open-character', character)"
+                >
                   <span v-if="character.image" class="character-list-avatar" aria-hidden="true">
                     <img :src="assetURL(character.image)" alt="" loading="lazy" />
                   </span>
                   <span>
                     <strong>{{ character.name }}</strong>
-                    <small v-if="character.aliases?.length">{{ character.aliases.join(', ') }}</small>
+                    <small v-if="character.aliases?.length">{{
+                      character.aliases.join(', ')
+                    }}</small>
                     <small v-else>No aliases saved</small>
                   </span>
                 </button>
                 <button
+                  v-if="!readOnly"
                   type="button"
                   class="favorite-toggle"
-                  v-if="!readOnly"
                   :class="{ active: character.favorite }"
                   :disabled="quickSavingCharacterId === character.id"
                   :aria-label="character.favorite ? 'Remove from favorites' : 'Add to favorites'"

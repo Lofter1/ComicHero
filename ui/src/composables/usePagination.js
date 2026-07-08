@@ -11,7 +11,15 @@ function emptyPageState() {
   }
 }
 
-export function usePagination({ activeView, loading, isEditing, isDetail, searchTerm, listParams, pageSize = 50 } = {}) {
+export function usePagination({
+  activeView,
+  loading,
+  isEditing,
+  isDetail,
+  searchTerm,
+  listParams,
+  pageSize = 50,
+} = {}) {
   const pageState = ref({
     readingOrders: emptyPageState(),
     arcs: emptyPageState(),
@@ -22,12 +30,14 @@ export function usePagination({ activeView, loading, isEditing, isDetail, search
 
   const activePageState = computed(() => pageState.value[activeView.value] || null)
   const showInfiniteScrollSentinel = computed(() => {
-    return Boolean(activePageState.value)
-      && !loading.value
-      && !isEditing.value
-      && !isDetail.value
-      && !activePageState.value.refreshing
-      && (activePageState.value.hasMore || activePageState.value.loadingMore)
+    return (
+      Boolean(activePageState.value) &&
+      !loading.value &&
+      !isEditing.value &&
+      !isDetail.value &&
+      !activePageState.value.refreshing &&
+      (activePageState.value.hasMore || activePageState.value.loadingMore)
+    )
   })
   const activeListLoadingMore = computed(() => Boolean(activePageState.value?.loadingMore))
 
@@ -35,7 +45,12 @@ export function usePagination({ activeView, loading, isEditing, isDetail, search
     return pageState.value[key]?.total ?? 0
   }
 
-  async function loadPagedList(key, target, listFn, { append = false, force = false, all = false } = {}) {
+  async function loadPagedList(
+    key,
+    target,
+    listFn,
+    { append = false, force = false, all = false } = {},
+  ) {
     const state = pageState.value[key]
     if (!state) return
     if (append && (!state.initialized || !state.hasMore || state.loadingMore)) return
@@ -43,7 +58,7 @@ export function usePagination({ activeView, loading, isEditing, isDetail, search
 
     const offset = append ? state.nextOffset : 0
     const isActiveList = key === activeView.value
-    const params = { ...(isActiveList ? (listParams?.value || {}) : {}), limit: pageSize, offset }
+    const params = { ...(isActiveList ? listParams?.value || {} : {}), limit: pageSize, offset }
     if (isActiveList && searchTerm.value) {
       params.q = searchTerm.value
     }

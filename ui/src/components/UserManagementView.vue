@@ -55,7 +55,14 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['save', 'save-admin', 'delete-user', 'update-registration-mode', 'update-public-access', 'generate-invite'])
+const emit = defineEmits([
+  'save',
+  'save-admin',
+  'delete-user',
+  'update-registration-mode',
+  'update-public-access',
+  'generate-invite',
+])
 const drafts = reactive({})
 
 watch(
@@ -135,9 +142,11 @@ function registrationModeLabel(mode) {
           <p class="eyebrow">Registration</p>
           <h3>{{ registrationModeLabel(registrationMode) }}</h3>
           <p class="muted">
-            {{ registrationMode === 'open'
-              ? 'Anyone who can reach this server can register without an invite.'
-              : 'New accounts need a single-use invite token to register.' }}
+            {{
+              registrationMode === 'open'
+                ? 'Anyone who can reach this server can register without an invite.'
+                : 'New accounts need a single-use invite token to register.'
+            }}
           </p>
         </div>
 
@@ -170,12 +179,19 @@ function registrationModeLabel(mode) {
           <p class="eyebrow">Invites</p>
           <h3>Invite a user</h3>
           <p class="muted">
-            {{ registrationMode === 'open'
-              ? 'Open registration is enabled, so invite tokens are optional right now.'
-              : 'Generate a single-use token for a new account.' }}
+            {{
+              registrationMode === 'open'
+                ? 'Open registration is enabled, so invite tokens are optional right now.'
+                : 'Generate a single-use token for a new account.'
+            }}
           </p>
         </div>
-        <button class="primary-button" type="button" :disabled="generatingInvite" @click="$emit('generate-invite')">
+        <button
+          class="primary-button"
+          type="button"
+          :disabled="generatingInvite"
+          @click="$emit('generate-invite')"
+        >
           {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
         </button>
         <div v-if="invite?.token" class="invite-token-box">
@@ -190,9 +206,11 @@ function registrationModeLabel(mode) {
           <p class="eyebrow">Public access</p>
           <h3>{{ publicAccess ? 'Read-only visitors' : 'Private library' }}</h3>
           <p class="muted">
-            {{ publicAccess
-              ? 'Anonymous visitors can browse and export reading orders as CBL.'
-              : 'Anonymous visitors must log in before seeing the library.' }}
+            {{
+              publicAccess
+                ? 'Anonymous visitors can browse and export reading orders as CBL.'
+                : 'Anonymous visitors must log in before seeing the library.'
+            }}
           </p>
         </div>
         <div class="registration-mode-toggle" role="group" aria-label="Public access">
@@ -219,9 +237,7 @@ function registrationModeLabel(mode) {
       </div>
     </section>
 
-    <div v-if="users.length === 0" class="empty-panel">
-      No users yet.
-    </div>
+    <div v-if="users.length === 0" class="empty-panel">No users yet.</div>
 
     <div v-else class="user-permission-list">
       <article v-for="entry in users" :key="entry.user.id" class="user-permission-row">
@@ -244,7 +260,7 @@ function registrationModeLabel(mode) {
                   v-model="draftFor(entry.user.id).isAdmin"
                   type="checkbox"
                   :disabled="entry.user.id === currentUserID"
-                >
+                />
                 <span>Admin user</span>
               </label>
               <button
@@ -275,12 +291,17 @@ function registrationModeLabel(mode) {
             <div class="metron-settings-grid">
               <div class="metron-control-column">
                 <label class="compact-toggle">
-                  <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
+                  <input v-model="draftFor(entry.user.id).allowed" type="checkbox" />
                   <span>{{ draftFor(entry.user.id).allowed ? 'Enabled' : 'Disabled' }}</span>
                 </label>
                 <label class="hourly-limit-field">
                   <span>Hourly endpoint limit</span>
-                  <input v-model.number="draftFor(entry.user.id).hourlyLimit" min="0" step="1" type="number">
+                  <input
+                    v-model.number="draftFor(entry.user.id).hourlyLimit"
+                    min="0"
+                    step="1"
+                    type="number"
+                  />
                   <small>0 means unlimited.</small>
                 </label>
                 <button
@@ -300,16 +321,19 @@ function registrationModeLabel(mode) {
                     type="checkbox"
                     :checked="scopesFor(entry.user.id).includes('*')"
                     @change="toggleAll(entry.user.id, $event.target.checked)"
-                  >
+                  />
                   <span>All endpoints</span>
                 </label>
                 <label v-for="option in scopeOptions" :key="option.value">
                   <input
                     type="checkbox"
-                    :checked="scopesFor(entry.user.id).includes('*') || scopesFor(entry.user.id).includes(option.value)"
+                    :checked="
+                      scopesFor(entry.user.id).includes('*') ||
+                      scopesFor(entry.user.id).includes(option.value)
+                    "
                     :disabled="scopesFor(entry.user.id).includes('*')"
                     @change="toggleScope(entry.user.id, option.value, $event.target.checked)"
-                  >
+                  />
                   <span>{{ option.label }}</span>
                 </label>
               </fieldset>

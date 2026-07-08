@@ -47,8 +47,12 @@ const emit = defineEmits([
   'open-series',
 ])
 
-const metronActionDisabled = computed(() => props.metronMetadataSearching || props.metronMetadataApplyingId !== null)
-const metronActionLabel = computed(() => props.selectedComic?.metronIssueId ? 'Refresh Metron' : 'Get Metron metadata')
+const metronActionDisabled = computed(
+  () => props.metronMetadataSearching || props.metronMetadataApplyingId !== null,
+)
+const metronActionLabel = computed(() =>
+  props.selectedComic?.metronIssueId ? 'Refresh Metron' : 'Get Metron metadata',
+)
 
 function runMetronAction() {
   if (!props.selectedComic) return
@@ -115,7 +119,11 @@ function seriesLabel(comic) {
         </header>
 
         <div v-if="selectedComic.coverImage" class="cover-preview">
-          <img :src="assetURL(selectedComic.coverImage)" :alt="`${selectedComic.title} cover`" loading="lazy" />
+          <img
+            :src="assetURL(selectedComic.coverImage)"
+            :alt="`${selectedComic.title} cover`"
+            loading="lazy"
+          />
         </div>
 
         <div class="metadata-grid">
@@ -141,7 +149,10 @@ function seriesLabel(comic) {
           </span>
         </div>
 
-        <div v-if="!readOnly && (metronMetadataOpen || metronMetadataStatus)" class="metron-metadata-panel">
+        <div
+          v-if="!readOnly && (metronMetadataOpen || metronMetadataStatus)"
+          class="metron-metadata-panel"
+        >
           <header class="section-title">
             <div>
               <p class="eyebrow">Metron</p>
@@ -168,8 +179,14 @@ function seriesLabel(comic) {
               @click="$emit('apply-metron', issue.id)"
             >
               <span>
-                <strong>{{ issue.series }} #{{ issue.number || issue.issue }}: {{ issue.title || 'Untitled issue' }}</strong>
-                <small>{{ issue.publisher || 'Unknown publisher' }} · {{ issue.coverDate || 'Unknown date' }}</small>
+                <strong
+                  >{{ issue.series }} #{{ issue.number || issue.issue }}:
+                  {{ issue.title || 'Untitled issue' }}</strong
+                >
+                <small
+                  >{{ issue.publisher || 'Unknown publisher' }} ·
+                  {{ issue.coverDate || 'Unknown date' }}</small
+                >
               </span>
               <span class="status-pill">
                 {{ metronMetadataApplyingId === issue.id ? 'Applying...' : 'Apply' }}
