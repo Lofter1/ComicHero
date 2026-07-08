@@ -399,7 +399,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         <button v-if="showNewButton && !readOnly" class="primary-button" type="button" @click="$emit('new-comic')">New Comic</button>
       </header>
 
-      <div v-if="sourceComics.length || serverSource" class="comic-list-tools">
+      <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
         <div class="inline-filter-tabs" role="tablist" aria-label="Issue read status filter">
