@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "lint": "eslint src",
+    "format": "prettier --check src",
+    "format:fix": "prettier --write src",
     "dev": "vite --host 127.0.0.1 --clearScreen false",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1"
@@ -12,5 +15,11 @@
     "@vitejs/plugin-vue": "^6.0.7",
     "vite": "^8.1.2",
     "vue": "^3.5.39"
+  },
+  "devDependencies": {
+    "@vue/eslint-config-prettier": "^10.2.0",
+    "eslint": "^10.6.0",
+    "eslint-plugin-vue": "^10.9.2",
+    "prettier": "^3.9.4"
   }
 }

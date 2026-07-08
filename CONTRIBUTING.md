@@ -24,6 +24,7 @@ Thanks for considering a contribution to ComicHero.
 - Add or update tests for backend behavior changes.
 - Run `go test ./...` in `backend` for Go changes.
 - Run `npm --prefix ui run build` for UI changes.
+- Run `make lint`
 - Do not commit local databases, `.env` files, cached covers, build output, or temporary files.
 
 ## Code Style

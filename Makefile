@@ -68,3 +68,9 @@ compose-up:
 
 compose-down:
 	docker compose down
+
+lint: lint-ui
+
+lint-ui:
+	npm --prefix ui run lint
+	npm --prefix ui run format
