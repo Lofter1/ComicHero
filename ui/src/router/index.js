@@ -1,0 +1,179 @@
+import { createRouter, createWebHistory } from 'vue-router'
+
+const EmptyRouteView = {
+  render: () => null,
+}
+
+const appTitle = 'ComicHero'
+const routeAccess = {
+  loaded: false,
+  canAccessMetron: false,
+  isAdmin: false,
+  hasUser: false,
+  readOnlyGuest: false,
+}
+
+export const router = createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/', redirect: { name: 'readingOrders' } },
+    { path: '/readingOrders', redirect: { name: 'readingOrders' } },
+    { path: '/readingOrders/new', redirect: { name: 'readingOrdersNew' } },
+    {
+      path: '/readingOrders/:id',
+      redirect: (to) => ({ name: 'readingOrderDetail', params: { id: to.params.id } }),
+    },
+    {
+      path: '/readingOrders/:id/edit',
+      redirect: (to) => ({ name: 'readingOrderEdit', params: { id: to.params.id } }),
+    },
+    { path: '/achievements', redirect: { name: 'progress' } },
+    {
+      path: '/reading-orders',
+      name: 'readingOrders',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Reading Orders', title: 'Manage reading orders', showCount: true },
+    },
+    {
+      path: '/reading-orders/new',
+      name: 'readingOrdersNew',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Reading Orders', title: 'New reading order' },
+    },
+    {
+      path: '/reading-orders/:id',
+      name: 'readingOrderDetail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Reading Orders', title: 'Reading order' },
+    },
+    {
+      path: '/reading-orders/:id/edit',
+      name: 'readingOrderEdit',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Reading Orders', title: 'Edit reading order' },
+    },
+    {
+      path: '/arcs',
+      name: 'arcs',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Arcs', title: 'Arcs', showCount: true },
+    },
+    {
+      path: '/arcs/new',
+      name: 'arcsNew',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Arcs', title: 'New arc' },
+    },
+    {
+      path: '/arcs/:id',
+      name: 'arcDetail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Arcs', title: 'Arc' },
+    },
+    {
+      path: '/arcs/:id/edit',
+      name: 'arcEdit',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Arcs', title: 'Edit arc' },
+    },
+    {
+      path: '/comics',
+      name: 'comics',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Comics', title: 'Comics', showCount: true },
+    },
+    {
+      path: '/comics/new',
+      name: 'comicsNew',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Comics', title: 'New comic' },
+    },
+    {
+      path: '/comics/:id',
+      name: 'comicDetail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Comics', title: 'Comic' },
+    },
+    {
+      path: '/comics/:id/edit',
+      name: 'comicEdit',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Comics', title: 'Edit comic' },
+    },
+    {
+      path: '/series',
+      name: 'series',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Series', title: 'Series', showCount: true },
+    },
+    {
+      path: '/series/:id',
+      name: 'seriesDetail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Series', title: 'Series' },
+    },
+    {
+      path: '/characters',
+      name: 'characters',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Characters', title: 'Characters', showCount: true },
+    },
+    {
+      path: '/characters/:id',
+      name: 'characterDetail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Characters', title: 'Character' },
+    },
+    {
+      path: '/metron',
+      name: 'metron',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Metron', title: 'Import from Metron', requiresMetron: true },
+    },
+    {
+      path: '/users',
+      name: 'users',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Users', title: 'Manage users', requiresAdmin: true },
+    },
+    {
+      path: '/account',
+      name: 'account',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Account', title: 'Account settings' },
+    },
+    {
+      path: '/progress',
+      name: 'progress',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Progress', title: 'Progress and achievements', requiresUser: true },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'notFound',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Not Found', title: 'Page not found' },
+    },
+  ],
+})
+
+export function setRouteAccessContext(context) {
+  Object.assign(routeAccess, { loaded: true }, context)
+}
+
+export function routeAccessRedirect(to) {
+  if (!routeAccess.loaded) return null
+  if (to.meta.requiresMetron && (!routeAccess.canAccessMetron || routeAccess.readOnlyGuest)) {
+    return { name: 'readingOrders' }
+  }
+  if (to.meta.requiresAdmin && !routeAccess.isAdmin) return { name: 'readingOrders' }
+  if (to.meta.requiresUser && !routeAccess.hasUser) return { name: 'readingOrders' }
+  return null
+}
+
+router.beforeEach((to) => routeAccessRedirect(to) || true)
+
+router.afterEach((to) => {
+  const title = to.meta.title ? `${to.meta.title} - ${appTitle}` : appTitle
+  document.title = title
+})

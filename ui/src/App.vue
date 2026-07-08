@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import AccountView from '@/components/AccountView.vue'
 import ArcDetailView from '@/components/ArcDetailView.vue'
 import ArcsBrowseView from '@/components/ArcsBrowseView.vue'
@@ -25,6 +26,7 @@ import { useMetronJobs } from '@/composables/useMetronJobs.js'
 import { usePagination } from '@/composables/usePagination.js'
 import { useReadingOrders } from '@/composables/useReadingOrders.js'
 import { useSeries } from '@/composables/useSeries.js'
+import { routeAccessRedirect, setRouteAccessContext } from '@/router/index.js'
 import {
   createUserInvite,
   deleteAccount as deleteAccountRequest,
@@ -85,6 +87,8 @@ let loadMoreObserver = null
 let searchDebounceTimer = null
 let themeMediaQuery = null
 let routeSyncPaused = false
+const route = useRoute()
+const router = useRouter()
 
 const searchTerm = computed(() => search.value.trim().toLowerCase())
 const activeListParams = computed(() => {
@@ -103,7 +107,7 @@ const isDetail = computed(() => viewMode.value === 'detail')
 const resolvedTheme = computed(() =>
   themePreference.value === 'system' ? systemTheme.value : themePreference.value,
 )
-const currentRoutePath = computed(() => routeForCurrentState())
+const currentRouteLocation = computed(() => routeLocationForCurrentState())
 
 const { pageState, showInfiniteScrollSentinel, activeListLoadingMore, listTotal, loadPagedList } =
   usePagination({
@@ -221,7 +225,6 @@ const {
   comics,
   selectedComic,
   quickSavingComicID,
-  comicReturnTarget,
   comicForm,
   metronMetadataOpen,
   metronMetadataSearching,
@@ -601,10 +604,22 @@ function handleSystemThemeChange(event) {
   systemTheme.value = event.matches ? 'dark' : 'light'
 }
 
-function normalizeAppPath(pathname) {
-  const path = pathname || '/'
-  if (path === '/') return '/'
-  return path.replace(/\/+$/, '') || '/'
+function syncRouteAccessContext() {
+  if (!userStatus.value) return
+  setRouteAccessContext({
+    canAccessMetron: canAccessMetronArea.value,
+    isAdmin: isAdmin.value,
+    hasUser: Boolean(currentUser.value),
+    readOnlyGuest: isReadOnlyGuest.value,
+  })
+}
+
+async function enforceCurrentRouteAccess() {
+  syncRouteAccessContext()
+  const redirect = routeAccessRedirect(route)
+  if (!redirect) return false
+  await router.replace(redirect)
+  return true
 }
 
 function parseRouteID(value) {
@@ -612,103 +627,109 @@ function parseRouteID(value) {
   return Number.isInteger(id) && id > 0 ? id : null
 }
 
-function parseAppRoute(pathname) {
-  const parts = normalizeAppPath(pathname).split('/').filter(Boolean)
-  if (parts.length === 0) return { view: 'readingOrders', mode: 'browse' }
+function entityRouteState(routeView, detailMode = 'detail') {
+  const id = parseRouteID(route.params.id)
+  if (!id) return { view: routeView, mode: 'browse', replace: true }
+  return { view: routeView, mode: detailMode, id }
+}
 
-  const [section, rawID, action] = parts
-  if (section === 'metron' && parts.length === 1) return { view: 'metron', mode: 'browse' }
-  if (section === 'users' && parts.length === 1) return { view: 'users', mode: 'browse' }
-  if (section === 'account' && parts.length === 1) return { view: 'account', mode: 'browse' }
-  if ((section === 'progress' || section === 'achievements') && parts.length === 1)
-    return { view: 'progress', mode: 'browse' }
-  if (section === 'comics') return parseEntityRoute('comics', rawID, action, parts.length)
-  if (section === 'arcs') return parseEntityRoute('arcs', rawID, action, parts.length)
-  if (section === 'series')
-    return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
-  if (section === 'characters')
-    return parseEntityRoute('characters', rawID, action, parts.length, { canEdit: false })
-  if (section === 'reading-orders' || section === 'readingOrders') {
-    return parseEntityRoute('readingOrders', rawID, action, parts.length)
-  }
+function routeToAppState() {
+  if (route.name === 'readingOrders') return { view: 'readingOrders', mode: 'browse' }
+  if (route.name === 'readingOrdersNew') return { view: 'readingOrders', mode: 'edit', isNew: true }
+  if (route.name === 'readingOrderDetail') return entityRouteState('readingOrders')
+  if (route.name === 'readingOrderEdit') return entityRouteState('readingOrders', 'edit')
+  if (route.name === 'arcs') return { view: 'arcs', mode: 'browse' }
+  if (route.name === 'arcsNew') return { view: 'arcs', mode: 'edit', isNew: true }
+  if (route.name === 'arcDetail') return entityRouteState('arcs')
+  if (route.name === 'arcEdit') return entityRouteState('arcs', 'edit')
+  if (route.name === 'comics') return { view: 'comics', mode: 'browse' }
+  if (route.name === 'comicsNew') return { view: 'comics', mode: 'edit', isNew: true }
+  if (route.name === 'comicDetail') return entityRouteState('comics')
+  if (route.name === 'comicEdit') return entityRouteState('comics', 'edit')
+  if (route.name === 'series') return { view: 'series', mode: 'browse' }
+  if (route.name === 'seriesDetail') return entityRouteState('series')
+  if (route.name === 'characters') return { view: 'characters', mode: 'browse' }
+  if (route.name === 'characterDetail') return entityRouteState('characters')
+  if (route.name === 'metron') return { view: 'metron', mode: 'browse' }
+  if (route.name === 'users') return { view: 'users', mode: 'browse' }
+  if (route.name === 'account') return { view: 'account', mode: 'browse' }
+  if (route.name === 'progress') return { view: 'progress', mode: 'browse' }
+  if (route.name === 'notFound') return { view: 'notFound', mode: 'browse' }
   return { view: 'readingOrders', mode: 'browse', replace: true }
 }
 
-function parseEntityRoute(view, rawID, action, partCount, { canEdit = true } = {}) {
-  if (partCount === 1) return { view, mode: 'browse' }
-  if (rawID === 'new' && canEdit && partCount === 2) return { view, mode: 'edit', isNew: true }
-
-  const id = parseRouteID(rawID)
-  if (!id) return { view, mode: 'browse', replace: true }
-  if (action === undefined && partCount === 2) return { view, mode: 'detail', id }
-  if (action === 'edit' && canEdit && partCount === 3) return { view, mode: 'edit', id }
-  return { view, mode: 'detail', id, replace: true }
+function browseRouteLocation(view) {
+  if (view === 'readingOrders') return { name: 'readingOrders' }
+  if (view === 'arcs') return { name: 'arcs' }
+  if (view === 'comics') return { name: 'comics' }
+  if (view === 'series') return { name: 'series' }
+  if (view === 'characters') return { name: 'characters' }
+  if (view === 'metron') return { name: 'metron' }
+  if (view === 'users') return { name: 'users' }
+  if (view === 'account') return { name: 'account' }
+  if (view === 'progress') return { name: 'progress' }
+  return null
 }
 
-function browseRoutePath(view) {
-  if (view === 'readingOrders') return '/reading-orders'
-  if (view === 'arcs') return '/arcs'
-  if (view === 'comics') return '/comics'
-  if (view === 'series') return '/series'
-  if (view === 'characters') return '/characters'
-  if (view === 'metron') return '/metron'
-  if (view === 'users') return '/users'
-  if (view === 'account') return '/account'
-  if (view === 'progress') return '/progress'
-  return '/reading-orders'
+function detailRouteLocation(view, id) {
+  if (!id) return null
+  if (view === 'readingOrders') return { name: 'readingOrderDetail', params: { id } }
+  if (view === 'arcs') return { name: 'arcDetail', params: { id } }
+  if (view === 'comics') return { name: 'comicDetail', params: { id } }
+  if (view === 'series') return { name: 'seriesDetail', params: { id } }
+  if (view === 'characters') return { name: 'characterDetail', params: { id } }
+  return null
 }
 
-function detailRoutePath(view, id) {
-  if (!id) return ''
-  return `${browseRoutePath(view)}/${id}`
+function editRouteLocation(view, id) {
+  if (view === 'readingOrders') {
+    return id ? { name: 'readingOrderEdit', params: { id } } : { name: 'readingOrdersNew' }
+  }
+  if (view === 'arcs') return id ? { name: 'arcEdit', params: { id } } : { name: 'arcsNew' }
+  if (view === 'comics') return id ? { name: 'comicEdit', params: { id } } : { name: 'comicsNew' }
+  return browseRouteLocation(view)
 }
 
-function editRoutePath(view, id) {
-  if (view === 'readingOrders') return id ? `/reading-orders/${id}/edit` : '/reading-orders/new'
-  if (view === 'arcs') return id ? `/arcs/${id}/edit` : '/arcs/new'
-  if (view === 'comics') return id ? `/comics/${id}/edit` : '/comics/new'
-  return browseRoutePath(view)
-}
-
-function routeForCurrentState() {
-  if (viewMode.value === 'browse') return browseRoutePath(activeView.value)
+function routeLocationForCurrentState() {
+  if (activeView.value === 'notFound') return route.fullPath
+  if (viewMode.value === 'browse') return browseRouteLocation(activeView.value)
   if (viewMode.value === 'detail') {
     if (activeView.value === 'readingOrders')
-      return detailRoutePath(activeView.value, selectedOrder.value?.id)
-    if (activeView.value === 'arcs') return detailRoutePath(activeView.value, selectedArc.value?.id)
+      return detailRouteLocation(activeView.value, selectedOrder.value?.id)
+    if (activeView.value === 'arcs')
+      return detailRouteLocation(activeView.value, selectedArc.value?.id)
     if (activeView.value === 'comics')
-      return detailRoutePath(activeView.value, selectedComic.value?.id)
+      return detailRouteLocation(activeView.value, selectedComic.value?.id)
     if (activeView.value === 'series')
-      return detailRoutePath(activeView.value, selectedSeries.value?.id)
+      return detailRouteLocation(activeView.value, selectedSeries.value?.id)
     if (activeView.value === 'characters')
-      return detailRoutePath(activeView.value, selectedCharacter.value?.id)
+      return detailRouteLocation(activeView.value, selectedCharacter.value?.id)
   }
   if (viewMode.value === 'edit') {
     if (activeView.value === 'readingOrders')
-      return editRoutePath(activeView.value, orderForm.value?.id || selectedOrder.value?.id)
+      return editRouteLocation(activeView.value, orderForm.value?.id || selectedOrder.value?.id)
     if (activeView.value === 'arcs')
-      return editRoutePath(activeView.value, arcForm.value?.id || selectedArc.value?.id)
+      return editRouteLocation(activeView.value, arcForm.value?.id || selectedArc.value?.id)
     if (activeView.value === 'comics')
-      return editRoutePath(activeView.value, comicForm.value?.id || selectedComic.value?.id)
+      return editRouteLocation(activeView.value, comicForm.value?.id || selectedComic.value?.id)
   }
-  return ''
+  return null
 }
 
-function updateBrowserRoute(path, { replace = false } = {}) {
-  if (routeSyncPaused || typeof window === 'undefined' || !path) return
-  const current = normalizeAppPath(window.location.pathname)
-  if (current === path) return
-
-  const method = replace ? 'replaceState' : 'pushState'
-  window.history[method]({}, '', path)
+async function syncRouterRoute(location, { replace = false } = {}) {
+  if (routeSyncPaused || !location) return
+  if (router.resolve(location).fullPath === route.fullPath) return
+  routeSyncPaused = true
+  try {
+    await router[replace ? 'replace' : 'push'](location)
+  } finally {
+    await nextTick()
+    routeSyncPaused = false
+  }
 }
 
 async function applyCurrentRoute(options = {}) {
-  if (typeof window === 'undefined') {
-    await loadData(Boolean(options.force))
-    return
-  }
-  await applyRoute(parseAppRoute(window.location.pathname), options)
+  await applyRoute(routeToAppState(), options)
 }
 
 async function applyRoute(route, { replace = false, force = false } = {}) {
@@ -716,24 +737,6 @@ async function applyRoute(route, { replace = false, force = false } = {}) {
   error.value = ''
 
   try {
-    if (route.view === 'metron' && (!canAccessMetronArea.value || isReadOnlyGuest.value)) {
-      activeView.value = 'readingOrders'
-      viewMode.value = 'browse'
-      await loadData(Boolean(route.force))
-      return
-    }
-    if (route.view === 'users' && !isAdmin.value) {
-      activeView.value = 'readingOrders'
-      viewMode.value = 'browse'
-      await loadData(Boolean(route.force))
-      return
-    }
-    if (route.view === 'progress' && !currentUser.value) {
-      activeView.value = 'readingOrders'
-      viewMode.value = 'browse'
-      await loadData(Boolean(route.force))
-      return
-    }
     await activateRoute({ ...route, force })
   } catch (err) {
     error.value = err.message
@@ -745,13 +748,13 @@ async function applyRoute(route, { replace = false, force = false } = {}) {
     routeSyncPaused = false
   }
 
-  const nextPath = currentRoutePath.value || browseRoutePath(activeView.value)
-  updateBrowserRoute(nextPath, { replace: replace || route.replace })
+  const nextLocation = currentRouteLocation.value ||
+    browseRouteLocation(activeView.value) || { name: 'readingOrders' }
+  await syncRouterRoute(nextLocation, { replace: replace || route.replace })
 }
 
 async function activateRoute(route) {
   if (route.mode === 'browse') {
-    comicReturnTarget.value = null
     activeView.value = route.view
     viewMode.value = 'browse'
     await loadData(Boolean(route.force))
@@ -798,7 +801,7 @@ async function activateRoute(route) {
       newComic()
       return
     }
-    await openComic({ id: route.id }, { skipReturnTarget: true })
+    await openComic({ id: route.id })
     if (route.mode === 'edit') editComic()
     return
   }
@@ -813,22 +816,13 @@ async function activateRoute(route) {
   }
 }
 
-function handleRoutePop() {
-  applyCurrentRoute()
-}
-
-async function setView(view) {
-  if (view === 'metron' && isReadOnlyGuest.value) return
-  if (view === 'progress' && !currentUser.value) return
+async function backFromComicDetail() {
   error.value = ''
-  comicReturnTarget.value = null
-  const viewChanged = view !== activeView.value
-  if (viewChanged) {
-    search.value = ''
+  if (window.history.state?.back) {
+    router.back()
+    return
   }
-  activeView.value = view
-  viewMode.value = 'browse'
-  await loadData(viewChanged)
+  await router.push({ name: 'comics' })
 }
 
 async function loadData(force = false) {
@@ -931,12 +925,6 @@ function cancelEdit() {
 
 function backToBrowse() {
   error.value = ''
-  if (activeView.value === 'comics' && viewMode.value === 'detail' && comicReturnTarget.value) {
-    activeView.value = comicReturnTarget.value.activeView
-    viewMode.value = comicReturnTarget.value.viewMode
-    comicReturnTarget.value = null
-    return
-  }
   viewMode.value = 'browse'
 }
 
@@ -1001,13 +989,14 @@ function observeLoadMoreSentinel() {
 onMounted(async () => {
   setupLoadMoreObserver()
   if (typeof window !== 'undefined') {
-    window.addEventListener('popstate', handleRoutePop)
     themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
     themeMediaQuery?.addEventListener('change', handleSystemThemeChange)
   }
   await loadUserStatus()
   if (appReady.value) {
-    await applyCurrentRoute({ replace: true, force: true })
+    if (!(await enforceCurrentRouteAccess())) {
+      await applyCurrentRoute({ replace: true, force: true })
+    }
   }
 })
 
@@ -1019,9 +1008,24 @@ watch(activeView, () => {
   nextTick(observeLoadMoreSentinel)
 })
 
-watch(currentRoutePath, (path) => {
+watch(currentRouteLocation, (location) => {
   if (!appReady.value) return
-  updateBrowserRoute(path)
+  syncRouterRoute(location)
+})
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (!appReady.value || routeSyncPaused) return
+    applyCurrentRoute()
+  },
+)
+
+watch([canAccessMetronArea, isAdmin, currentUser, isReadOnlyGuest], () => {
+  syncRouteAccessContext()
+  if (appReady.value) {
+    enforceCurrentRouteAccess()
+  }
 })
 
 watch(
@@ -1069,7 +1073,6 @@ onUnmounted(() => {
   if (loadMoreObserver) {
     loadMoreObserver.disconnect()
   }
-  window.removeEventListener('popstate', handleRoutePop)
   themeMediaQuery?.removeEventListener('change', handleSystemThemeChange)
 })
 </script>
@@ -1204,7 +1207,6 @@ onUnmounted(() => {
       :read-only-guest="isReadOnlyGuest"
       :show-metron="canAccessMetronArea && !isReadOnlyGuest"
       :auth-saving="authSaving"
-      @change-view="setView"
       @set-theme="setThemePreference"
       @login="requestLogin"
       @logout="signOut"
@@ -1213,7 +1215,6 @@ onUnmounted(() => {
     <section class="content">
       <AppToolbar
         v-if="!isEditing && !isDetail"
-        :active-view="activeView"
         :result-count="toolbarResultCount"
         :total-count="toolbarTotalCount"
       />
@@ -1286,6 +1287,14 @@ onUnmounted(() => {
         @refresh="loadAccountStatistics"
       />
 
+      <section v-else-if="activeView === 'notFound'" class="empty-panel">
+        <h2>Page not found</h2>
+        <p>This route does not match a ComicHero view.</p>
+        <router-link class="primary-button" :to="{ name: 'readingOrders' }">
+          Go to reading orders
+        </router-link>
+      </section>
+
       <ReadingOrderEditView
         v-else-if="activeView === 'readingOrders' && isEditing"
         v-model:form="orderForm"
@@ -1304,7 +1313,7 @@ onUnmounted(() => {
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :read-only="isReadOnlyGuest"
-        @back="backToBrowse"
+        @back="backFromComicDetail"
         @edit="editReadingOrder"
         @export-cbl="exportSelectedReadingOrderCBL"
         @open-comic="openOrderComic"

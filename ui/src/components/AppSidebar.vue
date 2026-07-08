@@ -40,7 +40,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['change-view', 'set-theme', 'login', 'logout'])
+const emit = defineEmits(['set-theme', 'login', 'logout'])
 const menuOpen = ref(false)
 const accountMenuOpen = ref(false)
 
@@ -48,8 +48,7 @@ const userInitial = computed(
   () => (props.user?.name || '?').trim().slice(0, 1).toUpperCase() || '?',
 )
 
-function changeView(view) {
-  emit('change-view', view)
+function closeMenus() {
   menuOpen.value = false
   accountMenuOpen.value = false
 }
@@ -60,14 +59,12 @@ function setTheme(value) {
 
 function logout() {
   emit('logout')
-  menuOpen.value = false
-  accountMenuOpen.value = false
+  closeMenus()
 }
 
 function login() {
   emit('login')
-  menuOpen.value = false
-  accountMenuOpen.value = false
+  closeMenus()
 }
 
 function toggleAccountMenu() {
@@ -96,38 +93,57 @@ function toggleAccountMenu() {
     </div>
 
     <nav id="primary-navigation" class="nav-tabs" aria-label="Primary">
-      <button
+      <router-link
+        :to="{ name: 'readingOrders' }"
         :class="{ active: activeView === 'readingOrders' }"
-        @click="changeView('readingOrders')"
+        @click="closeMenus"
       >
         <span>Orders</span>
-      </button>
-      <button :class="{ active: activeView === 'arcs' }" @click="changeView('arcs')">
+      </router-link>
+      <router-link
+        :to="{ name: 'arcs' }"
+        :class="{ active: activeView === 'arcs' }"
+        @click="closeMenus"
+      >
         <span>Arcs</span>
-      </button>
-      <button :class="{ active: activeView === 'comics' }" @click="changeView('comics')">
+      </router-link>
+      <router-link
+        :to="{ name: 'comics' }"
+        :class="{ active: activeView === 'comics' }"
+        @click="closeMenus"
+      >
         <span>Comics</span>
-      </button>
-      <button
+      </router-link>
+      <router-link
         v-if="user"
+        :to="{ name: 'progress' }"
         :class="{ active: activeView === 'progress' }"
-        @click="changeView('progress')"
+        @click="closeMenus"
       >
         <span>Progress</span>
-      </button>
-      <button :class="{ active: activeView === 'series' }" @click="changeView('series')">
+      </router-link>
+      <router-link
+        :to="{ name: 'series' }"
+        :class="{ active: activeView === 'series' }"
+        @click="closeMenus"
+      >
         <span>Series</span>
-      </button>
-      <button :class="{ active: activeView === 'characters' }" @click="changeView('characters')">
+      </router-link>
+      <router-link
+        :to="{ name: 'characters' }"
+        :class="{ active: activeView === 'characters' }"
+        @click="closeMenus"
+      >
         <span>Characters</span>
-      </button>
-      <button
+      </router-link>
+      <router-link
         v-if="showMetron"
+        :to="{ name: 'metron' }"
         :class="{ active: activeView === 'metron' }"
-        @click="changeView('metron')"
+        @click="closeMenus"
       >
         <span>Metron</span>
-      </button>
+      </router-link>
     </nav>
 
     <div class="sidebar-actions">
@@ -187,23 +203,23 @@ function toggleAccountMenu() {
             </div>
           </div>
 
-          <button type="button" class="account-menu-item" @click="changeView('account')">
+          <router-link :to="{ name: 'account' }" class="account-menu-item" @click="closeMenus">
             <span aria-hidden="true">@</span>
             <span>Account settings</span>
-          </button>
-          <button type="button" class="account-menu-item" @click="changeView('progress')">
+          </router-link>
+          <router-link :to="{ name: 'progress' }" class="account-menu-item" @click="closeMenus">
             <span aria-hidden="true">%</span>
             <span>Progress</span>
-          </button>
-          <button
+          </router-link>
+          <router-link
             v-if="isAdmin"
-            type="button"
+            :to="{ name: 'users' }"
             class="account-menu-item"
-            @click="changeView('users')"
+            @click="closeMenus"
           >
             <span aria-hidden="true">⚙</span>
             <span>Manage users</span>
-          </button>
+          </router-link>
           <button
             v-if="userMode === 'multi'"
             type="button"

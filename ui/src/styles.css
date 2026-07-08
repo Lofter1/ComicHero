@@ -464,7 +464,7 @@ h4 {
   gap: 8px;
 }
 
-.nav-tabs button,
+.nav-tabs :where(a, button),
 .row,
 .primary-button,
 .secondary-button,
@@ -477,7 +477,7 @@ h4 {
   color: var(--control-ink);
 }
 
-.nav-tabs button,
+.nav-tabs :where(a, button),
 .primary-button,
 .secondary-button,
 .danger-button,
@@ -485,15 +485,16 @@ h4 {
   padding: 10px 14px;
 }
 
-.nav-tabs button {
+.nav-tabs :where(a, button) {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   text-align: left;
+  text-decoration: none;
 }
 
-.nav-tabs button.active,
+.nav-tabs :where(a, button).active,
 .primary-button {
   border-color: var(--primary);
   background: var(--primary);
@@ -3101,7 +3102,7 @@ textarea {
     width: min(320px, calc(100vw - 36px));
   }
 
-  .nav-tabs button {
+  .nav-tabs :where(a, button) {
     justify-content: center;
     text-align: center;
   }
@@ -3194,7 +3195,7 @@ textarea {
     font-size: 1.1rem;
   }
 
-  .nav-tabs button {
+  .nav-tabs :where(a, button) {
     min-height: 40px;
     padding: 8px 6px;
     font-size: 0.9rem;
@@ -3464,7 +3465,7 @@ textarea {
     padding: 10px;
   }
 
-  .nav-tabs button {
+  .nav-tabs :where(a, button) {
     font-size: 0.82rem;
   }
 

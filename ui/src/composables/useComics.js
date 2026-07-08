@@ -28,7 +28,6 @@ export function useComics({
   const comics = ref([])
   const selectedComic = ref(null)
   const quickSavingComicID = ref(null)
-  const comicReturnTarget = ref(null)
   const comicForm = ref(emptyComic())
   const metronMetadataOpen = ref(false)
   const metronMetadataSearching = ref(false)
@@ -40,16 +39,8 @@ export function useComics({
     await loadPagedList('comics', comics, listComics, options)
   }
 
-  async function openComic(comic, options = {}) {
+  async function openComic(comic) {
     error.value = ''
-    if (!options.preserveReturnTarget && !options.skipReturnTarget) {
-      comicReturnTarget.value = {
-        activeView: activeView.value,
-        viewMode: viewMode.value,
-      }
-    } else if (options.skipReturnTarget) {
-      comicReturnTarget.value = null
-    }
     activeView.value = 'comics'
     selectedComic.value = null
     viewMode.value = 'detail'
@@ -66,7 +57,6 @@ export function useComics({
 
   function newComic() {
     error.value = ''
-    comicReturnTarget.value = null
     activeView.value = 'comics'
     viewMode.value = 'edit'
     selectedComic.value = null
@@ -303,7 +293,6 @@ export function useComics({
     comics,
     selectedComic,
     quickSavingComicID,
-    comicReturnTarget,
     comicForm,
     metronMetadataOpen,
     metronMetadataSearching,
