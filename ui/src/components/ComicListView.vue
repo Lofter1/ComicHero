@@ -170,6 +170,24 @@ const serverLoading = ref(false)
 
 const effectiveServerMode = computed(() => props.serverSearch || props.serverSource)
 const sourceComics = computed(() => props.serverSource ? serverComics.value : props.comics)
+
+// In server-source mode, serverComics is fetched independently of the
+// `comics` prop. The parent already updates the read status of the
+// matching comic inside `comics` when a toggle-read completes (see
+// applyComicReadState in useComics.js) -- reconcile that back into
+// serverComics so the visible list actually reflects it instead of only
+// the parent's own copy of the data.
+watch(
+  () => props.serverSource ? props.comics.map(comic => `${comic.id}:${comic.read ? 1 : 0}`).join('|') : '',
+  () => {
+    if (!props.serverSource) return
+    const readById = new Map(props.comics.map(comic => [comic.id, Boolean(comic.read)]))
+    serverComics.value = serverComics.value.map(comic => {
+      const read = readById.get(comic.id)
+      return read !== undefined && read !== comic.read ? { ...comic, read } : comic
+    })
+  }
+)
 const sourceParamsKey = computed(() => JSON.stringify(props.sourceParams || {}))
 
 const filteredComics = computed(() => {
