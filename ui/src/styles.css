@@ -743,21 +743,86 @@ textarea {
 
 .user-management-view {
   display: grid;
+  gap: 16px;
+  max-width: 1080px;
+}
+
+.user-access-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 12px;
 }
 
-.user-invite-panel {
+.user-registration-panel,
+.user-invite-panel,
+.user-public-panel {
   display: grid;
   gap: 12px;
-  max-width: 840px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
-  padding: 14px;
+  padding: 16px;
+}
+
+.user-registration-panel,
+.user-public-panel {
+  align-content: space-between;
+}
+
+.public-session-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.public-session-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.public-session-card .secondary-action {
+  margin-top: 6px;
 }
 
 .user-invite-panel .primary-button {
   justify-self: start;
+}
+
+.registration-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 4px;
+}
+
+.registration-mode-toggle button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--control-ink);
+  font-weight: 900;
+}
+
+.registration-mode-toggle button.active {
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.warning-copy {
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 10px 12px;
+  font-weight: 800;
 }
 
 .invite-token-box {
@@ -800,10 +865,9 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
-  padding: 14px;
+  padding: 0;
   display: grid;
-  gap: 12px;
-  max-width: 840px;
+  overflow: hidden;
 }
 
 .user-permission-header {
@@ -813,6 +877,12 @@ textarea {
   gap: 14px;
   min-width: 0;
   flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 18px;
+}
+
+.user-summary {
+  min-width: 180px;
 }
 
 .user-permission-header h3 {
@@ -820,23 +890,63 @@ textarea {
 }
 
 .user-permission-header p,
-.hourly-limit-field small {
+.hourly-limit-field small,
+.section-heading h4 {
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
 }
 
-.user-permission-toggles {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+.user-card-sections {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.user-card-section {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.account-section {
+  border-right: 1px solid var(--line);
+}
+
+.section-heading h4 {
+  margin: 2px 0 0;
+  color: var(--label-ink);
+  font-size: 1rem;
 }
 
 .compact-button {
   min-height: 36px;
   padding: 7px 10px;
+}
+
+.account-control-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-width: 260px;
+}
+
+.danger-text-button {
+  min-height: 38px;
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--danger);
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
+.danger-text-button:hover:not(:disabled),
+.danger-text-button:focus-visible {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
 }
 
 .compact-toggle,
@@ -848,13 +958,30 @@ textarea {
   font-weight: 800;
 }
 
+.metron-permission-editor {
+  min-width: 0;
+}
+
+.metron-settings-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.metron-control-column {
+  display: grid;
+  gap: 10px;
+}
+
 .permission-scopes {
   border: 0;
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .permission-scopes legend {
@@ -883,7 +1010,7 @@ textarea {
 .hourly-limit-field {
   display: grid;
   gap: 5px;
-  max-width: 240px;
+  width: 100%;
   color: var(--label-ink);
   font-weight: 800;
 }
@@ -898,7 +1025,6 @@ textarea {
 }
 
 .secondary-action {
-  justify-self: start;
   min-height: 38px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -2761,6 +2887,7 @@ textarea {
   .split-view,
   .form-grid,
   .metadata-grid,
+  .user-access-panel,
   .order-entry,
   .metron-search,
   .metron-results {
@@ -2935,6 +3062,29 @@ textarea {
 
   .sidebar.menu-open .nav-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-permission-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .user-card-sections,
+  .metron-settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-section {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .account-control-grid {
+    max-width: none;
+  }
+
+  .permission-scopes {
+    grid-template-columns: 1fr;
   }
 
   .sidebar.menu-open .sidebar-actions {

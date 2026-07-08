@@ -41,6 +41,10 @@ const props = defineProps({
     type: String,
     default: 'asc',
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-series', 'toggle-favorite', 'new-comic'])
@@ -122,6 +126,7 @@ function seriesPublisherLabel(series) {
                 <button
                   type="button"
                   class="favorite-toggle"
+                  v-if="!readOnly"
                   :class="{ active: item.favorite }"
                   :aria-label="item.favorite ? 'Remove from favorites' : 'Add to favorites'"
                   :title="item.favorite ? 'Remove from favorites' : 'Add to favorites'"
@@ -143,7 +148,7 @@ function seriesPublisherLabel(series) {
       </div>
       <div v-else class="empty-state">
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
-        <button v-if="!hasFilters" class="secondary-button" type="button" @click="$emit('new-comic')">
+        <button v-if="!hasFilters && !readOnly" class="secondary-button" type="button" @click="$emit('new-comic')">
           <span aria-hidden="true" class="button-icon">+</span>
           Add the first comic
         </button>

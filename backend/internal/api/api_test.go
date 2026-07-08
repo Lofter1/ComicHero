@@ -832,6 +832,49 @@ func TestLoginRateLimitReturnsTooManyRequests(t *testing.T) {
 	}
 }
 
+func TestRegistrationRateLimitReturnsTooManyRequests(t *testing.T) {
+	previousLimiter := authRegistrationLimiter
+	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
+	t.Cleanup(func() {
+		authRegistrationLimiter = previousLimiter
+	})
+
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		INSERT INTO app_settings (key, value) VALUES ('registration_mode', 'open');
+	`); err != nil {
+		t.Fatalf("seed open registration mode: %v", err)
+	}
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(UserMiddleware(db))
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterUserRoutes(api, db)
+
+	for i := 0; i < registrationRateLimitMaxAttempts; i++ {
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(`{"name":"","password":""}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = "203.0.113.45:1234"
+		router.ServeHTTP(recorder, req)
+		if recorder.Code == http.StatusTooManyRequests {
+			t.Fatalf("attempt %d status = 429; want not rate-limited yet", i+1)
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(`{"name":"","password":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = "203.0.113.45:1234"
+	router.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("rate-limited registration status = %d; want 429: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestRequireAdminUserFailsWithoutUserContext(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 
@@ -964,6 +1007,72 @@ func TestDeleteAccountRequiresPasswordAndAnotherAdmin(t *testing.T) {
 	}
 }
 
+func TestAdminCanDeleteNonAdminUser(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0);
+		INSERT INTO user_sessions (token, user_id) VALUES ('reader-session', 2);
+		INSERT INTO user_metron_permissions (user_id, allowed, scopes, hourly_limit) VALUES (2, 1, '*', 0);
+		INSERT INTO user_metron_request_log (user_id, scope, endpoint) VALUES (2, 'search', '/issue/');
+		INSERT INTO user_comics (comic_id, user_id, read) VALUES (1, 2, 1);
+		INSERT INTO reading_orders (name, author_user_id) VALUES ('Reader list', 2);
+	`); err != nil {
+		t.Fatalf("seed reader account: %v", err)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := deleteUser(adminCtx, db, 2); err != nil {
+		t.Fatalf("deleteUser: %v", err)
+	}
+
+	for table, query := range map[string]string{
+		"users":                   `SELECT COUNT(*) FROM users WHERE id = 2`,
+		"user_sessions":           `SELECT COUNT(*) FROM user_sessions WHERE user_id = 2`,
+		"user_metron_permissions": `SELECT COUNT(*) FROM user_metron_permissions WHERE user_id = 2`,
+		"user_metron_request_log": `SELECT COUNT(*) FROM user_metron_request_log WHERE user_id = 2`,
+		"user_comics":             `SELECT COUNT(*) FROM user_comics WHERE user_id = 2`,
+	} {
+		var count int
+		if err := db.Get(&count, query); err != nil {
+			t.Fatalf("count %s: %v", table, err)
+		}
+		if count != 0 {
+			t.Fatalf("%s count = %d; want 0", table, count)
+		}
+	}
+	var authorCount int
+	if err := db.Get(&authorCount, `SELECT COUNT(*) FROM reading_orders WHERE author_user_id = 2`); err != nil {
+		t.Fatalf("count reading order authors: %v", err)
+	}
+	if authorCount != 0 {
+		t.Fatalf("reading order author count = %d; want 0", authorCount)
+	}
+}
+
+func TestNonAdminCannotDeleteUsers(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0);
+		INSERT INTO users (id, name, is_admin) VALUES (3, 'Other', 0);
+	`); err != nil {
+		t.Fatalf("seed accounts: %v", err)
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := deleteUser(readerCtx, db, 3); err == nil {
+		t.Fatal("deleteUser by non-admin returned nil error")
+	}
+}
+
+func TestDeleteUserRejectsOnlyAdmin(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := deleteUser(adminCtx, db, 1); err == nil {
+		t.Fatal("deleteUser deleted the only admin account")
+	}
+}
+
 func TestMetronPermissionsControlScopesAndHourlyLimit(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`
@@ -1079,6 +1188,183 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	}
 }
 
+func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
+		t.Fatalf("seed multi-user mode: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)`); err != nil {
+		t.Fatalf("seed reader user: %v", err)
+	}
+
+	mode, err := registrationMode(context.Background(), db)
+	if err != nil {
+		t.Fatalf("registrationMode default: %v", err)
+	}
+	if mode != registrationModeInviteOnly {
+		t.Fatalf("registrationMode default = %q; want %q", mode, registrationModeInviteOnly)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Default Blocked",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser without invite succeeded while registration mode is unset")
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := updateRegistrationMode(readerCtx, db, UpdateRegistrationModePayload{Mode: registrationModeOpen}); err == nil {
+		t.Fatal("non-admin updateRegistrationMode returned nil error")
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updateRegistrationMode(adminCtx, db, UpdateRegistrationModePayload{Mode: registrationModeOpen})
+	if err != nil {
+		t.Fatalf("updateRegistrationMode: %v", err)
+	}
+	if output.Body.RegistrationMode != registrationModeOpen {
+		t.Fatalf("output registrationMode = %q; want %q", output.Body.RegistrationMode, registrationModeOpen)
+	}
+	mode, err = registrationMode(context.Background(), db)
+	if err != nil {
+		t.Fatalf("registrationMode after update: %v", err)
+	}
+	if mode != registrationModeOpen {
+		t.Fatalf("registrationMode after update = %q; want %q", mode, registrationModeOpen)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Open Signup",
+		Password: "secret1",
+	}); err != nil {
+		t.Fatalf("registerUser without invite in open mode: %v", err)
+	}
+
+	if _, err := updateRegistrationMode(adminCtx, db, UpdateRegistrationModePayload{Mode: registrationModeInviteOnly}); err != nil {
+		t.Fatalf("updateRegistrationMode back to invite_only: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Invite Blocked",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser without invite succeeded after switching back to invite_only")
+	}
+}
+
+func TestPublicAccessDefaultsAndAdminCanUpdate(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
+		t.Fatalf("seed multi-user mode: %v", err)
+	}
+	if _, err := db.Exec(`INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)`); err != nil {
+		t.Fatalf("seed reader user: %v", err)
+	}
+
+	enabled, err := publicAccessEnabled(context.Background(), db)
+	if err != nil {
+		t.Fatalf("publicAccessEnabled default: %v", err)
+	}
+	if enabled {
+		t.Fatal("publicAccessEnabled default = true; want false")
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := updatePublicAccess(readerCtx, db, UpdatePublicAccessPayload{Enabled: true}); err == nil {
+		t.Fatal("non-admin updatePublicAccess returned nil error")
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updatePublicAccess(adminCtx, db, UpdatePublicAccessPayload{Enabled: true})
+	if err != nil {
+		t.Fatalf("updatePublicAccess enable: %v", err)
+	}
+	if !output.Body.PublicAccess {
+		t.Fatalf("output publicAccess = false; want true")
+	}
+	enabled, err = publicAccessEnabled(context.Background(), db)
+	if err != nil {
+		t.Fatalf("publicAccessEnabled after enable: %v", err)
+	}
+	if !enabled {
+		t.Fatal("publicAccessEnabled after enable = false; want true")
+	}
+
+	if _, err := updatePublicAccess(adminCtx, db, UpdatePublicAccessPayload{Enabled: false}); err != nil {
+		t.Fatalf("updatePublicAccess disable: %v", err)
+	}
+	enabled, err = publicAccessEnabled(context.Background(), db)
+	if err != nil {
+		t.Fatalf("publicAccessEnabled after disable: %v", err)
+	}
+	if enabled {
+		t.Fatal("publicAccessEnabled after disable = true; want false")
+	}
+}
+
+func TestPublicAccessAllowsAnonymousReadOnlyRoutes(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		INSERT INTO reading_orders (id, name, author_user_id) VALUES (1, 'Public Order', 1);
+		INSERT INTO reading_order_comics (reading_order_id, comic_id, position) VALUES (1, 1, 1);
+	`); err != nil {
+		t.Fatalf("seed public library data: %v", err)
+	}
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(UserMiddleware(db))
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterUserRoutes(api, db)
+	RegisterComicRoutes(api, db, nil)
+	RegisterReadingOrderRoutes(api, db)
+
+	disabled := httptest.NewRecorder()
+	router.ServeHTTP(disabled, httptest.NewRequest(http.MethodGet, "/api/comics", nil))
+	if disabled.Code != http.StatusUnauthorized {
+		t.Fatalf("public disabled comics status = %d; want 401", disabled.Code)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := updatePublicAccess(adminCtx, db, UpdatePublicAccessPayload{Enabled: true}); err != nil {
+		t.Fatalf("enable public access: %v", err)
+	}
+
+	comics := httptest.NewRecorder()
+	router.ServeHTTP(comics, httptest.NewRequest(http.MethodGet, "/api/comics", nil))
+	if comics.Code != http.StatusOK {
+		t.Fatalf("public comics status = %d; want 200: %s", comics.Code, comics.Body.String())
+	}
+	if !strings.Contains(comics.Body.String(), `"read":true`) {
+		t.Fatalf("public comics body = %s; want default user's read status", comics.Body.String())
+	}
+
+	order := httptest.NewRecorder()
+	router.ServeHTTP(order, httptest.NewRequest(http.MethodGet, "/api/readingOrders/1", nil))
+	if order.Code != http.StatusOK {
+		t.Fatalf("public reading order status = %d; want 200: %s", order.Code, order.Body.String())
+	}
+	if strings.Contains(order.Body.String(), `"canEdit":true`) {
+		t.Fatalf("public reading order body = %s; want canEdit false", order.Body.String())
+	}
+
+	cbl := httptest.NewRecorder()
+	router.ServeHTTP(cbl, httptest.NewRequest(http.MethodGet, "/api/readingOrders/1/cbl", nil))
+	if cbl.Code != http.StatusOK {
+		t.Fatalf("public CBL export status = %d; want 200: %s", cbl.Code, cbl.Body.String())
+	}
+	if !strings.Contains(cbl.Body.String(), "Public Order") {
+		t.Fatalf("public CBL export body = %s; want reading order name", cbl.Body.String())
+	}
+
+	mutate := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPatch, "/api/comic/1/read", strings.NewReader(`{"read":false}`))
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(mutate, req)
+	if mutate.Code != http.StatusUnauthorized {
+		t.Fatalf("public mutation status = %d; want 401", mutate.Code)
+	}
+}
+
 func TestExpiredSessionTokenIsRejected(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`
@@ -1191,8 +1477,27 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 		);
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_reading_list_id INTEGER,
 			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE reading_order_comics (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			tags TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (reading_order_id, comic_id, position)
+		);
+		CREATE TABLE reading_order_children (
+			parent_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			child_reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (parent_reading_order_id, child_reading_order_id, position)
 		);
 		CREATE TABLE user_sessions (
 			token TEXT PRIMARY KEY,

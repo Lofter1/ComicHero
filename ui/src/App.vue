@@ -27,6 +27,7 @@ import { useSeries } from '@/composables/useSeries.js'
 import {
   createUserInvite,
   deleteAccount as deleteAccountRequest,
+  deleteUser as deleteUserRequest,
   getUserStatus,
   listUsers,
   loginUser,
@@ -34,6 +35,8 @@ import {
   registerUser,
   setupUsers,
   updateAccount,
+  updatePublicAccess,
+  updateRegistrationMode,
   updateUserAdmin,
   updateUserMetronPermissions,
 } from '@/api/client.js'
@@ -47,6 +50,7 @@ const authLoading = ref(true)
 const authSaving = ref(false)
 const userStatus = ref(null)
 const authMode = ref('login')
+const loginRequested = ref(false)
 const setupForm = ref({ mode: 'single', name: '', password: '' })
 const authForm = ref({ name: '', password: '', inviteToken: '' })
 const userAdminRows = ref([])
@@ -55,7 +59,10 @@ const accountSaving = ref(false)
 const accountDeleting = ref(false)
 const savingUserID = ref(null)
 const savingAdminUserID = ref(null)
+const deletingUserID = ref(null)
 const generatingInvite = ref(false)
+const savingRegistrationMode = ref(false)
+const savingPublicAccess = ref(false)
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -264,15 +271,18 @@ const showBlockingLoading = computed(() => loading.value && activeView.value !==
 const seriesListLoading = computed(() => Boolean(pageState.value.series?.refreshing))
 const setupRequired = computed(() => Boolean(userStatus.value?.setupRequired))
 const userMode = computed(() => userStatus.value?.mode || '')
+const registrationMode = computed(() => userStatus.value?.registrationMode || 'invite_only')
+const publicAccess = computed(() => Boolean(userStatus.value?.publicAccess))
 const currentUser = computed(() => userStatus.value?.user || null)
 const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin))
+const isReadOnlyGuest = computed(() => userMode.value === 'multi' && publicAccess.value && !currentUser.value)
 const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
 const canMetronSearch = computed(() => hasMetronScope('search'))
 const canMetronDetail = computed(() => hasMetronScope('detail'))
 const canMetronImport = computed(() => hasMetronScope('import'))
 const canMetronMonitor = computed(() => hasMetronScope('monitor'))
 const canAccessMetronArea = computed(() => canMetronSearch.value)
-const authRequired = computed(() => userMode.value === 'multi' && !currentUser.value)
+const authRequired = computed(() => userMode.value === 'multi' && !currentUser.value && (!publicAccess.value || loginRequested.value))
 const appReady = computed(() => Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value)
 
 function hasMetronScope(scope) {
@@ -361,10 +371,11 @@ async function submitAuth() {
   error.value = ''
   try {
     const payload = { name: authForm.value.name, password: authForm.value.password }
-    if (authMode.value === 'register') {
+    if (authMode.value === 'register' && registrationMode.value === 'invite_only') {
       payload.inviteToken = authForm.value.inviteToken
     }
     userStatus.value = authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
+    loginRequested.value = false
     await applyCurrentRoute({ replace: true, force: true })
   } catch (err) {
     error.value = err.message
@@ -386,6 +397,49 @@ async function generateUserInvite() {
     error.value = err.message
   } finally {
     generatingInvite.value = false
+  }
+}
+
+async function saveRegistrationMode(mode) {
+  if (mode === registrationMode.value) return
+  if (
+    mode === 'open' &&
+    registrationMode.value !== 'open' &&
+    typeof window !== 'undefined' &&
+    !window.confirm('Anyone who can reach this server will be able to create an account with full read/write access to your shared library. Only enable open registration if you understand the risk.')
+  ) {
+    return
+  }
+
+  savingRegistrationMode.value = true
+  error.value = ''
+  try {
+    userStatus.value = await updateRegistrationMode({ mode })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingRegistrationMode.value = false
+  }
+}
+
+async function savePublicAccess(enabled) {
+  if (enabled === publicAccess.value) return
+  if (
+    enabled &&
+    typeof window !== 'undefined' &&
+    !window.confirm('Anonymous visitors will be able to browse your shared library and export reading lists as CBL. They will not be able to edit data.')
+  ) {
+    return
+  }
+
+  savingPublicAccess.value = true
+  error.value = ''
+  try {
+    userStatus.value = await updatePublicAccess({ enabled })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingPublicAccess.value = false
   }
 }
 
@@ -416,6 +470,26 @@ async function saveUserAdmin(userID, payload) {
     error.value = err.message
   } finally {
     savingAdminUserID.value = null
+  }
+}
+
+async function removeUser(userID) {
+  if (
+    typeof window !== 'undefined' &&
+    !window.confirm('Delete this account? Their sessions, read status, Metron permissions, and account data will be removed.')
+  ) {
+    return
+  }
+
+  deletingUserID.value = userID
+  error.value = ''
+  try {
+    await deleteUserRequest(userID)
+    userAdminRows.value = userAdminRows.value.filter((entry) => entry.user.id !== userID)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    deletingUserID.value = null
   }
 }
 
@@ -458,11 +532,17 @@ async function signOut() {
   try {
     await logoutUser()
     userStatus.value = await getUserStatus()
+    loginRequested.value = false
   } catch (err) {
     error.value = err.message
   } finally {
     authSaving.value = false
   }
+}
+
+function requestLogin() {
+  authMode.value = 'login'
+  loginRequested.value = true
 }
 
 function handleSystemThemeChange(event) {
@@ -572,7 +652,7 @@ async function applyRoute(route, { replace = false, force = false } = {}) {
   error.value = ''
 
   try {
-    if (route.view === 'metron' && !canAccessMetronArea.value) {
+    if (route.view === 'metron' && (!canAccessMetronArea.value || isReadOnlyGuest.value)) {
       activeView.value = 'readingOrders'
       viewMode.value = 'browse'
       await loadData(Boolean(route.force))
@@ -609,6 +689,11 @@ async function activateRoute(route) {
   }
 
   if (route.view === 'readingOrders') {
+    if (isReadOnlyGuest.value && (route.isNew || route.mode === 'edit')) {
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
     if (route.isNew) {
       newReadingOrder()
       return
@@ -619,6 +704,11 @@ async function activateRoute(route) {
   }
 
   if (route.view === 'arcs') {
+    if (isReadOnlyGuest.value && (route.isNew || route.mode === 'edit')) {
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
     if (route.isNew) {
       newArc()
       return
@@ -629,6 +719,11 @@ async function activateRoute(route) {
   }
 
   if (route.view === 'comics') {
+    if (isReadOnlyGuest.value && (route.isNew || route.mode === 'edit')) {
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
     if (route.isNew) {
       newComic()
       return
@@ -653,6 +748,7 @@ function handleRoutePop() {
 }
 
 async function setView(view) {
+  if (view === 'metron' && isReadOnlyGuest.value) return
   error.value = ''
   comicReturnTarget.value = null
   const viewChanged = view !== activeView.value
@@ -971,7 +1067,7 @@ onUnmounted(() => {
             required
           >
         </label>
-        <label v-if="authMode === 'register'">
+        <label v-if="authMode === 'register' && registrationMode === 'invite_only'">
           <span>Invite token</span>
           <input v-model.trim="authForm.inviteToken" type="text" autocomplete="one-time-code" required>
         </label>
@@ -995,9 +1091,13 @@ onUnmounted(() => {
       :user="currentUser"
       :user-mode="userMode"
       :is-admin="isAdmin"
+      :public-access="publicAccess"
+      :read-only-guest="isReadOnlyGuest"
+      :show-metron="canAccessMetronArea && !isReadOnlyGuest"
       :auth-saving="authSaving"
       @change-view="setView"
       @set-theme="setThemePreference"
+      @login="requestLogin"
       @logout="signOut"
     />
 
@@ -1043,11 +1143,19 @@ onUnmounted(() => {
         :users="userAdminRows"
         :saving-user-id="savingUserID"
         :saving-admin-user-id="savingAdminUserID"
+        :deleting-user-id="deletingUserID"
         :current-user-id="currentUser?.id"
+        :registration-mode="registrationMode"
+        :saving-registration-mode="savingRegistrationMode"
+        :public-access="publicAccess"
+        :saving-public-access="savingPublicAccess"
         :invite="generatedInvite"
         :generating-invite="generatingInvite"
         @save="saveUserMetronPermissions"
         @save-admin="saveUserAdmin"
+        @delete-user="removeUser"
+        @update-registration-mode="saveRegistrationMode"
+        @update-public-access="savePublicAccess"
         @generate-invite="generateUserInvite"
       />
 
@@ -1078,6 +1186,7 @@ onUnmounted(() => {
         :selected-order="selectedOrder"
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
+        :read-only="isReadOnlyGuest"
         @back="backToBrowse"
         @edit="editReadingOrder"
         @export-cbl="exportSelectedReadingOrderCBL"
@@ -1096,6 +1205,7 @@ onUnmounted(() => {
         :filter="listOptions.readingOrders.filter"
         :sort="listOptions.readingOrders.sort"
         :direction="listOptions.readingOrders.direction"
+        :read-only="isReadOnlyGuest"
         @update:search="updateSearch"
         @update:filter="updateListOption('readingOrders', 'filter', $event)"
         @update:sort="updateListOption('readingOrders', 'sort', $event)"
@@ -1113,6 +1223,7 @@ onUnmounted(() => {
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :quick-saving-arc-id="quickSavingArcID"
+        :read-only="isReadOnlyGuest"
         @back="backToBrowse"
         @edit="editArc"
         @toggle-favorite="toggleArcFavorite"
@@ -1131,6 +1242,7 @@ onUnmounted(() => {
         :filter="listOptions.arcs.filter"
         :sort="listOptions.arcs.sort"
         :direction="listOptions.arcs.direction"
+        :read-only="isReadOnlyGuest"
         @update:search="updateSearch"
         @update:filter="updateListOption('arcs', 'filter', $event)"
         @update:sort="updateListOption('arcs', 'sort', $event)"
@@ -1146,6 +1258,7 @@ onUnmounted(() => {
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :import-running="seriesImportRunning(selectedSeries)"
+        :read-only="isReadOnlyGuest"
         @back="backToBrowse"
         @toggle-favorite="toggleSeriesFavorite"
         @import-series="importSelectedSeriesFromMetron"
@@ -1164,6 +1277,7 @@ onUnmounted(() => {
         :filter="listOptions.series.filter"
         :sort="listOptions.series.sort"
         :direction="listOptions.series.direction"
+        :read-only="isReadOnlyGuest"
         @update:search="updateSearch"
         @update:filter="updateListOption('series', 'filter', $event)"
         @update:sort="updateListOption('series', 'sort', $event)"
@@ -1180,6 +1294,7 @@ onUnmounted(() => {
         :quick-saving-comic-id="quickSavingComicID"
         :quick-saving-character-id="quickSavingCharacterID"
         :import-running="characterImportRunning(selectedCharacter)"
+        :read-only="isReadOnlyGuest"
         @back="backToBrowse"
         @toggle-favorite="toggleCharacterFavorite"
         @import-appearances="importSelectedCharacterAppearances"
@@ -1198,6 +1313,7 @@ onUnmounted(() => {
         :filter="listOptions.characters.filter"
         :sort="listOptions.characters.sort"
         :direction="listOptions.characters.direction"
+        :read-only="isReadOnlyGuest"
         @update:search="updateSearch"
         @update:filter="updateListOption('characters', 'filter', $event)"
         @update:sort="updateListOption('characters', 'sort', $event)"
@@ -1215,6 +1331,7 @@ onUnmounted(() => {
         :metron-metadata-applying-id="metronMetadataApplyingID"
         :metron-metadata-status="metronMetadataStatus"
         :metron-metadata-results="metronMetadataResults"
+        :read-only="isReadOnlyGuest"
         @back="backToBrowse"
         @search-metron="searchSelectedComicMetron"
         @apply-metron="applyMetronMetadata"
@@ -1237,6 +1354,7 @@ onUnmounted(() => {
           server-search
           :selected-comic-id="selectedComic?.id"
           :quick-saving-comic-id="quickSavingComicID"
+          :read-only="isReadOnlyGuest"
           show-cover
           empty-message="No comics yet."
           filtered-empty-message="No comics match these filters."

@@ -19,6 +19,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['back', 'toggle-favorite', 'import-series', 'open-comic', 'toggle-read'])
@@ -39,7 +43,7 @@ function seriesPublisherLabel(series) {
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
         <button
-          v-if="selectedSeries"
+          v-if="selectedSeries && !readOnly"
           type="button"
           class="favorite-toggle detail-favorite-toggle"
           :class="{ active: selectedSeries.favorite }"
@@ -50,7 +54,7 @@ function seriesPublisherLabel(series) {
           <span aria-hidden="true">{{ selectedSeries.favorite ? '★' : '☆' }}</span>
         </button>
         <button
-          v-if="selectedSeries"
+          v-if="selectedSeries && !readOnly"
           class="primary-button"
           type="button"
           :disabled="importRunning"
@@ -102,6 +106,7 @@ function seriesPublisherLabel(series) {
           show-cover
           paginate-local
           server-source
+          :read-only="readOnly"
           empty-message="No comics in this series yet."
           filtered-empty-message="No series entries match these filters."
           @open-comic="$emit('open-comic', $event)"

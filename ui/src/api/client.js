@@ -253,12 +253,24 @@ export function createUserInvite() {
   return send('/users/invites', 'POST', {})
 }
 
+export function updateRegistrationMode(payload) {
+  return send('/users/registration-mode', 'PUT', payload)
+}
+
+export function updatePublicAccess(payload) {
+  return send('/users/public-access', 'PUT', payload)
+}
+
 export function updateUserMetronPermissions(id, payload) {
   return send(`/users/${id}/metron-permissions`, 'PUT', payload)
 }
 
 export function updateUserAdmin(id, payload) {
   return send(`/users/${id}/admin`, 'PUT', payload)
+}
+
+export function deleteUser(id) {
+  return request(`/users/${id}`, { method: 'DELETE' })
 }
 
 export function deleteComic(id) {

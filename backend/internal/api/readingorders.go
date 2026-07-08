@@ -132,7 +132,11 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	if err != nil {
 		return nil, err
 	}
-	query, args, err := readingOrderListQuery(input, userID)
+	editUserID := userID
+	if currentUserIsPublic(ctx) {
+		editUserID = 0
+	}
+	query, args, err := readingOrderListQuery(input, userID, editUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +155,7 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	return &ReadingOrderListOutput{PaginationHeaders: pagination, Body: readingOrders}, nil
 }
 
-func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []any, error) {
+func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT
 			ro.id,
@@ -177,7 +181,7 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []
 		LEFT JOIN comics c ON c.id = roc.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
-	query.args = append(query.args, userID, userID, userID)
+	query.args = append(query.args, editUserID, editUserID, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -227,6 +231,10 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 	if err != nil {
 		return ReadingOrder{}, err
 	}
+	editUserID := userID
+	if currentUserIsPublic(ctx) {
+		editUserID = 0
+	}
 	var readingOrder ReadingOrder
 	if err := db.GetContext(ctx, &readingOrder, `
 		SELECT
@@ -247,7 +255,7 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 		FROM reading_orders ro
 		LEFT JOIN users author ON author.id = ro.author_user_id
 		WHERE ro.id = ?
-	`, userID, userID, id); err != nil {
+	`, editUserID, editUserID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return ReadingOrder{}, huma.Error404NotFound("reading order not found")
 		}
