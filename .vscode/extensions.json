@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "Vue.volar",
+    "golang.go"
+  ],
+  "unwantedRecommendations": ["ms-vscode.makefile-tools"]
+}

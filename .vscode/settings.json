@@ -1,0 +1,22 @@
+{
+  "makefile.configureOnOpen": false,
+  "eslint.workingDirectories": [
+    { "directory": "ui", "changeProcessCWD": true }
+  ],
+  "eslint.validate": [
+    "javascript",
+    "vue"
+  ],
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true
+  }
+}

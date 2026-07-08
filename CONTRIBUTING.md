@@ -12,7 +12,8 @@ Thanks for considering a contribution to ComicHero.
    ```
 
 3. Copy `.env.example` to `.env` if you want local Metron imports.
-4. Run checks before opening a pull request:
+4. If you use VS Code, install the workspace recommended extensions when prompted. They enable Vue, ESLint, Prettier, and Go integration from the checked-in `.vscode` settings.
+5. Run checks before opening a pull request:
 
    ```sh
    make test
@@ -30,6 +31,7 @@ Thanks for considering a contribution to ComicHero.
 ## Code Style
 
 - Follow existing Go and Vue patterns in the repository.
+- VS Code users get frontend ESLint validation, Prettier formatting, and ESLint fixes on save from the shared workspace settings.
 - Prefer small, direct UI improvements over broad redesigns.
 - Keep self-hosted data private by default.
 
