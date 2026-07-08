@@ -9,8 +9,13 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -20,11 +25,69 @@ const (
 	userModeSingle = "single"
 	userModeMulti  = "multi"
 
+	registrationModeInviteOnly = "invite_only"
+	registrationModeOpen       = "open"
+
 	sessionCookieName = "comichero_session"
 	defaultUserName   = "Default"
+
+	userInviteTokenBytes = 32
+	userInviteTTL        = 7 * 24 * time.Hour
+	sessionTTL           = 30 * 24 * time.Hour
+
+	loginRateLimitMaxAttempts = 5
+	loginRateLimitWindow      = time.Minute
+
+	registrationRateLimitMaxAttempts = 3
+	registrationRateLimitWindow      = time.Hour
+
+	passwordHashIterations = 600000
 )
 
 type contextUserIDKey struct{}
+type contextPublicAccessKey struct{}
+
+var (
+	authLoginLimiter        = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
+)
+
+type loginRateLimiter struct {
+	maxAttempts int
+	window      time.Duration
+	mu          sync.Mutex
+	attempts    map[string]loginRateLimitEntry
+}
+
+type loginRateLimitEntry struct {
+	count      int
+	windowEnds time.Time
+}
+
+func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimiter {
+	return &loginRateLimiter{
+		maxAttempts: maxAttempts,
+		window:      window,
+		attempts:    map[string]loginRateLimitEntry{},
+	}
+}
+
+func (l *loginRateLimiter) allow(key string, now time.Time) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	entry := l.attempts[key]
+	if entry.windowEnds.IsZero() || !now.Before(entry.windowEnds) {
+		l.attempts[key] = loginRateLimitEntry{count: 1, windowEnds: now.Add(l.window)}
+		return true
+	}
+	if entry.count >= l.maxAttempts {
+		return false
+	}
+	entry.count++
+	l.attempts[key] = entry
+	return true
+}
 
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
@@ -125,6 +188,42 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "createUserInvite",
+		Tags:        []string{tagUsers},
+		Summary:     "Create user invite",
+		Description: "Creates a single-use registration invite. Admin users only.",
+		Method:      http.MethodPost,
+		Path:        "/users/invites",
+		Errors:      []int{401, 403, 500},
+	}, func(ctx context.Context, input *struct{}) (*UserInviteOutput, error) {
+		return createUserInvite(ctx, db)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateRegistrationMode",
+		Tags:        []string{tagUsers},
+		Summary:     "Update registration mode",
+		Description: "Controls whether registration requires invite tokens or is open. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/registration-mode",
+		Errors:      []int{400, 401, 403, 500},
+	}, func(ctx context.Context, input *UpdateRegistrationModeInput) (*RegistrationModeOutput, error) {
+		return updateRegistrationMode(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updatePublicAccess",
+		Tags:        []string{tagUsers},
+		Summary:     "Update public read access",
+		Description: "Controls whether anonymous visitors can browse read-only library data and export reading orders as CBL. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/public-access",
+		Errors:      []int{400, 401, 403, 500},
+	}, func(ctx context.Context, input *UpdatePublicAccessInput) (*PublicAccessOutput, error) {
+		return updatePublicAccess(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "updateUserMetronPermissions",
 		Tags:        []string{tagUsers},
 		Summary:     "Update user Metron permissions",
@@ -135,11 +234,43 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *UpdateUserMetronPermissionsInput) (*UserAdminOutput, error) {
 		return updateUserMetronPermissions(ctx, db, input.ID, input.Body)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateUserAdmin",
+		Tags:        []string{tagUsers},
+		Summary:     "Update user admin role",
+		Description: "Promotes or demotes a user account. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/{id}/admin",
+		Errors:      []int{400, 401, 403, 404, 500},
+	}, func(ctx context.Context, input *UpdateUserAdminInput) (*UserAdminOutput, error) {
+		return updateUserAdmin(ctx, db, input.ID, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "deleteUser",
+		Tags:        []string{tagUsers},
+		Summary:     "Delete user account",
+		Description: "Deletes a user account and its per-user data. Admin users only. The final admin account cannot be deleted.",
+		Method:      http.MethodDelete,
+		Path:        "/users/{id}",
+		Errors:      []int{400, 401, 403, 404, 409, 500},
+	}, func(ctx context.Context, input *DeleteUserInput) (*struct{}, error) {
+		return deleteUser(ctx, db, input.ID)
+	})
 }
 
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isLoginRequest(r) && !authLoginLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many login attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isRegisterRequest(r) && !authRegistrationLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many registration attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
 			if isUserRouteAllowedWithoutSession(r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
@@ -156,19 +287,88 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 			}
 
 			var userID int
+			publicAccess := false
 			if mode == userModeSingle {
 				userID, err = ensureDefaultUser(r.Context(), db)
 			} else {
 				userID, err = sessionUserID(r, db)
+				if err != nil && isPublicReadRequest(r) {
+					enabled, settingErr := publicAccessEnabled(r.Context(), db)
+					if settingErr != nil {
+						http.Error(w, "failed to read public access setting", http.StatusInternalServerError)
+						return
+					}
+					if enabled {
+						userID, err = ensureDefaultUser(r.Context(), db)
+						publicAccess = err == nil
+					}
+				}
 			}
 			if err != nil {
 				http.Error(w, "login required", http.StatusUnauthorized)
 				return
 			}
 
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextUserIDKey{}, userID)))
+			ctx := context.WithValue(r.Context(), contextUserIDKey{}, userID)
+			if publicAccess {
+				ctx = context.WithValue(ctx, contextPublicAccessKey{}, true)
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func isLoginRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/login"
+}
+
+func isRegisterRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/register"
+}
+
+func isPublicReadRequest(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api"), "/")
+	parts := strings.Split(path, "/")
+	if len(parts) == 1 {
+		switch parts[0] {
+		case "readingOrders", "comics", "series", "characters", "arcs":
+			return true
+		default:
+			return false
+		}
+	}
+	if len(parts) == 2 && positivePathID(parts[1]) {
+		switch parts[0] {
+		case "readingOrders", "comics", "series", "characters", "arcs":
+			return true
+		default:
+			return false
+		}
+	}
+	return len(parts) == 3 && parts[0] == "readingOrders" && parts[2] == "cbl" && positivePathID(parts[1])
+}
+
+func positivePathID(value string) bool {
+	id, err := strconv.Atoi(value)
+	return err == nil && id > 0
+}
+
+func clientIP(r *http.Request) string {
+	if forwardedFor := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwardedFor != "" {
+		if ip := strings.TrimSpace(strings.Split(forwardedFor, ",")[0]); ip != "" {
+			return ip
+		}
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	return r.RemoteAddr
 }
 
 func isUserRouteAllowedWithoutSession(path string) bool {
@@ -184,19 +384,14 @@ func isUserRouteAllowedWithoutSession(path string) bool {
 func currentUserID(ctx context.Context) (int, error) {
 	userID, ok := ctx.Value(contextUserIDKey{}).(int)
 	if !ok || userID <= 0 {
-		return 1, nil
+		return 0, huma.Error401Unauthorized("login required")
 	}
 	return userID, nil
 }
 
-func contextWithDefaultUser(ctx context.Context, db *sqlx.DB) context.Context {
-	if _, err := currentUserID(ctx); err == nil {
-		return ctx
-	}
-	if userID, err := ensureDefaultUser(ctx, db); err == nil {
-		return context.WithValue(ctx, contextUserIDKey{}, userID)
-	}
-	return ctx
+func currentUserIsPublic(ctx context.Context) bool {
+	public, _ := ctx.Value(contextPublicAccessKey{}).(bool)
+	return public
 }
 
 func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
@@ -213,12 +408,45 @@ func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
 	return mode, true, nil
 }
 
+func registrationMode(ctx context.Context, db *sqlx.DB) (string, error) {
+	var mode string
+	if err := db.GetContext(ctx, &mode, `SELECT value FROM app_settings WHERE key = 'registration_mode'`); err != nil {
+		if err == sql.ErrNoRows {
+			return registrationModeInviteOnly, nil
+		}
+		return "", err
+	}
+	if mode != registrationModeInviteOnly && mode != registrationModeOpen {
+		return "", fmt.Errorf("invalid registration mode %q", mode)
+	}
+	return mode, nil
+}
+
+func publicAccessEnabled(ctx context.Context, db *sqlx.DB) (bool, error) {
+	var value string
+	if err := db.GetContext(ctx, &value, `SELECT value FROM app_settings WHERE key = 'public_access_enabled'`); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return value == "true", nil
+}
+
 func getUserStatus(ctx context.Context, db *sqlx.DB, sessionToken string) (*UserStatusOutput, error) {
 	mode, configured, err := userMode(ctx, db)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch user setup")
 	}
-	status := UserStatus{SetupRequired: !configured, Mode: mode}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
+	status := UserStatus{SetupRequired: !configured, Mode: mode, RegistrationMode: regMode, PublicAccess: publicAccess}
 	if !configured {
 		return &UserStatusOutput{Body: status}, nil
 	}
@@ -316,6 +544,10 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if !configured || mode != userModeMulti {
 		return nil, huma.Error400BadRequest("registration is only available in multi-user mode")
 	}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
 	name := cleanUserName(payload.Name)
 	if name == "" {
 		return nil, huma.Error400BadRequest("name is required")
@@ -327,7 +559,20 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to hash password")
 	}
-	result, err := db.ExecContext(ctx, `
+
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start registration")
+	}
+	defer tx.Rollback()
+
+	if regMode == registrationModeInviteOnly {
+		if err := consumeUserInvite(ctx, tx, payload.InviteToken); err != nil {
+			return nil, err
+		}
+	}
+
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO users (name, password_hash)
 		VALUES (?, ?)
 	`, name, passwordHash)
@@ -338,11 +583,119 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get user id")
 	}
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to create user")
+	}
 	cookie, err := createSession(ctx, db, int(id))
 	if err != nil {
 		return nil, err
 	}
 	return userStatusForUser(ctx, db, mode, int(id), cookie)
+}
+
+func createUserInvite(ctx context.Context, db *sqlx.DB) (*UserInviteOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	token, err := randomToken(userInviteTokenBytes)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to create invite token")
+	}
+	expiresAt := time.Now().UTC().Add(userInviteTTL).Format(time.RFC3339)
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO user_invites (token, created_by_user_id, expires_at)
+		VALUES (?, ?, ?)
+	`, token, userID, expiresAt); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save invite")
+	}
+	return &UserInviteOutput{Body: UserInvite{Token: token, ExpiresAt: expiresAt}}, nil
+}
+
+func updateRegistrationMode(ctx context.Context, db *sqlx.DB, payload UpdateRegistrationModePayload) (*RegistrationModeOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	mode := strings.TrimSpace(payload.Mode)
+	if mode != registrationModeInviteOnly && mode != registrationModeOpen {
+		return nil, huma.Error400BadRequest("mode must be invite_only or open")
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO app_settings (key, value) VALUES ('registration_mode', ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value
+	`, mode); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save registration mode")
+	}
+	currentMode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured {
+		return nil, huma.Error400BadRequest("user setup is not complete")
+	}
+	status, err := userStatusForUser(ctx, db, currentMode, userID, nil)
+	if err != nil {
+		return nil, err
+	}
+	status.Body.RegistrationMode = mode
+	return &RegistrationModeOutput{Body: status.Body}, nil
+}
+
+func updatePublicAccess(ctx context.Context, db *sqlx.DB, payload UpdatePublicAccessPayload) (*PublicAccessOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	value := "false"
+	if payload.Enabled {
+		value = "true"
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO app_settings (key, value) VALUES ('public_access_enabled', ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value
+	`, value); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save public access setting")
+	}
+	currentMode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured {
+		return nil, huma.Error400BadRequest("user setup is not complete")
+	}
+	status, err := userStatusForUser(ctx, db, currentMode, userID, nil)
+	if err != nil {
+		return nil, err
+	}
+	status.Body.PublicAccess = payload.Enabled
+	return &PublicAccessOutput{Body: status.Body}, nil
+}
+
+func consumeUserInvite(ctx context.Context, db sqlx.ExtContext, token string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return huma.Error401Unauthorized("valid invite token is required")
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := db.ExecContext(ctx, `
+		UPDATE user_invites
+		SET used_at = ?
+		WHERE token = ?
+		  AND used_at = ''
+		  AND (expires_at = '' OR expires_at > ?)
+	`, now, token, now)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to consume invite")
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return huma.Error500InternalServerError("failed to check invite")
+	}
+	if rows == 0 {
+		return huma.Error401Unauthorized("valid invite token is required")
+	}
+	return nil
 }
 
 func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload) (*UserStatusOutput, error) {
@@ -365,6 +718,12 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 	}
 	if !checkPassword(payload.Password, row.PasswordHash) {
 		return nil, huma.Error401Unauthorized("invalid user name or password")
+	}
+	if passwordHashNeedsUpgrade(row.PasswordHash) {
+		passwordHash, err := hashPassword(payload.Password)
+		if err == nil {
+			_, _ = db.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, row.ID)
+		}
 	}
 	cookie, err := createSession(ctx, db, row.ID)
 	if err != nil {
@@ -483,32 +842,12 @@ func deleteAccount(ctx context.Context, db *sqlx.DB, payload DeleteAccountPayloa
 		}
 	}
 
-	tx, err := db.BeginTxx(ctx, nil)
+	if err := deleteUserData(ctx, db, userID); err != nil {
+		return nil, err
+	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to start account deletion")
-	}
-	defer tx.Rollback()
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_sessions WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete sessions")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_request_log WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete Metron request history")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_permissions WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete Metron permissions")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_comics WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete read status")
-	}
-	if _, err := tx.ExecContext(ctx, `UPDATE reading_orders SET author_user_id = NULL WHERE author_user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to clear reading order authorship")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete account")
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete account")
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
 	}
 
 	return &UserStatusOutput{
@@ -516,8 +855,71 @@ func deleteAccount(ctx context.Context, db *sqlx.DB, payload DeleteAccountPayloa
 		Body: UserStatus{
 			SetupRequired: false,
 			Mode:          mode,
+			PublicAccess:  publicAccess,
 		},
 	}, nil
+}
+
+func deleteUser(ctx context.Context, db *sqlx.DB, userID int) (*struct{}, error) {
+	if _, err := requireAdminUser(ctx, db); err != nil {
+		return nil, err
+	}
+	if userID <= 0 {
+		return nil, huma.Error400BadRequest("user id is required")
+	}
+
+	var isAdmin bool
+	if err := db.GetContext(ctx, &isAdmin, `SELECT is_admin FROM users WHERE id = ?`, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, huma.Error404NotFound("user not found")
+		}
+		return nil, huma.Error500InternalServerError("failed to fetch user")
+	}
+	if isAdmin {
+		var adminCount int
+		if err := db.GetContext(ctx, &adminCount, `SELECT COUNT(*) FROM users WHERE is_admin = 1`); err != nil {
+			return nil, huma.Error500InternalServerError("failed to count admins")
+		}
+		if adminCount <= 1 {
+			return nil, huma.Error409Conflict("cannot remove the last admin")
+		}
+	}
+
+	if err := deleteUserData(ctx, db, userID); err != nil {
+		return nil, err
+	}
+	return &struct{}{}, nil
+}
+
+func deleteUserData(ctx context.Context, db *sqlx.DB, userID int) error {
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to start account deletion")
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_sessions WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete sessions")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_request_log WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete Metron request history")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_permissions WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete Metron permissions")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_comics WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete read status")
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE reading_orders SET author_user_id = NULL WHERE author_user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to clear reading order authorship")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete account")
+	}
+	if err := tx.Commit(); err != nil {
+		return huma.Error500InternalServerError("failed to delete account")
+	}
+	return nil
 }
 
 func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
@@ -575,6 +977,14 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 	if err != nil {
 		return nil, err
 	}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
 	metronPermissions, err := metronPermissionsForUser(ctx, db, userID)
 	if err != nil {
 		return nil, err
@@ -584,6 +994,8 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 		Body: UserStatus{
 			SetupRequired:     false,
 			Mode:              mode,
+			RegistrationMode:  regMode,
+			PublicAccess:      publicAccess,
 			User:              &user,
 			MetronPermissions: metronPermissions,
 		},
@@ -606,13 +1018,21 @@ func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int
 	if token == "" {
 		return 0, huma.Error401Unauthorized("login required")
 	}
-	var userID int
-	if err := db.GetContext(ctx, &userID, `
-		SELECT user_id FROM user_sessions WHERE token = ?
+	var row struct {
+		UserID    int    `db:"user_id"`
+		ExpiresAt string `db:"expires_at"`
+	}
+	if err := db.GetContext(ctx, &row, `
+		SELECT user_id, expires_at FROM user_sessions WHERE token = ?
 	`, token); err != nil {
 		return 0, huma.Error401Unauthorized("login required")
 	}
-	return userID, nil
+	expiresAt, err := time.Parse(time.RFC3339, row.ExpiresAt)
+	if err != nil || !expiresAt.After(time.Now().UTC()) {
+		_, _ = db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token)
+		return 0, huma.Error401Unauthorized("login required")
+	}
+	return row.UserID, nil
 }
 
 func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, error) {
@@ -620,17 +1040,27 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create session")
 	}
+	expiresAt := time.Now().UTC().Add(sessionTTL)
 	if _, err := db.ExecContext(ctx, `
-		INSERT INTO user_sessions (token, user_id)
-		VALUES (?, ?)
-	`, token, userID); err != nil {
+		INSERT INTO user_sessions (token, user_id, expires_at)
+		VALUES (?, ?, ?)
+	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
 		return nil, huma.Error500InternalServerError("failed to save session")
 	}
-	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}, nil
+	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}, nil
 }
 
 func expiredSessionCookie() *http.Cookie {
-	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode}
+	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}
+}
+
+func secureSessionCookies() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
+	case "false", "0", "no", "off":
+		return false
+	default:
+		return true
+	}
 }
 
 func cookieHeader(cookie *http.Cookie) []http.Cookie {
@@ -649,13 +1079,17 @@ func hashPassword(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	key := derivePasswordKey([]byte(password), salt, 120000, 32)
-	return fmt.Sprintf("pbkdf2_sha256$120000$%s$%s", base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
+	key := derivePasswordKey([]byte(password), salt, passwordHashIterations, 32)
+	return fmt.Sprintf("pbkdf2_sha256$%d$%s$%s", passwordHashIterations, base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
 }
 
 func checkPassword(password, encoded string) bool {
 	parts := strings.Split(encoded, "$")
-	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" || parts[1] != "120000" {
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		return false
+	}
+	iterations, err := strconv.Atoi(parts[1])
+	if err != nil || iterations <= 0 {
 		return false
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[2])
@@ -666,8 +1100,17 @@ func checkPassword(password, encoded string) bool {
 	if err != nil {
 		return false
 	}
-	actual := derivePasswordKey([]byte(password), salt, 120000, len(expected))
+	actual := derivePasswordKey([]byte(password), salt, iterations, len(expected))
 	return subtle.ConstantTimeCompare(actual, expected) == 1
+}
+
+func passwordHashNeedsUpgrade(encoded string) bool {
+	parts := strings.Split(encoded, "$")
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		return false
+	}
+	iterations, err := strconv.Atoi(parts[1])
+	return err == nil && iterations < passwordHashIterations
 }
 
 func derivePasswordKey(password, salt []byte, iterations, keyLen int) []byte {

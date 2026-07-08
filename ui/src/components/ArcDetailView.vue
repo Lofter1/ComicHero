@@ -20,6 +20,10 @@ defineProps({
     type: Number,
     default: null,
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
@@ -31,7 +35,7 @@ defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
         <button
-          v-if="selectedArc"
+          v-if="selectedArc && !readOnly"
           type="button"
           class="favorite-toggle detail-favorite-toggle"
           :class="{ active: selectedArc.favorite }"
@@ -83,6 +87,7 @@ defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
           show-comment
           paginate-local
           server-source
+          :read-only="readOnly"
           empty-message="No comics in this arc yet."
           filtered-empty-message="No comics match these filters."
           @open-comic="$emit('open-comic', $event)"

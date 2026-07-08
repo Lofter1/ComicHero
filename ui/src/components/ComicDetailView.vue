@@ -31,6 +31,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits([
@@ -72,7 +76,7 @@ function seriesLabel(comic) {
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
         <button
-          v-if="selectedComic"
+          v-if="selectedComic && !readOnly"
           class="secondary-button"
           type="button"
           :disabled="metronActionDisabled"
@@ -81,7 +85,7 @@ function seriesLabel(comic) {
           {{ metronActionLabel }}
         </button>
         <button
-          v-if="selectedComic?.metronIssueId"
+          v-if="selectedComic?.metronIssueId && !readOnly"
           class="ghost-button"
           type="button"
           :disabled="metronActionDisabled"
@@ -90,7 +94,7 @@ function seriesLabel(comic) {
           Force refresh
         </button>
         <button
-          v-if="selectedComic"
+          v-if="selectedComic && !readOnly"
           class="read-toggle-button large"
           type="button"
           :disabled="quickSavingComicId === selectedComic.id"
@@ -137,7 +141,7 @@ function seriesLabel(comic) {
           </span>
         </div>
 
-        <div v-if="metronMetadataOpen || metronMetadataStatus" class="metron-metadata-panel">
+        <div v-if="!readOnly && (metronMetadataOpen || metronMetadataStatus)" class="metron-metadata-panel">
           <header class="section-title">
             <div>
               <p class="eyebrow">Metron</p>

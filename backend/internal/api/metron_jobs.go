@@ -83,8 +83,12 @@ func (s *metronImportJobStore) start(jobType string, metronID int, message strin
 }
 
 func (s *metronImportJobStore) startWithOptions(jobType string, metronID int, options MetronImportOptions, message string, run func(context.Context, func(int, int, string)) error) MetronImportJob {
+	return s.startWithContextAndOptions(context.Background(), jobType, metronID, options, message, run)
+}
+
+func (s *metronImportJobStore) startWithContextAndOptions(parent context.Context, jobType string, metronID int, options MetronImportOptions, message string, run func(context.Context, func(int, int, string)) error) MetronImportJob {
 	id := fmt.Sprintf("metron-%d", s.nextID.Add(1))
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.WithoutCancel(parent))
 	job := &MetronImportJob{
 		ID:        id,
 		Type:      jobType,
@@ -412,9 +416,9 @@ func (o MetronImportOptions) needsIssueDetail() bool {
 	return o.includesComics() || o.includesSeries() || o.includesArcs() || o.includesCharacters()
 }
 
-func startMetronComicImportWithOptions(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronComicImportWithOptions(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("comic", metronID, options, "Importing comic from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "comic", metronID, options, "Importing comic from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 1, "Checking existing imports...")
 		if _, ok, err := existingComicIDByMetronIssueID(ctx, db, metronID); err != nil || ok {
 			if ok && options.Mode != "full" && !options.Force {
@@ -458,9 +462,9 @@ func startMetronComicImportWithOptions(store *metronImportJobStore, db *sqlx.DB,
 	})
 }
 
-func startMetronReadingListImportWithOptions(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronReadingListImportWithOptions(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("readingList", metronID, options, "Importing reading list and issues from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "readingList", metronID, options, "Importing reading list and issues from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Checking existing imports...")
 		existingID, existing, err := existingReadingOrderIDByMetronID(ctx, db, metronID)
 		if err != nil || existing {
@@ -509,9 +513,9 @@ func startMetronReadingListImportWithOptions(store *metronImportJobStore, db *sq
 	})
 }
 
-func startMetronArcImportWithOptions(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronArcImportWithOptions(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("arc", metronID, options, "Importing arc and issues from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "arc", metronID, options, "Importing arc and issues from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Checking existing imports...")
 		if _, ok, err := existingArcIDByMetronID(ctx, db, metronID); err != nil || ok {
 			if ok && options.Mode != "full" && !options.Force {
@@ -551,9 +555,9 @@ func startMetronArcImportWithOptions(store *metronImportJobStore, db *sqlx.DB, c
 	})
 }
 
-func startMetronSeriesImportWithOptions(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronSeriesImportWithOptions(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("series", metronID, options, "Importing series from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "series", metronID, options, "Importing series from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Fetching series metadata from Metron...")
 		metadata, info, err := fetchMetronSeries(ctx, db, client, metronID, options.Force)
 		if err != nil {
@@ -589,8 +593,8 @@ func startMetronSeriesImportWithOptions(store *metronImportJobStore, db *sqlx.DB
 	})
 }
 
-func startLocalSeriesMetronImport(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, localID, metronID int) MetronImportJob {
-	return store.startWithOptions("series", metronID, defaultMetronImportOptions(), "Importing series from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+func startLocalSeriesMetronImport(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, localID, metronID int) MetronImportJob {
+	return store.startWithContextAndOptions(parent, "series", metronID, defaultMetronImportOptions(), "Importing series from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Fetching series metadata from Metron...")
 		metadata, info, err := fetchMetronSeries(ctx, db, client, metronID, false)
 		if err != nil {
@@ -623,13 +627,13 @@ func startLocalSeriesMetronImport(store *metronImportJobStore, db *sqlx.DB, clie
 	})
 }
 
-func startMetronCharacterAppearancesImport(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int) MetronImportJob {
-	return startMetronCharacterAppearancesImportWithOptions(store, db, client, covers, metronID, defaultMetronImportOptions())
+func startMetronCharacterAppearancesImport(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int) MetronImportJob {
+	return startMetronCharacterAppearancesImportWithOptions(parent, store, db, client, covers, metronID, defaultMetronImportOptions())
 }
 
-func startMetronCharacterAppearancesImportWithOptions(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronCharacterAppearancesImportWithOptions(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("character", metronID, options, "Importing character from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "character", metronID, options, "Importing character from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Preparing character appearance import...")
 		return importMetronCharacterAppearancesWithProgressOptions(ctx, db, client, covers, metronID, progress, options)
 	})
@@ -697,7 +701,7 @@ func cancelMetronImportJob(store *metronImportJobStore, id string) (*MetronImpor
 	return &MetronImportJobOutput{Body: job}, nil
 }
 
-func continueMetronImportJob(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, id string) (*MetronImportJobOutput, error) {
+func continueMetronImportJob(ctx context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, id string) (*MetronImportJobOutput, error) {
 	job, ok := store.get(id)
 	if !ok {
 		return nil, huma.Error404NotFound("import job not found")
@@ -709,24 +713,24 @@ func continueMetronImportJob(store *metronImportJobStore, db *sqlx.DB, client *m
 	var next MetronImportJob
 	switch job.Type {
 	case "comic":
-		next = startMetronComicImportWithOptions(store, db, client, covers, job.MetronID, job.Options)
+		next = startMetronComicImportWithOptions(ctx, store, db, client, covers, job.MetronID, job.Options)
 	case "readingList":
-		next = startMetronReadingListContinue(store, db, client, covers, job.MetronID, job.Options)
+		next = startMetronReadingListContinue(ctx, store, db, client, covers, job.MetronID, job.Options)
 	case "arc":
-		next = startMetronArcContinue(store, db, client, covers, job.MetronID, job.Options)
+		next = startMetronArcContinue(ctx, store, db, client, covers, job.MetronID, job.Options)
 	case "series":
-		next = startMetronSeriesImportWithOptions(store, db, client, covers, job.MetronID, job.Options)
+		next = startMetronSeriesImportWithOptions(ctx, store, db, client, covers, job.MetronID, job.Options)
 	case "character":
-		next = startMetronCharacterAppearancesImportWithOptions(store, db, client, covers, job.MetronID, job.Options)
+		next = startMetronCharacterAppearancesImportWithOptions(ctx, store, db, client, covers, job.MetronID, job.Options)
 	default:
 		return nil, huma.Error400BadRequest("unsupported import type")
 	}
 	return &MetronImportJobOutput{Body: next}, nil
 }
 
-func startMetronArcContinue(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronArcContinue(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("arc", metronID, options, "Continuing arc import from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "arc", metronID, options, "Continuing arc import from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		progress(0, 0, "Fetching arc from Metron...")
 		arc, info, err := fetchMetronArc(ctx, db, client, metronID, options.Force)
 		if err != nil {
@@ -755,9 +759,9 @@ func startMetronArcContinue(store *metronImportJobStore, db *sqlx.DB, client *me
 	})
 }
 
-func startMetronReadingListContinue(store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
+func startMetronReadingListContinue(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, metronID int, options MetronImportOptions) MetronImportJob {
 	options = resolveMetronImportOptions(options)
-	return store.startWithOptions("readingList", metronID, options, "Continuing reading list import from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+	return store.startWithContextAndOptions(parent, "readingList", metronID, options, "Continuing reading list import from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
 		forceMetadata := options.Force
 		if existingID, ok, err := existingReadingOrderIDByMetronID(ctx, db, metronID); err != nil {
 			return err

@@ -22,13 +22,25 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  publicAccess: {
+    type: Boolean,
+    default: false,
+  },
+  readOnlyGuest: {
+    type: Boolean,
+    default: false,
+  },
+  showMetron: {
+    type: Boolean,
+    default: true,
+  },
   authSaving: {
     type: Boolean,
     default: false,
   },
 })
 
-const emit = defineEmits(['change-view', 'set-theme', 'logout'])
+const emit = defineEmits(['change-view', 'set-theme', 'login', 'logout'])
 const menuOpen = ref(false)
 const accountMenuOpen = ref(false)
 
@@ -46,6 +58,12 @@ function setTheme(value) {
 
 function logout() {
   emit('logout')
+  menuOpen.value = false
+  accountMenuOpen.value = false
+}
+
+function login() {
+  emit('login')
   menuOpen.value = false
   accountMenuOpen.value = false
 }
@@ -91,7 +109,7 @@ function toggleAccountMenu() {
       <button :class="{ active: activeView === 'characters' }" @click="changeView('characters')">
         <span>Characters</span>
       </button>
-      <button :class="{ active: activeView === 'metron' }" @click="changeView('metron')">
+      <button v-if="showMetron" :class="{ active: activeView === 'metron' }" @click="changeView('metron')">
         <span>Metron</span>
       </button>
     </nav>
@@ -172,6 +190,11 @@ function toggleAccountMenu() {
             <span>{{ authSaving ? 'Logging out...' : 'Log out' }}</span>
           </button>
         </div>
+      </div>
+      <div v-else-if="readOnlyGuest" class="public-session-card">
+        <strong>Public access</strong>
+        <span>Read-only library</span>
+        <button type="button" class="secondary-action" @click="login">Log in</button>
       </div>
 
     </div>

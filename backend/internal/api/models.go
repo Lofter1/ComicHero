@@ -49,18 +49,66 @@ type UserListOutput struct {
 	Body []UserAdminView
 }
 
+type UserInvite struct {
+	Token     string `json:"token"     doc:"Single-use invite token."`
+	ExpiresAt string `json:"expiresAt" doc:"RFC3339 expiry time for this invite."`
+}
+
+type UserInviteOutput struct {
+	Body UserInvite
+}
+
 type UpdateUserMetronPermissionsInput struct {
 	ID   int `path:"id" doc:"Local user identifier." example:"2"`
 	Body UserMetronPermissions
+}
+
+type UpdateUserAdminPayload struct {
+	IsAdmin bool `json:"isAdmin" doc:"Whether the user should be an admin." example:"true"`
+}
+
+type UpdateUserAdminInput struct {
+	ID   int `path:"id" doc:"Local user identifier." example:"2"`
+	Body UpdateUserAdminPayload
+}
+
+type DeleteUserInput struct {
+	ID int `path:"id" doc:"Local user identifier." example:"2"`
 }
 
 type UserAdminOutput struct {
 	Body UserAdminView
 }
 
+type UpdateRegistrationModePayload struct {
+	Mode string `json:"mode" doc:"Registration mode: invite_only requires invite tokens, open allows self-registration." enum:"invite_only,open" example:"invite_only"`
+}
+
+type UpdateRegistrationModeInput struct {
+	Body UpdateRegistrationModePayload
+}
+
+type RegistrationModeOutput struct {
+	Body UserStatus
+}
+
+type UpdatePublicAccessPayload struct {
+	Enabled bool `json:"enabled" doc:"Whether anonymous read-only public access is enabled." example:"true"`
+}
+
+type UpdatePublicAccessInput struct {
+	Body UpdatePublicAccessPayload
+}
+
+type PublicAccessOutput struct {
+	Body UserStatus
+}
+
 type UserStatus struct {
 	SetupRequired     bool                  `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
 	Mode              string                `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
+	RegistrationMode  string                `json:"registrationMode" doc:"Configured registration mode: invite_only or open." enum:"invite_only,open" example:"invite_only"`
+	PublicAccess      bool                  `json:"publicAccess" doc:"Whether anonymous read-only access is enabled." example:"false"`
 	User              *User                 `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
 	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Current user's Metron endpoint permissions."`
 }
@@ -93,8 +141,9 @@ type SetupUsersInput struct {
 }
 
 type UserCredentialsPayload struct {
-	Name     string `json:"name"     minLength:"1" doc:"User name." example:"Justin"`
-	Password string `json:"password" minLength:"6" doc:"Password." example:"correct horse battery staple"`
+	Name        string `json:"name"                  minLength:"1" doc:"User name." example:"Justin"`
+	Password    string `json:"password"              minLength:"6" doc:"Password." example:"correct horse battery staple"`
+	InviteToken string `json:"inviteToken,omitempty" doc:"Invite token required for registration in multi-user mode."`
 }
 
 type RegisterUserInput struct {

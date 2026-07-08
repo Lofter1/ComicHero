@@ -24,6 +24,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['back', 'toggle-favorite', 'import-appearances', 'open-comic', 'toggle-read'])
@@ -39,7 +43,7 @@ function characterProgress(character) {
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
         <button
-          v-if="selectedCharacter"
+          v-if="selectedCharacter && !readOnly"
           type="button"
           class="favorite-toggle detail-favorite-toggle"
           :class="{ active: selectedCharacter.favorite }"
@@ -51,7 +55,7 @@ function characterProgress(character) {
           <span aria-hidden="true">{{ selectedCharacter.favorite ? '★' : '☆' }}</span>
         </button>
         <button
-          v-if="selectedCharacter?.metronCharacterId"
+          v-if="selectedCharacter?.metronCharacterId && !readOnly"
           class="primary-button"
           type="button"
           :disabled="importRunning"
@@ -109,6 +113,7 @@ function characterProgress(character) {
           initial-sort="date"
           paginate-local
           server-source
+          :read-only="readOnly"
           empty-message="No appearances saved yet."
           filtered-empty-message="No appearances match these filters."
           @open-comic="$emit('open-comic', $event)"

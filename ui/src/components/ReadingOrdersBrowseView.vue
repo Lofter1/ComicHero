@@ -41,6 +41,10 @@ const props = defineProps({
     type: String,
     default: 'asc',
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'new-order', 'open-order', 'toggle-favorite', 'import-cbl'])
@@ -92,7 +96,7 @@ function handleCBLFile(event) {
             @update:sort="$emit('update:sort', $event)"
             @update:direction="$emit('update:direction', $event)"
           />
-          <div class="browse-header-actions">
+          <div v-if="!readOnly" class="browse-header-actions">
             <input
               ref="cblFileInput"
               hidden
@@ -167,7 +171,7 @@ function handleCBLFile(event) {
       </div>
       <div v-else class="empty-state">
         {{ hasFilters ? 'No reading orders match these filters.' : 'No reading orders yet.' }}
-        <button v-if="!hasFilters" class="secondary-button" type="button" @click="$emit('new-order')">
+        <button v-if="!hasFilters && !readOnly" class="secondary-button" type="button" @click="$emit('new-order')">
           <span aria-hidden="true" class="button-icon">+</span>
           Create the first order
         </button>

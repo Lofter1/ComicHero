@@ -132,7 +132,11 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	if err != nil {
 		return nil, err
 	}
-	query, args, err := readingOrderListQuery(input, userID)
+	editUserID := userID
+	if currentUserIsPublic(ctx) {
+		editUserID = 0
+	}
+	query, args, err := readingOrderListQuery(input, userID, editUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +155,7 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	return &ReadingOrderListOutput{PaginationHeaders: pagination, Body: readingOrders}, nil
 }
 
-func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []any, error) {
+func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT
 			ro.id,
@@ -162,7 +166,11 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []
 			ro.image,
 			ro.favorite,
 			COALESCE(author.name, '') AS author_name,
-			CASE WHEN ro.author_user_id = ? THEN 1 ELSE 0 END AS can_edit,
+			CASE
+				WHEN ro.author_user_id = ?
+					OR EXISTS (SELECT 1 FROM users current_user WHERE current_user.id = ? AND current_user.is_admin = 1)
+				THEN 1 ELSE 0
+			END AS can_edit,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
 				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
@@ -173,7 +181,7 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int) (string, []
 		LEFT JOIN comics c ON c.id = roc.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
-	query.args = append(query.args, userID, userID)
+	query.args = append(query.args, editUserID, editUserID, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -223,6 +231,10 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 	if err != nil {
 		return ReadingOrder{}, err
 	}
+	editUserID := userID
+	if currentUserIsPublic(ctx) {
+		editUserID = 0
+	}
 	var readingOrder ReadingOrder
 	if err := db.GetContext(ctx, &readingOrder, `
 		SELECT
@@ -235,11 +247,15 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ro.favorite,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
-			CASE WHEN ro.author_user_id = ? THEN 1 ELSE 0 END AS can_edit
+			CASE
+				WHEN ro.author_user_id = ?
+					OR EXISTS (SELECT 1 FROM users current_user WHERE current_user.id = ? AND current_user.is_admin = 1)
+				THEN 1 ELSE 0
+			END AS can_edit
 		FROM reading_orders ro
 		LEFT JOIN users author ON author.id = ro.author_user_id
 		WHERE ro.id = ?
-	`, userID, id); err != nil {
+	`, editUserID, editUserID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return ReadingOrder{}, huma.Error404NotFound("reading order not found")
 		}
@@ -333,7 +349,11 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 			ro.favorite,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
-			CASE WHEN ro.author_user_id = ? THEN 1 ELSE 0 END AS can_edit,
+			CASE
+				WHEN ro.author_user_id = ?
+					OR EXISTS (SELECT 1 FROM users current_user WHERE current_user.id = ? AND current_user.is_admin = 1)
+				THEN 1 ELSE 0
+			END AS can_edit,
 			roc.position AS position,
 			roc.note AS comment
 		FROM reading_orders ro
@@ -341,7 +361,7 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
 		WHERE roc.parent_reading_order_id = ?
 		ORDER BY roc.position, ro.name
-	`, userID, readingOrderID); err != nil {
+	`, userID, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
 	}
 
@@ -433,7 +453,7 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPa
 }
 
 func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload ReadingOrderPayload) (*ReadingOrderDetailOutput, error) {
-	if err := requireReadingOrderAuthor(ctx, db, id); err != nil {
+	if err := requireReadingOrderEditor(ctx, db, id); err != nil {
 		return nil, err
 	}
 	result, err := db.ExecContext(ctx, `
@@ -452,7 +472,7 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload Readin
 }
 
 func deleteReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
-	if err := requireReadingOrderAuthor(ctx, db, id); err != nil {
+	if err := requireReadingOrderEditor(ctx, db, id); err != nil {
 		return nil, err
 	}
 	result, err := db.ExecContext(ctx, `
@@ -482,7 +502,7 @@ func setReadingOrderComicsWithAuth(ctx context.Context, db *sqlx.DB, input *SetR
 		return nil, err
 	}
 	if enforceAuthor {
-		if err := requireReadingOrderAuthor(ctx, db, input.ID); err != nil {
+		if err := requireReadingOrderEditor(ctx, db, input.ID); err != nil {
 			return nil, err
 		}
 	}
@@ -542,21 +562,32 @@ func setReadingOrderComicsWithAuth(ctx context.Context, db *sqlx.DB, input *SetR
 	return fetchReadingOrderDetail(ctx, db, ro)
 }
 
-func requireReadingOrderAuthor(ctx context.Context, db *sqlx.DB, id int) error {
+func requireReadingOrderEditor(ctx context.Context, db *sqlx.DB, id int) error {
 	userID, err := currentUserID(ctx)
 	if err != nil {
 		return err
 	}
 
-	var authorID sql.NullInt64
-	if err := db.GetContext(ctx, &authorID, `SELECT author_user_id FROM reading_orders WHERE id = ?`, id); err != nil {
+	var row struct {
+		AuthorID sql.NullInt64 `db:"author_user_id"`
+		IsAdmin  bool          `db:"is_admin"`
+	}
+	if err := db.GetContext(ctx, &row, `
+		SELECT ro.author_user_id, COALESCE(current_user.is_admin, 0) AS is_admin
+		FROM reading_orders ro
+		LEFT JOIN users current_user ON current_user.id = ?
+		WHERE ro.id = ?
+	`, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return huma.Error404NotFound("reading order not found")
 		}
 		return huma.Error500InternalServerError("failed to check reading order author")
 	}
-	if !authorID.Valid || int(authorID.Int64) != userID {
-		return huma.Error403Forbidden("only the reading order author can edit it")
+	if row.IsAdmin {
+		return nil
+	}
+	if !row.AuthorID.Valid || int(row.AuthorID.Int64) != userID {
+		return huma.Error403Forbidden("only the reading order author or an admin can edit it")
 	}
 	return nil
 }
