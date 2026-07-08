@@ -3,7 +3,7 @@
 GOCACHE ?= $(CURDIR)/tmp/go-build
 export GOCACHE
 
-BACKEND_URL ?= http://localhost:8090/api/docs
+BACKEND_URL ?= http://localhost:8080/api/docs
 UI_URL ?= http://localhost:5173
 OPEN_BROWSER ?= 1
 OPEN_CMD ?= open
