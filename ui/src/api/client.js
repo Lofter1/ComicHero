@@ -241,6 +241,10 @@ export function updateAccount(payload) {
   return send('/account', 'PUT', payload)
 }
 
+export function getAccountStatistics() {
+  return request('/account/statistics')
+}
+
 export function deleteAccount(payload) {
   return send('/account', 'DELETE', payload)
 }

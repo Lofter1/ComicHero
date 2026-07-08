@@ -103,6 +103,9 @@ function toggleAccountMenu() {
       <button :class="{ active: activeView === 'comics' }" @click="changeView('comics')">
         <span>Comics</span>
       </button>
+      <button v-if="user" :class="{ active: activeView === 'progress' }" @click="changeView('progress')">
+        <span>Progress</span>
+      </button>
       <button :class="{ active: activeView === 'series' }" @click="changeView('series')">
         <span>Series</span>
       </button>
@@ -174,6 +177,10 @@ function toggleAccountMenu() {
           <button type="button" class="account-menu-item" @click="changeView('account')">
             <span aria-hidden="true">@</span>
             <span>Account settings</span>
+          </button>
+          <button type="button" class="account-menu-item" @click="changeView('progress')">
+            <span aria-hidden="true">%</span>
+            <span>Progress</span>
           </button>
           <button v-if="isAdmin" type="button" class="account-menu-item" @click="changeView('users')">
             <span aria-hidden="true">⚙</span>

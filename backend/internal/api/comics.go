@@ -416,12 +416,16 @@ func setComicReadStatusForCurrentUser(ctx context.Context, db *sqlx.DB, comicID 
 	if err != nil {
 		return err
 	}
+	readAt := ""
+	if read {
+		readAt = currentTimestamp()
+	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO user_comics (comic_id, user_id, read)
-		VALUES (?, ?, ?)
-		ON CONFLICT(comic_id, user_id) DO UPDATE SET read = excluded.read
-	`, comicID, userID, boolInt(read))
+		INSERT INTO user_comics (comic_id, user_id, read, read_at)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(comic_id, user_id) DO UPDATE SET read = excluded.read, read_at = excluded.read_at
+	`, comicID, userID, boolInt(read), readAt)
 	if err != nil {
 		return huma.Error500InternalServerError("failed to update comic read status")
 	}

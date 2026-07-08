@@ -394,6 +394,10 @@ func currentUserIsPublic(ctx context.Context) bool {
 	return public
 }
 
+func currentTimestamp() string {
+	return time.Now().UTC().Format(time.RFC3339)
+}
+
 func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
 	var mode string
 	if err := db.GetContext(ctx, &mode, `SELECT value FROM app_settings WHERE key = 'user_mode'`); err != nil {
