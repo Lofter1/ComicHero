@@ -208,64 +208,6 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 }
 
-func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if isLoginRequest(r) && !authLoginLimiter.allow(clientIP(r), time.Now()) {
-				http.Error(w, "too many login attempts, try again later", http.StatusTooManyRequests)
-				return
-			}
-			if isRegisterRequest(r) && !authRegistrationLimiter.allow(clientIP(r), time.Now()) {
-				http.Error(w, "too many registration attempts, try again later", http.StatusTooManyRequests)
-				return
-			}
-			if isUserRouteAllowedWithoutSession(r.URL.Path) {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			mode, configured, err := userMode(r.Context(), db)
-			if err != nil {
-				http.Error(w, "failed to read user setup", http.StatusInternalServerError)
-				return
-			}
-			if !configured {
-				http.Error(w, "user setup required", http.StatusPreconditionRequired)
-				return
-			}
-
-			var userID int
-			publicAccess := false
-			if mode == userModeSingle {
-				userID, err = ensureDefaultUser(r.Context(), db)
-			} else {
-				userID, err = sessionUserID(r, db)
-				if err != nil && isPublicReadRequest(r) {
-					enabled, settingErr := publicAccessEnabled(r.Context(), db)
-					if settingErr != nil {
-						http.Error(w, "failed to read public access setting", http.StatusInternalServerError)
-						return
-					}
-					if enabled {
-						userID, err = ensureDefaultUser(r.Context(), db)
-						publicAccess = err == nil
-					}
-				}
-			}
-			if err != nil {
-				http.Error(w, "login required", http.StatusUnauthorized)
-				return
-			}
-
-			ctx := context.WithValue(r.Context(), contextUserIDKey{}, userID)
-			if publicAccess {
-				ctx = context.WithValue(ctx, contextPublicAccessKey{}, true)
-			}
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
 func positivePathID(value string) bool {
 	id, err := strconv.Atoi(value)
 	return err == nil && id > 0
