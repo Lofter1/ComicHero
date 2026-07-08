@@ -85,6 +85,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
   localPageSize: {
     type: Number,
     default: 50,
@@ -374,7 +378,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <small>{{ summaryText }}</small>
         </div>
 
-        <button v-if="showNewButton" class="primary-button" type="button" @click="$emit('new-comic')">New Comic</button>
+        <button v-if="showNewButton && !readOnly" class="primary-button" type="button" @click="$emit('new-comic')">New Comic</button>
       </header>
 
       <div v-if="sourceComics.length || serverSource" class="comic-list-tools">
@@ -429,6 +433,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           :quick-saving="quickSavingComicId === comic.id"
           :show-cover="showCover"
           :show-comment="showComment"
+          :read-only="readOnly"
           @open="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
         />

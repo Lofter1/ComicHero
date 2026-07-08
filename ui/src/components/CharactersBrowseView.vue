@@ -41,6 +41,10 @@ const props = defineProps({
     type: String,
     default: 'asc',
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-character', 'toggle-favorite'])
@@ -113,6 +117,7 @@ function characterProgress(character) {
                 <button
                   type="button"
                   class="favorite-toggle"
+                  v-if="!readOnly"
                   :class="{ active: character.favorite }"
                   :disabled="quickSavingCharacterId === character.id"
                   :aria-label="character.favorite ? 'Remove from favorites' : 'Add to favorites'"

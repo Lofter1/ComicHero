@@ -37,6 +37,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  publicAccess: {
+    type: Boolean,
+    default: false,
+  },
+  savingPublicAccess: {
+    type: Boolean,
+    default: false,
+  },
   invite: {
     type: Object,
     default: null,
@@ -47,7 +55,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['save', 'save-admin', 'delete-user', 'update-registration-mode', 'generate-invite'])
+const emit = defineEmits(['save', 'save-admin', 'delete-user', 'update-registration-mode', 'update-public-access', 'generate-invite'])
 const drafts = reactive({})
 
 watch(
@@ -175,6 +183,39 @@ function registrationModeLabel(mode) {
           <code>{{ invite.token }}</code>
           <small>Expires at {{ invite.expiresAt }}</small>
         </div>
+      </div>
+
+      <div class="user-public-panel">
+        <div>
+          <p class="eyebrow">Public access</p>
+          <h3>{{ publicAccess ? 'Read-only visitors' : 'Private library' }}</h3>
+          <p class="muted">
+            {{ publicAccess
+              ? 'Anonymous visitors can browse and export reading orders as CBL.'
+              : 'Anonymous visitors must log in before seeing the library.' }}
+          </p>
+        </div>
+        <div class="registration-mode-toggle" role="group" aria-label="Public access">
+          <button
+            type="button"
+            :class="{ active: !publicAccess }"
+            :disabled="savingPublicAccess"
+            @click="$emit('update-public-access', false)"
+          >
+            Private
+          </button>
+          <button
+            type="button"
+            :class="{ active: publicAccess }"
+            :disabled="savingPublicAccess"
+            @click="$emit('update-public-access', true)"
+          >
+            Public read-only
+          </button>
+        </div>
+        <p v-if="publicAccess" class="warning-copy">
+          Public visitors cannot edit data, but they can see your shared library.
+        </p>
       </div>
     </section>
 

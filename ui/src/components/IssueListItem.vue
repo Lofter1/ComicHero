@@ -22,6 +22,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['open', 'toggle-read'])
@@ -58,6 +62,7 @@ function entryTags() {
         {{ comic.read ? 'Read' : 'Unread' }}
       </span>
       <button
+        v-if="!readOnly"
         type="button"
         class="read-toggle-button"
         :disabled="quickSaving"

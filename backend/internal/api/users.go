@@ -45,6 +45,7 @@ const (
 )
 
 type contextUserIDKey struct{}
+type contextPublicAccessKey struct{}
 
 var (
 	authLoginLimiter        = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
@@ -211,6 +212,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "updatePublicAccess",
+		Tags:        []string{tagUsers},
+		Summary:     "Update public read access",
+		Description: "Controls whether anonymous visitors can browse read-only library data and export reading orders as CBL. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/public-access",
+		Errors:      []int{400, 401, 403, 500},
+	}, func(ctx context.Context, input *UpdatePublicAccessInput) (*PublicAccessOutput, error) {
+		return updatePublicAccess(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "updateUserMetronPermissions",
 		Tags:        []string{tagUsers},
 		Summary:     "Update user Metron permissions",
@@ -274,17 +287,33 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 			}
 
 			var userID int
+			publicAccess := false
 			if mode == userModeSingle {
 				userID, err = ensureDefaultUser(r.Context(), db)
 			} else {
 				userID, err = sessionUserID(r, db)
+				if err != nil && isPublicReadRequest(r) {
+					enabled, settingErr := publicAccessEnabled(r.Context(), db)
+					if settingErr != nil {
+						http.Error(w, "failed to read public access setting", http.StatusInternalServerError)
+						return
+					}
+					if enabled {
+						userID, err = ensureDefaultUser(r.Context(), db)
+						publicAccess = err == nil
+					}
+				}
 			}
 			if err != nil {
 				http.Error(w, "login required", http.StatusUnauthorized)
 				return
 			}
 
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), contextUserIDKey{}, userID)))
+			ctx := context.WithValue(r.Context(), contextUserIDKey{}, userID)
+			if publicAccess {
+				ctx = context.WithValue(ctx, contextPublicAccessKey{}, true)
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -297,6 +326,36 @@ func isLoginRequest(r *http.Request) bool {
 func isRegisterRequest(r *http.Request) bool {
 	path := strings.TrimPrefix(r.URL.Path, "/api")
 	return r.Method == http.MethodPost && path == "/auth/register"
+}
+
+func isPublicReadRequest(r *http.Request) bool {
+	if r.Method != http.MethodGet {
+		return false
+	}
+	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api"), "/")
+	parts := strings.Split(path, "/")
+	if len(parts) == 1 {
+		switch parts[0] {
+		case "readingOrders", "comics", "series", "characters", "arcs":
+			return true
+		default:
+			return false
+		}
+	}
+	if len(parts) == 2 && positivePathID(parts[1]) {
+		switch parts[0] {
+		case "readingOrders", "comics", "series", "characters", "arcs":
+			return true
+		default:
+			return false
+		}
+	}
+	return len(parts) == 3 && parts[0] == "readingOrders" && parts[2] == "cbl" && positivePathID(parts[1])
+}
+
+func positivePathID(value string) bool {
+	id, err := strconv.Atoi(value)
+	return err == nil && id > 0
 }
 
 func clientIP(r *http.Request) string {
@@ -330,6 +389,11 @@ func currentUserID(ctx context.Context) (int, error) {
 	return userID, nil
 }
 
+func currentUserIsPublic(ctx context.Context) bool {
+	public, _ := ctx.Value(contextPublicAccessKey{}).(bool)
+	return public
+}
+
 func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
 	var mode string
 	if err := db.GetContext(ctx, &mode, `SELECT value FROM app_settings WHERE key = 'user_mode'`); err != nil {
@@ -358,6 +422,17 @@ func registrationMode(ctx context.Context, db *sqlx.DB) (string, error) {
 	return mode, nil
 }
 
+func publicAccessEnabled(ctx context.Context, db *sqlx.DB) (bool, error) {
+	var value string
+	if err := db.GetContext(ctx, &value, `SELECT value FROM app_settings WHERE key = 'public_access_enabled'`); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return value == "true", nil
+}
+
 func getUserStatus(ctx context.Context, db *sqlx.DB, sessionToken string) (*UserStatusOutput, error) {
 	mode, configured, err := userMode(ctx, db)
 	if err != nil {
@@ -367,7 +442,11 @@ func getUserStatus(ctx context.Context, db *sqlx.DB, sessionToken string) (*User
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
 	}
-	status := UserStatus{SetupRequired: !configured, Mode: mode, RegistrationMode: regMode}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
+	status := UserStatus{SetupRequired: !configured, Mode: mode, RegistrationMode: regMode, PublicAccess: publicAccess}
 	if !configured {
 		return &UserStatusOutput{Body: status}, nil
 	}
@@ -563,6 +642,36 @@ func updateRegistrationMode(ctx context.Context, db *sqlx.DB, payload UpdateRegi
 	return &RegistrationModeOutput{Body: status.Body}, nil
 }
 
+func updatePublicAccess(ctx context.Context, db *sqlx.DB, payload UpdatePublicAccessPayload) (*PublicAccessOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	value := "false"
+	if payload.Enabled {
+		value = "true"
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO app_settings (key, value) VALUES ('public_access_enabled', ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value
+	`, value); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save public access setting")
+	}
+	currentMode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured {
+		return nil, huma.Error400BadRequest("user setup is not complete")
+	}
+	status, err := userStatusForUser(ctx, db, currentMode, userID, nil)
+	if err != nil {
+		return nil, err
+	}
+	status.Body.PublicAccess = payload.Enabled
+	return &PublicAccessOutput{Body: status.Body}, nil
+}
+
 func consumeUserInvite(ctx context.Context, db sqlx.ExtContext, token string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
@@ -736,12 +845,17 @@ func deleteAccount(ctx context.Context, db *sqlx.DB, payload DeleteAccountPayloa
 	if err := deleteUserData(ctx, db, userID); err != nil {
 		return nil, err
 	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
 
 	return &UserStatusOutput{
 		SetCookie: cookieHeader(expiredSessionCookie()),
 		Body: UserStatus{
 			SetupRequired: false,
 			Mode:          mode,
+			PublicAccess:  publicAccess,
 		},
 	}, nil
 }
@@ -867,6 +981,10 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
 	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
 	metronPermissions, err := metronPermissionsForUser(ctx, db, userID)
 	if err != nil {
 		return nil, err
@@ -877,6 +995,7 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 			SetupRequired:     false,
 			Mode:              mode,
 			RegistrationMode:  regMode,
+			PublicAccess:      publicAccess,
 			User:              &user,
 			MetronPermissions: metronPermissions,
 		},

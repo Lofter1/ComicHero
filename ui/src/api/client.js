@@ -257,6 +257,10 @@ export function updateRegistrationMode(payload) {
   return send('/users/registration-mode', 'PUT', payload)
 }
 
+export function updatePublicAccess(payload) {
+  return send('/users/public-access', 'PUT', payload)
+}
+
 export function updateUserMetronPermissions(id, payload) {
   return send(`/users/${id}/metron-permissions`, 'PUT', payload)
 }

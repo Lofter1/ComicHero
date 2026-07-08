@@ -92,10 +92,23 @@ type RegistrationModeOutput struct {
 	Body UserStatus
 }
 
+type UpdatePublicAccessPayload struct {
+	Enabled bool `json:"enabled" doc:"Whether anonymous read-only public access is enabled." example:"true"`
+}
+
+type UpdatePublicAccessInput struct {
+	Body UpdatePublicAccessPayload
+}
+
+type PublicAccessOutput struct {
+	Body UserStatus
+}
+
 type UserStatus struct {
 	SetupRequired     bool                  `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
 	Mode              string                `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
 	RegistrationMode  string                `json:"registrationMode" doc:"Configured registration mode: invite_only or open." enum:"invite_only,open" example:"invite_only"`
+	PublicAccess      bool                  `json:"publicAccess" doc:"Whether anonymous read-only access is enabled." example:"false"`
 	User              *User                 `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
 	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Current user's Metron endpoint permissions."`
 }

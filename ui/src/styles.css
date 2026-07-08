@@ -749,18 +749,43 @@ textarea {
 
 .user-access-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 12px;
 }
 
 .user-registration-panel,
-.user-invite-panel {
+.user-invite-panel,
+.user-public-panel {
   display: grid;
   gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
   padding: 16px;
+}
+
+.user-registration-panel,
+.user-public-panel {
+  align-content: space-between;
+}
+
+.public-session-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.public-session-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.public-session-card .secondary-action {
+  margin-top: 6px;
 }
 
 .user-invite-panel .primary-button {

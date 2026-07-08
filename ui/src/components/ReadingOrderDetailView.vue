@@ -16,6 +16,10 @@ defineProps({
     type: Number,
     default: null,
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
@@ -78,6 +82,7 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           show-reading-order-sort
           show-comment
           show-cover
+          :read-only="readOnly"
           paginate-local
           empty-message="No comics in this reading order yet."
           filtered-empty-message="No comics match these filters."

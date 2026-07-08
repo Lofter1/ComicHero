@@ -41,6 +41,10 @@ const props = defineProps({
     type: String,
     default: 'asc',
   },
+  readOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction', 'open-arc', 'toggle-favorite'])
@@ -108,6 +112,7 @@ function sectionList(title, arcs) {
                 <button
                   type="button"
                   class="favorite-toggle"
+                  v-if="!readOnly"
                   :class="{ active: arc.favorite }"
                   :disabled="quickSavingArcId === arc.id"
                   :aria-label="arc.favorite ? 'Remove from favorites' : 'Add to favorites'"
