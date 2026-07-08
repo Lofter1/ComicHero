@@ -65,6 +65,7 @@ function deleteAccount() {
   if (!window.confirm('Delete this account permanently? This cannot be undone.')) return
   emit('delete-account', { currentPassword: deleteForm.currentPassword })
 }
+
 </script>
 
 <template>

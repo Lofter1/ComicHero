@@ -11,6 +11,7 @@ import ComicDetailView from '@/components/ComicDetailView.vue'
 import ComicListView from '@/components/ComicListView.vue'
 import MetronImport from '@/components/MetronImport.vue'
 import MetronImportMonitor from '@/components/MetronImportMonitor.vue'
+import ProgressView from '@/components/ProgressView.vue'
 import ReadingOrderDetailView from '@/components/ReadingOrderDetailView.vue'
 import ReadingOrderEditView from '@/components/ReadingOrderEditView.vue'
 import ReadingOrdersBrowseView from '@/components/ReadingOrdersBrowseView.vue'
@@ -28,6 +29,7 @@ import {
   createUserInvite,
   deleteAccount as deleteAccountRequest,
   deleteUser as deleteUserRequest,
+  getAccountStatistics,
   getUserStatus,
   listUsers,
   loginUser,
@@ -57,6 +59,9 @@ const userAdminRows = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
 const accountDeleting = ref(false)
+const accountStatistics = ref(null)
+const accountStatisticsLoading = ref(false)
+const accountStatisticsError = ref('')
 const savingUserID = ref(null)
 const savingAdminUserID = ref(null)
 const deletingUserID = ref(null)
@@ -243,7 +248,7 @@ const toolbarResultCount = computed(() => {
   if (activeView.value === 'series') return visibleSeries.value.length
   if (activeView.value === 'characters') return visibleCharacters.value.length
   if (activeView.value === 'users') return userAdminRows.value.length
-  if (activeView.value === 'account') return 1
+  if (activeView.value === 'account' || activeView.value === 'progress') return 1
   return 0
 })
 const toolbarTotalCount = computed(() => {
@@ -253,7 +258,7 @@ const toolbarTotalCount = computed(() => {
   if (activeView.value === 'series') return listTotal('series')
   if (activeView.value === 'characters') return listTotal('characters')
   if (activeView.value === 'users') return userAdminRows.value.length
-  if (activeView.value === 'account') return 1
+  if (activeView.value === 'account' || activeView.value === 'progress') return 1
   return 0
 })
 const loadingLabel = computed(() => {
@@ -265,6 +270,7 @@ const loadingLabel = computed(() => {
   if (activeView.value === 'metron') return 'Loading Metron...'
   if (activeView.value === 'users') return 'Loading users...'
   if (activeView.value === 'account') return 'Loading account...'
+  if (activeView.value === 'progress') return 'Loading progress...'
   return 'Loading...'
 })
 const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
@@ -526,6 +532,24 @@ async function deleteCurrentAccount(payload) {
   }
 }
 
+async function loadAccountStatistics() {
+  if (!currentUser.value) {
+    accountStatistics.value = null
+    accountStatisticsError.value = ''
+    return
+  }
+
+  accountStatisticsLoading.value = true
+  accountStatisticsError.value = ''
+  try {
+    accountStatistics.value = await getAccountStatistics()
+  } catch (err) {
+    accountStatisticsError.value = err.message
+  } finally {
+    accountStatisticsLoading.value = false
+  }
+}
+
 async function signOut() {
   authSaving.value = true
   error.value = ''
@@ -568,6 +592,7 @@ function parseAppRoute(pathname) {
   if (section === 'metron' && parts.length === 1) return { view: 'metron', mode: 'browse' }
   if (section === 'users' && parts.length === 1) return { view: 'users', mode: 'browse' }
   if (section === 'account' && parts.length === 1) return { view: 'account', mode: 'browse' }
+  if ((section === 'progress' || section === 'achievements') && parts.length === 1) return { view: 'progress', mode: 'browse' }
   if (section === 'comics') return parseEntityRoute('comics', rawID, action, parts.length)
   if (section === 'arcs') return parseEntityRoute('arcs', rawID, action, parts.length)
   if (section === 'series') return parseEntityRoute('series', rawID, action, parts.length, { canEdit: false })
@@ -598,6 +623,7 @@ function browseRoutePath(view) {
   if (view === 'metron') return '/metron'
   if (view === 'users') return '/users'
   if (view === 'account') return '/account'
+  if (view === 'progress') return '/progress'
   return '/reading-orders'
 }
 
@@ -659,6 +685,12 @@ async function applyRoute(route, { replace = false, force = false } = {}) {
       return
     }
     if (route.view === 'users' && !isAdmin.value) {
+      activeView.value = 'readingOrders'
+      viewMode.value = 'browse'
+      await loadData(Boolean(route.force))
+      return
+    }
+    if (route.view === 'progress' && !currentUser.value) {
       activeView.value = 'readingOrders'
       viewMode.value = 'browse'
       await loadData(Boolean(route.force))
@@ -749,6 +781,7 @@ function handleRoutePop() {
 
 async function setView(view) {
   if (view === 'metron' && isReadOnlyGuest.value) return
+  if (view === 'progress' && !currentUser.value) return
   error.value = ''
   comicReturnTarget.value = null
   const viewChanged = view !== activeView.value
@@ -809,6 +842,10 @@ async function loadActiveViewData(options = {}) {
     return
   }
   if (activeView.value === 'account') {
+    return
+  }
+  if (activeView.value === 'progress') {
+    await loadAccountStatistics()
     return
   }
 }
@@ -1167,6 +1204,14 @@ onUnmounted(() => {
         :deleting="accountDeleting"
         @save="saveAccount"
         @delete-account="deleteCurrentAccount"
+      />
+
+      <ProgressView
+        v-else-if="activeView === 'progress'"
+        :statistics-view="accountStatistics"
+        :loading="accountStatisticsLoading"
+        :error="accountStatisticsError"
+        @refresh="loadAccountStatistics"
       />
 
       <ReadingOrderEditView

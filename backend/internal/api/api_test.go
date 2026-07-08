@@ -114,6 +114,155 @@ func TestReadingOrderHelpers(t *testing.T) {
 	}
 }
 
+func TestUserStatisticsAndAchievements(t *testing.T) {
+	ctx := testUserContext()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue TEXT NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			metron_issue_id INTEGER
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (comic_id, user_id)
+		);
+		CREATE TABLE reading_orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE reading_order_comics (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			tags TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE arcs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE arc_comics (
+			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE characters (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE comic_characters (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+			PRIMARY KEY (comic_id, character_id)
+		);
+		INSERT INTO users (id, name, is_default) VALUES (1, 'Reader', 1), (2, 'Other', 0);
+		INSERT INTO comics (id, series, series_year, issue, publisher)
+		VALUES
+			(1, 'Alpha', 2020, '1', 'Pub A'),
+			(2, 'Alpha', 2020, '2', 'Pub A'),
+			(3, 'Beta', 2021, '1', 'Pub B'),
+			(4, 'Gamma', 2022, '1', 'Pub C');
+		INSERT INTO user_comics (comic_id, user_id, read, read_at)
+		VALUES
+			(1, 1, 1, '2026-07-01T10:00:00Z'),
+			(2, 1, 1, '2026-07-02T12:30:00Z'),
+			(4, 2, 1, '2026-07-03T08:00:00Z');
+		INSERT INTO reading_orders (id, name, author_user_id) VALUES (1, 'Alpha order', 1), (2, 'Other order', 2);
+		INSERT INTO reading_order_comics (reading_order_id, comic_id, position)
+		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
+		INSERT INTO arcs (id, name) VALUES (1, 'Alpha arc'), (2, 'Beta arc');
+		INSERT INTO arc_comics (arc_id, comic_id, position)
+		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
+		INSERT INTO characters (id, name) VALUES (1, 'Hero'), (2, 'Sidekick'), (3, 'Cameo');
+		INSERT INTO comic_characters (comic_id, character_id)
+		VALUES (1, 1), (1, 2), (2, 2), (3, 3);
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+
+	result, err := getAccountStatistics(ctx, db)
+	if err != nil {
+		t.Fatalf("getAccountStatistics: %v", err)
+	}
+	stats := result.Body.Statistics
+	if stats.TotalComics != 4 || stats.ReadComics != 2 || stats.UnreadComics != 2 {
+		t.Fatalf("comic counts = total %d read %d unread %d; want 4, 2, 2", stats.TotalComics, stats.ReadComics, stats.UnreadComics)
+	}
+	if stats.ReadProgress != 0.5 {
+		t.Fatalf("read progress = %v; want 0.5", stats.ReadProgress)
+	}
+	if stats.FirstReadAt != "2026-07-01T10:00:00Z" || stats.LastReadAt != "2026-07-02T12:30:00Z" {
+		t.Fatalf("read timestamps = %q/%q; want first and latest reader timestamps", stats.FirstReadAt, stats.LastReadAt)
+	}
+	if stats.DistinctReadSeries != 1 || stats.DistinctReadPublishers != 1 {
+		t.Fatalf("distinct read series/publishers = %d/%d; want 1/1", stats.DistinctReadSeries, stats.DistinctReadPublishers)
+	}
+	if stats.CompletedSeries != 1 {
+		t.Fatalf("completed series = %d; want 1", stats.CompletedSeries)
+	}
+	if stats.AuthoredReadingOrders != 1 || stats.StartedReadingOrders != 1 || stats.CompletedReadingOrders != 1 {
+		t.Fatalf("reading order stats = authored %d started %d completed %d; want 1/1/1", stats.AuthoredReadingOrders, stats.StartedReadingOrders, stats.CompletedReadingOrders)
+	}
+	if stats.StartedArcs != 1 || stats.CompletedArcs != 1 {
+		t.Fatalf("arc stats = started %d completed %d; want 1/1", stats.StartedArcs, stats.CompletedArcs)
+	}
+	if stats.CharactersMet != 2 {
+		t.Fatalf("characters met = %d; want 2", stats.CharactersMet)
+	}
+
+	achievements := map[string]Achievement{}
+	for _, achievement := range result.Body.Achievements {
+		achievements[achievement.ID] = achievement
+	}
+	for _, id := range []string{"first-read", "list-finisher", "arc-explorer", "curator"} {
+		if !achievements[id].Earned {
+			t.Fatalf("achievement %q not earned", id)
+		}
+	}
+	if achievements["first-read"].EarnedAt != "2026-07-01T10:00:00Z" {
+		t.Fatalf("first-read earned at = %q; want first read timestamp", achievements["first-read"].EarnedAt)
+	}
+	if achievements["page-turner"].Earned {
+		t.Fatalf("page-turner earned with %d reads; want locked", achievements["page-turner"].Progress)
+	}
+	if achievements["page-turner"].EarnedAt != "" {
+		t.Fatalf("page-turner earned at = %q; want empty while locked", achievements["page-turner"].EarnedAt)
+	}
+}
+
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -157,6 +306,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
@@ -412,6 +562,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);
@@ -475,6 +626,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		INSERT OR IGNORE INTO users (name) VALUES ('Default');
@@ -583,6 +735,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		INSERT OR IGNORE INTO users (name) VALUES ('Default');
@@ -663,6 +816,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		INSERT OR IGNORE INTO users (name) VALUES ('Default');
@@ -696,14 +850,15 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	RegisterCharacterRoutes(api, nil)
 	RegisterReadingOrderRoutes(api, nil)
 	RegisterArcRoutes(api, nil)
+	RegisterStatisticsRoutes(api, nil)
 	RegisterMetronRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 
 	openAPI := api.OpenAPI()
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 7 {
-		t.Fatalf("len(tags) = %d; want 7", len(openAPI.Tags))
+	if len(openAPI.Tags) != 8 {
+		t.Fatalf("len(tags) = %d; want 8", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get
@@ -712,6 +867,11 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	}
 	if _, ok := listComics.Responses["400"]; !ok {
 		t.Fatal("list comics response docs missing 400 error")
+	}
+
+	accountStatistics := openAPI.Paths["/account/statistics"].Get
+	if len(accountStatistics.Tags) != 1 || accountStatistics.Tags[0] != tagStatistics {
+		t.Fatalf("account statistics tags = %#v; want Statistics tag", accountStatistics.Tags)
 	}
 
 	listCharacters := openAPI.Paths["/characters"].Get
@@ -1516,6 +1676,7 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		CREATE TABLE user_metron_permissions (

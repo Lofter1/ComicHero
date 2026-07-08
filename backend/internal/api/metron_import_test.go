@@ -63,6 +63,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
 		INSERT OR IGNORE INTO users (id, name, is_default) VALUES (1, 'Default', 1);

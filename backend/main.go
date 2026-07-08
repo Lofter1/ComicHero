@@ -52,6 +52,7 @@ func main() {
 
 	api.RegisterReadingOrderRoutes(humaAPI, database)
 	api.RegisterUserRoutes(humaAPI, database)
+	api.RegisterStatisticsRoutes(humaAPI, database)
 	api.RegisterArcRoutes(humaAPI, database)
 	api.RegisterComicRoutes(humaAPI, database, covers)
 	metronClient := metron.New(metron.Config{
