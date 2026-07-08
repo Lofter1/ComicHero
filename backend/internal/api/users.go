@@ -233,6 +233,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *UpdateUserAdminInput) (*UserAdminOutput, error) {
 		return updateUserAdmin(ctx, db, input.ID, input.Body)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "deleteUser",
+		Tags:        []string{tagUsers},
+		Summary:     "Delete user account",
+		Description: "Deletes a user account and its per-user data. Admin users only. The final admin account cannot be deleted.",
+		Method:      http.MethodDelete,
+		Path:        "/users/{id}",
+		Errors:      []int{400, 401, 403, 404, 409, 500},
+	}, func(ctx context.Context, input *DeleteUserInput) (*struct{}, error) {
+		return deleteUser(ctx, db, input.ID)
+	})
 }
 
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
@@ -721,32 +733,8 @@ func deleteAccount(ctx context.Context, db *sqlx.DB, payload DeleteAccountPayloa
 		}
 	}
 
-	tx, err := db.BeginTxx(ctx, nil)
-	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to start account deletion")
-	}
-	defer tx.Rollback()
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_sessions WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete sessions")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_request_log WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete Metron request history")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_permissions WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete Metron permissions")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM user_comics WHERE user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete read status")
-	}
-	if _, err := tx.ExecContext(ctx, `UPDATE reading_orders SET author_user_id = NULL WHERE author_user_id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to clear reading order authorship")
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete account")
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, huma.Error500InternalServerError("failed to delete account")
+	if err := deleteUserData(ctx, db, userID); err != nil {
+		return nil, err
 	}
 
 	return &UserStatusOutput{
@@ -756,6 +744,68 @@ func deleteAccount(ctx context.Context, db *sqlx.DB, payload DeleteAccountPayloa
 			Mode:          mode,
 		},
 	}, nil
+}
+
+func deleteUser(ctx context.Context, db *sqlx.DB, userID int) (*struct{}, error) {
+	if _, err := requireAdminUser(ctx, db); err != nil {
+		return nil, err
+	}
+	if userID <= 0 {
+		return nil, huma.Error400BadRequest("user id is required")
+	}
+
+	var isAdmin bool
+	if err := db.GetContext(ctx, &isAdmin, `SELECT is_admin FROM users WHERE id = ?`, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, huma.Error404NotFound("user not found")
+		}
+		return nil, huma.Error500InternalServerError("failed to fetch user")
+	}
+	if isAdmin {
+		var adminCount int
+		if err := db.GetContext(ctx, &adminCount, `SELECT COUNT(*) FROM users WHERE is_admin = 1`); err != nil {
+			return nil, huma.Error500InternalServerError("failed to count admins")
+		}
+		if adminCount <= 1 {
+			return nil, huma.Error409Conflict("cannot remove the last admin")
+		}
+	}
+
+	if err := deleteUserData(ctx, db, userID); err != nil {
+		return nil, err
+	}
+	return &struct{}{}, nil
+}
+
+func deleteUserData(ctx context.Context, db *sqlx.DB, userID int) error {
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to start account deletion")
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_sessions WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete sessions")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_request_log WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete Metron request history")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_metron_permissions WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete Metron permissions")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM user_comics WHERE user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete read status")
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE reading_orders SET author_user_id = NULL WHERE author_user_id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to clear reading order authorship")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id = ?`, userID); err != nil {
+		return huma.Error500InternalServerError("failed to delete account")
+	}
+	if err := tx.Commit(); err != nil {
+		return huma.Error500InternalServerError("failed to delete account")
+	}
+	return nil
 }
 
 func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {

@@ -1007,6 +1007,72 @@ func TestDeleteAccountRequiresPasswordAndAnotherAdmin(t *testing.T) {
 	}
 }
 
+func TestAdminCanDeleteNonAdminUser(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0);
+		INSERT INTO user_sessions (token, user_id) VALUES ('reader-session', 2);
+		INSERT INTO user_metron_permissions (user_id, allowed, scopes, hourly_limit) VALUES (2, 1, '*', 0);
+		INSERT INTO user_metron_request_log (user_id, scope, endpoint) VALUES (2, 'search', '/issue/');
+		INSERT INTO user_comics (comic_id, user_id, read) VALUES (1, 2, 1);
+		INSERT INTO reading_orders (name, author_user_id) VALUES ('Reader list', 2);
+	`); err != nil {
+		t.Fatalf("seed reader account: %v", err)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := deleteUser(adminCtx, db, 2); err != nil {
+		t.Fatalf("deleteUser: %v", err)
+	}
+
+	for table, query := range map[string]string{
+		"users":                   `SELECT COUNT(*) FROM users WHERE id = 2`,
+		"user_sessions":           `SELECT COUNT(*) FROM user_sessions WHERE user_id = 2`,
+		"user_metron_permissions": `SELECT COUNT(*) FROM user_metron_permissions WHERE user_id = 2`,
+		"user_metron_request_log": `SELECT COUNT(*) FROM user_metron_request_log WHERE user_id = 2`,
+		"user_comics":             `SELECT COUNT(*) FROM user_comics WHERE user_id = 2`,
+	} {
+		var count int
+		if err := db.Get(&count, query); err != nil {
+			t.Fatalf("count %s: %v", table, err)
+		}
+		if count != 0 {
+			t.Fatalf("%s count = %d; want 0", table, count)
+		}
+	}
+	var authorCount int
+	if err := db.Get(&authorCount, `SELECT COUNT(*) FROM reading_orders WHERE author_user_id = 2`); err != nil {
+		t.Fatalf("count reading order authors: %v", err)
+	}
+	if authorCount != 0 {
+		t.Fatalf("reading order author count = %d; want 0", authorCount)
+	}
+}
+
+func TestNonAdminCannotDeleteUsers(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0);
+		INSERT INTO users (id, name, is_admin) VALUES (3, 'Other', 0);
+	`); err != nil {
+		t.Fatalf("seed accounts: %v", err)
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := deleteUser(readerCtx, db, 3); err == nil {
+		t.Fatal("deleteUser by non-admin returned nil error")
+	}
+}
+
+func TestDeleteUserRejectsOnlyAdmin(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	if _, err := deleteUser(adminCtx, db, 1); err == nil {
+		t.Fatal("deleteUser deleted the only admin account")
+	}
+}
+
 func TestMetronPermissionsControlScopesAndHourlyLimit(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`

@@ -72,6 +72,10 @@ type UpdateUserAdminInput struct {
 	Body UpdateUserAdminPayload
 }
 
+type DeleteUserInput struct {
+	ID int `path:"id" doc:"Local user identifier." example:"2"`
+}
+
 type UserAdminOutput struct {
 	Body UserAdminView
 }
