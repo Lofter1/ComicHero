@@ -62,7 +62,7 @@ jobs:
           tar -czf "$name.tar.gz" "$name"
 
       - name: Upload archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: comichero_${{ matrix.goos }}_${{ matrix.goarch }}
           path: comichero_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download binary archives
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
