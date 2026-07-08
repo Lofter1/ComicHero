@@ -395,6 +395,7 @@ async function generateUserInvite() {
 }
 
 async function saveRegistrationMode(mode) {
+  if (mode === registrationMode.value) return
   if (
     mode === 'open' &&
     registrationMode.value !== 'open' &&

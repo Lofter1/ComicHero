@@ -743,14 +743,14 @@ textarea {
 
 .user-management-view {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  max-width: 1180px;
 }
 
 .user-access-panel {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: minmax(300px, 1fr) minmax(260px, 0.8fr);
   gap: 12px;
-  max-width: 1100px;
 }
 
 .user-registration-panel,
@@ -760,7 +760,7 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
-  padding: 14px;
+  padding: 16px;
 }
 
 .user-invite-panel .primary-button {
@@ -770,11 +770,11 @@ textarea {
 .registration-mode-toggle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
-  padding: 6px;
+  padding: 4px;
 }
 
 .registration-mode-toggle button {
@@ -833,26 +833,30 @@ textarea {
 
 .user-permission-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .user-permission-row {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
-  padding: 14px;
+  padding: 16px;
   display: grid;
-  gap: 12px;
-  max-width: 840px;
+  gap: 14px;
+  max-width: 980px;
 }
 
 .user-permission-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
   min-width: 0;
   flex-wrap: wrap;
+}
+
+.user-summary {
+  min-width: 180px;
 }
 
 .user-permission-header h3 {
@@ -860,23 +864,38 @@ textarea {
 }
 
 .user-permission-header p,
-.hourly-limit-field small {
+.hourly-limit-field small,
+.permission-section-header h4 {
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
 }
 
-.user-permission-toggles {
+.user-account-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .compact-button {
   min-height: 36px;
   padding: 7px 10px;
+}
+
+.danger-text-button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--danger);
+  font-weight: 900;
+}
+
+.danger-text-button:hover:not(:disabled),
+.danger-text-button:focus-visible {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
 }
 
 .compact-toggle,
@@ -888,12 +907,33 @@ textarea {
   font-weight: 800;
 }
 
+.metron-permission-editor {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.permission-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.permission-section-header h4 {
+  margin: 2px 0 0;
+  color: var(--label-ink);
+  font-size: 1rem;
+}
+
 .permission-scopes {
   border: 0;
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(120px, max-content));
   gap: 8px;
 }
 
@@ -923,7 +963,7 @@ textarea {
 .hourly-limit-field {
   display: grid;
   gap: 5px;
-  max-width: 240px;
+  width: min(240px, 100%);
   color: var(--label-ink);
   font-weight: 800;
 }
@@ -938,7 +978,6 @@ textarea {
 }
 
 .secondary-action {
-  justify-self: start;
   min-height: 38px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -946,6 +985,13 @@ textarea {
   color: var(--control-ink);
   padding: 8px 12px;
   font-weight: 800;
+}
+
+.permission-footer {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .secondary-action:hover:not(:disabled),
@@ -2801,6 +2847,7 @@ textarea {
   .split-view,
   .form-grid,
   .metadata-grid,
+  .user-access-panel,
   .order-entry,
   .metron-search,
   .metron-results {
@@ -2975,6 +3022,22 @@ textarea {
 
   .sidebar.menu-open .nav-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .user-permission-header,
+  .user-account-actions,
+  .permission-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .user-account-actions > *,
+  .permission-footer > * {
+    width: 100%;
+  }
+
+  .permission-scopes {
+    grid-template-columns: 1fr;
   }
 
   .sidebar.menu-open .sidebar-actions {
