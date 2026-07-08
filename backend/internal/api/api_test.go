@@ -832,6 +832,49 @@ func TestLoginRateLimitReturnsTooManyRequests(t *testing.T) {
 	}
 }
 
+func TestRegistrationRateLimitReturnsTooManyRequests(t *testing.T) {
+	previousLimiter := authRegistrationLimiter
+	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
+	t.Cleanup(func() {
+		authRegistrationLimiter = previousLimiter
+	})
+
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		INSERT INTO app_settings (key, value) VALUES ('registration_mode', 'open');
+	`); err != nil {
+		t.Fatalf("seed open registration mode: %v", err)
+	}
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(UserMiddleware(db))
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterUserRoutes(api, db)
+
+	for i := 0; i < registrationRateLimitMaxAttempts; i++ {
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(`{"name":"","password":""}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = "203.0.113.45:1234"
+		router.ServeHTTP(recorder, req)
+		if recorder.Code == http.StatusTooManyRequests {
+			t.Fatalf("attempt %d status = 429; want not rate-limited yet", i+1)
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/register", strings.NewReader(`{"name":"","password":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = "203.0.113.45:1234"
+	router.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("rate-limited registration status = %d; want 429: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestRequireAdminUserFailsWithoutUserContext(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 

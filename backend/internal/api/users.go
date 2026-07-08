@@ -37,12 +37,19 @@ const (
 
 	loginRateLimitMaxAttempts = 5
 	loginRateLimitWindow      = time.Minute
-	passwordHashIterations    = 600000
+
+	registrationRateLimitMaxAttempts = 3
+	registrationRateLimitWindow      = time.Hour
+
+	passwordHashIterations = 600000
 )
 
 type contextUserIDKey struct{}
 
-var authLoginLimiter = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+var (
+	authLoginLimiter        = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
+)
 
 type loginRateLimiter struct {
 	maxAttempts int
@@ -235,6 +242,10 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 				http.Error(w, "too many login attempts, try again later", http.StatusTooManyRequests)
 				return
 			}
+			if isRegisterRequest(r) && !authRegistrationLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many registration attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
 			if isUserRouteAllowedWithoutSession(r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
@@ -269,6 +280,11 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 func isLoginRequest(r *http.Request) bool {
 	path := strings.TrimPrefix(r.URL.Path, "/api")
 	return r.Method == http.MethodPost && path == "/auth/login"
+}
+
+func isRegisterRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/register"
 }
 
 func clientIP(r *http.Request) string {
