@@ -3,12 +3,71 @@ package api
 import (
 	"context"
 	"database/sql"
+	"net/http"
 	"strings"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
 )
+
+func registerMetronReadingOrdersRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
+
+	huma.Register(api, huma.Operation{
+		OperationID: "searchMetronReadingLists",
+		Tags:        []string{tagMetron},
+		Summary:     "Search Metron reading lists",
+		Description: "Searches Metron for reading lists.",
+		Method:      http.MethodGet,
+		Path:        "/metron/readingLists",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronReadingListInput) (*MetronReadingListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/readingLists"); err != nil {
+			return nil, err
+		}
+		lists, err := client.SearchReadingLists(ctx, input.Query)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronReadingListOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: lists}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "getMetronReadingList",
+		Tags:        []string{tagMetron},
+		Summary:     "Get Metron reading list",
+		Description: "Gets a Metron reading list by ID, including its issue entries when Metron returns them.",
+		Method:      http.MethodGet,
+		Path:        "/metron/readingLists/{id}",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronIDInput) (*MetronReadingListDetailOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeDetail, "GET /metron/readingLists/{id}"); err != nil {
+			return nil, err
+		}
+		list, err := client.GetReadingList(ctx, input.ID)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronReadingListDetailOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: *list}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "importMetronReadingList",
+		Tags:          []string{tagMetron},
+		Summary:       "Import Metron reading list",
+		Description:   "Starts a background job that imports a Metron reading list as a local reading order and imports its issues as local comics. If the reading list is already imported, the job finishes without calling Metron again.",
+		Method:        http.MethodPost,
+		Path:          "/metron/readingLists/{id}/import",
+		DefaultStatus: http.StatusAccepted,
+		Errors:        errsMetronSync,
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/readingLists/{id}/import"); err != nil {
+			return nil, err
+		}
+		job := startMetronReadingListImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
+		return &MetronImportJobOutput{Body: job}, nil
+	})
+}
 
 func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList) (*ReadingOrderDetailOutput, error) {
 	if list.ID > 0 {

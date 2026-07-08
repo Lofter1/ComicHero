@@ -3,11 +3,70 @@ package api
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
 )
+
+func registerMetronArcsRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
+
+	huma.Register(api, huma.Operation{
+		OperationID: "searchMetronArcs",
+		Tags:        []string{tagMetron},
+		Summary:     "Search Metron arcs",
+		Description: "Searches Metron for story arcs.",
+		Method:      http.MethodGet,
+		Path:        "/metron/arcs",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronArcInput) (*MetronArcListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/arcs"); err != nil {
+			return nil, err
+		}
+		arcs, err := client.SearchArcs(ctx, input.Query)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronArcListOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: arcs}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "getMetronArc",
+		Tags:        []string{tagMetron},
+		Summary:     "Get Metron arc",
+		Description: "Gets a Metron story arc by ID, including its issue entries.",
+		Method:      http.MethodGet,
+		Path:        "/metron/arcs/{id}",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronIDInput) (*MetronArcDetailOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeDetail, "GET /metron/arcs/{id}"); err != nil {
+			return nil, err
+		}
+		arc, err := client.GetArc(ctx, input.ID)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronArcDetailOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: *arc}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "importMetronArc",
+		Tags:          []string{tagMetron, tagArcs},
+		Summary:       "Import Metron arc",
+		Description:   "Starts a background job that imports a Metron story arc as a local arc and imports or reuses its issues as local comics. If the arc is already imported, the job finishes without calling Metron again.",
+		Method:        http.MethodPost,
+		Path:          "/metron/arcs/{id}/import",
+		DefaultStatus: http.StatusAccepted,
+		Errors:        errsMetronSync,
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/arcs/{id}/import"); err != nil {
+			return nil, err
+		}
+		job := startMetronArcImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
+		return &MetronImportJobOutput{Body: job}, nil
+	})
+}
 
 func importMetronArcWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, arc metron.MetronArc, continueExisting bool, progress func(int, int, string), options MetronImportOptions) error {
 	options = resolveMetronImportOptions(options)

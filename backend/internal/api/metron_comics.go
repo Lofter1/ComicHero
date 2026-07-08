@@ -3,11 +3,105 @@ package api
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
 )
+
+func registerMetronComicRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
+	huma.Register(api, huma.Operation{
+		OperationID: "searchMetronComics",
+		Tags:        []string{tagMetron},
+		Summary:     "Search Metron comics",
+		Description: "Searches Metron for comic issue metadata. When series is omitted, q is sent as the Metron series-name search.",
+		Method:      http.MethodGet,
+		Path:        "/metron/comics",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronIssueListInput) (*MetronIssueListOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/comics"); err != nil {
+			return nil, err
+		}
+		issues, err := client.SearchIssues(ctx, input.Query, input.Series, input.Issue)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronIssueListOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: issues}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "getMetronComic",
+		Tags:        []string{tagMetron},
+		Summary:     "Get Metron comic",
+		Description: "Gets a Metron comic issue by ID.",
+		Method:      http.MethodGet,
+		Path:        "/metron/comics/{id}",
+		Errors:      errsMetronRead,
+	}, func(ctx context.Context, input *MetronIDInput) (*MetronIssueOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeDetail, "GET /metron/comics/{id}"); err != nil {
+			return nil, err
+		}
+		issue, err := client.GetIssue(ctx, input.ID)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		return &MetronIssueOutput{MetronRateLimitHeaders: metronRateLimitHeaders(client.CurrentRateLimit()), Body: *issue}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "importMetronComic",
+		Tags:          []string{tagMetron},
+		Summary:       "Import Metron comic",
+		Description:   "Starts a background job that imports a Metron comic issue for use in reading orders. If the issue is already imported, the job finishes without calling Metron again.",
+		Method:        http.MethodPost,
+		Path:          "/metron/comics/{id}/import",
+		DefaultStatus: http.StatusAccepted,
+		Errors:        errsMetronSync,
+	}, func(ctx context.Context, input *MetronImportInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/comics/{id}/import"); err != nil {
+			return nil, err
+		}
+		job := startMetronComicImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
+		return &MetronImportJobOutput{Body: job}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateComicFromMetron",
+		Tags:        []string{tagMetron},
+		Summary:     "Update comic from Metron",
+		Description: "Updates an existing comic's metadata from a Metron issue while preserving local read status.",
+		Method:      http.MethodPatch,
+		Path:        "/comics/{id}/metron",
+		Errors:      errsMetronSync,
+	}, func(ctx context.Context, input *UpdateComicFromMetronInput) (*ComicDetailOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "PATCH /comics/{id}/metron"); err != nil {
+			return nil, err
+		}
+		issue, info, err := fetchMetronIssue(ctx, db, client, input.Body.MetronIssueID, input.Body.Force)
+		if err != nil {
+			return nil, metronAPIError(err)
+		}
+		if info.NotModified {
+			if err := markMetronNotModified(ctx, db, metronResourceIssue, input.Body.MetronIssueID); err != nil {
+				return nil, err
+			}
+			output, err := getComic(ctx, db, input.ID)
+			if err != nil {
+				return nil, err
+			}
+			return withMetronRateLimit(output, client.CurrentRateLimit()), nil
+		}
+		output, err := updateComicFromMetron(ctx, db, client, covers, input.ID, *issue)
+		if err != nil {
+			return nil, err
+		}
+		if err := markMetronSynced(ctx, db, metronResourceIssue, input.Body.MetronIssueID, info); err != nil {
+			return nil, err
+		}
+		return withMetronRateLimit(output, client.CurrentRateLimit()), nil
+	})
+}
 
 func comicPayloadFromMetronIssue(issue metron.Issue) ComicPayload {
 	return ComicPayload{
