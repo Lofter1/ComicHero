@@ -161,7 +161,7 @@ func secureSessionCookies() bool {
 	case "false", "0", "no", "off":
 		return false
 	default:
-		return false
+		return true
 	}
 }
 
