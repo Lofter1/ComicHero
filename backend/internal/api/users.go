@@ -2,19 +2,11 @@ package api
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/rand"
-	"crypto/sha256"
-	"crypto/subtle"
 	"database/sql"
-	"encoding/base64"
 	"fmt"
-	"net"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -40,54 +32,10 @@ const (
 
 	registrationRateLimitMaxAttempts = 3
 	registrationRateLimitWindow      = time.Hour
-
-	passwordHashIterations = 600000
 )
 
 type contextUserIDKey struct{}
 type contextPublicAccessKey struct{}
-
-var (
-	authLoginLimiter        = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
-	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
-)
-
-type loginRateLimiter struct {
-	maxAttempts int
-	window      time.Duration
-	mu          sync.Mutex
-	attempts    map[string]loginRateLimitEntry
-}
-
-type loginRateLimitEntry struct {
-	count      int
-	windowEnds time.Time
-}
-
-func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimiter {
-	return &loginRateLimiter{
-		maxAttempts: maxAttempts,
-		window:      window,
-		attempts:    map[string]loginRateLimitEntry{},
-	}
-}
-
-func (l *loginRateLimiter) allow(key string, now time.Time) bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	entry := l.attempts[key]
-	if entry.windowEnds.IsZero() || !now.Before(entry.windowEnds) {
-		l.attempts[key] = loginRateLimitEntry{count: 1, windowEnds: now.Add(l.window)}
-		return true
-	}
-	if entry.count >= l.maxAttempts {
-		return false
-	}
-	entry.count++
-	l.attempts[key] = entry
-	return true
-}
 
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
@@ -318,80 +266,9 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	}
 }
 
-func isLoginRequest(r *http.Request) bool {
-	path := strings.TrimPrefix(r.URL.Path, "/api")
-	return r.Method == http.MethodPost && path == "/auth/login"
-}
-
-func isRegisterRequest(r *http.Request) bool {
-	path := strings.TrimPrefix(r.URL.Path, "/api")
-	return r.Method == http.MethodPost && path == "/auth/register"
-}
-
-func isPublicReadRequest(r *http.Request) bool {
-	if r.Method != http.MethodGet {
-		return false
-	}
-	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api"), "/")
-	parts := strings.Split(path, "/")
-	if len(parts) == 1 {
-		switch parts[0] {
-		case "readingOrders", "comics", "series", "characters", "arcs":
-			return true
-		default:
-			return false
-		}
-	}
-	if len(parts) == 2 && positivePathID(parts[1]) {
-		switch parts[0] {
-		case "readingOrders", "comics", "series", "characters", "arcs":
-			return true
-		default:
-			return false
-		}
-	}
-	return len(parts) == 3 && parts[0] == "readingOrders" && parts[2] == "cbl" && positivePathID(parts[1])
-}
-
 func positivePathID(value string) bool {
 	id, err := strconv.Atoi(value)
 	return err == nil && id > 0
-}
-
-func clientIP(r *http.Request) string {
-	if forwardedFor := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwardedFor != "" {
-		if ip := strings.TrimSpace(strings.Split(forwardedFor, ",")[0]); ip != "" {
-			return ip
-		}
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil && host != "" {
-		return host
-	}
-	return r.RemoteAddr
-}
-
-func isUserRouteAllowedWithoutSession(path string) bool {
-	path = strings.TrimPrefix(path, "/api")
-	switch path {
-	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/openapi.json", "/openapi.yaml", "/docs":
-		return true
-	default:
-		return false
-	}
-}
-
-func currentUserID(ctx context.Context) (int, error) {
-	userID, ok := ctx.Value(contextUserIDKey{}).(int)
-	if !ok || userID <= 0 {
-		return 0, huma.Error401Unauthorized("login required")
-	}
-	return userID, nil
-}
-
-func currentUserIsPublic(ctx context.Context) bool {
-	public, _ := ctx.Value(contextPublicAccessKey{}).(bool)
-	return public
 }
 
 func currentTimestamp() string {
@@ -1006,152 +883,6 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 	}, nil
 }
 
-func sessionUserID(r *http.Request, db *sqlx.DB) (int, error) {
-	cookie, err := r.Cookie(sessionCookieName)
-	if err != nil || cookie.Value == "" {
-		return 0, huma.Error401Unauthorized("login required")
-	}
-	userID, err := userIDFromSessionToken(r.Context(), db, cookie.Value)
-	if err != nil {
-		return 0, err
-	}
-	return userID, nil
-}
-
-func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int, error) {
-	if token == "" {
-		return 0, huma.Error401Unauthorized("login required")
-	}
-	var row struct {
-		UserID    int    `db:"user_id"`
-		ExpiresAt string `db:"expires_at"`
-	}
-	if err := db.GetContext(ctx, &row, `
-		SELECT user_id, expires_at FROM user_sessions WHERE token = ?
-	`, token); err != nil {
-		return 0, huma.Error401Unauthorized("login required")
-	}
-	expiresAt, err := time.Parse(time.RFC3339, row.ExpiresAt)
-	if err != nil || !expiresAt.After(time.Now().UTC()) {
-		_, _ = db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token)
-		return 0, huma.Error401Unauthorized("login required")
-	}
-	return row.UserID, nil
-}
-
-func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, error) {
-	token, err := randomToken(32)
-	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to create session")
-	}
-	expiresAt := time.Now().UTC().Add(sessionTTL)
-	if _, err := db.ExecContext(ctx, `
-		INSERT INTO user_sessions (token, user_id, expires_at)
-		VALUES (?, ?, ?)
-	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
-		return nil, huma.Error500InternalServerError("failed to save session")
-	}
-	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}, nil
-}
-
-func expiredSessionCookie() *http.Cookie {
-	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}
-}
-
-func secureSessionCookies() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
-	case "false", "0", "no", "off":
-		return false
-	default:
-		return true
-	}
-}
-
-func cookieHeader(cookie *http.Cookie) []http.Cookie {
-	if cookie == nil {
-		return nil
-	}
-	return []http.Cookie{*cookie}
-}
-
 func cleanUserName(name string) string {
 	return strings.Join(strings.Fields(name), " ")
-}
-
-func hashPassword(password string) (string, error) {
-	salt, err := randomBytes(16)
-	if err != nil {
-		return "", err
-	}
-	key := derivePasswordKey([]byte(password), salt, passwordHashIterations, 32)
-	return fmt.Sprintf("pbkdf2_sha256$%d$%s$%s", passwordHashIterations, base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
-}
-
-func checkPassword(password, encoded string) bool {
-	parts := strings.Split(encoded, "$")
-	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
-		return false
-	}
-	iterations, err := strconv.Atoi(parts[1])
-	if err != nil || iterations <= 0 {
-		return false
-	}
-	salt, err := base64.RawStdEncoding.DecodeString(parts[2])
-	if err != nil {
-		return false
-	}
-	expected, err := base64.RawStdEncoding.DecodeString(parts[3])
-	if err != nil {
-		return false
-	}
-	actual := derivePasswordKey([]byte(password), salt, iterations, len(expected))
-	return subtle.ConstantTimeCompare(actual, expected) == 1
-}
-
-func passwordHashNeedsUpgrade(encoded string) bool {
-	parts := strings.Split(encoded, "$")
-	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
-		return false
-	}
-	iterations, err := strconv.Atoi(parts[1])
-	return err == nil && iterations < passwordHashIterations
-}
-
-func derivePasswordKey(password, salt []byte, iterations, keyLen int) []byte {
-	hashLen := sha256.Size
-	blocks := (keyLen + hashLen - 1) / hashLen
-	out := make([]byte, 0, blocks*hashLen)
-	for block := 1; block <= blocks; block++ {
-		mac := hmac.New(sha256.New, password)
-		mac.Write(salt)
-		mac.Write([]byte{byte(block >> 24), byte(block >> 16), byte(block >> 8), byte(block)})
-		u := mac.Sum(nil)
-		t := append([]byte(nil), u...)
-		for i := 1; i < iterations; i++ {
-			mac = hmac.New(sha256.New, password)
-			mac.Write(u)
-			u = mac.Sum(nil)
-			for j := range t {
-				t[j] ^= u[j]
-			}
-		}
-		out = append(out, t...)
-	}
-	return out[:keyLen]
-}
-
-func randomToken(size int) (string, error) {
-	value, err := randomBytes(size)
-	if err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(value), nil
-}
-
-func randomBytes(size int) ([]byte, error) {
-	value := make([]byte, size)
-	if _, err := rand.Read(value); err != nil {
-		return nil, err
-	}
-	return value, nil
 }
