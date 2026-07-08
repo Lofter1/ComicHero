@@ -189,83 +189,92 @@ function registrationModeLabel(mode) {
             <h3>{{ entry.user.name }}</h3>
             <p>{{ entry.user.isAdmin ? 'Admin' : 'User' }}</p>
           </div>
-          <div class="user-account-actions">
-            <label class="compact-toggle">
-              <input
-                v-model="draftFor(entry.user.id).isAdmin"
-                type="checkbox"
-                :disabled="entry.user.id === currentUserID"
-              >
-              <span>Admin user</span>
-            </label>
-            <button
-              type="button"
-              class="secondary-button compact-button"
-              :disabled="savingAdminUserID === entry.user.id || entry.user.id === currentUserID"
-              @click="saveAdmin(entry)"
-            >
-              {{ savingAdminUserID === entry.user.id ? 'Saving...' : 'Save role' }}
-            </button>
-            <button
-              type="button"
-              class="danger-text-button compact-button"
-              :disabled="deletingUserID === entry.user.id || entry.user.id === currentUserID"
-              @click="$emit('delete-user', entry.user.id)"
-            >
-              {{ deletingUserID === entry.user.id ? 'Deleting...' : 'Delete user' }}
-            </button>
-          </div>
         </div>
 
-        <section class="metron-permission-editor">
-          <div class="permission-section-header">
-            <div>
-              <p class="eyebrow">Metron</p>
-              <h4>API access</h4>
+        <div class="user-card-sections">
+          <section class="user-card-section account-section">
+            <div class="section-heading">
+              <p class="eyebrow">Account</p>
+              <h4>Role and access</h4>
             </div>
-            <label class="compact-toggle">
-              <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
-              <span>{{ draftFor(entry.user.id).allowed ? 'Enabled' : 'Disabled' }}</span>
-            </label>
-          </div>
-
-          <fieldset class="permission-scopes" :disabled="!draftFor(entry.user.id).allowed">
-            <legend>Allowed endpoint scopes</legend>
-            <label>
-              <input
-                type="checkbox"
-                :checked="scopesFor(entry.user.id).includes('*')"
-                @change="toggleAll(entry.user.id, $event.target.checked)"
+            <div class="account-control-grid">
+              <label class="compact-toggle">
+                <input
+                  v-model="draftFor(entry.user.id).isAdmin"
+                  type="checkbox"
+                  :disabled="entry.user.id === currentUserID"
+                >
+                <span>Admin user</span>
+              </label>
+              <button
+                type="button"
+                class="secondary-action"
+                :disabled="savingAdminUserID === entry.user.id || entry.user.id === currentUserID"
+                @click="saveAdmin(entry)"
               >
-              <span>All endpoints</span>
-            </label>
-            <label v-for="option in scopeOptions" :key="option.value">
-              <input
-                type="checkbox"
-                :checked="scopesFor(entry.user.id).includes('*') || scopesFor(entry.user.id).includes(option.value)"
-                :disabled="scopesFor(entry.user.id).includes('*')"
-                @change="toggleScope(entry.user.id, option.value, $event.target.checked)"
+                {{ savingAdminUserID === entry.user.id ? 'Saving...' : 'Save role' }}
+              </button>
+              <button
+                type="button"
+                class="danger-text-button"
+                :disabled="deletingUserID === entry.user.id || entry.user.id === currentUserID"
+                @click="$emit('delete-user', entry.user.id)"
               >
-              <span>{{ option.label }}</span>
-            </label>
-          </fieldset>
+                {{ deletingUserID === entry.user.id ? 'Deleting...' : 'Delete user' }}
+              </button>
+            </div>
+          </section>
 
-          <div class="permission-footer">
-            <label class="hourly-limit-field">
-              <span>Hourly endpoint limit</span>
-              <input v-model.number="draftFor(entry.user.id).hourlyLimit" min="0" step="1" type="number">
-              <small>0 means unlimited.</small>
-            </label>
-            <button
-              type="button"
-              class="secondary-action"
-              :disabled="savingUserID === entry.user.id"
-              @click="save(entry)"
-            >
-              {{ savingUserID === entry.user.id ? 'Saving...' : 'Save permissions' }}
-            </button>
-          </div>
-        </section>
+          <section class="user-card-section metron-permission-editor">
+            <div class="section-heading">
+              <p class="eyebrow">Metron</p>
+              <h4>API permissions</h4>
+            </div>
+
+            <div class="metron-settings-grid">
+              <div class="metron-control-column">
+                <label class="compact-toggle">
+                  <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
+                  <span>{{ draftFor(entry.user.id).allowed ? 'Enabled' : 'Disabled' }}</span>
+                </label>
+                <label class="hourly-limit-field">
+                  <span>Hourly endpoint limit</span>
+                  <input v-model.number="draftFor(entry.user.id).hourlyLimit" min="0" step="1" type="number">
+                  <small>0 means unlimited.</small>
+                </label>
+                <button
+                  type="button"
+                  class="secondary-action"
+                  :disabled="savingUserID === entry.user.id"
+                  @click="save(entry)"
+                >
+                  {{ savingUserID === entry.user.id ? 'Saving...' : 'Save permissions' }}
+                </button>
+              </div>
+
+              <fieldset class="permission-scopes" :disabled="!draftFor(entry.user.id).allowed">
+                <legend>Allowed endpoint scopes</legend>
+                <label>
+                  <input
+                    type="checkbox"
+                    :checked="scopesFor(entry.user.id).includes('*')"
+                    @change="toggleAll(entry.user.id, $event.target.checked)"
+                  >
+                  <span>All endpoints</span>
+                </label>
+                <label v-for="option in scopeOptions" :key="option.value">
+                  <input
+                    type="checkbox"
+                    :checked="scopesFor(entry.user.id).includes('*') || scopesFor(entry.user.id).includes(option.value)"
+                    :disabled="scopesFor(entry.user.id).includes('*')"
+                    @change="toggleScope(entry.user.id, option.value, $event.target.checked)"
+                  >
+                  <span>{{ option.label }}</span>
+                </label>
+              </fieldset>
+            </div>
+          </section>
+        </div>
       </article>
     </div>
   </section>
