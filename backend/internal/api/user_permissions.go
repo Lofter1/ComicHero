@@ -34,6 +34,7 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 	var rows []struct {
 		ID          int            `db:"id"`
 		Name        string         `db:"name"`
+		Email       string         `db:"email"`
 		IsAdmin     bool           `db:"is_admin"`
 		Allowed     sql.NullBool   `db:"allowed"`
 		Scopes      sql.NullString `db:"scopes"`
@@ -43,6 +44,7 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 		SELECT
 			u.id,
 			u.name,
+			u.email,
 			u.is_admin,
 			p.allowed,
 			p.scopes,
@@ -60,6 +62,7 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 			User: User{
 				ID:      row.ID,
 				Name:    row.Name,
+				Email:   row.Email,
 				IsAdmin: row.IsAdmin,
 			},
 			MetronPermissions: permissionsFromRow(row.IsAdmin, row.Allowed, row.Scopes, row.HourlyLimit),

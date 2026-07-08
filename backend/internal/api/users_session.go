@@ -156,10 +156,12 @@ func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimite
 
 func secureSessionCookies() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
+	case "true", "1", "yes", "on":
+		return true
 	case "false", "0", "no", "off":
 		return false
 	default:
-		return true
+		return false
 	}
 }
 

@@ -31,6 +31,7 @@ type ComicPayload struct {
 type User struct {
 	ID      int    `json:"id"      db:"id"       doc:"Local user identifier." example:"1"`
 	Name    string `json:"name"    db:"name"     doc:"Display name." example:"Justin"`
+	Email   string `json:"email"   db:"email"    doc:"Email address used to log in." example:"reader@example.com"`
 	IsAdmin bool   `json:"isAdmin" db:"is_admin" doc:"Whether the user can manage user permissions." example:"false"`
 }
 
@@ -172,6 +173,7 @@ type LogoutUserInput struct {
 type SetupUsersPayload struct {
 	Mode     string `json:"mode" doc:"User mode to enable: single avoids login, multi enables registration and login." enum:"single,multi" example:"multi"`
 	Name     string `json:"name,omitempty" doc:"Initial user name for multi-user mode. Existing read status is attached to this user." example:"Justin"`
+	Email    string `json:"email,omitempty" doc:"Initial email address for multi-user login." format:"email" example:"reader@example.com"`
 	Password string `json:"password,omitempty" doc:"Initial password for multi-user mode." example:"correct horse battery staple"`
 }
 
@@ -180,9 +182,12 @@ type SetupUsersInput struct {
 }
 
 type UserCredentialsPayload struct {
-	Name        string `json:"name"                  minLength:"1" doc:"User name." example:"Justin"`
-	Password    string `json:"password"              minLength:"6" doc:"Password." example:"correct horse battery staple"`
-	InviteToken string `json:"inviteToken,omitempty" doc:"Invite token required for registration in multi-user mode."`
+	Name                 string `json:"name,omitempty"                 doc:"Display name for registration." example:"Justin"`
+	Email                string `json:"email"                          minLength:"1" format:"email" doc:"Email address used to log in." example:"reader@example.com"`
+	EmailConfirmation    string `json:"emailConfirmation,omitempty"    format:"email" doc:"Repeated email address required for registration." example:"reader@example.com"`
+	Password             string `json:"password"                       minLength:"6" doc:"Password." example:"correct horse battery staple"`
+	PasswordConfirmation string `json:"passwordConfirmation,omitempty" minLength:"6" doc:"Repeated password required for registration." example:"correct horse battery staple"`
+	InviteToken          string `json:"inviteToken,omitempty"          doc:"Invite token required for registration in multi-user mode."`
 }
 
 type RegisterUserInput struct {

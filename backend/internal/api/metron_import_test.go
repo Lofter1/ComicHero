@@ -56,6 +56,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
+			email TEXT NOT NULL DEFAULT '',
 			is_default INTEGER NOT NULL DEFAULT 0,
 			is_admin INTEGER NOT NULL DEFAULT 0
 		);

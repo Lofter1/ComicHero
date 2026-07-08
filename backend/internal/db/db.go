@@ -77,6 +77,7 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		name string
 		sql  string
 	}{
+		{name: "email", sql: `ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''`},
 		{name: "password_hash", sql: `ALTER TABLE users ADD COLUMN password_hash TEXT NOT NULL DEFAULT ''`},
 		{name: "is_default", sql: `ALTER TABLE users ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0`},
 		{name: "is_admin", sql: `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`},
@@ -135,6 +136,9 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`UPDATE users SET is_default = 1 WHERE name = 'Default' AND is_default = 0`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email <> ''`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`INSERT OR IGNORE INTO users (name, is_default) VALUES ('Default', 1)`); err != nil {

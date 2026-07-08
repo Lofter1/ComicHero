@@ -129,7 +129,7 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 			t.Fatalf("table %s missing", table)
 		}
 	}
-	for _, column := range []string{"password_hash", "is_default", "created_at"} {
+	for _, column := range []string{"email", "password_hash", "is_default", "created_at"} {
 		exists, err := columnExists(database, "users", column)
 		if err != nil {
 			t.Fatalf("check column %s: %v", column, err)
@@ -137,6 +137,13 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 		if !exists {
 			t.Fatalf("users.%s missing", column)
 		}
+	}
+	var emailIndexCount int
+	if err := database.Get(&emailIndexCount, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`); err != nil {
+		t.Fatalf("check email index: %v", err)
+	}
+	if emailIndexCount != 1 {
+		t.Fatalf("idx_users_email count = %d; want 1", emailIndexCount)
 	}
 
 	var isDefault int

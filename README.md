@@ -141,7 +141,7 @@ The backend reads environment variables from the process environment and, when p
 | `DB_PATH`         | `./data/comicorder.db`     | SQLite database path.                               |
 | `STATIC_DIR`      | _(embedded)_                | Optional: serve the frontend from this directory instead of the copy embedded in the binary. Useful for local frontend development. |
 | `COVER_CACHE_DIR` | `./public/covers`          | Directory where downloaded cover images are cached. |
-| `COOKIE_SECURE`   | `true`                     | Sets the `Secure` flag on session cookies. Set to `false` only when serving ComicHero over plain HTTP in a trusted local setup. |
+| `COOKIE_SECURE`   | `false`                    | Sets the `Secure` flag on session cookies when set to `true`. Enable it when serving ComicHero over HTTPS. |
 | `METRON_BASE_URL` | `https://metron.cloud/api` | Metron API base URL.                                |
 | `METRON_USERNAME` | empty                      | Optional Metron username.                           |
 | `METRON_PASSWORD` | empty                      | Optional Metron password.                           |

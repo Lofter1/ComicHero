@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"strconv"
 	"strings"
 	"time"
@@ -324,6 +325,10 @@ func setupUsers(ctx context.Context, db *sqlx.DB, payload SetupUsersPayload) (*U
 		if name == "" {
 			return nil, huma.Error400BadRequest("name is required for multi-user setup")
 		}
+		email, err := cleanEmailAddress(payload.Email)
+		if err != nil {
+			return nil, huma.Error400BadRequest(err.Error())
+		}
 		if len(payload.Password) < 6 {
 			return nil, huma.Error400BadRequest("password must be at least 6 characters")
 		}
@@ -333,10 +338,10 @@ func setupUsers(ctx context.Context, db *sqlx.DB, payload SetupUsersPayload) (*U
 		}
 		if _, err := tx.ExecContext(ctx, `
 			UPDATE users
-			SET name = ?, password_hash = ?, is_default = 0
+			SET name = ?, email = ?, password_hash = ?, is_default = 0
 			WHERE id = ?
-		`, name, passwordHash, userID); err != nil {
-			return nil, huma.Error409Conflict("user name already exists")
+		`, name, email, passwordHash, userID); err != nil {
+			return nil, huma.Error409Conflict("user name or email already exists")
 		}
 	}
 
@@ -375,8 +380,18 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if name == "" {
 		return nil, huma.Error400BadRequest("name is required")
 	}
+	email, err := cleanEmailAddress(payload.Email)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	if !emailsMatch(email, payload.EmailConfirmation) {
+		return nil, huma.Error400BadRequest("email confirmation must match email")
+	}
 	if len(payload.Password) < 6 {
 		return nil, huma.Error400BadRequest("password must be at least 6 characters")
+	}
+	if payload.PasswordConfirmation != payload.Password {
+		return nil, huma.Error400BadRequest("password confirmation must match password")
 	}
 	passwordHash, err := hashPassword(payload.Password)
 	if err != nil {
@@ -396,11 +411,11 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	}
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO users (name, password_hash)
-		VALUES (?, ?)
-	`, name, passwordHash)
+		INSERT INTO users (name, email, password_hash)
+		VALUES (?, ?, ?)
+	`, name, email, passwordHash)
 	if err != nil {
-		return nil, huma.Error409Conflict("user name already exists")
+		return nil, huma.Error409Conflict("user name or email already exists")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
@@ -534,13 +549,17 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 		ID           int    `db:"id"`
 		PasswordHash string `db:"password_hash"`
 	}
+	email, err := cleanEmailAddress(payload.Email)
+	if err != nil {
+		return nil, huma.Error401Unauthorized("invalid email or password")
+	}
 	if err := db.GetContext(ctx, &row, `
-		SELECT id, password_hash FROM users WHERE name = ?
-	`, cleanUserName(payload.Name)); err != nil {
-		return nil, huma.Error401Unauthorized("invalid user name or password")
+		SELECT id, password_hash FROM users WHERE email = ?
+	`, email); err != nil {
+		return nil, huma.Error401Unauthorized("invalid email or password")
 	}
 	if !checkPassword(payload.Password, row.PasswordHash) {
-		return nil, huma.Error401Unauthorized("invalid user name or password")
+		return nil, huma.Error401Unauthorized("invalid email or password")
 	}
 	if passwordHashNeedsUpgrade(row.PasswordHash) {
 		passwordHash, err := hashPassword(payload.Password)
@@ -767,7 +786,7 @@ func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
 func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 	var user User
 	if err := db.GetContext(ctx, &user, `
-		SELECT id, name, is_admin FROM users WHERE id = ?
+		SELECT id, name, email, is_admin FROM users WHERE id = ?
 	`, id); err != nil {
 		if err == sql.ErrNoRows {
 			return User{}, huma.Error401Unauthorized("login required")
@@ -827,4 +846,21 @@ func userStatusForUser(ctx context.Context, db *sqlx.DB, mode string, userID int
 
 func cleanUserName(name string) string {
 	return strings.Join(strings.Fields(name), " ")
+}
+
+func cleanEmailAddress(email string) (string, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+	if email == "" {
+		return "", fmt.Errorf("email is required")
+	}
+	address, err := mail.ParseAddress(email)
+	if err != nil || address.Address != email {
+		return "", fmt.Errorf("valid email is required")
+	}
+	return email, nil
+}
+
+func emailsMatch(email, confirmation string) bool {
+	confirmation, err := cleanEmailAddress(confirmation)
+	return err == nil && confirmation == email
 }

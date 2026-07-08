@@ -55,8 +55,15 @@ const authSaving = ref(false)
 const userStatus = ref(null)
 const authMode = ref('login')
 const loginRequested = ref(false)
-const setupForm = ref({ mode: 'single', name: '', password: '' })
-const authForm = ref({ name: '', password: '', inviteToken: '' })
+const setupForm = ref({ mode: 'single', name: '', email: '', password: '' })
+const authForm = ref({
+  name: '',
+  email: '',
+  emailConfirmation: '',
+  password: '',
+  passwordConfirmation: '',
+  inviteToken: '',
+})
 const userAdminRows = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
@@ -383,6 +390,7 @@ async function submitSetup() {
     const payload = { mode: setupForm.value.mode }
     if (setupForm.value.mode === 'multi') {
       payload.name = setupForm.value.name
+      payload.email = setupForm.value.email
       payload.password = setupForm.value.password
     }
     userStatus.value = await setupUsers(payload)
@@ -400,7 +408,20 @@ async function submitAuth() {
   authSaving.value = true
   error.value = ''
   try {
-    const payload = { name: authForm.value.name, password: authForm.value.password }
+    if (authMode.value === 'register') {
+      if (authForm.value.email !== authForm.value.emailConfirmation) {
+        throw new Error('Email confirmation must match email.')
+      }
+      if (authForm.value.password !== authForm.value.passwordConfirmation) {
+        throw new Error('Password confirmation must match password.')
+      }
+    }
+    const payload = { email: authForm.value.email, password: authForm.value.password }
+    if (authMode.value === 'register') {
+      payload.name = authForm.value.name
+      payload.emailConfirmation = authForm.value.emailConfirmation
+      payload.passwordConfirmation = authForm.value.passwordConfirmation
+    }
     if (authMode.value === 'register' && registrationMode.value === 'invite_only') {
       payload.inviteToken = authForm.value.inviteToken
     }
@@ -1114,7 +1135,11 @@ onUnmounted(() => {
       <div v-if="setupForm.mode === 'multi'" class="auth-fields">
         <label>
           <span>Name</span>
-          <input v-model.trim="setupForm.name" type="text" autocomplete="username" required />
+          <input v-model.trim="setupForm.name" type="text" autocomplete="name" required />
+        </label>
+        <label>
+          <span>Email</span>
+          <input v-model.trim="setupForm.email" type="email" autocomplete="email" required />
         </label>
         <label>
           <span>Password</span>
@@ -1160,9 +1185,22 @@ onUnmounted(() => {
       </div>
 
       <div class="auth-fields">
-        <label>
+        <label v-if="authMode === 'register'">
           <span>Name</span>
-          <input v-model.trim="authForm.name" type="text" autocomplete="username" required />
+          <input v-model.trim="authForm.name" type="text" autocomplete="name" required />
+        </label>
+        <label>
+          <span>Email</span>
+          <input v-model.trim="authForm.email" type="email" autocomplete="email" required />
+        </label>
+        <label v-if="authMode === 'register'">
+          <span>Confirm email</span>
+          <input
+            v-model.trim="authForm.emailConfirmation"
+            type="email"
+            autocomplete="email"
+            required
+          />
         </label>
         <label>
           <span>Password</span>
@@ -1170,6 +1208,16 @@ onUnmounted(() => {
             v-model="authForm.password"
             type="password"
             :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
+            minlength="6"
+            required
+          />
+        </label>
+        <label v-if="authMode === 'register'">
+          <span>Confirm password</span>
+          <input
+            v-model="authForm.passwordConfirmation"
+            type="password"
+            autocomplete="new-password"
             minlength="6"
             required
           />
