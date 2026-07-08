@@ -746,10 +746,17 @@ textarea {
   gap: 12px;
 }
 
+.user-access-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  max-width: 1100px;
+}
+
+.user-registration-panel,
 .user-invite-panel {
   display: grid;
   gap: 12px;
-  max-width: 840px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
@@ -758,6 +765,39 @@ textarea {
 
 .user-invite-panel .primary-button {
   justify-self: start;
+}
+
+.registration-mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 6px;
+}
+
+.registration-mode-toggle button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--control-ink);
+  font-weight: 900;
+}
+
+.registration-mode-toggle button.active {
+  background: var(--primary);
+  color: var(--primary-ink);
+}
+
+.warning-copy {
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  padding: 10px 12px;
+  font-weight: 800;
 }
 
 .invite-token-box {

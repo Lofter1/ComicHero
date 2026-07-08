@@ -27,6 +27,7 @@ import { useSeries } from '@/composables/useSeries.js'
 import {
   createUserInvite,
   deleteAccount as deleteAccountRequest,
+  deleteUser as deleteUserRequest,
   getUserStatus,
   listUsers,
   loginUser,
@@ -34,6 +35,7 @@ import {
   registerUser,
   setupUsers,
   updateAccount,
+  updateRegistrationMode,
   updateUserAdmin,
   updateUserMetronPermissions,
 } from '@/api/client.js'
@@ -55,7 +57,9 @@ const accountSaving = ref(false)
 const accountDeleting = ref(false)
 const savingUserID = ref(null)
 const savingAdminUserID = ref(null)
+const deletingUserID = ref(null)
 const generatingInvite = ref(false)
+const savingRegistrationMode = ref(false)
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -264,6 +268,7 @@ const showBlockingLoading = computed(() => loading.value && activeView.value !==
 const seriesListLoading = computed(() => Boolean(pageState.value.series?.refreshing))
 const setupRequired = computed(() => Boolean(userStatus.value?.setupRequired))
 const userMode = computed(() => userStatus.value?.mode || '')
+const registrationMode = computed(() => userStatus.value?.registrationMode || 'invite_only')
 const currentUser = computed(() => userStatus.value?.user || null)
 const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin))
 const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
@@ -361,7 +366,7 @@ async function submitAuth() {
   error.value = ''
   try {
     const payload = { name: authForm.value.name, password: authForm.value.password }
-    if (authMode.value === 'register') {
+    if (authMode.value === 'register' && registrationMode.value === 'invite_only') {
       payload.inviteToken = authForm.value.inviteToken
     }
     userStatus.value = authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
@@ -386,6 +391,27 @@ async function generateUserInvite() {
     error.value = err.message
   } finally {
     generatingInvite.value = false
+  }
+}
+
+async function saveRegistrationMode(mode) {
+  if (
+    mode === 'open' &&
+    registrationMode.value !== 'open' &&
+    typeof window !== 'undefined' &&
+    !window.confirm('Anyone who can reach this server will be able to create an account with full read/write access to your shared library. Only enable open registration if you understand the risk.')
+  ) {
+    return
+  }
+
+  savingRegistrationMode.value = true
+  error.value = ''
+  try {
+    userStatus.value = await updateRegistrationMode({ mode })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingRegistrationMode.value = false
   }
 }
 
@@ -416,6 +442,26 @@ async function saveUserAdmin(userID, payload) {
     error.value = err.message
   } finally {
     savingAdminUserID.value = null
+  }
+}
+
+async function removeUser(userID) {
+  if (
+    typeof window !== 'undefined' &&
+    !window.confirm('Delete this account? Their sessions, read status, Metron permissions, and account data will be removed.')
+  ) {
+    return
+  }
+
+  deletingUserID.value = userID
+  error.value = ''
+  try {
+    await deleteUserRequest(userID)
+    userAdminRows.value = userAdminRows.value.filter((entry) => entry.user.id !== userID)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    deletingUserID.value = null
   }
 }
 
@@ -971,7 +1017,7 @@ onUnmounted(() => {
             required
           >
         </label>
-        <label v-if="authMode === 'register'">
+        <label v-if="authMode === 'register' && registrationMode === 'invite_only'">
           <span>Invite token</span>
           <input v-model.trim="authForm.inviteToken" type="text" autocomplete="one-time-code" required>
         </label>
@@ -1043,11 +1089,16 @@ onUnmounted(() => {
         :users="userAdminRows"
         :saving-user-id="savingUserID"
         :saving-admin-user-id="savingAdminUserID"
+        :deleting-user-id="deletingUserID"
         :current-user-id="currentUser?.id"
+        :registration-mode="registrationMode"
+        :saving-registration-mode="savingRegistrationMode"
         :invite="generatedInvite"
         :generating-invite="generatingInvite"
         @save="saveUserMetronPermissions"
         @save-admin="saveUserAdmin"
+        @delete-user="removeUser"
+        @update-registration-mode="saveRegistrationMode"
         @generate-invite="generateUserInvite"
       />
 

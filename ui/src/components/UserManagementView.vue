@@ -21,9 +21,21 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  deletingUserID: {
+    type: Number,
+    default: null,
+  },
   currentUserID: {
     type: Number,
     default: null,
+  },
+  registrationMode: {
+    type: String,
+    default: 'invite_only',
+  },
+  savingRegistrationMode: {
+    type: Boolean,
+    default: false,
   },
   invite: {
     type: Object,
@@ -35,7 +47,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['save', 'save-admin', 'generate-invite'])
+const emit = defineEmits(['save', 'save-admin', 'delete-user', 'update-registration-mode', 'generate-invite'])
 const drafts = reactive({})
 
 watch(
@@ -101,23 +113,68 @@ function saveAdmin(entry) {
     isAdmin: Boolean(draftFor(entry.user.id).isAdmin),
   })
 }
+
+function registrationModeLabel(mode) {
+  return mode === 'open' ? 'Open registration' : 'Invite only'
+}
 </script>
 
 <template>
   <section class="browse-view user-management-view">
-    <section class="user-invite-panel">
-      <div>
-        <p class="eyebrow">Invites</p>
-        <h3>Invite a user</h3>
-        <p class="muted">New accounts need a single-use invite token to register.</p>
+    <section class="user-access-panel">
+      <div class="user-registration-panel">
+        <div>
+          <p class="eyebrow">Registration</p>
+          <h3>{{ registrationModeLabel(registrationMode) }}</h3>
+          <p class="muted">
+            {{ registrationMode === 'open'
+              ? 'Anyone who can reach this server can register without an invite.'
+              : 'New accounts need a single-use invite token to register.' }}
+          </p>
+        </div>
+
+        <div class="registration-mode-toggle" role="group" aria-label="Registration mode">
+          <button
+            type="button"
+            :class="{ active: registrationMode === 'invite_only' }"
+            :disabled="savingRegistrationMode || registrationMode === 'invite_only'"
+            @click="$emit('update-registration-mode', 'invite_only')"
+          >
+            Invite only
+          </button>
+          <button
+            type="button"
+            :class="{ active: registrationMode === 'open' }"
+            :disabled="savingRegistrationMode || registrationMode === 'open'"
+            @click="$emit('update-registration-mode', 'open')"
+          >
+            Open registration
+          </button>
+        </div>
+
+        <p v-if="registrationMode === 'open'" class="warning-copy">
+          Open registration gives new accounts full read/write access to the shared library.
+        </p>
       </div>
-      <button class="primary-button" type="button" :disabled="generatingInvite" @click="$emit('generate-invite')">
-        {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
-      </button>
-      <div v-if="invite?.token" class="invite-token-box">
-        <span>Invite token</span>
-        <code>{{ invite.token }}</code>
-        <small>Expires at {{ invite.expiresAt }}</small>
+
+      <div class="user-invite-panel">
+        <div>
+          <p class="eyebrow">Invites</p>
+          <h3>Invite a user</h3>
+          <p class="muted">
+            {{ registrationMode === 'open'
+              ? 'Open registration is enabled, so invite tokens are optional right now.'
+              : 'Generate a single-use token for a new account.' }}
+          </p>
+        </div>
+        <button class="primary-button" type="button" :disabled="generatingInvite" @click="$emit('generate-invite')">
+          {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
+        </button>
+        <div v-if="invite?.token" class="invite-token-box">
+          <span>Invite token</span>
+          <code>{{ invite.token }}</code>
+          <small>Expires at {{ invite.expiresAt }}</small>
+        </div>
       </div>
     </section>
 
@@ -148,6 +205,14 @@ function saveAdmin(entry) {
               @click="saveAdmin(entry)"
             >
               {{ savingAdminUserID === entry.user.id ? 'Saving...' : 'Save role' }}
+            </button>
+            <button
+              type="button"
+              class="danger-button compact-button"
+              :disabled="deletingUserID === entry.user.id || entry.user.id === currentUserID"
+              @click="$emit('delete-user', entry.user.id)"
+            >
+              {{ deletingUserID === entry.user.id ? 'Deleting...' : 'Delete user' }}
             </button>
             <label class="compact-toggle">
               <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
