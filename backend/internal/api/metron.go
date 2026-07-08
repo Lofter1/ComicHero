@@ -176,7 +176,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/comics/{id}/import"); err != nil {
 			return nil, err
 		}
-		job := startMetronComicImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
+		job := startMetronComicImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -267,7 +267,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/readingLists/{id}/import"); err != nil {
 			return nil, err
 		}
-		job := startMetronReadingListImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
+		job := startMetronReadingListImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -322,7 +322,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/arcs/{id}/import"); err != nil {
 			return nil, err
 		}
-		job := startMetronArcImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
+		job := startMetronArcImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -381,7 +381,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/characters/{id}/import"); err != nil {
 			return nil, err
 		}
-		job := startMetronCharacterAppearancesImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
+		job := startMetronCharacterAppearancesImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -398,7 +398,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/series/{id}/import"); err != nil {
 			return nil, err
 		}
-		job := startMetronSeriesImportWithOptions(importJobs, db, client, covers, input.ID, input.Body)
+		job := startMetronSeriesImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 
@@ -528,7 +528,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/imports/{id}/continue"); err != nil {
 			return nil, err
 		}
-		return continueMetronImportJob(importJobs, db, client, covers, input.ID)
+		return continueMetronImportJob(ctx, importJobs, db, client, covers, input.ID)
 	})
 }
 
@@ -625,7 +625,7 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 					return nil, err
 				}
 			}
-			return getComic(contextWithDefaultUser(ctx, db), db, id)
+			return getComic(ctx, db, id)
 		}
 	}
 
@@ -648,7 +648,7 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 				return nil, err
 			}
 		}
-		return getComic(contextWithDefaultUser(ctx, db), db, id)
+		return getComic(ctx, db, id)
 	}
 
 	return createMetronComicWithOptions(ctx, db, client, covers, issue, options)
@@ -667,7 +667,7 @@ func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Cli
 					return nil, err
 				}
 				if complete {
-					return getComic(contextWithDefaultUser(ctx, db), db, id)
+					return getComic(ctx, db, id)
 				}
 			}
 		}
@@ -696,7 +696,7 @@ func importMetronComicSweep(ctx context.Context, db *sqlx.DB, client *metron.Cli
 			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 				return nil, err
 			} else if ok {
-				return getComic(contextWithDefaultUser(ctx, db), db, id)
+				return getComic(ctx, db, id)
 			}
 			detail, issueInfo, err = fetchMetronIssue(ctx, db, client, issue.ID, true)
 			if err != nil {
@@ -860,7 +860,7 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 		return nil, huma.Error500InternalServerError("failed to get imported comic id")
 	}
 	if payload.Read {
-		if err := setComicReadStatusForCurrentUser(contextWithDefaultUser(ctx, db), db, int(id), payload.Read); err != nil {
+		if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read); err != nil {
 			return nil, err
 		}
 	}
@@ -875,7 +875,7 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 			return nil, err
 		}
 	}
-	return getComic(contextWithDefaultUser(ctx, db), db, int(id))
+	return getComic(ctx, db, int(id))
 }
 
 func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, comicID int, issue metron.Issue) (*ComicDetailOutput, error) {
@@ -916,7 +916,7 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 	if err := syncMetronIssueCharacters(ctx, db, covers, comicID, issue); err != nil {
 		return nil, err
 	}
-	return getComic(contextWithDefaultUser(ctx, db), db, comicID)
+	return getComic(ctx, db, comicID)
 }
 
 func importMetronReadingList(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, list metron.ReadingList) (*ReadingOrderDetailOutput, error) {

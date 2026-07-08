@@ -17,9 +17,25 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  savingAdminUserID: {
+    type: Number,
+    default: null,
+  },
+  currentUserID: {
+    type: Number,
+    default: null,
+  },
+  invite: {
+    type: Object,
+    default: null,
+  },
+  generatingInvite: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['save'])
+const emit = defineEmits(['save', 'save-admin', 'generate-invite'])
 const drafts = reactive({})
 
 watch(
@@ -32,6 +48,7 @@ watch(
         allowed: Boolean(permissions.allowed),
         scopes: normalizeScopes(permissions.scopes),
         hourlyLimit: permissions.hourlyLimit ?? 0,
+        isAdmin: Boolean(entry.user.isAdmin),
       }
     })
   },
@@ -46,7 +63,7 @@ function normalizeScopes(scopes = []) {
 
 function draftFor(userID) {
   if (!drafts[userID]) {
-    drafts[userID] = { allowed: false, scopes: [], hourlyLimit: 0 }
+    drafts[userID] = { allowed: false, scopes: [], hourlyLimit: 0, isAdmin: false }
   }
   return drafts[userID]
 }
@@ -78,10 +95,32 @@ function save(entry) {
     hourlyLimit: Number(draft.hourlyLimit) || 0,
   })
 }
+
+function saveAdmin(entry) {
+  emit('save-admin', entry.user.id, {
+    isAdmin: Boolean(draftFor(entry.user.id).isAdmin),
+  })
+}
 </script>
 
 <template>
   <section class="browse-view user-management-view">
+    <section class="user-invite-panel">
+      <div>
+        <p class="eyebrow">Invites</p>
+        <h3>Invite a user</h3>
+        <p class="muted">New accounts need a single-use invite token to register.</p>
+      </div>
+      <button class="primary-button" type="button" :disabled="generatingInvite" @click="$emit('generate-invite')">
+        {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
+      </button>
+      <div v-if="invite?.token" class="invite-token-box">
+        <span>Invite token</span>
+        <code>{{ invite.token }}</code>
+        <small>Expires at {{ invite.expiresAt }}</small>
+      </div>
+    </section>
+
     <div v-if="users.length === 0" class="empty-panel">
       No users yet.
     </div>
@@ -93,10 +132,28 @@ function save(entry) {
             <h3>{{ entry.user.name }}</h3>
             <p>{{ entry.user.isAdmin ? 'Admin' : 'User' }}</p>
           </div>
-          <label class="compact-toggle">
-            <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
-            <span>Metron access</span>
-          </label>
+          <div class="user-permission-toggles">
+            <label class="compact-toggle">
+              <input
+                v-model="draftFor(entry.user.id).isAdmin"
+                type="checkbox"
+                :disabled="entry.user.id === currentUserID"
+              >
+              <span>Admin user</span>
+            </label>
+            <button
+              type="button"
+              class="secondary-button compact-button"
+              :disabled="savingAdminUserID === entry.user.id || entry.user.id === currentUserID"
+              @click="saveAdmin(entry)"
+            >
+              {{ savingAdminUserID === entry.user.id ? 'Saving...' : 'Save role' }}
+            </button>
+            <label class="compact-toggle">
+              <input v-model="draftFor(entry.user.id).allowed" type="checkbox">
+              <span>Metron access</span>
+            </label>
+          </div>
         </div>
 
         <fieldset class="permission-scopes" :disabled="!draftFor(entry.user.id).allowed">

@@ -95,6 +95,32 @@ func TestMetronImportJobCancelingDoesNotBecomeSucceeded(t *testing.T) {
 	}
 }
 
+func TestMetronImportJobKeepsTriggeringUserContext(t *testing.T) {
+	store := newMetronImportJobStore()
+	parent, cancel := context.WithCancel(context.WithValue(context.Background(), contextUserIDKey{}, 42))
+	cancel()
+
+	seenUserID := make(chan int, 1)
+	job := store.startWithContextAndOptions(parent, "series", 123, defaultMetronImportOptions(), "Starting...", func(ctx context.Context, progress func(int, int, string)) error {
+		userID, err := currentUserID(ctx)
+		if err != nil {
+			return err
+		}
+		seenUserID <- userID
+		return nil
+	})
+
+	select {
+	case userID := <-seenUserID:
+		if userID != 42 {
+			t.Fatalf("job user id = %d; want 42", userID)
+		}
+	case <-time.After(time.Second):
+		current, _ := store.get(job.ID)
+		t.Fatalf("job did not report user id; status = %q message = %q", current.Status, current.Message)
+	}
+}
+
 func TestContextCanceledStringIsTreatedAsCancellation(t *testing.T) {
 	err := fmt.Errorf(`Get "https://metron.cloud/api/issue/335/": context canceled`)
 	if !isContextCanceledError(err) {

@@ -2,10 +2,12 @@ package api
 
 import (
 	"context"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
@@ -50,6 +52,10 @@ func TestPaginationHelpers(t *testing.T) {
 	if headers.PageLimit != "2" || headers.PageOffset != "10" || headers.HasMore != "true" || headers.TotalCount != "42" {
 		t.Fatalf("headers = %#v; want limit 2, offset 10, has more true, total 42", headers)
 	}
+}
+
+func testUserContext() context.Context {
+	return context.WithValue(context.Background(), contextUserIDKey{}, 1)
 }
 
 func TestComicListQuery(t *testing.T) {
@@ -109,7 +115,7 @@ func TestReadingOrderHelpers(t *testing.T) {
 }
 
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -144,7 +150,8 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -223,7 +230,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 
 func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	db := setupReadingOrderCBLTestDB(t)
-	ctx := context.Background()
+	ctx := testUserContext()
 	ownerCtx := context.WithValue(ctx, contextUserIDKey{}, 2)
 	otherCtx := context.WithValue(ctx, contextUserIDKey{}, 1)
 	if _, err := db.ExecContext(ctx, `INSERT INTO users (id, name, is_default) VALUES (2, 'Owner', 0)`); err != nil {
@@ -249,13 +256,26 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Nope"}); err == nil {
 		t.Fatalf("updateReadingOrder as non-author succeeded; want error")
 	}
+	if _, err := db.ExecContext(ctx, `UPDATE users SET is_admin = 1 WHERE id = 1`); err != nil {
+		t.Fatalf("promote admin: %v", err)
+	}
+	adminView, err := getReadingOrder(otherCtx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("getReadingOrder as admin: %v", err)
+	}
+	if !adminView.Body.CanEdit {
+		t.Fatalf("admin canEdit = false; want true")
+	}
+	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Admin update"}); err != nil {
+		t.Fatalf("updateReadingOrder as admin: %v", err)
+	}
 	if _, err := updateReadingOrder(ownerCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Updated"}); err != nil {
 		t.Fatalf("updateReadingOrder as author: %v", err)
 	}
 }
 
 func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := setupReadingOrderCBLTestDB(t)
 
 	if _, err := db.Exec(`
@@ -303,7 +323,7 @@ func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T
 }
 
 func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db := setupReadingOrderCBLTestDB(t)
 
 	metronID := 98765
@@ -385,7 +405,8 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -416,7 +437,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 }
 
 func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -515,7 +536,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 }
 
 func TestSeriesFavoriteAndProgress(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -598,7 +619,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 }
 
 func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
-	ctx := context.Background()
+	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
 		t.Fatalf("open db: %v", err)
@@ -764,6 +785,81 @@ func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
 	}
 }
 
+func TestLoginRateLimitReturnsTooManyRequests(t *testing.T) {
+	previousLimiter := authLoginLimiter
+	authLoginLimiter = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+	t.Cleanup(func() {
+		authLoginLimiter = previousLimiter
+	})
+
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users SET name = 'Test', password_hash = ? WHERE id = 1;
+	`, hash); err != nil {
+		t.Fatalf("seed login user: %v", err)
+	}
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	apiRouter.Use(UserMiddleware(db))
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterUserRoutes(api, db)
+
+	for i := 0; i < loginRateLimitMaxAttempts; i++ {
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"name":"Test","password":"wrong"}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.RemoteAddr = "203.0.113.44:1234"
+		router.ServeHTTP(recorder, req)
+		if recorder.Code == http.StatusTooManyRequests {
+			t.Fatalf("attempt %d status = 429; want not rate-limited yet", i+1)
+		}
+	}
+
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"name":"Test","password":"wrong"}`))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = "203.0.113.44:1234"
+	router.ServeHTTP(recorder, req)
+	if recorder.Code != http.StatusTooManyRequests {
+		t.Fatalf("rate-limited login status = %d; want 429: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestRequireAdminUserFailsWithoutUserContext(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	if userID, err := requireAdminUser(context.Background(), db); err == nil {
+		t.Fatalf("requireAdminUser without user context = %d, nil; want error", userID)
+	}
+}
+
+func TestPerUserEndpointFailsWithoutUserContext(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+
+	router := chi.NewRouter()
+	apiRouter := chi.NewRouter()
+	router.Mount("/api", apiRouter)
+	api := humachi.New(apiRouter, DocsConfig())
+	RegisterComicRoutes(api, db, nil)
+
+	recorder := httptest.NewRecorder()
+	body := strings.NewReader(`{"read":true}`)
+	req := httptest.NewRequest(http.MethodPatch, "/api/comic/1/read", body)
+	req.Header.Set("Content-Type", "application/json")
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusUnauthorized {
+		t.Fatalf("read-status without user context status = %d; want 401: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
 func TestUpdateAccountRenamesAndRequiresCurrentPassword(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	hash, err := hashPassword("secret1")
@@ -905,6 +1001,160 @@ func TestMetronPermissionsControlScopesAndHourlyLimit(t *testing.T) {
 	}
 }
 
+func TestAdminCanPromoteOtherUsers(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, is_admin) VALUES (2, 'Reader', 0)
+	`); err != nil {
+		t.Fatalf("create reader user: %v", err)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := updateUserAdmin(adminCtx, db, 2, UpdateUserAdminPayload{IsAdmin: true})
+	if err != nil {
+		t.Fatalf("updateUserAdmin promote: %v", err)
+	}
+	if !output.Body.User.IsAdmin {
+		t.Fatalf("promoted user isAdmin = false; want true")
+	}
+
+	readerCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := updateUserAdmin(readerCtx, db, 1, UpdateUserAdminPayload{IsAdmin: false}); err != nil {
+		t.Fatalf("promoted user should be able to update admin roles: %v", err)
+	}
+	if _, err := updateUserAdmin(readerCtx, db, 2, UpdateUserAdminPayload{IsAdmin: false}); err == nil {
+		t.Fatal("updateUserAdmin allowed current user to remove own admin role")
+	}
+}
+
+func TestRegisterUserRequiresValidInvite(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
+		t.Fatalf("seed multi-user mode: %v", err)
+	}
+
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "No Invite",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser without invite returned nil error")
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	invite, err := createUserInvite(adminCtx, db)
+	if err != nil {
+		t.Fatalf("createUserInvite: %v", err)
+	}
+	if invite.Body.Token == "" || invite.Body.ExpiresAt == "" {
+		t.Fatalf("invite = %#v; want token and expiry", invite.Body)
+	}
+
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:        "Invited",
+		Password:    "secret1",
+		InviteToken: invite.Body.Token,
+	}); err != nil {
+		t.Fatalf("registerUser with invite: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:        "Reuse",
+		Password:    "secret1",
+		InviteToken: invite.Body.Token,
+	}); err == nil {
+		t.Fatal("registerUser accepted a used invite")
+	}
+
+	if _, err := db.Exec(`
+		INSERT INTO user_invites (token, expires_at)
+		VALUES ('expired-token', ?)
+	`, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)); err != nil {
+		t.Fatalf("seed expired invite: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:        "Expired",
+		Password:    "secret1",
+		InviteToken: "expired-token",
+	}); err == nil {
+		t.Fatal("registerUser accepted an expired invite")
+	}
+}
+
+func TestExpiredSessionTokenIsRejected(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO user_sessions (token, user_id, expires_at)
+		VALUES ('expired-session', 1, ?)
+	`, time.Now().UTC().Add(-time.Hour).Format(time.RFC3339)); err != nil {
+		t.Fatalf("seed expired session: %v", err)
+	}
+
+	if userID, err := userIDFromSessionToken(context.Background(), db, "expired-session"); err == nil {
+		t.Fatalf("expired session returned user %d, nil error; want error", userID)
+	}
+
+	var count int
+	if err := db.Get(&count, `SELECT COUNT(*) FROM user_sessions WHERE token = 'expired-session'`); err != nil {
+		t.Fatalf("count expired sessions: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expired session count = %d; want 0", count)
+	}
+}
+
+func TestSessionCookiesAreSecureByDefaultAndConfigurable(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	t.Setenv("COOKIE_SECURE", "")
+
+	cookie, err := createSession(context.Background(), db, 1)
+	if err != nil {
+		t.Fatalf("createSession: %v", err)
+	}
+	if !cookie.Secure {
+		t.Fatal("session cookie Secure = false; want true by default")
+	}
+	if expired := expiredSessionCookie(); !expired.Secure {
+		t.Fatal("expired session cookie Secure = false; want true by default")
+	}
+
+	t.Setenv("COOKIE_SECURE", "false")
+	cookie, err = createSession(context.Background(), db, 1)
+	if err != nil {
+		t.Fatalf("createSession with COOKIE_SECURE=false: %v", err)
+	}
+	if cookie.Secure {
+		t.Fatal("session cookie Secure = true; want false when COOKIE_SECURE=false")
+	}
+	if expired := expiredSessionCookie(); expired.Secure {
+		t.Fatal("expired session cookie Secure = true; want false when COOKIE_SECURE=false")
+	}
+}
+
+func TestPasswordHashUsesCurrentIterationsAndVerifiesOldHashes(t *testing.T) {
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hashPassword: %v", err)
+	}
+	parts := strings.Split(hash, "$")
+	if len(parts) != 4 || parts[1] != "600000" {
+		t.Fatalf("hash = %q; want current iteration count encoded", hash)
+	}
+	if !checkPassword("secret1", hash) {
+		t.Fatal("checkPassword rejected current hash")
+	}
+
+	salt := []byte("0123456789abcdef")
+	key := derivePasswordKey([]byte("secret1"), salt, 120000, 32)
+	oldHash := "pbkdf2_sha256$120000$" +
+		base64.RawStdEncoding.EncodeToString(salt) + "$" +
+		base64.RawStdEncoding.EncodeToString(key)
+	if !checkPassword("secret1", oldHash) {
+		t.Fatal("checkPassword rejected old iteration count")
+	}
+	if !passwordHashNeedsUpgrade(oldHash) {
+		t.Fatal("passwordHashNeedsUpgrade returned false for old hash")
+	}
+}
+
 func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 	t.Helper()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -947,6 +1197,14 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE user_sessions (
 			token TEXT PRIMARY KEY,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			expires_at TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE user_invites (
+			token TEXT PRIMARY KEY,
+			created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+			expires_at TEXT NOT NULL DEFAULT '',
+			used_at TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 		);
 		CREATE TABLE user_comics (

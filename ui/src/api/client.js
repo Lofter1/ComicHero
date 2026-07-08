@@ -249,8 +249,16 @@ export function listUsers() {
   return request('/users')
 }
 
+export function createUserInvite() {
+  return send('/users/invites', 'POST', {})
+}
+
 export function updateUserMetronPermissions(id, payload) {
   return send(`/users/${id}/metron-permissions`, 'PUT', payload)
+}
+
+export function updateUserAdmin(id, payload) {
+  return send(`/users/${id}/admin`, 'PUT', payload)
 }
 
 export function deleteComic(id) {

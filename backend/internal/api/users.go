@@ -9,8 +9,13 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -22,9 +27,56 @@ const (
 
 	sessionCookieName = "comichero_session"
 	defaultUserName   = "Default"
+
+	userInviteTokenBytes = 32
+	userInviteTTL        = 7 * 24 * time.Hour
+	sessionTTL           = 30 * 24 * time.Hour
+
+	loginRateLimitMaxAttempts = 5
+	loginRateLimitWindow      = time.Minute
+	passwordHashIterations    = 600000
 )
 
 type contextUserIDKey struct{}
+
+var authLoginLimiter = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+
+type loginRateLimiter struct {
+	maxAttempts int
+	window      time.Duration
+	mu          sync.Mutex
+	attempts    map[string]loginRateLimitEntry
+}
+
+type loginRateLimitEntry struct {
+	count      int
+	windowEnds time.Time
+}
+
+func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimiter {
+	return &loginRateLimiter{
+		maxAttempts: maxAttempts,
+		window:      window,
+		attempts:    map[string]loginRateLimitEntry{},
+	}
+}
+
+func (l *loginRateLimiter) allow(key string, now time.Time) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	entry := l.attempts[key]
+	if entry.windowEnds.IsZero() || !now.Before(entry.windowEnds) {
+		l.attempts[key] = loginRateLimitEntry{count: 1, windowEnds: now.Add(l.window)}
+		return true
+	}
+	if entry.count >= l.maxAttempts {
+		return false
+	}
+	entry.count++
+	l.attempts[key] = entry
+	return true
+}
 
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
@@ -125,6 +177,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "createUserInvite",
+		Tags:        []string{tagUsers},
+		Summary:     "Create user invite",
+		Description: "Creates a single-use registration invite. Admin users only.",
+		Method:      http.MethodPost,
+		Path:        "/users/invites",
+		Errors:      []int{401, 403, 500},
+	}, func(ctx context.Context, input *struct{}) (*UserInviteOutput, error) {
+		return createUserInvite(ctx, db)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "updateUserMetronPermissions",
 		Tags:        []string{tagUsers},
 		Summary:     "Update user Metron permissions",
@@ -135,11 +199,27 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *UpdateUserMetronPermissionsInput) (*UserAdminOutput, error) {
 		return updateUserMetronPermissions(ctx, db, input.ID, input.Body)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "updateUserAdmin",
+		Tags:        []string{tagUsers},
+		Summary:     "Update user admin role",
+		Description: "Promotes or demotes a user account. Admin users only.",
+		Method:      http.MethodPut,
+		Path:        "/users/{id}/admin",
+		Errors:      []int{400, 401, 403, 404, 500},
+	}, func(ctx context.Context, input *UpdateUserAdminInput) (*UserAdminOutput, error) {
+		return updateUserAdmin(ctx, db, input.ID, input.Body)
+	})
 }
 
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isLoginRequest(r) && !authLoginLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many login attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
 			if isUserRouteAllowedWithoutSession(r.URL.Path) {
 				next.ServeHTTP(w, r)
 				return
@@ -171,6 +251,24 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	}
 }
 
+func isLoginRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/login"
+}
+
+func clientIP(r *http.Request) string {
+	if forwardedFor := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwardedFor != "" {
+		if ip := strings.TrimSpace(strings.Split(forwardedFor, ",")[0]); ip != "" {
+			return ip
+		}
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	return r.RemoteAddr
+}
+
 func isUserRouteAllowedWithoutSession(path string) bool {
 	path = strings.TrimPrefix(path, "/api")
 	switch path {
@@ -184,19 +282,9 @@ func isUserRouteAllowedWithoutSession(path string) bool {
 func currentUserID(ctx context.Context) (int, error) {
 	userID, ok := ctx.Value(contextUserIDKey{}).(int)
 	if !ok || userID <= 0 {
-		return 1, nil
+		return 0, huma.Error401Unauthorized("login required")
 	}
 	return userID, nil
-}
-
-func contextWithDefaultUser(ctx context.Context, db *sqlx.DB) context.Context {
-	if _, err := currentUserID(ctx); err == nil {
-		return ctx
-	}
-	if userID, err := ensureDefaultUser(ctx, db); err == nil {
-		return context.WithValue(ctx, contextUserIDKey{}, userID)
-	}
-	return ctx
 }
 
 func userMode(ctx context.Context, db *sqlx.DB) (string, bool, error) {
@@ -327,7 +415,18 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to hash password")
 	}
-	result, err := db.ExecContext(ctx, `
+
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start registration")
+	}
+	defer tx.Rollback()
+
+	if err := consumeUserInvite(ctx, tx, payload.InviteToken); err != nil {
+		return nil, err
+	}
+
+	result, err := tx.ExecContext(ctx, `
 		INSERT INTO users (name, password_hash)
 		VALUES (?, ?)
 	`, name, passwordHash)
@@ -338,11 +437,59 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get user id")
 	}
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to create user")
+	}
 	cookie, err := createSession(ctx, db, int(id))
 	if err != nil {
 		return nil, err
 	}
 	return userStatusForUser(ctx, db, mode, int(id), cookie)
+}
+
+func createUserInvite(ctx context.Context, db *sqlx.DB) (*UserInviteOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	token, err := randomToken(userInviteTokenBytes)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to create invite token")
+	}
+	expiresAt := time.Now().UTC().Add(userInviteTTL).Format(time.RFC3339)
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO user_invites (token, created_by_user_id, expires_at)
+		VALUES (?, ?, ?)
+	`, token, userID, expiresAt); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save invite")
+	}
+	return &UserInviteOutput{Body: UserInvite{Token: token, ExpiresAt: expiresAt}}, nil
+}
+
+func consumeUserInvite(ctx context.Context, db sqlx.ExtContext, token string) error {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return huma.Error401Unauthorized("valid invite token is required")
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := db.ExecContext(ctx, `
+		UPDATE user_invites
+		SET used_at = ?
+		WHERE token = ?
+		  AND used_at = ''
+		  AND (expires_at = '' OR expires_at > ?)
+	`, now, token, now)
+	if err != nil {
+		return huma.Error500InternalServerError("failed to consume invite")
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return huma.Error500InternalServerError("failed to check invite")
+	}
+	if rows == 0 {
+		return huma.Error401Unauthorized("valid invite token is required")
+	}
+	return nil
 }
 
 func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload) (*UserStatusOutput, error) {
@@ -365,6 +512,12 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 	}
 	if !checkPassword(payload.Password, row.PasswordHash) {
 		return nil, huma.Error401Unauthorized("invalid user name or password")
+	}
+	if passwordHashNeedsUpgrade(row.PasswordHash) {
+		passwordHash, err := hashPassword(payload.Password)
+		if err == nil {
+			_, _ = db.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, row.ID)
+		}
 	}
 	cookie, err := createSession(ctx, db, row.ID)
 	if err != nil {
@@ -606,13 +759,21 @@ func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int
 	if token == "" {
 		return 0, huma.Error401Unauthorized("login required")
 	}
-	var userID int
-	if err := db.GetContext(ctx, &userID, `
-		SELECT user_id FROM user_sessions WHERE token = ?
+	var row struct {
+		UserID    int    `db:"user_id"`
+		ExpiresAt string `db:"expires_at"`
+	}
+	if err := db.GetContext(ctx, &row, `
+		SELECT user_id, expires_at FROM user_sessions WHERE token = ?
 	`, token); err != nil {
 		return 0, huma.Error401Unauthorized("login required")
 	}
-	return userID, nil
+	expiresAt, err := time.Parse(time.RFC3339, row.ExpiresAt)
+	if err != nil || !expiresAt.After(time.Now().UTC()) {
+		_, _ = db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token)
+		return 0, huma.Error401Unauthorized("login required")
+	}
+	return row.UserID, nil
 }
 
 func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, error) {
@@ -620,17 +781,27 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create session")
 	}
+	expiresAt := time.Now().UTC().Add(sessionTTL)
 	if _, err := db.ExecContext(ctx, `
-		INSERT INTO user_sessions (token, user_id)
-		VALUES (?, ?)
-	`, token, userID); err != nil {
+		INSERT INTO user_sessions (token, user_id, expires_at)
+		VALUES (?, ?, ?)
+	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
 		return nil, huma.Error500InternalServerError("failed to save session")
 	}
-	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode}, nil
+	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}, nil
 }
 
 func expiredSessionCookie() *http.Cookie {
-	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode}
+	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}
+}
+
+func secureSessionCookies() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
+	case "false", "0", "no", "off":
+		return false
+	default:
+		return true
+	}
 }
 
 func cookieHeader(cookie *http.Cookie) []http.Cookie {
@@ -649,13 +820,17 @@ func hashPassword(password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	key := derivePasswordKey([]byte(password), salt, 120000, 32)
-	return fmt.Sprintf("pbkdf2_sha256$120000$%s$%s", base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
+	key := derivePasswordKey([]byte(password), salt, passwordHashIterations, 32)
+	return fmt.Sprintf("pbkdf2_sha256$%d$%s$%s", passwordHashIterations, base64.RawStdEncoding.EncodeToString(salt), base64.RawStdEncoding.EncodeToString(key)), nil
 }
 
 func checkPassword(password, encoded string) bool {
 	parts := strings.Split(encoded, "$")
-	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" || parts[1] != "120000" {
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		return false
+	}
+	iterations, err := strconv.Atoi(parts[1])
+	if err != nil || iterations <= 0 {
 		return false
 	}
 	salt, err := base64.RawStdEncoding.DecodeString(parts[2])
@@ -666,8 +841,17 @@ func checkPassword(password, encoded string) bool {
 	if err != nil {
 		return false
 	}
-	actual := derivePasswordKey([]byte(password), salt, 120000, len(expected))
+	actual := derivePasswordKey([]byte(password), salt, iterations, len(expected))
 	return subtle.ConstantTimeCompare(actual, expected) == 1
+}
+
+func passwordHashNeedsUpgrade(encoded string) bool {
+	parts := strings.Split(encoded, "$")
+	if len(parts) != 4 || parts[0] != "pbkdf2_sha256" {
+		return false
+	}
+	iterations, err := strconv.Atoi(parts[1])
+	return err == nil && iterations < passwordHashIterations
 }
 
 func derivePasswordKey(password, salt []byte, iterations, keyLen int) []byte {

@@ -100,6 +100,47 @@ func updateUserMetronPermissions(ctx context.Context, db *sqlx.DB, userID int, p
 	return &UserAdminOutput{Body: UserAdminView{User: user, MetronPermissions: permissions}}, nil
 }
 
+func updateUserAdmin(ctx context.Context, db *sqlx.DB, userID int, payload UpdateUserAdminPayload) (*UserAdminOutput, error) {
+	currentUserID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	if userID <= 0 {
+		return nil, huma.Error400BadRequest("user id is required")
+	}
+
+	user, err := getUserByID(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	if userID == currentUserID && !payload.IsAdmin {
+		return nil, huma.Error400BadRequest("cannot remove your own admin role")
+	}
+	if user.IsAdmin && !payload.IsAdmin {
+		var adminCount int
+		if err := db.GetContext(ctx, &adminCount, `SELECT COUNT(*) FROM users WHERE is_admin = 1`); err != nil {
+			return nil, huma.Error500InternalServerError("failed to count admins")
+		}
+		if adminCount <= 1 {
+			return nil, huma.Error400BadRequest("cannot remove the only admin account")
+		}
+	}
+
+	if _, err := db.ExecContext(ctx, `UPDATE users SET is_admin = ? WHERE id = ?`, payload.IsAdmin, userID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to update admin role")
+	}
+
+	updated, err := getUserByID(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	permissions, err := metronPermissionsForUser(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &UserAdminOutput{Body: UserAdminView{User: updated, MetronPermissions: permissions}}, nil
+}
+
 func metronPermissionsForUser(ctx context.Context, db *sqlx.DB, userID int) (UserMetronPermissions, error) {
 	var row struct {
 		IsAdmin     bool           `db:"is_admin"`

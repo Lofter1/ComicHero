@@ -25,6 +25,7 @@ import { usePagination } from '@/composables/usePagination.js'
 import { useReadingOrders } from '@/composables/useReadingOrders.js'
 import { useSeries } from '@/composables/useSeries.js'
 import {
+  createUserInvite,
   deleteAccount as deleteAccountRequest,
   getUserStatus,
   listUsers,
@@ -33,6 +34,7 @@ import {
   registerUser,
   setupUsers,
   updateAccount,
+  updateUserAdmin,
   updateUserMetronPermissions,
 } from '@/api/client.js'
 
@@ -46,11 +48,14 @@ const authSaving = ref(false)
 const userStatus = ref(null)
 const authMode = ref('login')
 const setupForm = ref({ mode: 'single', name: '', password: '' })
-const authForm = ref({ name: '', password: '' })
+const authForm = ref({ name: '', password: '', inviteToken: '' })
 const userAdminRows = ref([])
+const generatedInvite = ref(null)
 const accountSaving = ref(false)
 const accountDeleting = ref(false)
 const savingUserID = ref(null)
+const savingAdminUserID = ref(null)
+const generatingInvite = ref(false)
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -356,6 +361,9 @@ async function submitAuth() {
   error.value = ''
   try {
     const payload = { name: authForm.value.name, password: authForm.value.password }
+    if (authMode.value === 'register') {
+      payload.inviteToken = authForm.value.inviteToken
+    }
     userStatus.value = authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
     await applyCurrentRoute({ replace: true, force: true })
   } catch (err) {
@@ -367,6 +375,18 @@ async function submitAuth() {
 
 async function loadUserAdminRows() {
   userAdminRows.value = await listUsers()
+}
+
+async function generateUserInvite() {
+  generatingInvite.value = true
+  error.value = ''
+  try {
+    generatedInvite.value = await createUserInvite()
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    generatingInvite.value = false
+  }
 }
 
 async function saveUserMetronPermissions(userID, payload) {
@@ -381,6 +401,21 @@ async function saveUserMetronPermissions(userID, payload) {
     error.value = err.message
   } finally {
     savingUserID.value = null
+  }
+}
+
+async function saveUserAdmin(userID, payload) {
+  savingAdminUserID.value = userID
+  error.value = ''
+  try {
+    const updated = await updateUserAdmin(userID, payload)
+    userAdminRows.value = userAdminRows.value.map((entry) => (
+      entry.user.id === userID ? updated : entry
+    ))
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingAdminUserID.value = null
   }
 }
 
@@ -936,6 +971,10 @@ onUnmounted(() => {
             required
           >
         </label>
+        <label v-if="authMode === 'register'">
+          <span>Invite token</span>
+          <input v-model.trim="authForm.inviteToken" type="text" autocomplete="one-time-code" required>
+        </label>
       </div>
 
       <div v-if="error" class="toast error-toast" role="alert">
@@ -1003,7 +1042,13 @@ onUnmounted(() => {
         v-else-if="activeView === 'users'"
         :users="userAdminRows"
         :saving-user-id="savingUserID"
+        :saving-admin-user-id="savingAdminUserID"
+        :current-user-id="currentUser?.id"
+        :invite="generatedInvite"
+        :generating-invite="generatingInvite"
         @save="saveUserMetronPermissions"
+        @save-admin="saveUserAdmin"
+        @generate-invite="generateUserInvite"
       />
 
       <AccountView
