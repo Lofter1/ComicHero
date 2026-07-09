@@ -88,6 +88,19 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID:   "copyReadingOrder",
+		Tags:          []string{tagReadingOrders},
+		Summary:       "Copy a reading order",
+		Description:   "Creates a new reading order owned by the current user by copying the source order metadata and ordered entries.",
+		Method:        http.MethodPost,
+		Path:          "/readingOrders/{id}/copy",
+		DefaultStatus: 201,
+		Errors:        errsWrite,
+	}, func(ctx context.Context, input *CopyReadingOrderInput) (*ReadingOrderDetailOutput, error) {
+		return copyReadingOrder(ctx, db, input.ID)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "deleteReadingOrder",
 		Tags:          []string{tagReadingOrders},
 		Summary:       "Delete a reading order",
@@ -469,6 +482,82 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload Readin
 	}
 
 	return getReadingOrder(ctx, db, id)
+}
+
+func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if currentUserIsPublic(ctx) {
+		return nil, huma.Error403Forbidden("read-only public access cannot copy reading orders")
+	}
+
+	source, err := getReadingOrderRow(ctx, db, id)
+	if err != nil {
+		return nil, err
+	}
+	entries, err := fetchReadingOrderEntries(ctx, db, id)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start transaction")
+	}
+	defer tx.Rollback()
+
+	result, err := tx.ExecContext(ctx, `
+		INSERT INTO reading_orders (name, description, image, favorite, author_user_id)
+		VALUES (?, ?, ?, 0, ?)
+	`, copiedReadingOrderName(source.Name), source.Description, source.Image, userID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to copy reading order")
+	}
+	copiedID, err := result.LastInsertId()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to get copied reading order id")
+	}
+
+	for i, entry := range entries {
+		position := i + 1
+		switch entry.Type {
+		case "comic":
+			if entry.Comic == nil {
+				continue
+			}
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note, tags)
+				VALUES (?, ?, ?, ?, ?)
+			`, copiedID, entry.Comic.ID, position, entry.Comic.Comment, entry.Comic.Tags); err != nil {
+				return nil, huma.Error500InternalServerError("failed to copy reading order comic")
+			}
+		case "readingOrder":
+			if entry.ReadingOrder == nil {
+				continue
+			}
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO reading_order_children (parent_reading_order_id, child_reading_order_id, position, note)
+				VALUES (?, ?, ?, ?)
+			`, copiedID, entry.ReadingOrder.ID, position, entry.Comment); err != nil {
+				return nil, huma.Error500InternalServerError("failed to copy child reading order")
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to commit copied reading order")
+	}
+	return getReadingOrder(ctx, db, int(copiedID))
+}
+
+func copiedReadingOrderName(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "Copied reading order"
+	}
+	return name + " (Copy)"
 }
 
 func deleteReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {

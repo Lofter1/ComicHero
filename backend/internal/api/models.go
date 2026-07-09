@@ -620,6 +620,10 @@ type UpdateReadingOrderInput struct {
 	Body ReadingOrderPayload
 }
 
+type CopyReadingOrderInput struct {
+	ID int `path:"id" doc:"Local reading-order identifier to copy." example:"7"`
+}
+
 type SetReadingOrderComicsInput struct {
 	ID   int `path:"id" doc:"Local reading-order identifier." example:"7"`
 	Body struct {

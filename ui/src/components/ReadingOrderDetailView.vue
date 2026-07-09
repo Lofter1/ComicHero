@@ -8,6 +8,10 @@ defineProps({
     type: Object,
     default: null,
   },
+  currentUserId: {
+    type: Number,
+    default: null,
+  },
   selectedComicId: {
     type: Number,
     default: null,
@@ -20,9 +24,13 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  saving: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
+defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
 </script>
 
 <template>
@@ -38,6 +46,20 @@ defineEmits(['back', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           @click="$emit('export-cbl')"
         >
           Export CBL
+        </button>
+        <button
+          v-if="
+            selectedOrder &&
+            !readOnly &&
+            selectedOrder.authorUserId &&
+            selectedOrder.authorUserId !== currentUserId
+          "
+          class="secondary-button"
+          type="button"
+          :disabled="saving"
+          @click="$emit('copy')"
+        >
+          {{ saving ? 'Copying...' : 'Copy' }}
         </button>
         <button
           v-if="selectedOrder?.canEdit"

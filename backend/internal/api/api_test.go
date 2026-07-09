@@ -383,6 +383,69 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	}
 }
 
+func TestCopyReadingOrderCreatesCurrentUserOwnedCopy(t *testing.T) {
+	db := setupReadingOrderCBLTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO users (id, name, is_default) VALUES (2, 'Other', 0);
+		INSERT INTO comics (id, series, series_year, issue, publisher)
+		VALUES
+			(1, 'Source', 2026, '1', 'Publisher'),
+			(2, 'Source', 2026, '2', 'Publisher');
+		INSERT INTO reading_orders (id, name, description, image, favorite, author_user_id)
+		VALUES
+			(10, 'Other list', 'Read this one', '/covers/list.jpg', 1, 2),
+			(11, 'Nested list', 'Nested notes', '', 0, 2);
+		INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note, tags)
+		VALUES
+			(10, 1, 1, 'Start here', 'Main'),
+			(11, 2, 1, 'Nested comic', 'Tie-in');
+		INSERT INTO reading_order_children (parent_reading_order_id, child_reading_order_id, position, note)
+		VALUES (10, 11, 2, 'Then this');
+	`); err != nil {
+		t.Fatalf("seed copy source: %v", err)
+	}
+
+	copied, err := copyReadingOrder(ctx, db, 10)
+	if err != nil {
+		t.Fatalf("copyReadingOrder: %v", err)
+	}
+
+	if copied.Body.ID == 10 {
+		t.Fatal("copied reading order reused source id")
+	}
+	if copied.Body.AuthorUserID == nil || *copied.Body.AuthorUserID != 1 {
+		t.Fatalf("copied author = %#v; want current user 1", copied.Body.AuthorUserID)
+	}
+	if copied.Body.Name != "Other list (Copy)" {
+		t.Fatalf("copied name = %q; want copy suffix", copied.Body.Name)
+	}
+	if copied.Body.Description != "Read this one" || copied.Body.Image != "/covers/list.jpg" {
+		t.Fatalf("copied metadata = description %q image %q", copied.Body.Description, copied.Body.Image)
+	}
+	if copied.Body.Favorite {
+		t.Fatal("copied favorite = true; want false for current user's new copy")
+	}
+	if !copied.Body.CanEdit {
+		t.Fatal("copied canEdit = false; want current user to edit their copy")
+	}
+	if len(copied.Body.Entries) != 2 {
+		t.Fatalf("copied entries = %d; want 2", len(copied.Body.Entries))
+	}
+	if copied.Body.Entries[0].Comic == nil || copied.Body.Entries[0].Comic.ID != 1 {
+		t.Fatalf("first copied entry = %#v; want comic 1", copied.Body.Entries[0])
+	}
+	if copied.Body.Entries[0].Comic.Comment != "Start here" || copied.Body.Entries[0].Comic.Tags != "Main" {
+		t.Fatalf("first copied comic note/tags = %q/%q", copied.Body.Entries[0].Comic.Comment, copied.Body.Entries[0].Comic.Tags)
+	}
+	if copied.Body.Entries[1].ReadingOrder == nil || copied.Body.Entries[1].ReadingOrder.ID != 11 {
+		t.Fatalf("second copied entry = %#v; want nested order 11", copied.Body.Entries[1])
+	}
+	if copied.Body.Entries[1].Comment != "Then this" {
+		t.Fatalf("copied nested note = %q; want Then this", copied.Body.Entries[1].Comment)
+	}
+}
+
 func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	db := setupReadingOrderCBLTestDB(t)
 	ctx := testUserContext()

@@ -316,6 +316,10 @@ export function updateReadingOrder(id, payload) {
   return send(`/readingOrders/${id}`, 'PUT', payload)
 }
 
+export function copyReadingOrder(id) {
+  return send(`/readingOrders/${id}/copy`, 'POST', {})
+}
+
 export function deleteReadingOrder(id) {
   return request(`/readingOrders/${id}`, { method: 'DELETE' })
 }

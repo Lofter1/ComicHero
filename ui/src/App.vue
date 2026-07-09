@@ -228,6 +228,7 @@ const {
   newReadingOrder,
   saveReadingOrder,
   deleteReadingOrder,
+  copySelectedReadingOrder,
   editReadingOrder,
   importReadingOrderCBLFile,
   exportSelectedReadingOrderCBL,
@@ -1627,10 +1628,13 @@ onUnmounted(() => {
       <ReadingOrderDetailView
         v-else-if="activeView === 'readingOrders' && isDetail"
         :selected-order="selectedOrder"
+        :current-user-id="currentUser?.id"
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :read-only="isReadOnlyGuest"
+        :saving="saving"
         @back="backToPreviousPage"
+        @copy="copySelectedReadingOrder"
         @edit="editReadingOrder"
         @export-cbl="exportSelectedReadingOrderCBL"
         @open-comic="openOrderComic"

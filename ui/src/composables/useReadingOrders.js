@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import {
+  copyReadingOrder,
   createReadingOrder,
   deleteReadingOrder as removeReadingOrder,
   exportReadingOrderCBL,
@@ -182,6 +183,26 @@ export function useReadingOrders({
     }
   }
 
+  async function copySelectedReadingOrder() {
+    if (!selectedOrder.value?.id) return
+
+    saving.value = true
+    error.value = ''
+
+    try {
+      const detail = await copyReadingOrder(selectedOrder.value.id)
+      selectedOrder.value = detail
+      orderForm.value = readingOrderFormFromDetail(detail)
+      await loadReadingOrders({ force: true })
+      activeView.value = 'readingOrders'
+      viewMode.value = 'detail'
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function importReadingOrderCBLFile(file) {
     if (!file) return null
 
@@ -256,6 +277,7 @@ export function useReadingOrders({
     editReadingOrder,
     saveReadingOrder,
     deleteReadingOrder,
+    copySelectedReadingOrder,
     importReadingOrderCBLFile,
     exportSelectedReadingOrderCBL,
     loadReadingOrders,
