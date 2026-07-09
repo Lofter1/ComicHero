@@ -1337,7 +1337,12 @@ onUnmounted(() => {
       <button class="primary-action" type="submit" :disabled="authSaving">
         {{ authSaving ? 'Verifying...' : 'Verify email' }}
       </button>
-      <button class="secondary-action" type="button" :disabled="authSaving" @click="resendVerificationEmail">
+      <button
+        class="secondary-action"
+        type="button"
+        :disabled="authSaving"
+        @click="resendVerificationEmail"
+      >
         Resend email
       </button>
     </form>
@@ -1360,7 +1365,12 @@ onUnmounted(() => {
       <div class="auth-fields">
         <label v-if="!passwordResetForm.requested">
           <span>Email</span>
-          <input v-model.trim="passwordResetForm.email" type="email" autocomplete="email" required />
+          <input
+            v-model.trim="passwordResetForm.email"
+            type="email"
+            autocomplete="email"
+            required
+          />
         </label>
         <template v-else>
           <label>
