@@ -1,9 +1,11 @@
 <script setup>
+import { computed } from 'vue'
+import MarkdownIt from 'markdown-it'
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/components/ComicListView.vue'
 import { formatProgress, formatRating } from '@/domain/readingOrders.js'
 
-defineProps({
+const props = defineProps({
   selectedOrder: {
     type: Object,
     default: null,
@@ -31,6 +33,17 @@ defineProps({
 })
 
 defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
+
+const markdown = new MarkdownIt({
+  html: false,
+  linkify: true,
+  breaks: true,
+})
+
+const renderedDescription = computed(() => {
+  const description = props.selectedOrder?.description?.trim()
+  return description ? markdown.render(description) : '<p>No description</p>'
+})
 </script>
 
 <template>
@@ -90,7 +103,7 @@ defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
             />
           </div>
 
-          <p class="detail-description">{{ selectedOrder.description || 'No description' }}</p>
+          <div class="detail-description markdown-content" v-html="renderedDescription"></div>
         </div>
 
         <div class="progress-meter" aria-label="Reading order progress">

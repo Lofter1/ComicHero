@@ -1372,6 +1372,28 @@ textarea {
   margin: 0;
 }
 
+.markdown-content {
+  display: grid;
+  gap: 10px;
+}
+
+.markdown-content :where(p, ul, ol, h3, h4, h5) {
+  margin: 0;
+}
+
+.markdown-content :where(ul, ol) {
+  padding-left: 22px;
+}
+
+.markdown-content :where(h3, h4, h5) {
+  color: var(--control-ink);
+}
+
+.markdown-content a {
+  color: var(--accent);
+  font-weight: 800;
+}
+
 .reading-order-thumbnail {
   width: 100%;
   overflow: hidden;
