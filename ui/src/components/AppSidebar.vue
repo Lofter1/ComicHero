@@ -220,6 +220,16 @@ function toggleAccountMenu() {
             <span aria-hidden="true">⚙</span>
             <span>Manage users</span>
           </router-link>
+          <a
+            class="account-menu-item"
+            href="https://github.com/Lofter1/ComicHero/issues/new"
+            target="_blank"
+            rel="noreferrer"
+            @click="closeMenus"
+          >
+            <span aria-hidden="true">!</span>
+            <span>Report a bug</span>
+          </a>
           <button
             v-if="userMode === 'multi'"
             type="button"
