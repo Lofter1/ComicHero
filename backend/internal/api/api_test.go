@@ -1786,7 +1786,7 @@ func TestSessionCookiesDefaultToLocalHTTPAndAreConfigurable(t *testing.T) {
 	if cookie.Secure {
 		t.Fatal("session cookie Secure = true; want false by default for local HTTP")
 	}
-	if expired := expiredSessionCookie(); expired.Secure {
+	if expired := expiredSessionCookie(context.Background()); expired.Secure {
 		t.Fatal("expired session cookie Secure = true; want false by default for local HTTP")
 	}
 
@@ -1798,8 +1798,41 @@ func TestSessionCookiesDefaultToLocalHTTPAndAreConfigurable(t *testing.T) {
 	if !cookie.Secure {
 		t.Fatal("session cookie Secure = false; want true when COOKIE_SECURE=true")
 	}
-	if expired := expiredSessionCookie(); !expired.Secure {
+	if expired := expiredSessionCookie(context.Background()); !expired.Secure {
 		t.Fatal("expired session cookie Secure = false; want true when COOKIE_SECURE=true")
+	}
+}
+
+func TestSessionCookiesAutoUpgradeBehindHTTPSReverseProxy(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	t.Setenv("COOKIE_SECURE", "")
+
+	plainCtx := context.WithValue(context.Background(), contextSecureRequestKey{}, false)
+	cookie, err := createSession(plainCtx, db, 1)
+	if err != nil {
+		t.Fatalf("createSession: %v", err)
+	}
+	if cookie.Secure {
+		t.Fatal("session cookie Secure = true; want false when the request arrived over plain HTTP")
+	}
+
+	httpsCtx := context.WithValue(context.Background(), contextSecureRequestKey{}, true)
+	cookie, err = createSession(httpsCtx, db, 1)
+	if err != nil {
+		t.Fatalf("createSession behind HTTPS proxy: %v", err)
+	}
+	if !cookie.Secure {
+		t.Fatal("session cookie Secure = false; want true when X-Forwarded-Proto/TLS indicated HTTPS")
+	}
+
+	// An explicit COOKIE_SECURE still wins over what the request looked like.
+	t.Setenv("COOKIE_SECURE", "false")
+	cookie, err = createSession(httpsCtx, db, 1)
+	if err != nil {
+		t.Fatalf("createSession with COOKIE_SECURE=false: %v", err)
+	}
+	if cookie.Secure {
+		t.Fatal("session cookie Secure = true; want false when COOKIE_SECURE=false overrides detection")
 	}
 }
 

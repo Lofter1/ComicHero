@@ -109,18 +109,6 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "verifyEmailLink",
-		Tags:        []string{tagUsers},
-		Summary:     "Verify email from link",
-		Description: "Verifies a pending email address using a single-use token from an email link and starts a session.",
-		Method:      http.MethodGet,
-		Path:        "/auth/verify-email",
-		Errors:      []int{400, 401, 500},
-	}, func(ctx context.Context, input *VerifyEmailLinkInput) (*UserStatusOutput, error) {
-		return verifyEmail(ctx, db, input.Token)
-	})
-
-	huma.Register(api, huma.Operation{
 		OperationID: "resendEmailVerification",
 		Tags:        []string{tagUsers},
 		Summary:     "Resend email verification",
@@ -804,7 +792,7 @@ func logoutUser(ctx context.Context, db *sqlx.DB, token string) (*LogoutUserOutp
 			return nil, huma.Error500InternalServerError("failed to log out")
 		}
 	}
-	return &LogoutUserOutput{SetCookie: cookieHeader(expiredSessionCookie())}, nil
+	return &LogoutUserOutput{SetCookie: cookieHeader(expiredSessionCookie(ctx))}, nil
 }
 
 func updateAccount(ctx context.Context, db *sqlx.DB, payload UpdateAccountPayload) (*UserStatusOutput, error) {
@@ -917,7 +905,7 @@ func deleteAccount(ctx context.Context, db *sqlx.DB, payload DeleteAccountPayloa
 	}
 
 	return &UserStatusOutput{
-		SetCookie: cookieHeader(expiredSessionCookie()),
+		SetCookie: cookieHeader(expiredSessionCookie(ctx)),
 		Body: UserStatus{
 			SetupRequired: false,
 			Mode:          mode,

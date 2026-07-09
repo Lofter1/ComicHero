@@ -73,6 +73,8 @@ func cookieHeader(cookie *http.Cookie) []http.Cookie {
 	return []http.Cookie{*cookie}
 }
 
+type contextSecureRequestKey struct{}
+
 func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, error) {
 	token, err := randomToken(32)
 	if err != nil {
@@ -85,7 +87,7 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
 		return nil, huma.Error500InternalServerError("failed to save session")
 	}
-	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}, nil
+	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(ctx), SameSite: http.SameSiteLaxMode}, nil
 }
 
 func currentUserID(ctx context.Context) (int, error) {
@@ -101,8 +103,8 @@ func currentUserIsPublic(ctx context.Context) bool {
 	return public
 }
 
-func expiredSessionCookie() *http.Cookie {
-	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secureSessionCookies(), SameSite: http.SameSiteLaxMode}
+func expiredSessionCookie(ctx context.Context) *http.Cookie {
+	return &http.Cookie{Name: sessionCookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, Secure: secureSessionCookies(ctx), SameSite: http.SameSiteLaxMode}
 }
 
 func isLoginRequest(r *http.Request) bool {
@@ -142,7 +144,7 @@ func isRegisterRequest(r *http.Request) bool {
 
 func isVerifyEmailRequest(r *http.Request) bool {
 	path := strings.TrimPrefix(r.URL.Path, "/api")
-	return (r.Method == http.MethodPost || r.Method == http.MethodGet) && path == "/auth/verify-email"
+	return r.Method == http.MethodPost && path == "/auth/verify-email"
 }
 
 func isResendEmailVerificationRequest(r *http.Request) bool {
@@ -178,14 +180,25 @@ func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimite
 	}
 }
 
-func secureSessionCookies() bool {
+// secureSessionCookies decides whether session cookies get the Secure flag.
+// COOKIE_SECURE, when explicitly set, always wins so operators can force
+// either behavior. Otherwise, when UserMiddleware detected that this request
+// arrived over HTTPS (direct TLS, or a reverse proxy that set
+// X-Forwarded-Proto: https), cookies are upgraded to Secure automatically -
+// this matters because it's very easy to serve a public instance over HTTPS
+// and forget to also set COOKIE_SECURE=true, silently leaving session
+// cookies without the Secure flag. With no request context to inspect (e.g.
+// a direct unit test), this keeps the historical default of false, matching
+// a plain local HTTP setup.
+func secureSessionCookies(ctx context.Context) bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
 	case "true", "1", "yes", "on":
 		return true
 	case "false", "0", "no", "off":
 		return false
 	default:
-		return false
+		secure, _ := ctx.Value(contextSecureRequestKey{}).(bool)
+		return secure
 	}
 }
 
@@ -249,6 +262,9 @@ func randomToken(size int) (string, error) {
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			secure := r.TLS != nil || strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
+			r = r.WithContext(context.WithValue(r.Context(), contextSecureRequestKey{}, secure))
+
 			if isLoginRequest(r) && !authLoginLimiter.allow(clientIP(r), time.Now()) {
 				http.Error(w, "too many login attempts, try again later", http.StatusTooManyRequests)
 				return

@@ -209,10 +209,6 @@ type VerifyEmailInput struct {
 	Body VerifyEmailPayload
 }
 
-type VerifyEmailLinkInput struct {
-	Token string `query:"token" minLength:"1" doc:"Email verification token."`
-}
-
 type ResendEmailVerificationPayload struct {
 	Email    string `json:"email"    minLength:"1" format:"email" doc:"Email address used to log in." example:"reader@example.com"`
 	Password string `json:"password" minLength:"6" doc:"Password." example:"correct horse battery staple"`
