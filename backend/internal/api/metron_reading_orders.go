@@ -198,9 +198,18 @@ func createMetronReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCac
 	}
 
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, metron_reading_list_id, author_user_id)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, list.Name, list.Description, image, false, nullableMetronID(list.ID), defaultUserID)
+		INSERT INTO reading_orders (
+			name,
+			description,
+			image,
+			favorite,
+			rating,
+			rating_count,
+			metron_reading_list_id,
+			author_user_id
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, list.Name, list.Description, image, false, normalizedMetronRating(list.AverageRating), list.RatingCount, nullableMetronID(list.ID), defaultUserID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to import Metron reading list")
 	}
@@ -233,11 +242,20 @@ func updateMetronReadingOrderMetadata(ctx context.Context, db *sqlx.DB, covers *
 		SET name = COALESCE(NULLIF(?, ''), name),
 			description = COALESCE(NULLIF(?, ''), description),
 			image = COALESCE(NULLIF(?, ''), image),
+			rating = CASE WHEN ? > 0 THEN ? ELSE rating END,
+			rating_count = CASE WHEN ? > 0 THEN ? ELSE rating_count END,
 			metron_reading_list_id = COALESCE(?, metron_reading_list_id),
 			author_user_id = COALESCE(author_user_id, ?)
 		WHERE id = ?
-	`, list.Name, list.Description, image, nullableMetronID(list.ID), defaultUserID, id); err != nil {
+	`, list.Name, list.Description, image, normalizedMetronRating(list.AverageRating), normalizedMetronRating(list.AverageRating), list.RatingCount, list.RatingCount, nullableMetronID(list.ID), defaultUserID, id); err != nil {
 		return huma.Error500InternalServerError("failed to update Metron reading list")
 	}
 	return nil
+}
+
+func normalizedMetronRating(rating float64) float64 {
+	if rating < 0 || rating > 5 {
+		return 0
+	}
+	return rating
 }

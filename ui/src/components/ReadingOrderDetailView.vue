@@ -1,7 +1,7 @@
 <script setup>
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/components/ComicListView.vue'
-import { formatProgress } from '@/domain/readingOrders.js'
+import { formatProgress, formatRating } from '@/domain/readingOrders.js'
 
 defineProps({
   selectedOrder: {
@@ -105,6 +105,12 @@ defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
           <span>
             <strong>{{ selectedOrder.comics.length }}</strong>
             <small>Comics</small>
+          </span>
+          <span>
+            <strong>{{ formatRating(selectedOrder.rating) }}</strong>
+            <small>
+              Rating<template v-if="selectedOrder.ratingCount"> · {{ selectedOrder.ratingCount }}</template>
+            </small>
           </span>
           <span v-if="selectedOrder.authorName">
             <strong>{{ selectedOrder.authorName }}</strong>

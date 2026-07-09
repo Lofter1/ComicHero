@@ -4,6 +4,8 @@ export function emptyReadingOrder() {
     name: '',
     description: '',
     favorite: false,
+    rating: 0,
+    ratingCount: 0,
     entries: [],
     comics: [],
     childOrderIds: [],
@@ -44,6 +46,8 @@ export function readingOrderFormFromDetail(detail) {
     name: detail.name,
     description: detail.description,
     favorite: detail.favorite,
+    rating: detail.rating || 0,
+    ratingCount: detail.ratingCount || 0,
     childOrderIds: (detail.childReadingOrders || []).map((order) => order.id),
     entries: entries.length ? entries : fallbackEntries,
     comics: (detail.comics || []).map((comic) => ({
@@ -60,6 +64,7 @@ export function readingOrderPayload(order) {
     name: order.name,
     description: order.description,
     favorite: order.favorite,
+    rating: Number(order.rating) || 0,
   }
 }
 
@@ -108,4 +113,10 @@ export function readingOrderComicsPayload(order) {
 
 export function formatProgress(progress) {
   return `${Math.round((progress ?? 0) * 100)}%`
+}
+
+export function formatRating(rating) {
+  const value = Number(rating) || 0
+  if (value <= 0) return 'Unrated'
+  return `${value.toFixed(1)} / 5`
 }

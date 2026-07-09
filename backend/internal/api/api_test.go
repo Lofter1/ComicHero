@@ -113,6 +113,10 @@ func TestReadingOrderHelpers(t *testing.T) {
 	if len(ids) != 2 || ids[0] != 3 || ids[1] != 3 {
 		t.Fatalf("ids = %#v; want duplicate IDs preserved", ids)
 	}
+
+	if order := readingOrderListOrder("rating", "desc"); order != "ORDER BY ro.rating DESC, ro.name DESC" {
+		t.Fatalf("rating order = %q", order)
+	}
 }
 
 func TestUserStatisticsAndAchievements(t *testing.T) {
@@ -159,6 +163,8 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
+			rating REAL NOT NULL DEFAULT 0,
+			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE reading_order_comics (
@@ -285,6 +291,8 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
+			rating REAL NOT NULL DEFAULT 0,
+			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE comics (
@@ -607,6 +615,8 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
+			rating REAL NOT NULL DEFAULT 0,
+			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE comics (
@@ -1993,6 +2003,8 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
+			rating REAL NOT NULL DEFAULT 0,
+			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
 		CREATE TABLE reading_order_comics (

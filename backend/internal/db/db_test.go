@@ -93,6 +93,44 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 			t.Fatalf("comics table missing index %s", name)
 		}
 	}
+
+	rows, err = database.Query(`PRAGMA table_info(reading_orders)`)
+	if err != nil {
+		t.Fatalf("reading order columns: %v", err)
+	}
+	defer rows.Close()
+
+	readingOrderColumns := map[string]bool{}
+	for rows.Next() {
+		var cid int
+		var name, columnType string
+		var notNull int
+		var defaultValue any
+		var pk int
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &pk); err != nil {
+			t.Fatalf("scan reading order column: %v", err)
+		}
+		readingOrderColumns[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("reading order columns: %v", err)
+	}
+	for _, name := range []string{"rating", "rating_count"} {
+		if !readingOrderColumns[name] {
+			t.Fatalf("reading_orders.%s missing", name)
+		}
+	}
+
+	var ratingIndexCount int
+	if err := database.Get(&ratingIndexCount, `
+		SELECT COUNT(*) FROM sqlite_master
+		WHERE type = 'index' AND name = 'idx_reading_orders_rating'
+	`); err != nil {
+		t.Fatalf("check reading order rating index: %v", err)
+	}
+	if ratingIndexCount != 1 {
+		t.Fatalf("idx_reading_orders_rating count = %d; want 1", ratingIndexCount)
+	}
 }
 
 func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {

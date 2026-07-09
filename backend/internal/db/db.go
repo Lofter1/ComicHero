@@ -254,6 +254,9 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	if err := ensureReadingOrderAuthors(db); err != nil {
 		return err
 	}
+	if err := ensureReadingOrderRatings(db); err != nil {
+		return err
+	}
 	if err := ensureSeriesMetronSchema(db); err != nil {
 		return err
 	}
@@ -308,6 +311,41 @@ func ensureReadingOrderAuthors(db *sqlx.DB) error {
 	if _, err := db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_reading_orders_author_user_id
 		ON reading_orders(author_user_id)
+	`); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureReadingOrderRatings(db *sqlx.DB) error {
+	exists, err := tableExists(db, "reading_orders")
+	if err != nil || !exists {
+		return err
+	}
+
+	hasRating, err := columnExists(db, "reading_orders", "rating")
+	if err != nil {
+		return err
+	}
+	if !hasRating {
+		if _, err := db.Exec(`ALTER TABLE reading_orders ADD COLUMN rating REAL NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+
+	hasRatingCount, err := columnExists(db, "reading_orders", "rating_count")
+	if err != nil {
+		return err
+	}
+	if !hasRatingCount {
+		if _, err := db.Exec(`ALTER TABLE reading_orders ADD COLUMN rating_count INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+
+	if _, err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_reading_orders_rating
+		ON reading_orders(rating)
 	`); err != nil {
 		return err
 	}

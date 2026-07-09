@@ -426,15 +426,18 @@ type ReadingOrder struct {
 	Description string  `json:"description" db:"description" doc:"Reading-order description or notes."`
 	Image       string  `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
 	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
+	Rating      float64 `json:"rating"      db:"rating"      doc:"Reading-order rating from 0 to 5." minimum:"0" maximum:"5" example:"4.5"`
+	RatingCount int     `json:"ratingCount" db:"rating_count" doc:"Number of ratings represented by this score, when imported from Metron." example:"23"`
 	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	AuthorName  string  `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
 	CanEdit     bool    `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
 }
 
 type ReadingOrderPayload struct {
-	Name        string `json:"name"        minLength:"1" doc:"Reading-order name." example:"Batman: Court of Owls"`
-	Description string `json:"description" doc:"Reading-order description or notes."`
-	Favorite    bool   `json:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
+	Name        string  `json:"name"        minLength:"1" doc:"Reading-order name." example:"Batman: Court of Owls"`
+	Description string  `json:"description" doc:"Reading-order description or notes."`
+	Favorite    bool    `json:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
+	Rating      float64 `json:"rating"      minimum:"0" maximum:"5" doc:"Reading-order rating from 0 to 5." example:"4.5"`
 }
 
 type ReadingOrderComicPayload struct {

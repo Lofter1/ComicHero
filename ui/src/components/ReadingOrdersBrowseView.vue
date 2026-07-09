@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { assetURL } from '@/api/client.js'
 import BrowseListTools from '@/components/BrowseListTools.vue'
-import { formatProgress } from '@/domain/readingOrders.js'
+import { formatProgress, formatRating } from '@/domain/readingOrders.js'
 
 const props = defineProps({
   orders: {
@@ -62,6 +62,7 @@ const cblFileInput = ref(null)
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
+  { value: 'rating', label: 'Rating' },
   { value: 'progress', label: 'Progress' },
 ]
 
@@ -162,6 +163,10 @@ function handleCBLFile(event) {
                     <span v-if="order.authorName" class="author-pill"
                       >Author: {{ order.authorName }}</span
                     >
+                    <span v-if="order.rating" class="author-pill">
+                      Rating: {{ formatRating(order.rating) }}
+                      <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
+                    </span>
                   </span>
                 </button>
                 <button

@@ -178,6 +178,8 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ro.description,
 			ro.image,
 			ro.favorite,
+			ro.rating,
+			ro.rating_count,
 			COALESCE(author.name, '') AS author_name,
 			CASE
 				WHEN ro.author_user_id = ?
@@ -223,11 +225,20 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 func readingOrderListOrder(sort, direction string) string {
 	dir := sortDirection(direction)
 	switch sort {
+	case "rating":
+		return "ORDER BY ro.rating " + dir + ", ro.name " + dir
 	case "progress":
 		return "ORDER BY progress " + dir + ", ro.name " + dir
 	default:
 		return "ORDER BY ro.name " + dir
 	}
+}
+
+func validateReadingOrderRating(rating float64) error {
+	if rating < 0 || rating > 5 {
+		return huma.Error400BadRequest("reading order rating must be between 0 and 5")
+	}
+	return nil
 }
 
 func getReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
@@ -258,6 +269,8 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ro.description,
 			ro.image,
 			ro.favorite,
+			ro.rating,
+			ro.rating_count,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
 			CASE
@@ -444,10 +457,13 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPa
 	if err != nil {
 		return nil, err
 	}
+	if err := validateReadingOrderRating(payload.Rating); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, favorite, author_user_id)
-		VALUES (?, ?, ?, ?)
-	`, payload.Name, payload.Description, payload.Favorite, userID)
+		INSERT INTO reading_orders (name, description, favorite, rating, author_user_id)
+		VALUES (?, ?, ?, ?, ?)
+	`, payload.Name, payload.Description, payload.Favorite, payload.Rating, userID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create reading order")
 	}
@@ -469,11 +485,14 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload Readin
 	if err := requireReadingOrderEditor(ctx, db, id); err != nil {
 		return nil, err
 	}
+	if err := validateReadingOrderRating(payload.Rating); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
-		SET name = ?, description = ?, favorite = ?
+		SET name = ?, description = ?, favorite = ?, rating = ?
 		WHERE id = ?
-	`, payload.Name, payload.Description, payload.Favorite, id)
+	`, payload.Name, payload.Description, payload.Favorite, payload.Rating, id)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to update reading order")
 	}
@@ -509,9 +528,9 @@ func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDe
 	defer tx.Rollback()
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, author_user_id)
-		VALUES (?, ?, ?, 0, ?)
-	`, copiedReadingOrderName(source.Name), source.Description, source.Image, userID)
+		INSERT INTO reading_orders (name, description, image, favorite, rating, rating_count, author_user_id)
+		VALUES (?, ?, ?, 0, ?, ?, ?)
+	`, copiedReadingOrderName(source.Name), source.Description, source.Image, source.Rating, source.RatingCount, userID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to copy reading order")
 	}

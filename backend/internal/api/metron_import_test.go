@@ -30,6 +30,8 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
+			rating REAL NOT NULL DEFAULT 0,
+			rating_count INTEGER NOT NULL DEFAULT 0,
 			metron_reading_list_id INTEGER,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
@@ -691,10 +693,12 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	list := metron.ReadingList{
-		ID:          501,
-		Name:        "Event",
-		Description: "Big event",
-		Image:       "https://example.test/event.jpg",
+		ID:            501,
+		Name:          "Event",
+		Description:   "Big event",
+		Image:         "https://example.test/event.jpg",
+		AverageRating: 4.5,
+		RatingCount:   12,
 		Issues: []metron.Issue{
 			{
 				ID:         101,
@@ -720,6 +724,12 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 	}
 	if second.Body.Image != "https://example.test/event.jpg" {
 		t.Fatalf("image = %q; want Metron image", second.Body.Image)
+	}
+	if second.Body.Rating != 4.5 {
+		t.Fatalf("rating = %v; want 4.5", second.Body.Rating)
+	}
+	if second.Body.RatingCount != 12 {
+		t.Fatalf("rating count = %d; want 12", second.Body.RatingCount)
 	}
 
 	var orderCount int
