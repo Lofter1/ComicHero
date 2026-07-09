@@ -87,6 +87,28 @@ func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
 	}
 }
 
+func TestLocalCoverURLSkipsOversizedRemoteCover(t *testing.T) {
+	ctx := testUserContext()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/jpeg")
+		chunk := bytes.Repeat([]byte{0}, 1024)
+		for written := 0; written <= coverDownloadMaxBytes; written += len(chunk) {
+			if _, err := w.Write(chunk); err != nil {
+				return
+			}
+		}
+	}))
+	defer server.Close()
+
+	cover, err := localCoverURL(ctx, NewCoverCache(t.TempDir(), "/covers"), server.URL+"/too-large.jpg")
+	if err != nil {
+		t.Fatalf("localCoverURL: %v", err)
+	}
+	if cover != "" {
+		t.Fatalf("cover = %q; want empty cover for oversized remote image", cover)
+	}
+}
+
 func TestSyncMetronCharactersDownloadsRemoteImage(t *testing.T) {
 	ctx := testUserContext()
 	db := newMetronImportTestDB(t)

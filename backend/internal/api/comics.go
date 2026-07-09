@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -493,8 +494,17 @@ func comicTitle(comic Comic) string {
 func localCoverURL(ctx context.Context, covers *CoverCache, source string) (string, error) {
 	localURL, err := covers.LocalURL(ctx, source)
 	if err != nil {
+		if isRemoteCoverSource(source) {
+			log.Printf("cover cache: skipping remote image %q: %v", source, err)
+			return "", nil
+		}
 		return "", huma.Error502BadGateway(err.Error())
 	}
 
 	return localURL, nil
+}
+
+func isRemoteCoverSource(source string) bool {
+	source = strings.ToLower(strings.TrimSpace(source))
+	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
 }
