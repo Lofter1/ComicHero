@@ -154,9 +154,6 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email <> ''`); err != nil {
 		return err
 	}
-	if _, err := db.Exec(`UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email_verified_at = ''`); err != nil {
-		return err
-	}
 	if _, err := db.Exec(`INSERT OR IGNORE INTO users (name, is_default) VALUES ('Default', 1)`); err != nil {
 		return err
 	}
@@ -214,6 +211,17 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	if _, err := db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_user_email_verifications_user_expires
 		ON user_email_verifications(user_id, expires_at)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		UPDATE users
+		SET email_verified_at = ''
+		WHERE id IN (
+			SELECT user_id
+			FROM user_email_verifications
+			WHERE used_at = ''
+		)
 	`); err != nil {
 		return err
 	}

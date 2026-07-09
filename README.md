@@ -147,7 +147,7 @@ The backend reads environment variables from the process environment and, when p
 | `SMTP_PORT`       | `587`                      | SMTP port. |
 | `SMTP_USERNAME`   | empty                      | Optional SMTP username. |
 | `SMTP_PASSWORD`   | empty                      | Optional SMTP password. |
-| `SMTP_FROM`       | `noreply@localhost`        | From address for email verification messages. |
+| `SMTP_FROM`       | `SMTP_USERNAME` or `noreply@localhost` | From address for email verification messages. Many providers require this to match the authenticated SMTP account. |
 | `METRON_BASE_URL` | `https://metron.cloud/api` | Metron API base URL.                                |
 | `METRON_USERNAME` | empty                      | Optional Metron username.                           |
 | `METRON_PASSWORD` | empty                      | Optional Metron password.                           |

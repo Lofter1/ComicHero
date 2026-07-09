@@ -152,6 +152,24 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 	if emailIndexCount != 1 {
 		t.Fatalf("idx_users_email count = %d; want 1", emailIndexCount)
 	}
+	if _, err := database.Exec(`
+		INSERT INTO users (id, name, email, email_verified_at)
+		VALUES (2, 'Pending', 'pending@example.com', '');
+		INSERT INTO user_email_verifications (token_hash, user_id, expires_at)
+		VALUES ('pending-token-hash', 2, '2999-01-01T00:00:00Z');
+	`); err != nil {
+		t.Fatalf("seed pending verification user: %v", err)
+	}
+	if err := ensureUserLoginSchema(database); err != nil {
+		t.Fatalf("ensure user login schema after pending user: %v", err)
+	}
+	var pendingVerifiedAt string
+	if err := database.Get(&pendingVerifiedAt, `SELECT email_verified_at FROM users WHERE id = 2`); err != nil {
+		t.Fatalf("fetch pending email verification: %v", err)
+	}
+	if pendingVerifiedAt != "" {
+		t.Fatalf("pending email_verified_at = %q; want empty", pendingVerifiedAt)
+	}
 
 	var isDefault int
 	if err := database.Get(&isDefault, `SELECT is_default FROM users WHERE name = 'Default'`); err != nil {

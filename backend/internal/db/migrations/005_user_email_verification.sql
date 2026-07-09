@@ -3,7 +3,11 @@ ALTER TABLE users ADD COLUMN email_verified_at TEXT NOT NULL DEFAULT '';
 
 UPDATE users
 SET email_verified_at = CURRENT_TIMESTAMP
-WHERE email_verified_at = '';
+WHERE email_verified_at = ''
+  AND (
+    is_default = 1
+    OR id = (SELECT MIN(id) FROM users)
+  );
 
 CREATE TABLE user_email_verifications (
     token_hash TEXT PRIMARY KEY,

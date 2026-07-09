@@ -129,6 +129,9 @@ func sendEmailVerification(ctx context.Context, msg emailVerificationMessage) er
 	}
 	from := strings.TrimSpace(os.Getenv("SMTP_FROM"))
 	if from == "" {
+		from = strings.TrimSpace(os.Getenv("SMTP_USERNAME"))
+	}
+	if from == "" {
 		from = "noreply@localhost"
 	}
 
@@ -150,12 +153,13 @@ func sendEmailVerification(ctx context.Context, msg emailVerificationMessage) er
 
 	addr := host + ":" + port
 	var auth smtp.Auth
-	username := os.Getenv("SMTP_USERNAME")
+	username := strings.TrimSpace(os.Getenv("SMTP_USERNAME"))
 	password := os.Getenv("SMTP_PASSWORD")
 	if username != "" || password != "" {
 		auth = smtp.PlainAuth("", username, password, host)
 	}
 	if err := smtp.SendMail(addr, auth, from, []string{msg.To}, []byte(body)); err != nil {
+		log.Printf("failed to send verification email via %s from %s to %s: %v", addr, from, msg.To, err)
 		return huma.Error500InternalServerError("failed to send verification email")
 	}
 	return nil
