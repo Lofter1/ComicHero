@@ -316,6 +316,10 @@ export function updateReadingOrder(id, payload) {
   return send(`/readingOrders/${id}`, 'PUT', payload)
 }
 
+export function rateReadingOrder(id, rating) {
+  return send(`/readingOrders/${id}/rating`, 'PATCH', { rating })
+}
+
 export function copyReadingOrder(id) {
   return send(`/readingOrders/${id}/copy`, 'POST', {})
 }

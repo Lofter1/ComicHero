@@ -6,6 +6,7 @@ import {
   exportReadingOrderCBL,
   getReadingOrder,
   importReadingOrderCBL,
+  rateReadingOrder,
   setReadingOrderComics,
   updateReadingOrder,
   listReadingOrders,
@@ -28,6 +29,7 @@ export function useReadingOrders({
   const readingOrders = ref([])
   const selectedOrder = ref(null)
   const quickSavingOrderID = ref(null)
+  const ratingSaving = ref(false)
   const cblImporting = ref(false)
   const orderForm = ref(emptyReadingOrder())
 
@@ -101,6 +103,50 @@ export function useReadingOrders({
     }
     if (orderForm.value?.id === detail.id) {
       orderForm.value = { ...orderForm.value, favorite: detail.favorite }
+    }
+  }
+
+  function applyReadingOrderRatingState(detail) {
+    readingOrders.value = readingOrders.value.map((order) => {
+      return order.id === detail.id
+        ? {
+            ...order,
+            rating: detail.rating,
+            ratingCount: detail.ratingCount,
+            myRating: detail.myRating,
+          }
+        : order
+    })
+
+    if (selectedOrder.value?.id === detail.id) {
+      selectedOrder.value = {
+        ...selectedOrder.value,
+        rating: detail.rating,
+        ratingCount: detail.ratingCount,
+        myRating: detail.myRating,
+      }
+    }
+    if (orderForm.value?.id === detail.id) {
+      orderForm.value = readingOrderFormFromDetail({
+        ...selectedOrder.value,
+        ...detail,
+      })
+    }
+  }
+
+  async function rateSelectedReadingOrder(rating) {
+    if (!selectedOrder.value?.id || ratingSaving.value) return
+
+    ratingSaving.value = true
+    error.value = ''
+
+    try {
+      const detail = await rateReadingOrder(selectedOrder.value.id, rating)
+      applyReadingOrderRatingState(detail)
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      ratingSaving.value = false
     }
   }
 
@@ -269,6 +315,7 @@ export function useReadingOrders({
     readingOrders,
     selectedOrder,
     quickSavingOrderID,
+    ratingSaving,
     cblImporting,
     orderForm,
     visibleOrders,
@@ -277,6 +324,7 @@ export function useReadingOrders({
     openReadingOrder,
     refreshSelectedReadingOrderDetail,
     toggleReadingOrderFavorite,
+    rateSelectedReadingOrder,
     newReadingOrder,
     editReadingOrder,
     saveReadingOrder,

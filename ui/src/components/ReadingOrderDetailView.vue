@@ -30,9 +30,24 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  ratingSaving: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read', 'toggle-skipped'])
+const emit = defineEmits([
+  'back',
+  'copy',
+  'edit',
+  'export-cbl',
+  'open-comic',
+  'rate',
+  'toggle-read',
+  'toggle-skipped',
+])
+
+const ratingValues = [1, 2, 3, 4, 5]
 
 const markdown = new MarkdownIt({
   html: false,
@@ -133,6 +148,37 @@ const renderedDescription = computed(() => {
             <small>Author</small>
           </span>
         </div>
+
+        <section v-if="!readOnly" class="reading-order-rating-panel">
+          <div>
+            <p class="eyebrow">Your rating</p>
+            <strong>{{
+              selectedOrder.myRating ? `${selectedOrder.myRating.toFixed(1)} / 5` : 'Not rated'
+            }}</strong>
+          </div>
+          <div class="rating-button-group" role="group" aria-label="Rate reading order">
+            <button
+              v-for="value in ratingValues"
+              :key="value"
+              type="button"
+              class="rating-button"
+              :class="{ active: selectedOrder.myRating === value }"
+              :aria-pressed="selectedOrder.myRating === value"
+              :disabled="ratingSaving"
+              @click="emit('rate', value)"
+            >
+              {{ value }}
+            </button>
+            <button
+              type="button"
+              class="secondary-button compact-rating-clear"
+              :disabled="ratingSaving || !selectedOrder.myRating"
+              @click="emit('rate', 0)"
+            >
+              Clear
+            </button>
+          </div>
+        </section>
 
         <ComicListView
           class="preview-list"

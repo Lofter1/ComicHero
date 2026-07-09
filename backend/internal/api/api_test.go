@@ -131,7 +131,7 @@ func TestReadingOrderHelpers(t *testing.T) {
 		t.Fatalf("ids = %#v; want duplicate IDs preserved", ids)
 	}
 
-	if order := readingOrderListOrder("rating", "desc"); order != "ORDER BY ro.rating DESC, ro.name DESC" {
+	if order := readingOrderListOrder("rating", "desc"); order != "ORDER BY rating DESC, ro.name DESC" {
 		t.Fatalf("rating order = %q", order)
 	}
 }
@@ -184,6 +184,14 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			rating REAL NOT NULL DEFAULT 0,
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE reading_order_ratings (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating REAL NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
@@ -312,6 +320,14 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			rating REAL NOT NULL DEFAULT 0,
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE reading_order_ratings (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating REAL NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -705,6 +721,14 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
+		CREATE TABLE reading_order_ratings (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating REAL NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -755,6 +779,56 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 		t.Fatalf("create schema: %v", err)
 	}
 	return db
+}
+
+func TestRateReadingOrderUsesUserRatings(t *testing.T) {
+	ctx := testUserContext()
+	db := setupReadingOrderCBLTestDB(t)
+	if _, err := db.Exec(`INSERT INTO users (id, name) VALUES (2, 'Second Reader')`); err != nil {
+		t.Fatalf("insert second user: %v", err)
+	}
+
+	created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Rated order"})
+	if err != nil {
+		t.Fatalf("create reading order: %v", err)
+	}
+
+	rated, err := rateReadingOrder(ctx, db, created.Body.ID, 4)
+	if err != nil {
+		t.Fatalf("rate reading order: %v", err)
+	}
+	if rated.Body.Rating != 4 || rated.Body.RatingCount != 1 {
+		t.Fatalf("rating summary = %v/%d; want 4/1", rated.Body.Rating, rated.Body.RatingCount)
+	}
+	if rated.Body.MyRating == nil || *rated.Body.MyRating != 4 {
+		t.Fatalf("my rating = %#v; want 4", rated.Body.MyRating)
+	}
+
+	secondCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	if _, err := rateReadingOrder(secondCtx, db, created.Body.ID, 2); err != nil {
+		t.Fatalf("rate reading order as second user: %v", err)
+	}
+	refreshed, err := getReadingOrder(ctx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("get reading order: %v", err)
+	}
+	if refreshed.Body.Rating != 3 || refreshed.Body.RatingCount != 2 {
+		t.Fatalf("rating summary = %v/%d; want 3/2", refreshed.Body.Rating, refreshed.Body.RatingCount)
+	}
+	if refreshed.Body.MyRating == nil || *refreshed.Body.MyRating != 4 {
+		t.Fatalf("my rating after second user = %#v; want 4", refreshed.Body.MyRating)
+	}
+
+	cleared, err := rateReadingOrder(ctx, db, created.Body.ID, 0)
+	if err != nil {
+		t.Fatalf("clear reading order rating: %v", err)
+	}
+	if cleared.Body.Rating != 2 || cleared.Body.RatingCount != 1 {
+		t.Fatalf("rating summary after clear = %v/%d; want 2/1", cleared.Body.Rating, cleared.Body.RatingCount)
+	}
+	if cleared.Body.MyRating != nil {
+		t.Fatalf("my rating after clear = %#v; want nil", cleared.Body.MyRating)
+	}
 }
 
 func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
@@ -2096,6 +2170,14 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			rating REAL NOT NULL DEFAULT 0,
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE reading_order_ratings (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating REAL NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_comics (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,

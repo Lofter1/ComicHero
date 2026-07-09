@@ -89,6 +89,18 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "rateReadingOrder",
+		Tags:        []string{tagReadingOrders},
+		Summary:     "Rate a reading order",
+		Description: "Sets or clears the current user's rating for a reading order. Use rating 0 to clear it.",
+		Method:      http.MethodPatch,
+		Path:        "/readingOrders/{id}/rating",
+		Errors:      errsWrite,
+	}, func(ctx context.Context, input *UpdateReadingOrderRatingInput) (*ReadingOrderDetailOutput, error) {
+		return rateReadingOrder(ctx, db, input.ID, input.Body.Rating)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "copyReadingOrder",
 		Tags:          []string{tagReadingOrders},
 		Summary:       "Copy a reading order",
@@ -179,8 +191,9 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ro.description,
 			ro.image,
 			ro.favorite,
-			ro.rating,
-			ro.rating_count,
+			COALESCE(rating_summary.rating, 0) AS rating,
+			COALESCE(rating_summary.rating_count, 0) AS rating_count,
+			my_rating.rating AS my_rating,
 			COALESCE(author.name, '') AS author_name,
 			CASE
 				WHEN ro.author_user_id = ?
@@ -196,8 +209,15 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 		LEFT JOIN reading_order_comics roc ON roc.reading_order_id = ro.id
 		LEFT JOIN comics c ON c.id = roc.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		LEFT JOIN (
+			SELECT reading_order_id, AVG(rating) AS rating, COUNT(*) AS rating_count
+			FROM reading_order_ratings
+			GROUP BY reading_order_id
+		) rating_summary ON rating_summary.reading_order_id = ro.id
+		LEFT JOIN reading_order_ratings my_rating
+			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
 	`)
-	query.args = append(query.args, editUserID, editUserID, userID)
+	query.args = append(query.args, editUserID, editUserID, userID, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -227,19 +247,12 @@ func readingOrderListOrder(sort, direction string) string {
 	dir := sortDirection(direction)
 	switch sort {
 	case "rating":
-		return "ORDER BY ro.rating " + dir + ", ro.name " + dir
+		return "ORDER BY rating " + dir + ", ro.name " + dir
 	case "progress":
 		return "ORDER BY progress " + dir + ", ro.name " + dir
 	default:
 		return "ORDER BY ro.name " + dir
 	}
-}
-
-func validateReadingOrderRating(rating float64) error {
-	if rating < 0 || rating > 5 {
-		return huma.Error400BadRequest("reading order rating must be between 0 and 5")
-	}
-	return nil
 }
 
 func uploadedReadingOrderCover(covers *CoverCache, payload ReadingOrderPayload) (string, error) {
@@ -333,8 +346,9 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ro.description,
 			ro.image,
 			ro.favorite,
-			ro.rating,
-			ro.rating_count,
+			COALESCE(rating_summary.rating, 0) AS rating,
+			COALESCE(rating_summary.rating_count, 0) AS rating_count,
+			my_rating.rating AS my_rating,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
 			CASE
@@ -344,8 +358,15 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			END AS can_edit
 		FROM reading_orders ro
 		LEFT JOIN users author ON author.id = ro.author_user_id
+		LEFT JOIN (
+			SELECT reading_order_id, AVG(rating) AS rating, COUNT(*) AS rating_count
+			FROM reading_order_ratings
+			GROUP BY reading_order_id
+		) rating_summary ON rating_summary.reading_order_id = ro.id
+		LEFT JOIN reading_order_ratings my_rating
+			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
 		WHERE ro.id = ?
-	`, editUserID, editUserID, id); err != nil {
+	`, editUserID, editUserID, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return ReadingOrder{}, huma.Error404NotFound("reading order not found")
 		}
@@ -521,17 +542,14 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, pa
 	if err != nil {
 		return nil, err
 	}
-	if err := validateReadingOrderRating(payload.Rating); err != nil {
-		return nil, err
-	}
 	image, err := uploadedReadingOrderCover(covers, payload)
 	if err != nil {
 		return nil, err
 	}
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, rating, author_user_id)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, payload.Name, payload.Description, image, payload.Favorite, payload.Rating, userID)
+		INSERT INTO reading_orders (name, description, image, favorite, author_user_id)
+		VALUES (?, ?, ?, ?, ?)
+	`, payload.Name, payload.Description, image, payload.Favorite, userID)
 	if err != nil {
 		_ = deleteUnusedCoverImage(ctx, db, covers, image)
 		return nil, huma.Error500InternalServerError("failed to create reading order")
@@ -554,9 +572,6 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 	if err := requireReadingOrderEditor(ctx, db, id); err != nil {
 		return nil, err
 	}
-	if err := validateReadingOrderRating(payload.Rating); err != nil {
-		return nil, err
-	}
 
 	existing, err := getReadingOrderRow(ctx, db, id)
 	if err != nil {
@@ -572,9 +587,9 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 
 	result, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
-		SET name = ?, description = ?, image = ?, favorite = ?, rating = ?
+		SET name = ?, description = ?, image = ?, favorite = ?
 		WHERE id = ?
-	`, payload.Name, payload.Description, image, payload.Favorite, payload.Rating, id)
+	`, payload.Name, payload.Description, image, payload.Favorite, id)
 	if err != nil {
 		if image != existing.Image {
 			_ = deleteUnusedCoverImage(ctx, db, covers, image)
@@ -595,6 +610,48 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 		}
 	}
 	return detail, nil
+}
+
+func rateReadingOrder(ctx context.Context, db *sqlx.DB, id int, rating float64) (*ReadingOrderDetailOutput, error) {
+	if currentUserIsPublic(ctx) {
+		return nil, huma.Error403Forbidden("read-only public access cannot rate reading orders")
+	}
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if rating != 0 && (rating < 1 || rating > 5) {
+		return nil, huma.Error400BadRequest("reading order rating must be 0 or between 1 and 5")
+	}
+
+	var exists int
+	if err := db.GetContext(ctx, &exists, `SELECT COUNT(*) FROM reading_orders WHERE id = ?`, id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to check reading order")
+	}
+	if exists == 0 {
+		return nil, huma.Error404NotFound("reading order not found")
+	}
+
+	if rating == 0 {
+		if _, err := db.ExecContext(ctx, `
+			DELETE FROM reading_order_ratings
+			WHERE reading_order_id = ? AND user_id = ?
+		`, id, userID); err != nil {
+			return nil, huma.Error500InternalServerError("failed to clear reading order rating")
+		}
+		return getReadingOrder(ctx, db, id)
+	}
+
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO reading_order_ratings (reading_order_id, user_id, rating, updated_at)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(reading_order_id, user_id) DO UPDATE SET
+			rating = excluded.rating,
+			updated_at = excluded.updated_at
+	`, id, userID, rating, currentTimestamp()); err != nil {
+		return nil, huma.Error500InternalServerError("failed to rate reading order")
+	}
+	return getReadingOrder(ctx, db, id)
 }
 
 func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
@@ -622,9 +679,9 @@ func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDe
 	defer tx.Rollback()
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, rating, rating_count, author_user_id)
-		VALUES (?, ?, ?, 0, ?, ?, ?)
-	`, copiedReadingOrderName(source.Name), source.Description, source.Image, source.Rating, source.RatingCount, userID)
+		INSERT INTO reading_orders (name, description, image, favorite, author_user_id)
+		VALUES (?, ?, ?, 0, ?)
+	`, copiedReadingOrderName(source.Name), source.Description, source.Image, userID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to copy reading order")
 	}

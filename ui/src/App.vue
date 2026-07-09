@@ -217,6 +217,7 @@ const {
   readingOrders,
   selectedOrder,
   quickSavingOrderID,
+  ratingSaving,
   cblImporting,
   orderForm,
   visibleOrders,
@@ -224,6 +225,7 @@ const {
   readingOrderProgress,
   openReadingOrder,
   toggleReadingOrderFavorite,
+  rateSelectedReadingOrder,
   refreshSelectedReadingOrderDetail,
   newReadingOrder,
   saveReadingOrder,
@@ -1634,10 +1636,12 @@ onUnmounted(() => {
         :quick-saving-comic-id="quickSavingComicID"
         :read-only="isReadOnlyGuest"
         :saving="saving"
+        :rating-saving="ratingSaving"
         @back="backToPreviousPage"
         @copy="copySelectedReadingOrder"
         @edit="editReadingOrder"
         @export-cbl="exportSelectedReadingOrderCBL"
+        @rate="rateSelectedReadingOrder"
         @open-comic="openOrderComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"

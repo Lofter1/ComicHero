@@ -357,18 +357,6 @@ function endDrag() {
       </span>
     </label>
 
-    <label>
-      Rating
-      <input
-        :value="form.rating || 0"
-        type="number"
-        min="0"
-        max="5"
-        step="0.1"
-        @input="updateForm({ rating: Number($event.target.value) || 0 })"
-      />
-    </label>
-
     <div class="reading-order-editor-layout">
       <div class="reading-order-search-column">
         <section class="entry-section add-entry-panel">

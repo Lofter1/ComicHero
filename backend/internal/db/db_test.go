@@ -131,6 +131,17 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if ratingIndexCount != 1 {
 		t.Fatalf("idx_reading_orders_rating count = %d; want 1", ratingIndexCount)
 	}
+
+	var userRatingTableCount int
+	if err := database.Get(&userRatingTableCount, `
+		SELECT COUNT(*) FROM sqlite_master
+		WHERE type = 'table' AND name = 'reading_order_ratings'
+	`); err != nil {
+		t.Fatalf("check reading order user rating table: %v", err)
+	}
+	if userRatingTableCount != 1 {
+		t.Fatalf("reading_order_ratings table count = %d; want 1", userRatingTableCount)
+	}
 }
 
 func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {

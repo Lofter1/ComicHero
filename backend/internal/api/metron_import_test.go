@@ -38,6 +38,14 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_reading_orders_metron_reading_list_id
 		ON reading_orders(metron_reading_list_id)
 		WHERE metron_reading_list_id IS NOT NULL;
+		CREATE TABLE reading_order_ratings (
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			rating REAL NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
 
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -694,12 +702,10 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	list := metron.ReadingList{
-		ID:            501,
-		Name:          "Event",
-		Description:   "Big event",
-		Image:         "https://example.test/event.jpg",
-		AverageRating: 4.5,
-		RatingCount:   12,
+		ID:          501,
+		Name:        "Event",
+		Description: "Big event",
+		Image:       "https://example.test/event.jpg",
 		Issues: []metron.Issue{
 			{
 				ID:         101,
@@ -726,11 +732,11 @@ func TestImportMetronReadingListReusesExistingOrderAndComics(t *testing.T) {
 	if second.Body.Image != "https://example.test/event.jpg" {
 		t.Fatalf("image = %q; want Metron image", second.Body.Image)
 	}
-	if second.Body.Rating != 4.5 {
-		t.Fatalf("rating = %v; want 4.5", second.Body.Rating)
+	if second.Body.Rating != 0 {
+		t.Fatalf("rating = %v; want no imported Metron rating", second.Body.Rating)
 	}
-	if second.Body.RatingCount != 12 {
-		t.Fatalf("rating count = %d; want 12", second.Body.RatingCount)
+	if second.Body.RatingCount != 0 {
+		t.Fatalf("rating count = %d; want no imported Metron ratings", second.Body.RatingCount)
 	}
 
 	var orderCount int
