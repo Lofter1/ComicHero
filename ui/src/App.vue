@@ -965,13 +965,13 @@ async function activateRoute(route) {
   }
 }
 
-async function backFromComicDetail() {
+async function backToPreviousPage() {
   error.value = ''
   if (window.history.state?.back) {
     router.back()
     return
   }
-  await router.push({ name: 'comics' })
+  await router.push(browseRouteLocation(activeView.value) || { name: 'readingOrders' })
 }
 
 async function loadData(force = false) {
@@ -1071,11 +1071,6 @@ function cancelEdit() {
     viewMode.value = 'detail'
     return
   }
-  viewMode.value = 'browse'
-}
-
-function backToBrowse() {
-  error.value = ''
   viewMode.value = 'browse'
 }
 
@@ -1635,7 +1630,7 @@ onUnmounted(() => {
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :read-only="isReadOnlyGuest"
-        @back="backFromComicDetail"
+        @back="backToPreviousPage"
         @edit="editReadingOrder"
         @export-cbl="exportSelectedReadingOrderCBL"
         @open-comic="openOrderComic"
@@ -1671,7 +1666,7 @@ onUnmounted(() => {
         :quick-saving-comic-id="quickSavingComicID"
         :quick-saving-arc-id="quickSavingArcID"
         :read-only="isReadOnlyGuest"
-        @back="backToBrowse"
+        @back="backToPreviousPage"
         @edit="editArc"
         @toggle-favorite="toggleArcFavorite"
         @open-comic="openComic"
@@ -1706,7 +1701,7 @@ onUnmounted(() => {
         :quick-saving-comic-id="quickSavingComicID"
         :import-running="seriesImportRunning(selectedSeries)"
         :read-only="isReadOnlyGuest"
-        @back="backToBrowse"
+        @back="backToPreviousPage"
         @toggle-favorite="toggleSeriesFavorite"
         @import-series="importSelectedSeriesFromMetron"
         @open-comic="openComic"
@@ -1742,7 +1737,7 @@ onUnmounted(() => {
         :quick-saving-character-id="quickSavingCharacterID"
         :import-running="characterImportRunning(selectedCharacter)"
         :read-only="isReadOnlyGuest"
-        @back="backToBrowse"
+        @back="backToPreviousPage"
         @toggle-favorite="toggleCharacterFavorite"
         @import-appearances="importSelectedCharacterAppearances"
         @open-comic="openComic"
@@ -1779,7 +1774,7 @@ onUnmounted(() => {
         :metron-metadata-status="metronMetadataStatus"
         :metron-metadata-results="metronMetadataResults"
         :read-only="isReadOnlyGuest"
-        @back="backToBrowse"
+        @back="backToPreviousPage"
         @search-metron="searchSelectedComicMetron"
         @apply-metron="applyMetronMetadata"
         @reset-metron="resetMetronMetadata"
