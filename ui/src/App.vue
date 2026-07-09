@@ -979,16 +979,18 @@ async function loadData(force = false) {
   error.value = ''
 
   try {
-    const tasks = [loadActiveViewData({ force })]
-    if (activeView.value === 'metron' && canMetronMonitor.value) {
-      tasks.push(loadMetronImportJobs())
-    }
-    await Promise.all(tasks)
+    await loadActiveViewData({ force })
+    await ensureMetronImportMonitor()
   } catch (err) {
     error.value = err.message
   } finally {
     loading.value = false
   }
+}
+
+async function ensureMetronImportMonitor() {
+  if (!appReady.value || !canMetronMonitor.value || isReadOnlyGuest.value) return
+  await loadMetronImportJobs()
 }
 
 async function loadActiveViewData(options = {}) {
@@ -1151,6 +1153,7 @@ onMounted(async () => {
     if (!(await enforceCurrentRouteAccess())) {
       await applyCurrentRoute({ replace: true, force: true })
     }
+    await ensureMetronImportMonitor()
   }
 })
 
@@ -1179,6 +1182,7 @@ watch([canAccessMetronArea, isAdmin, currentUser, isReadOnlyGuest], () => {
   syncRouteAccessContext()
   if (appReady.value) {
     enforceCurrentRouteAccess()
+    ensureMetronImportMonitor()
   }
 })
 

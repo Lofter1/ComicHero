@@ -84,7 +84,7 @@ export function useMetronJobs({ activeView, error, handleImported }) {
   function connectMetronImportEvents() {
     if (metronImportEvents || typeof EventSource === 'undefined') return
 
-    metronImportEvents = new EventSource(metronImportEventsURL())
+    metronImportEvents = new EventSource(metronImportEventsURL(), { withCredentials: true })
     metronImportEvents.addEventListener('job', (event) => {
       handleMetronJobEvent(event)
     })

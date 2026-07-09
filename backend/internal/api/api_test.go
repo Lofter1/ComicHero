@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -937,6 +938,24 @@ func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
 	cookies := setup.Result().Cookies()
 	if len(cookies) != 1 || cookies[0].Name != sessionCookieName || cookies[0].Value == "" {
 		t.Fatalf("setup cookies = %#v; want %s session cookie", cookies, sessionCookieName)
+	}
+
+	statusRecorder := httptest.NewRecorder()
+	statusReq := httptest.NewRequest(http.MethodGet, "/api/auth/status", nil)
+	statusReq.AddCookie(cookies[0])
+	router.ServeHTTP(statusRecorder, statusReq)
+	if statusRecorder.Code != http.StatusOK {
+		t.Fatalf("status with cookie status = %d; want 200: %s", statusRecorder.Code, statusRecorder.Body.String())
+	}
+	var status UserStatus
+	if err := json.NewDecoder(statusRecorder.Body).Decode(&status); err != nil {
+		t.Fatalf("decode status: %v", err)
+	}
+	if status.User == nil || !status.User.IsAdmin {
+		t.Fatalf("status user = %#v; want admin user", status.User)
+	}
+	if !status.MetronPermissions.Allowed || !metronScopeAllowed(status.MetronPermissions.Scopes, metronScopeMonitor) {
+		t.Fatalf("status metron permissions = %#v; want monitor access for admin", status.MetronPermissions)
 	}
 
 	withoutCookie := httptest.NewRecorder()

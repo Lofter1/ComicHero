@@ -337,20 +337,11 @@ func getUserStatus(ctx context.Context, db *sqlx.DB, sessionToken string) (*User
 		if err != nil {
 			return nil, err
 		}
-		user, err := getUserByID(ctx, db, userID)
-		if err != nil {
-			return nil, err
-		}
-		status.User = &user
-		return &UserStatusOutput{Body: status}, nil
+		return userStatusForUser(ctx, db, mode, userID, nil)
 	}
 
 	if userID, err := userIDFromSessionToken(ctx, db, sessionToken); err == nil {
-		user, err := getUserByID(ctx, db, userID)
-		if err != nil {
-			return nil, err
-		}
-		status.User = &user
+		return userStatusForUser(ctx, db, mode, userID, nil)
 	}
 	return &UserStatusOutput{Body: status}, nil
 }
