@@ -215,6 +215,23 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		return err
 	}
 	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_password_resets (
+			token_hash TEXT PRIMARY KEY,
+			user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			expires_at TEXT    NOT NULL,
+			used_at    TEXT    NOT NULL DEFAULT '',
+			created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_user_password_resets_user_expires
+		ON user_password_resets(user_id, expires_at)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
 		UPDATE users
 		SET email_verified_at = ''
 		WHERE id IN (

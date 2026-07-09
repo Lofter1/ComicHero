@@ -222,6 +222,24 @@ type ResendEmailVerificationInput struct {
 	Body ResendEmailVerificationPayload
 }
 
+type ForgotPasswordPayload struct {
+	Email string `json:"email" minLength:"1" format:"email" doc:"Email address used to log in." example:"reader@example.com"`
+}
+
+type ForgotPasswordInput struct {
+	Body ForgotPasswordPayload
+}
+
+type ResetPasswordPayload struct {
+	Token                string `json:"token"                minLength:"1" doc:"Password reset token."`
+	Password             string `json:"password"             minLength:"6" doc:"New password." example:"correct horse battery staple"`
+	PasswordConfirmation string `json:"passwordConfirmation" minLength:"6" doc:"Repeated new password." example:"correct horse battery staple"`
+}
+
+type ResetPasswordInput struct {
+	Body ResetPasswordPayload
+}
+
 type UpdateAccountPayload struct {
 	Name            string `json:"name"                      minLength:"1" doc:"New display name." example:"Justin"`
 	CurrentPassword string `json:"currentPassword,omitempty" doc:"Current password, required when changing password in multi-user mode."`

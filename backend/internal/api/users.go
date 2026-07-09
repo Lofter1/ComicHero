@@ -38,6 +38,10 @@ const (
 	emailVerificationRateLimitWindow      = time.Minute
 	emailVerificationResendMaxAttempts    = 3
 	emailVerificationResendWindow         = time.Hour
+	passwordResetRequestMaxAttempts       = 3
+	passwordResetRequestWindow            = time.Hour
+	passwordResetMaxAttempts              = 5
+	passwordResetWindow                   = time.Minute
 )
 
 type contextUserIDKey struct{}
@@ -126,6 +130,30 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 		Errors:      []int{400, 401, 500},
 	}, func(ctx context.Context, input *ResendEmailVerificationInput) (*UserStatusOutput, error) {
 		return resendEmailVerification(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "requestPasswordReset",
+		Tags:        []string{tagUsers},
+		Summary:     "Request password reset",
+		Description: "Sends a password reset email when the address belongs to a multi-user account.",
+		Method:      http.MethodPost,
+		Path:        "/auth/forgot-password",
+		Errors:      []int{400, 500},
+	}, func(ctx context.Context, input *ForgotPasswordInput) (*UserStatusOutput, error) {
+		return requestPasswordReset(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "resetPassword",
+		Tags:        []string{tagUsers},
+		Summary:     "Reset password",
+		Description: "Resets a password using a single-use token sent by email.",
+		Method:      http.MethodPost,
+		Path:        "/auth/reset-password",
+		Errors:      []int{400, 401, 500},
+	}, func(ctx context.Context, input *ResetPasswordInput) (*UserStatusOutput, error) {
+		return resetPassword(ctx, db, input.Body)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -706,6 +734,70 @@ func resendEmailVerification(ctx context.Context, db *sqlx.DB, payload ResendEma
 	return emailVerificationRequiredStatus(ctx, db, row.Email)
 }
 
+func requestPasswordReset(ctx context.Context, db *sqlx.DB, payload ForgotPasswordPayload) (*UserStatusOutput, error) {
+	email, err := cleanEmailAddress(payload.Email)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured || mode != userModeMulti {
+		return nil, huma.Error400BadRequest("password reset is only available in multi-user mode")
+	}
+	var row struct {
+		ID    int    `db:"id"`
+		Email string `db:"email"`
+	}
+	if err := db.GetContext(ctx, &row, `SELECT id, email FROM users WHERE email = ?`, email); err != nil {
+		if err == sql.ErrNoRows {
+			return userStatusWithoutUser(ctx, db)
+		}
+		return nil, huma.Error500InternalServerError("failed to fetch account")
+	}
+	token, _, err := createPasswordReset(ctx, db, row.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := sendPasswordReset(ctx, emailVerificationMessage{
+		To:    row.Email,
+		Link:  passwordResetLink(token),
+		Token: token,
+	}); err != nil {
+		return nil, err
+	}
+	return userStatusWithoutUser(ctx, db)
+}
+
+func resetPassword(ctx context.Context, db *sqlx.DB, payload ResetPasswordPayload) (*UserStatusOutput, error) {
+	if len(payload.Password) < 6 {
+		return nil, huma.Error400BadRequest("password must be at least 6 characters")
+	}
+	if payload.PasswordConfirmation != payload.Password {
+		return nil, huma.Error400BadRequest("password confirmation must match password")
+	}
+	userID, err := verifyPasswordResetToken(ctx, db, payload.Token)
+	if err != nil {
+		return nil, err
+	}
+	passwordHash, err := hashPassword(payload.Password)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to hash password")
+	}
+	if _, err := db.ExecContext(ctx, `
+		UPDATE users
+		SET password_hash = ?, email_verified_at = CASE WHEN email_verified_at = '' THEN CURRENT_TIMESTAMP ELSE email_verified_at END
+		WHERE id = ?
+	`, passwordHash, userID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to reset password")
+	}
+	if _, err := db.ExecContext(ctx, `DELETE FROM user_sessions WHERE user_id = ?`, userID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to clear sessions")
+	}
+	return userStatusWithoutUser(ctx, db)
+}
+
 func logoutUser(ctx context.Context, db *sqlx.DB, token string) (*LogoutUserOutput, error) {
 	if token != "" {
 		if _, err := db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token); err != nil {
@@ -948,6 +1040,27 @@ func emailVerificationRequiredStatus(ctx context.Context, db *sqlx.DB, email str
 		PublicAccess:              publicAccess,
 		EmailVerificationRequired: true,
 		EmailVerificationEmail:    email,
+	}}, nil
+}
+
+func userStatusWithoutUser(ctx context.Context, db *sqlx.DB) (*UserStatusOutput, error) {
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
+	return &UserStatusOutput{Body: UserStatus{
+		SetupRequired:    !configured,
+		Mode:             mode,
+		RegistrationMode: regMode,
+		PublicAccess:     publicAccess,
 	}}, nil
 }
 

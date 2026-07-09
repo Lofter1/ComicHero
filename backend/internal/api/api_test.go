@@ -1574,6 +1574,69 @@ func TestOpenRegistrationRequiresEmailVerificationBeforeAccess(t *testing.T) {
 	}
 }
 
+func TestPasswordResetChangesPasswordAndConsumesToken(t *testing.T) {
+	t.Setenv("SMTP_HOST", "")
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users SET name = 'Test', email = 'test@example.com', password_hash = ? WHERE id = 1;
+		INSERT INTO user_sessions (token, user_id, expires_at) VALUES ('old-session', 1, '2999-01-01T00:00:00Z');
+	`, hash); err != nil {
+		t.Fatalf("seed reset user: %v", err)
+	}
+
+	if _, err := requestPasswordReset(context.Background(), db, ForgotPasswordPayload{Email: "test@example.com"}); err != nil {
+		t.Fatalf("requestPasswordReset: %v", err)
+	}
+	var userID int
+	if err := db.Get(&userID, `SELECT id FROM users WHERE email = 'test@example.com'`); err != nil {
+		t.Fatalf("fetch user id: %v", err)
+	}
+	var tokenCount int
+	if err := db.Get(&tokenCount, `SELECT COUNT(*) FROM user_password_resets WHERE user_id = ? AND used_at = ''`, userID); err != nil {
+		t.Fatalf("count reset tokens: %v", err)
+	}
+	if tokenCount != 1 {
+		t.Fatalf("active reset token count = %d; want 1", tokenCount)
+	}
+
+	token, _, err := createPasswordReset(context.Background(), db, userID)
+	if err != nil {
+		t.Fatalf("createPasswordReset: %v", err)
+	}
+	if _, err := resetPassword(context.Background(), db, ResetPasswordPayload{
+		Token:                token,
+		Password:             "secret2",
+		PasswordConfirmation: "secret2",
+	}); err != nil {
+		t.Fatalf("resetPassword: %v", err)
+	}
+	if _, err := loginUser(context.Background(), db, UserCredentialsPayload{Email: "test@example.com", Password: "secret1"}); err == nil {
+		t.Fatal("loginUser accepted old password after reset")
+	}
+	if _, err := loginUser(context.Background(), db, UserCredentialsPayload{Email: "test@example.com", Password: "secret2"}); err != nil {
+		t.Fatalf("loginUser with new password: %v", err)
+	}
+	if _, err := resetPassword(context.Background(), db, ResetPasswordPayload{
+		Token:                token,
+		Password:             "secret3",
+		PasswordConfirmation: "secret3",
+	}); err == nil {
+		t.Fatal("resetPassword accepted a used token")
+	}
+	var sessionCount int
+	if err := db.Get(&sessionCount, `SELECT COUNT(*) FROM user_sessions WHERE token = 'old-session'`); err != nil {
+		t.Fatalf("count old sessions: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("old session count = %d; want 0", sessionCount)
+	}
+}
+
 func TestPublicAccessDefaultsAndAdminCanUpdate(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
@@ -1840,6 +1903,13 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 			);
 			CREATE TABLE user_email_verifications (
+				token_hash TEXT PRIMARY KEY,
+				user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				expires_at TEXT NOT NULL,
+				used_at TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE TABLE user_password_resets (
 				token_hash TEXT PRIMARY KEY,
 				user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 				expires_at TEXT NOT NULL,

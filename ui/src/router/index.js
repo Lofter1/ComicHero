@@ -26,6 +26,12 @@ export const router = createRouter({
       meta: { eyebrow: 'Account', title: 'Verify email' },
     },
     {
+      path: '/reset-password',
+      name: 'resetPassword',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Account', title: 'Reset password' },
+    },
+    {
       path: '/readingOrders/:id',
       redirect: (to) => ({ name: 'readingOrderDetail', params: { id: to.params.id } }),
     },

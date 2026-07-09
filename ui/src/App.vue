@@ -38,6 +38,8 @@ import {
   logoutUser,
   registerUser,
   resendEmailVerification,
+  requestPasswordReset,
+  resetPassword,
   setupUsers,
   updateAccount,
   updatePublicAccess,
@@ -67,6 +69,14 @@ const authForm = ref({
   inviteToken: '',
 })
 const verificationForm = ref({ token: '', email: '', password: '' })
+const passwordResetForm = ref({
+  email: '',
+  token: '',
+  password: '',
+  passwordConfirmation: '',
+  requested: false,
+  completed: false,
+})
 const userAdminRows = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
@@ -322,13 +332,15 @@ const authRequired = computed(
 const emailVerificationRequired = computed(() =>
   Boolean(userStatus.value?.emailVerificationRequired),
 )
+const passwordResetMode = computed(() => authMode.value === 'forgot')
 const appReady = computed(
   () =>
     Boolean(userStatus.value) &&
     !authLoading.value &&
     !setupRequired.value &&
     !authRequired.value &&
-    !emailVerificationRequired.value,
+    !emailVerificationRequired.value &&
+    !passwordResetMode.value,
 )
 
 function hasMetronScope(scope) {
@@ -487,6 +499,69 @@ async function verifyEmailFromRouteToken() {
   if (!token) return
   verificationForm.value.token = token
   await submitEmailVerification()
+}
+
+function showForgotPassword() {
+  authMode.value = 'forgot'
+  passwordResetForm.value.email = authForm.value.email
+  passwordResetForm.value.token = ''
+  passwordResetForm.value.password = ''
+  passwordResetForm.value.passwordConfirmation = ''
+  passwordResetForm.value.requested = false
+  passwordResetForm.value.completed = false
+  error.value = ''
+}
+
+function showLogin() {
+  authMode.value = 'login'
+  loginRequested.value = true
+  error.value = ''
+}
+
+async function submitForgotPassword() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await requestPasswordReset({ email: passwordResetForm.value.email })
+    passwordResetForm.value.requested = true
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function submitPasswordReset() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    if (passwordResetForm.value.password !== passwordResetForm.value.passwordConfirmation) {
+      throw new Error('Password confirmation must match password.')
+    }
+    userStatus.value = await resetPassword({
+      token: passwordResetForm.value.token,
+      password: passwordResetForm.value.password,
+      passwordConfirmation: passwordResetForm.value.passwordConfirmation,
+    })
+    passwordResetForm.value.completed = true
+    authMode.value = 'login'
+    authForm.value.email = passwordResetForm.value.email
+    authForm.value.password = ''
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+function preparePasswordResetFromRouteToken() {
+  const token = typeof route.query.token === 'string' ? route.query.token.trim() : ''
+  if (!token) return
+  authMode.value = 'forgot'
+  loginRequested.value = true
+  passwordResetForm.value.token = token
+  passwordResetForm.value.requested = true
+  passwordResetForm.value.completed = false
 }
 
 async function loadUserAdminRows() {
@@ -1069,6 +1144,8 @@ onMounted(async () => {
   await loadUserStatus()
   if (route.name === 'verifyEmail') {
     await verifyEmailFromRouteToken()
+  } else if (route.name === 'resetPassword') {
+    preparePasswordResetFromRouteToken()
   }
   if (appReady.value) {
     if (!(await enforceCurrentRouteAccess())) {
@@ -1266,6 +1343,78 @@ onUnmounted(() => {
     </form>
   </main>
 
+  <main v-else-if="passwordResetMode" class="auth-shell">
+    <form
+      class="auth-panel"
+      @submit.prevent="passwordResetForm.requested ? submitPasswordReset() : submitForgotPassword()"
+    >
+      <div>
+        <p class="eyebrow">Account</p>
+        <h1>Reset password</h1>
+        <p v-if="!passwordResetForm.requested">
+          Enter your email and we will send a password reset token if the account exists.
+        </p>
+        <p v-else>Enter the token from your email and choose a new password.</p>
+      </div>
+
+      <div class="auth-fields">
+        <label v-if="!passwordResetForm.requested">
+          <span>Email</span>
+          <input v-model.trim="passwordResetForm.email" type="email" autocomplete="email" required />
+        </label>
+        <template v-else>
+          <label>
+            <span>Reset token</span>
+            <input
+              v-model.trim="passwordResetForm.token"
+              type="text"
+              autocomplete="one-time-code"
+              required
+            />
+          </label>
+          <label>
+            <span>New password</span>
+            <input
+              v-model="passwordResetForm.password"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </label>
+          <label>
+            <span>Confirm new password</span>
+            <input
+              v-model="passwordResetForm.passwordConfirmation"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </label>
+        </template>
+      </div>
+
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <button class="primary-action" type="submit" :disabled="authSaving">
+        {{
+          authSaving
+            ? 'Working...'
+            : passwordResetForm.requested
+              ? 'Reset password'
+              : 'Send reset email'
+        }}
+      </button>
+      <button class="secondary-action" type="button" :disabled="authSaving" @click="showLogin">
+        Back to login
+      </button>
+    </form>
+  </main>
+
   <main v-else-if="authRequired" class="auth-shell">
     <form class="auth-panel" @submit.prevent="submitAuth">
       <div>
@@ -1342,6 +1491,15 @@ onUnmounted(() => {
 
       <button class="primary-action" type="submit" :disabled="authSaving">
         {{ authSaving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
+      </button>
+      <button
+        v-if="authMode === 'login'"
+        class="secondary-action"
+        type="button"
+        :disabled="authSaving"
+        @click="showForgotPassword"
+      >
+        Forgot password?
       </button>
     </form>
   </main>

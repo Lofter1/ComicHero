@@ -49,6 +49,8 @@ var (
 	authRegistrationLimiter       = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
 	authEmailVerificationLimiter  = newLoginRateLimiter(emailVerificationRateLimitMaxAttempts, emailVerificationRateLimitWindow)
 	authEmailVerificationResender = newLoginRateLimiter(emailVerificationResendMaxAttempts, emailVerificationResendWindow)
+	authPasswordResetRequester    = newLoginRateLimiter(passwordResetRequestMaxAttempts, passwordResetRequestWindow)
+	authPasswordResetLimiter      = newLoginRateLimiter(passwordResetMaxAttempts, passwordResetWindow)
 )
 
 func clientIP(r *http.Request) string {
@@ -148,10 +150,20 @@ func isResendEmailVerificationRequest(r *http.Request) bool {
 	return r.Method == http.MethodPost && path == "/auth/verify-email/resend"
 }
 
+func isPasswordResetRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/forgot-password"
+}
+
+func isResetPasswordRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/reset-password"
+}
+
 func isUserRouteAllowedWithoutSession(path string) bool {
 	path = strings.TrimPrefix(path, "/api")
 	switch path {
-	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/verify-email/resend", "/openapi.json", "/openapi.yaml", "/docs":
+	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/verify-email/resend", "/auth/forgot-password", "/auth/reset-password", "/openapi.json", "/openapi.yaml", "/docs":
 		return true
 	default:
 		return false
@@ -251,6 +263,14 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 			}
 			if isResendEmailVerificationRequest(r) && !authEmailVerificationResender.allow(clientIP(r), time.Now()) {
 				http.Error(w, "too many email verification emails requested, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isPasswordResetRequest(r) && !authPasswordResetRequester.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many password reset emails requested, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isResetPasswordRequest(r) && !authPasswordResetLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many password reset attempts, try again later", http.StatusTooManyRequests)
 				return
 			}
 			if isUserRouteAllowedWithoutSession(r.URL.Path) {

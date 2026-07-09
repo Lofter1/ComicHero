@@ -142,8 +142,8 @@ The backend reads environment variables from the process environment and, when p
 | `STATIC_DIR`      | _(embedded)_                | Optional: serve the frontend from this directory instead of the copy embedded in the binary. Useful for local frontend development. |
 | `COVER_CACHE_DIR` | `./public/covers`          | Directory where downloaded cover images are cached. |
 | `COOKIE_SECURE`   | `false`                    | Sets the `Secure` flag on session cookies when set to `true`. Enable it when serving ComicHero over HTTPS. |
-| `APP_BASE_URL`    | `http://localhost:8080`    | Public base URL used in email verification links. Set this to your HTTPS origin for public instances. |
-| `SMTP_HOST`       | empty                      | SMTP host for sending email verification messages. If unset, verification links are logged instead of sent. |
+| `APP_BASE_URL`    | `http://localhost:8080`    | Public base URL used in account email links. Set this to your HTTPS origin for public instances. |
+| `SMTP_HOST`       | empty                      | SMTP host for sending account emails such as verification and password reset. If unset, links are logged instead of sent. |
 | `SMTP_PORT`       | `587`                      | SMTP port. |
 | `SMTP_USERNAME`   | empty                      | Optional SMTP username. |
 | `SMTP_PASSWORD`   | empty                      | Optional SMTP password. |
@@ -160,6 +160,8 @@ ComicHero asks you to choose single-user or multi-user mode on first run. In mul
 - `open` allows anyone who can reach the server to register with a name, email, and password, without an invite token. These users must verify their email address before they receive a session.
 
 Open registration is intended only for instances you deliberately expose for self-service signup. ComicHero uses a shared-library model: comics, arcs, series, characters, and reading orders are not isolated per account. A verified new account can read and write the shared library data according to the app's normal user capabilities, so leave registration on `invite_only` unless you understand and accept that exposure. For public instances, serve ComicHero over HTTPS, set `APP_BASE_URL` to the HTTPS origin, configure SMTP, and set `COOKIE_SECURE=true`. Admins can change the mode and remove unwanted accounts from the user management screen.
+
+Users can request a password reset from the login screen. Reset links use the same SMTP settings and expire after 30 minutes.
 
 ## API Documentation
 

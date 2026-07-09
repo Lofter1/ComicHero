@@ -120,7 +120,7 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 		t.Fatalf("ensure user login schema: %v", err)
 	}
 
-	for _, table := range []string{"app_settings", "user_sessions", "user_comics"} {
+	for _, table := range []string{"app_settings", "user_sessions", "user_comics", "user_email_verifications", "user_password_resets"} {
 		exists, err := tableExists(database, table)
 		if err != nil {
 			t.Fatalf("check table %s: %v", table, err)
