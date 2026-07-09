@@ -103,6 +103,7 @@ const renderedDescription = computed(() => {
             />
           </div>
 
+          <!-- eslint-disable-next-line vue/no-v-html -- markdown-it renders with raw HTML disabled. -->
           <div class="detail-description markdown-content" v-html="renderedDescription"></div>
         </div>
 
@@ -122,7 +123,9 @@ const renderedDescription = computed(() => {
           <span>
             <strong>{{ formatRating(selectedOrder.rating) }}</strong>
             <small>
-              Rating<template v-if="selectedOrder.ratingCount"> · {{ selectedOrder.ratingCount }}</template>
+              Rating<template v-if="selectedOrder.ratingCount">
+                · {{ selectedOrder.ratingCount }}</template
+              >
             </small>
           </span>
           <span v-if="selectedOrder.authorName">
