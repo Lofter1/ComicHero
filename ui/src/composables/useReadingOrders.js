@@ -28,6 +28,7 @@ export function useReadingOrders({
   const readingOrders = ref([])
   const selectedOrder = ref(null)
   const quickSavingOrderID = ref(null)
+  const cblImporting = ref(false)
   const orderForm = ref(emptyReadingOrder())
 
   const visibleOrders = computed(() => readingOrders.value)
@@ -206,6 +207,7 @@ export function useReadingOrders({
   async function importReadingOrderCBLFile(file) {
     if (!file) return null
 
+    cblImporting.value = true
     saving.value = true
     error.value = ''
 
@@ -224,6 +226,7 @@ export function useReadingOrders({
       error.value = err.message
       return null
     } finally {
+      cblImporting.value = false
       saving.value = false
     }
   }
@@ -266,6 +269,7 @@ export function useReadingOrders({
     readingOrders,
     selectedOrder,
     quickSavingOrderID,
+    cblImporting,
     orderForm,
     visibleOrders,
     readingOrderBrowseSections,

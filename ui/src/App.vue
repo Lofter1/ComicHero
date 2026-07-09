@@ -218,6 +218,7 @@ const {
   readingOrders,
   selectedOrder,
   quickSavingOrderID,
+  cblImporting,
   orderForm,
   visibleOrders,
   readingOrderBrowseSections,
@@ -1647,6 +1648,7 @@ onUnmounted(() => {
         :sections="readingOrderBrowseSections"
         :selected-order-id="selectedOrder?.id"
         :quick-saving-order-id="quickSavingOrderID"
+        :cbl-importing="cblImporting"
         :search="search"
         :search-term="searchTerm"
         :filter="listOptions.readingOrders.filter"

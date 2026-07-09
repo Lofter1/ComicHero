@@ -1218,6 +1218,25 @@ textarea {
   border-width: 2px;
 }
 
+.button-spinner {
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  border: 2px solid var(--spinner-track);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: loading-spin 780ms linear infinite;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .load-more-sentinel {
   display: flex;
   align-items: center;

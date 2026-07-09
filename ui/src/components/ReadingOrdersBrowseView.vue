@@ -21,6 +21,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  cblImporting: {
+    type: Boolean,
+    default: false,
+  },
   search: {
     type: String,
     default: '',
@@ -79,6 +83,7 @@ function sectionList(title, orders) {
 }
 
 function chooseCBLFile() {
+  if (props.cblImporting) return
   cblFileInput.value?.click()
 }
 
@@ -116,13 +121,18 @@ function handleCBLFile(event) {
             />
             <button
               class="secondary-button icon-text-button cbl-import-button"
+              :class="{ loading: cblImporting }"
               type="button"
+              :disabled="cblImporting"
+              :aria-busy="cblImporting"
               aria-label="Import CBL"
               title="Import CBL"
               @click="chooseCBLFile"
             >
-              Import CBL
+              <span v-if="cblImporting" class="button-spinner" aria-hidden="true"></span>
+              {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
             </button>
+            <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
             <button
               class="primary-button icon-text-button"
               type="button"
