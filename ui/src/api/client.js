@@ -235,6 +235,22 @@ export function loginUser(payload) {
   return send('/auth/login', 'POST', payload)
 }
 
+export function verifyEmail(payload) {
+  return send('/auth/verify-email', 'POST', payload)
+}
+
+export function resendEmailVerification(payload) {
+  return send('/auth/verify-email/resend', 'POST', payload)
+}
+
+export function requestPasswordReset(payload) {
+  return send('/auth/forgot-password', 'POST', payload)
+}
+
+export function resetPassword(payload) {
+  return send('/auth/reset-password', 'POST', payload)
+}
+
 export function logoutUser() {
   return request('/auth/logout', { method: 'POST' })
 }

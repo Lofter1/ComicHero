@@ -125,12 +125,14 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 	})
 
 	if _, err := db.Exec(`
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0,
-			is_admin INTEGER NOT NULL DEFAULT 0
+			CREATE TABLE users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
+				is_default INTEGER NOT NULL DEFAULT 0,
+				is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -295,12 +297,14 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0,
-			is_admin INTEGER NOT NULL DEFAULT 0
+			CREATE TABLE users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
+				is_default INTEGER NOT NULL DEFAULT 0,
+				is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -551,12 +555,14 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0,
-			is_admin INTEGER NOT NULL DEFAULT 0
+			CREATE TABLE users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
+				is_default INTEGER NOT NULL DEFAULT 0,
+				is_admin INTEGER NOT NULL DEFAULT 0
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -618,10 +624,12 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE
-		);
+			CREATE TABLE users (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z'
+				);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -727,10 +735,12 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE
-		);
+			CREATE TABLE users (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z'
+				);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -808,10 +818,12 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER
 		);
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE
-		);
+			CREATE TABLE users (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z'
+				);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -915,7 +927,7 @@ func TestMultiUserSetupSetsSessionCookieForProtectedRoutes(t *testing.T) {
 	RegisterComicRoutes(api, db, nil)
 
 	setup := httptest.NewRecorder()
-	setupBody := strings.NewReader(`{"mode":"multi","name":"Test","password":"secret1"}`)
+	setupBody := strings.NewReader(`{"mode":"multi","name":"Test","email":"test@example.com","password":"secret1"}`)
 	setupReq := httptest.NewRequest(http.MethodPost, "/api/auth/setup", setupBody)
 	setupReq.Header.Set("Content-Type", "application/json")
 	router.ServeHTTP(setup, setupReq)
@@ -959,7 +971,7 @@ func TestLoginRateLimitReturnsTooManyRequests(t *testing.T) {
 	}
 	if _, err := db.Exec(`
 		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
-		UPDATE users SET name = 'Test', password_hash = ? WHERE id = 1;
+		UPDATE users SET name = 'Test', email = 'test@example.com', password_hash = ? WHERE id = 1;
 	`, hash); err != nil {
 		t.Fatalf("seed login user: %v", err)
 	}
@@ -973,7 +985,7 @@ func TestLoginRateLimitReturnsTooManyRequests(t *testing.T) {
 
 	for i := 0; i < loginRateLimitMaxAttempts; i++ {
 		recorder := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"name":"Test","password":"wrong"}`))
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"email":"test@example.com","password":"wrong"}`))
 		req.Header.Set("Content-Type", "application/json")
 		req.RemoteAddr = "203.0.113.44:1234"
 		router.ServeHTTP(recorder, req)
@@ -983,12 +995,44 @@ func TestLoginRateLimitReturnsTooManyRequests(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"name":"Test","password":"wrong"}`))
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"email":"test@example.com","password":"wrong"}`))
 	req.Header.Set("Content-Type", "application/json")
 	req.RemoteAddr = "203.0.113.44:1234"
 	router.ServeHTTP(recorder, req)
 	if recorder.Code != http.StatusTooManyRequests {
 		t.Fatalf("rate-limited login status = %d; want 429: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestLoginUsesEmailAddress(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users SET name = 'Test', email = 'test@example.com', password_hash = ? WHERE id = 1;
+	`, hash); err != nil {
+		t.Fatalf("seed login user: %v", err)
+	}
+
+	if _, err := loginUser(context.Background(), db, UserCredentialsPayload{
+		Name:     "Test",
+		Password: "secret1",
+	}); err == nil {
+		t.Fatal("loginUser accepted a username without an email")
+	}
+
+	output, err := loginUser(context.Background(), db, UserCredentialsPayload{
+		Email:    "Test@Example.com",
+		Password: "secret1",
+	})
+	if err != nil {
+		t.Fatalf("loginUser with email: %v", err)
+	}
+	if output.Body.User == nil || output.Body.User.Email != "test@example.com" {
+		t.Fatalf("user = %#v; want logged-in user by normalized email", output.Body.User)
 	}
 }
 
@@ -1071,7 +1115,7 @@ func TestUpdateAccountRenamesAndRequiresCurrentPassword(t *testing.T) {
 	}
 	if _, err := db.Exec(`
 		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
-		UPDATE users SET name = 'Test', password_hash = ? WHERE id = 1;
+		UPDATE users SET name = 'Test', email = 'test@example.com', password_hash = ? WHERE id = 1;
 	`, hash); err != nil {
 		t.Fatalf("seed account: %v", err)
 	}
@@ -1114,8 +1158,8 @@ func TestDeleteAccountRequiresPasswordAndAnotherAdmin(t *testing.T) {
 	}
 	if _, err := db.Exec(`
 		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
-		UPDATE users SET name = 'Test', password_hash = ? WHERE id = 1;
-		INSERT INTO users (id, name, password_hash) VALUES (2, 'Other', 'hash');
+		UPDATE users SET name = 'Test', email = 'test@example.com', password_hash = ? WHERE id = 1;
+		INSERT INTO users (id, name, email, password_hash) VALUES (2, 'Other', 'other@example.com', 'hash');
 		INSERT INTO user_sessions (token, user_id) VALUES ('session-1', 1);
 		INSERT INTO reading_orders (name, author_user_id) VALUES ('Mine', 1);
 	`, hash); err != nil {
@@ -1303,8 +1347,11 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	}
 
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:     "No Invite",
-		Password: "secret1",
+		Name:                 "No Invite",
+		Email:                "no-invite@example.com",
+		EmailConfirmation:    "no-invite@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
 	}); err == nil {
 		t.Fatal("registerUser without invite returned nil error")
 	}
@@ -1319,16 +1366,41 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	}
 
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:        "Invited",
-		Password:    "secret1",
-		InviteToken: invite.Body.Token,
+		Name:                 "Missing Email Confirmation",
+		Email:                "missing-email-confirmation@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+		InviteToken:          invite.Body.Token,
+	}); err == nil {
+		t.Fatal("registerUser accepted missing email confirmation")
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:                 "Password Mismatch",
+		Email:                "password-mismatch@example.com",
+		EmailConfirmation:    "password-mismatch@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret2",
+		InviteToken:          invite.Body.Token,
+	}); err == nil {
+		t.Fatal("registerUser accepted mismatched password confirmation")
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:                 "Invited",
+		Email:                "invited@example.com",
+		EmailConfirmation:    "invited@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+		InviteToken:          invite.Body.Token,
 	}); err != nil {
 		t.Fatalf("registerUser with invite: %v", err)
 	}
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:        "Reuse",
-		Password:    "secret1",
-		InviteToken: invite.Body.Token,
+		Name:                 "Reuse",
+		Email:                "reuse@example.com",
+		EmailConfirmation:    "reuse@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+		InviteToken:          invite.Body.Token,
 	}); err == nil {
 		t.Fatal("registerUser accepted a used invite")
 	}
@@ -1340,9 +1412,12 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 		t.Fatalf("seed expired invite: %v", err)
 	}
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:        "Expired",
-		Password:    "secret1",
-		InviteToken: "expired-token",
+		Name:                 "Expired",
+		Email:                "expired@example.com",
+		EmailConfirmation:    "expired@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+		InviteToken:          "expired-token",
 	}); err == nil {
 		t.Fatal("registerUser accepted an expired invite")
 	}
@@ -1365,8 +1440,11 @@ func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
 		t.Fatalf("registrationMode default = %q; want %q", mode, registrationModeInviteOnly)
 	}
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:     "Default Blocked",
-		Password: "secret1",
+		Name:                 "Default Blocked",
+		Email:                "default-blocked@example.com",
+		EmailConfirmation:    "default-blocked@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
 	}); err == nil {
 		t.Fatal("registerUser without invite succeeded while registration mode is unset")
 	}
@@ -1392,20 +1470,170 @@ func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
 		t.Fatalf("registrationMode after update = %q; want %q", mode, registrationModeOpen)
 	}
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:     "Open Signup",
-		Password: "secret1",
+		Name:                 "Open Signup",
+		Email:                "open-signup@example.com",
+		EmailConfirmation:    "open-signup@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
 	}); err != nil {
 		t.Fatalf("registerUser without invite in open mode: %v", err)
+	}
+	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:                 "Open Mismatch",
+		Email:                "open-mismatch@example.com",
+		EmailConfirmation:    "other@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+	}); err == nil {
+		t.Fatal("registerUser accepted mismatched email confirmation in open mode")
 	}
 
 	if _, err := updateRegistrationMode(adminCtx, db, UpdateRegistrationModePayload{Mode: registrationModeInviteOnly}); err != nil {
 		t.Fatalf("updateRegistrationMode back to invite_only: %v", err)
 	}
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
-		Name:     "Invite Blocked",
-		Password: "secret1",
+		Name:                 "Invite Blocked",
+		Email:                "invite-blocked@example.com",
+		EmailConfirmation:    "invite-blocked@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
 	}); err == nil {
 		t.Fatal("registerUser without invite succeeded after switching back to invite_only")
+	}
+}
+
+func TestOpenRegistrationRequiresEmailVerificationBeforeAccess(t *testing.T) {
+	t.Setenv("SMTP_HOST", "")
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		INSERT INTO app_settings (key, value) VALUES ('registration_mode', 'open');
+	`); err != nil {
+		t.Fatalf("seed open registration mode: %v", err)
+	}
+
+	output, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:                 "Open Pending",
+		Email:                "open-pending@example.com",
+		EmailConfirmation:    "open-pending@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+	})
+	if err != nil {
+		t.Fatalf("registerUser open: %v", err)
+	}
+	if !output.Body.EmailVerificationRequired || output.Body.EmailVerificationEmail != "open-pending@example.com" {
+		t.Fatalf("registration status = %#v; want email verification required", output.Body)
+	}
+	if len(output.SetCookie) != 0 {
+		t.Fatalf("registration cookies = %#v; want no session before verification", output.SetCookie)
+	}
+
+	var row struct {
+		ID              int    `db:"id"`
+		EmailVerifiedAt string `db:"email_verified_at"`
+	}
+	if err := db.Get(&row, `SELECT id, email_verified_at FROM users WHERE email = 'open-pending@example.com'`); err != nil {
+		t.Fatalf("fetch registered user: %v", err)
+	}
+	if row.EmailVerifiedAt != "" {
+		t.Fatalf("email_verified_at = %q; want empty before verification", row.EmailVerifiedAt)
+	}
+	var tokenCount int
+	if err := db.Get(&tokenCount, `SELECT COUNT(*) FROM user_email_verifications WHERE user_id = ? AND used_at = ''`, row.ID); err != nil {
+		t.Fatalf("count verification tokens: %v", err)
+	}
+	if tokenCount != 1 {
+		t.Fatalf("active verification token count = %d; want 1", tokenCount)
+	}
+
+	loginOutput, err := loginUser(context.Background(), db, UserCredentialsPayload{
+		Email:    "open-pending@example.com",
+		Password: "secret1",
+	})
+	if err != nil {
+		t.Fatalf("loginUser pending: %v", err)
+	}
+	if !loginOutput.Body.EmailVerificationRequired || len(loginOutput.SetCookie) != 0 {
+		t.Fatalf("pending login = %#v cookies %#v; want verification required without session", loginOutput.Body, loginOutput.SetCookie)
+	}
+
+	token, _, err := createEmailVerification(context.Background(), db, row.ID)
+	if err != nil {
+		t.Fatalf("create verification token: %v", err)
+	}
+	verified, err := verifyEmail(context.Background(), db, token)
+	if err != nil {
+		t.Fatalf("verifyEmail: %v", err)
+	}
+	if verified.Body.User == nil || !verified.Body.User.EmailVerified {
+		t.Fatalf("verified user = %#v; want verified session user", verified.Body.User)
+	}
+	if len(verified.SetCookie) != 1 || verified.SetCookie[0].Value == "" {
+		t.Fatalf("verification cookies = %#v; want session", verified.SetCookie)
+	}
+}
+
+func TestPasswordResetChangesPasswordAndConsumesToken(t *testing.T) {
+	t.Setenv("SMTP_HOST", "")
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users SET name = 'Test', email = 'test@example.com', password_hash = ? WHERE id = 1;
+		INSERT INTO user_sessions (token, user_id, expires_at) VALUES ('old-session', 1, '2999-01-01T00:00:00Z');
+	`, hash); err != nil {
+		t.Fatalf("seed reset user: %v", err)
+	}
+
+	if _, err := requestPasswordReset(context.Background(), db, ForgotPasswordPayload{Email: "test@example.com"}); err != nil {
+		t.Fatalf("requestPasswordReset: %v", err)
+	}
+	var userID int
+	if err := db.Get(&userID, `SELECT id FROM users WHERE email = 'test@example.com'`); err != nil {
+		t.Fatalf("fetch user id: %v", err)
+	}
+	var tokenCount int
+	if err := db.Get(&tokenCount, `SELECT COUNT(*) FROM user_password_resets WHERE user_id = ? AND used_at = ''`, userID); err != nil {
+		t.Fatalf("count reset tokens: %v", err)
+	}
+	if tokenCount != 1 {
+		t.Fatalf("active reset token count = %d; want 1", tokenCount)
+	}
+
+	token, _, err := createPasswordReset(context.Background(), db, userID)
+	if err != nil {
+		t.Fatalf("createPasswordReset: %v", err)
+	}
+	if _, err := resetPassword(context.Background(), db, ResetPasswordPayload{
+		Token:                token,
+		Password:             "secret2",
+		PasswordConfirmation: "secret2",
+	}); err != nil {
+		t.Fatalf("resetPassword: %v", err)
+	}
+	if _, err := loginUser(context.Background(), db, UserCredentialsPayload{Email: "test@example.com", Password: "secret1"}); err == nil {
+		t.Fatal("loginUser accepted old password after reset")
+	}
+	if _, err := loginUser(context.Background(), db, UserCredentialsPayload{Email: "test@example.com", Password: "secret2"}); err != nil {
+		t.Fatalf("loginUser with new password: %v", err)
+	}
+	if _, err := resetPassword(context.Background(), db, ResetPasswordPayload{
+		Token:                token,
+		Password:             "secret3",
+		PasswordConfirmation: "secret3",
+	}); err == nil {
+		t.Fatal("resetPassword accepted a used token")
+	}
+	var sessionCount int
+	if err := db.Get(&sessionCount, `SELECT COUNT(*) FROM user_sessions WHERE token = 'old-session'`); err != nil {
+		t.Fatalf("count old sessions: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("old session count = %d; want 0", sessionCount)
 	}
 }
 
@@ -1547,7 +1775,7 @@ func TestExpiredSessionTokenIsRejected(t *testing.T) {
 	}
 }
 
-func TestSessionCookiesAreSecureByDefaultAndConfigurable(t *testing.T) {
+func TestSessionCookiesDefaultToLocalHTTPAndAreConfigurable(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	t.Setenv("COOKIE_SECURE", "")
 
@@ -1555,23 +1783,23 @@ func TestSessionCookiesAreSecureByDefaultAndConfigurable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("createSession: %v", err)
 	}
-	if !cookie.Secure {
-		t.Fatal("session cookie Secure = false; want true by default")
-	}
-	if expired := expiredSessionCookie(); !expired.Secure {
-		t.Fatal("expired session cookie Secure = false; want true by default")
-	}
-
-	t.Setenv("COOKIE_SECURE", "false")
-	cookie, err = createSession(context.Background(), db, 1)
-	if err != nil {
-		t.Fatalf("createSession with COOKIE_SECURE=false: %v", err)
-	}
 	if cookie.Secure {
-		t.Fatal("session cookie Secure = true; want false when COOKIE_SECURE=false")
+		t.Fatal("session cookie Secure = true; want false by default for local HTTP")
 	}
 	if expired := expiredSessionCookie(); expired.Secure {
-		t.Fatal("expired session cookie Secure = true; want false when COOKIE_SECURE=false")
+		t.Fatal("expired session cookie Secure = true; want false by default for local HTTP")
+	}
+
+	t.Setenv("COOKIE_SECURE", "true")
+	cookie, err = createSession(context.Background(), db, 1)
+	if err != nil {
+		t.Fatalf("createSession with COOKIE_SECURE=true: %v", err)
+	}
+	if !cookie.Secure {
+		t.Fatal("session cookie Secure = false; want true when COOKIE_SECURE=true")
+	}
+	if expired := expiredSessionCookie(); !expired.Secure {
+		t.Fatal("expired session cookie Secure = false; want true when COOKIE_SECURE=true")
 	}
 }
 
@@ -1623,12 +1851,14 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			cover_image TEXT NOT NULL DEFAULT '',
 			description TEXT NOT NULL DEFAULT ''
 		);
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL UNIQUE,
-			password_hash TEXT NOT NULL DEFAULT '',
-			is_default INTEGER NOT NULL DEFAULT 0,
-			is_admin INTEGER NOT NULL DEFAULT 0,
+			CREATE TABLE users (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
+				is_default INTEGER NOT NULL DEFAULT 0,
+				is_admin INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE TABLE app_settings (
@@ -1665,14 +1895,28 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			expires_at TEXT NOT NULL DEFAULT ''
 		);
-		CREATE TABLE user_invites (
-			token TEXT PRIMARY KEY,
-			created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-			expires_at TEXT NOT NULL DEFAULT '',
-			used_at TEXT NOT NULL DEFAULT '',
-			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-		CREATE TABLE user_comics (
+			CREATE TABLE user_invites (
+				token TEXT PRIMARY KEY,
+				created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+				expires_at TEXT NOT NULL DEFAULT '',
+				used_at TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE TABLE user_email_verifications (
+				token_hash TEXT PRIMARY KEY,
+				user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				expires_at TEXT NOT NULL,
+				used_at TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE TABLE user_password_resets (
+				token_hash TEXT PRIMARY KEY,
+				user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				expires_at TEXT NOT NULL,
+				used_at TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,

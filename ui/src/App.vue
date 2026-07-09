@@ -37,12 +37,16 @@ import {
   loginUser,
   logoutUser,
   registerUser,
+  resendEmailVerification,
+  requestPasswordReset,
+  resetPassword,
   setupUsers,
   updateAccount,
   updatePublicAccess,
   updateRegistrationMode,
   updateUserAdmin,
   updateUserMetronPermissions,
+  verifyEmail,
 } from '@/api/client.js'
 
 const activeView = ref('readingOrders')
@@ -55,8 +59,24 @@ const authSaving = ref(false)
 const userStatus = ref(null)
 const authMode = ref('login')
 const loginRequested = ref(false)
-const setupForm = ref({ mode: 'single', name: '', password: '' })
-const authForm = ref({ name: '', password: '', inviteToken: '' })
+const setupForm = ref({ mode: 'single', name: '', email: '', password: '' })
+const authForm = ref({
+  name: '',
+  email: '',
+  emailConfirmation: '',
+  password: '',
+  passwordConfirmation: '',
+  inviteToken: '',
+})
+const verificationForm = ref({ token: '', email: '', password: '' })
+const passwordResetForm = ref({
+  email: '',
+  token: '',
+  password: '',
+  passwordConfirmation: '',
+  requested: false,
+  completed: false,
+})
 const userAdminRows = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
@@ -306,11 +326,21 @@ const authRequired = computed(
   () =>
     userMode.value === 'multi' &&
     !currentUser.value &&
+    !emailVerificationRequired.value &&
     (!publicAccess.value || loginRequested.value),
 )
+const emailVerificationRequired = computed(() =>
+  Boolean(userStatus.value?.emailVerificationRequired),
+)
+const passwordResetMode = computed(() => authMode.value === 'forgot')
 const appReady = computed(
   () =>
-    Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value,
+    Boolean(userStatus.value) &&
+    !authLoading.value &&
+    !setupRequired.value &&
+    !authRequired.value &&
+    !emailVerificationRequired.value &&
+    !passwordResetMode.value,
 )
 
 function hasMetronScope(scope) {
@@ -383,6 +413,7 @@ async function submitSetup() {
     const payload = { mode: setupForm.value.mode }
     if (setupForm.value.mode === 'multi') {
       payload.name = setupForm.value.name
+      payload.email = setupForm.value.email
       payload.password = setupForm.value.password
     }
     userStatus.value = await setupUsers(payload)
@@ -400,12 +431,30 @@ async function submitAuth() {
   authSaving.value = true
   error.value = ''
   try {
-    const payload = { name: authForm.value.name, password: authForm.value.password }
+    if (authMode.value === 'register') {
+      if (authForm.value.email !== authForm.value.emailConfirmation) {
+        throw new Error('Email confirmation must match email.')
+      }
+      if (authForm.value.password !== authForm.value.passwordConfirmation) {
+        throw new Error('Password confirmation must match password.')
+      }
+    }
+    const payload = { email: authForm.value.email, password: authForm.value.password }
+    if (authMode.value === 'register') {
+      payload.name = authForm.value.name
+      payload.emailConfirmation = authForm.value.emailConfirmation
+      payload.passwordConfirmation = authForm.value.passwordConfirmation
+    }
     if (authMode.value === 'register' && registrationMode.value === 'invite_only') {
       payload.inviteToken = authForm.value.inviteToken
     }
     userStatus.value =
       authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
+    if (userStatus.value?.emailVerificationRequired) {
+      verificationForm.value.email = userStatus.value.emailVerificationEmail || authForm.value.email
+      verificationForm.value.password = authForm.value.password
+      return
+    }
     loginRequested.value = false
     await applyCurrentRoute({ replace: true, force: true })
   } catch (err) {
@@ -413,6 +462,106 @@ async function submitAuth() {
   } finally {
     authSaving.value = false
   }
+}
+
+async function submitEmailVerification() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await verifyEmail({ token: verificationForm.value.token })
+    verificationForm.value.token = ''
+    loginRequested.value = false
+    await applyCurrentRoute({ replace: true, force: true })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function resendVerificationEmail() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await resendEmailVerification({
+      email: verificationForm.value.email || userStatus.value?.emailVerificationEmail,
+      password: verificationForm.value.password,
+    })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function verifyEmailFromRouteToken() {
+  const token = typeof route.query.token === 'string' ? route.query.token.trim() : ''
+  if (!token) return
+  verificationForm.value.token = token
+  await submitEmailVerification()
+}
+
+function showForgotPassword() {
+  authMode.value = 'forgot'
+  passwordResetForm.value.email = authForm.value.email
+  passwordResetForm.value.token = ''
+  passwordResetForm.value.password = ''
+  passwordResetForm.value.passwordConfirmation = ''
+  passwordResetForm.value.requested = false
+  passwordResetForm.value.completed = false
+  error.value = ''
+}
+
+function showLogin() {
+  authMode.value = 'login'
+  loginRequested.value = true
+  error.value = ''
+}
+
+async function submitForgotPassword() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await requestPasswordReset({ email: passwordResetForm.value.email })
+    passwordResetForm.value.requested = true
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function submitPasswordReset() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    if (passwordResetForm.value.password !== passwordResetForm.value.passwordConfirmation) {
+      throw new Error('Password confirmation must match password.')
+    }
+    userStatus.value = await resetPassword({
+      token: passwordResetForm.value.token,
+      password: passwordResetForm.value.password,
+      passwordConfirmation: passwordResetForm.value.passwordConfirmation,
+    })
+    passwordResetForm.value.completed = true
+    authMode.value = 'login'
+    authForm.value.email = passwordResetForm.value.email
+    authForm.value.password = ''
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+function preparePasswordResetFromRouteToken() {
+  const token = typeof route.query.token === 'string' ? route.query.token.trim() : ''
+  if (!token) return
+  authMode.value = 'forgot'
+  loginRequested.value = true
+  passwordResetForm.value.token = token
+  passwordResetForm.value.requested = true
+  passwordResetForm.value.completed = false
 }
 
 async function loadUserAdminRows() {
@@ -993,6 +1142,11 @@ onMounted(async () => {
     themeMediaQuery?.addEventListener('change', handleSystemThemeChange)
   }
   await loadUserStatus()
+  if (route.name === 'verifyEmail') {
+    await verifyEmailFromRouteToken()
+  } else if (route.name === 'resetPassword') {
+    preparePasswordResetFromRouteToken()
+  }
   if (appReady.value) {
     if (!(await enforceCurrentRouteAccess())) {
       await applyCurrentRoute({ replace: true, force: true })
@@ -1114,7 +1268,11 @@ onUnmounted(() => {
       <div v-if="setupForm.mode === 'multi'" class="auth-fields">
         <label>
           <span>Name</span>
-          <input v-model.trim="setupForm.name" type="text" autocomplete="username" required />
+          <input v-model.trim="setupForm.name" type="text" autocomplete="name" required />
+        </label>
+        <label>
+          <span>Email</span>
+          <input v-model.trim="setupForm.email" type="email" autocomplete="email" required />
         </label>
         <label>
           <span>Password</span>
@@ -1135,6 +1293,124 @@ onUnmounted(() => {
 
       <button class="primary-action" type="submit" :disabled="authSaving">
         {{ authSaving ? 'Saving...' : 'Continue' }}
+      </button>
+    </form>
+  </main>
+
+  <main v-else-if="emailVerificationRequired" class="auth-shell">
+    <form class="auth-panel" @submit.prevent="submitEmailVerification">
+      <div>
+        <p class="eyebrow">Verify Email</p>
+        <h1>Check your email</h1>
+        <p>
+          Enter the verification token sent to
+          {{ userStatus.emailVerificationEmail || verificationForm.email }}.
+        </p>
+      </div>
+
+      <div class="auth-fields">
+        <label>
+          <span>Verification token</span>
+          <input
+            v-model.trim="verificationForm.token"
+            type="text"
+            autocomplete="one-time-code"
+            required
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            v-model="verificationForm.password"
+            type="password"
+            autocomplete="current-password"
+            minlength="6"
+          />
+        </label>
+      </div>
+
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <button class="primary-action" type="submit" :disabled="authSaving">
+        {{ authSaving ? 'Verifying...' : 'Verify email' }}
+      </button>
+      <button class="secondary-action" type="button" :disabled="authSaving" @click="resendVerificationEmail">
+        Resend email
+      </button>
+    </form>
+  </main>
+
+  <main v-else-if="passwordResetMode" class="auth-shell">
+    <form
+      class="auth-panel"
+      @submit.prevent="passwordResetForm.requested ? submitPasswordReset() : submitForgotPassword()"
+    >
+      <div>
+        <p class="eyebrow">Account</p>
+        <h1>Reset password</h1>
+        <p v-if="!passwordResetForm.requested">
+          Enter your email and we will send a password reset token if the account exists.
+        </p>
+        <p v-else>Enter the token from your email and choose a new password.</p>
+      </div>
+
+      <div class="auth-fields">
+        <label v-if="!passwordResetForm.requested">
+          <span>Email</span>
+          <input v-model.trim="passwordResetForm.email" type="email" autocomplete="email" required />
+        </label>
+        <template v-else>
+          <label>
+            <span>Reset token</span>
+            <input
+              v-model.trim="passwordResetForm.token"
+              type="text"
+              autocomplete="one-time-code"
+              required
+            />
+          </label>
+          <label>
+            <span>New password</span>
+            <input
+              v-model="passwordResetForm.password"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </label>
+          <label>
+            <span>Confirm new password</span>
+            <input
+              v-model="passwordResetForm.passwordConfirmation"
+              type="password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+          </label>
+        </template>
+      </div>
+
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <button class="primary-action" type="submit" :disabled="authSaving">
+        {{
+          authSaving
+            ? 'Working...'
+            : passwordResetForm.requested
+              ? 'Reset password'
+              : 'Send reset email'
+        }}
+      </button>
+      <button class="secondary-action" type="button" :disabled="authSaving" @click="showLogin">
+        Back to login
       </button>
     </form>
   </main>
@@ -1160,9 +1436,22 @@ onUnmounted(() => {
       </div>
 
       <div class="auth-fields">
-        <label>
+        <label v-if="authMode === 'register'">
           <span>Name</span>
-          <input v-model.trim="authForm.name" type="text" autocomplete="username" required />
+          <input v-model.trim="authForm.name" type="text" autocomplete="name" required />
+        </label>
+        <label>
+          <span>Email</span>
+          <input v-model.trim="authForm.email" type="email" autocomplete="email" required />
+        </label>
+        <label v-if="authMode === 'register'">
+          <span>Confirm email</span>
+          <input
+            v-model.trim="authForm.emailConfirmation"
+            type="email"
+            autocomplete="email"
+            required
+          />
         </label>
         <label>
           <span>Password</span>
@@ -1170,6 +1459,16 @@ onUnmounted(() => {
             v-model="authForm.password"
             type="password"
             :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
+            minlength="6"
+            required
+          />
+        </label>
+        <label v-if="authMode === 'register'">
+          <span>Confirm password</span>
+          <input
+            v-model="authForm.passwordConfirmation"
+            type="password"
+            autocomplete="new-password"
             minlength="6"
             required
           />
@@ -1192,6 +1491,15 @@ onUnmounted(() => {
 
       <button class="primary-action" type="submit" :disabled="authSaving">
         {{ authSaving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
+      </button>
+      <button
+        v-if="authMode === 'login'"
+        class="secondary-action"
+        type="button"
+        :disabled="authSaving"
+        @click="showForgotPassword"
+      >
+        Forgot password?
       </button>
     </form>
   </main>

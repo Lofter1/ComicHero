@@ -32,17 +32,21 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 	}
 
 	var rows []struct {
-		ID          int            `db:"id"`
-		Name        string         `db:"name"`
-		IsAdmin     bool           `db:"is_admin"`
-		Allowed     sql.NullBool   `db:"allowed"`
-		Scopes      sql.NullString `db:"scopes"`
-		HourlyLimit sql.NullInt64  `db:"hourly_limit"`
+		ID            int            `db:"id"`
+		Name          string         `db:"name"`
+		Email         string         `db:"email"`
+		EmailVerified bool           `db:"email_verified"`
+		IsAdmin       bool           `db:"is_admin"`
+		Allowed       sql.NullBool   `db:"allowed"`
+		Scopes        sql.NullString `db:"scopes"`
+		HourlyLimit   sql.NullInt64  `db:"hourly_limit"`
 	}
 	if err := db.SelectContext(ctx, &rows, `
 		SELECT
 			u.id,
 			u.name,
+			u.email,
+			u.email_verified_at <> '' AS email_verified,
 			u.is_admin,
 			p.allowed,
 			p.scopes,
@@ -58,9 +62,11 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 	for _, row := range rows {
 		users = append(users, UserAdminView{
 			User: User{
-				ID:      row.ID,
-				Name:    row.Name,
-				IsAdmin: row.IsAdmin,
+				ID:            row.ID,
+				Name:          row.Name,
+				Email:         row.Email,
+				EmailVerified: row.EmailVerified,
+				IsAdmin:       row.IsAdmin,
 			},
 			MetronPermissions: permissionsFromRow(row.IsAdmin, row.Allowed, row.Scopes, row.HourlyLimit),
 		})

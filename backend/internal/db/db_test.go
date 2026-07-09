@@ -120,7 +120,7 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 		t.Fatalf("ensure user login schema: %v", err)
 	}
 
-	for _, table := range []string{"app_settings", "user_sessions", "user_comics"} {
+	for _, table := range []string{"app_settings", "user_sessions", "user_comics", "user_email_verifications", "user_password_resets"} {
 		exists, err := tableExists(database, table)
 		if err != nil {
 			t.Fatalf("check table %s: %v", table, err)
@@ -129,7 +129,7 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 			t.Fatalf("table %s missing", table)
 		}
 	}
-	for _, column := range []string{"password_hash", "is_default", "created_at"} {
+	for _, column := range []string{"email", "email_verified_at", "password_hash", "is_default", "created_at"} {
 		exists, err := columnExists(database, "users", column)
 		if err != nil {
 			t.Fatalf("check column %s: %v", column, err)
@@ -137,6 +137,38 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 		if !exists {
 			t.Fatalf("users.%s missing", column)
 		}
+	}
+	sessionExpiryExists, err := columnExists(database, "user_sessions", "expires_at")
+	if err != nil {
+		t.Fatalf("check user_sessions.expires_at: %v", err)
+	}
+	if !sessionExpiryExists {
+		t.Fatal("user_sessions.expires_at missing")
+	}
+	var emailIndexCount int
+	if err := database.Get(&emailIndexCount, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_users_email'`); err != nil {
+		t.Fatalf("check email index: %v", err)
+	}
+	if emailIndexCount != 1 {
+		t.Fatalf("idx_users_email count = %d; want 1", emailIndexCount)
+	}
+	if _, err := database.Exec(`
+		INSERT INTO users (id, name, email, email_verified_at)
+		VALUES (2, 'Pending', 'pending@example.com', '');
+		INSERT INTO user_email_verifications (token_hash, user_id, expires_at)
+		VALUES ('pending-token-hash', 2, '2999-01-01T00:00:00Z');
+	`); err != nil {
+		t.Fatalf("seed pending verification user: %v", err)
+	}
+	if err := ensureUserLoginSchema(database); err != nil {
+		t.Fatalf("ensure user login schema after pending user: %v", err)
+	}
+	var pendingVerifiedAt string
+	if err := database.Get(&pendingVerifiedAt, `SELECT email_verified_at FROM users WHERE id = 2`); err != nil {
+		t.Fatalf("fetch pending email verification: %v", err)
+	}
+	if pendingVerifiedAt != "" {
+		t.Fatalf("pending email_verified_at = %q; want empty", pendingVerifiedAt)
 	}
 
 	var isDefault int

@@ -45,8 +45,12 @@ func (l *loginRateLimiter) allow(key string, now time.Time) bool {
 }
 
 var (
-	authLoginLimiter        = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
-	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
+	authLoginLimiter              = newLoginRateLimiter(loginRateLimitMaxAttempts, loginRateLimitWindow)
+	authRegistrationLimiter       = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
+	authEmailVerificationLimiter  = newLoginRateLimiter(emailVerificationRateLimitMaxAttempts, emailVerificationRateLimitWindow)
+	authEmailVerificationResender = newLoginRateLimiter(emailVerificationResendMaxAttempts, emailVerificationResendWindow)
+	authPasswordResetRequester    = newLoginRateLimiter(passwordResetRequestMaxAttempts, passwordResetRequestWindow)
+	authPasswordResetLimiter      = newLoginRateLimiter(passwordResetMaxAttempts, passwordResetWindow)
 )
 
 func clientIP(r *http.Request) string {
@@ -136,10 +140,30 @@ func isRegisterRequest(r *http.Request) bool {
 	return r.Method == http.MethodPost && path == "/auth/register"
 }
 
+func isVerifyEmailRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return (r.Method == http.MethodPost || r.Method == http.MethodGet) && path == "/auth/verify-email"
+}
+
+func isResendEmailVerificationRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/verify-email/resend"
+}
+
+func isPasswordResetRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/forgot-password"
+}
+
+func isResetPasswordRequest(r *http.Request) bool {
+	path := strings.TrimPrefix(r.URL.Path, "/api")
+	return r.Method == http.MethodPost && path == "/auth/reset-password"
+}
+
 func isUserRouteAllowedWithoutSession(path string) bool {
 	path = strings.TrimPrefix(path, "/api")
 	switch path {
-	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/openapi.json", "/openapi.yaml", "/docs":
+	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/verify-email/resend", "/auth/forgot-password", "/auth/reset-password", "/openapi.json", "/openapi.yaml", "/docs":
 		return true
 	default:
 		return false
@@ -156,10 +180,12 @@ func newLoginRateLimiter(maxAttempts int, window time.Duration) *loginRateLimite
 
 func secureSessionCookies() bool {
 	switch strings.ToLower(strings.TrimSpace(os.Getenv("COOKIE_SECURE"))) {
+	case "true", "1", "yes", "on":
+		return true
 	case "false", "0", "no", "off":
 		return false
 	default:
-		return true
+		return false
 	}
 }
 
@@ -180,11 +206,15 @@ func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int
 		return 0, huma.Error401Unauthorized("login required")
 	}
 	var row struct {
-		UserID    int    `db:"user_id"`
-		ExpiresAt string `db:"expires_at"`
+		UserID          int    `db:"user_id"`
+		ExpiresAt       string `db:"expires_at"`
+		EmailVerifiedAt string `db:"email_verified_at"`
 	}
 	if err := db.GetContext(ctx, &row, `
-		SELECT user_id, expires_at FROM user_sessions WHERE token = ?
+		SELECT s.user_id, s.expires_at, u.email_verified_at
+		FROM user_sessions s
+		JOIN users u ON u.id = s.user_id
+		WHERE s.token = ?
 	`, token); err != nil {
 		return 0, huma.Error401Unauthorized("login required")
 	}
@@ -192,6 +222,10 @@ func userIDFromSessionToken(ctx context.Context, db *sqlx.DB, token string) (int
 	if err != nil || !expiresAt.After(time.Now().UTC()) {
 		_, _ = db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token)
 		return 0, huma.Error401Unauthorized("login required")
+	}
+	if row.EmailVerifiedAt == "" {
+		_, _ = db.ExecContext(ctx, `DELETE FROM user_sessions WHERE token = ?`, token)
+		return 0, huma.Error401Unauthorized("email verification required")
 	}
 	return row.UserID, nil
 }
@@ -221,6 +255,22 @@ func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 			}
 			if isRegisterRequest(r) && !authRegistrationLimiter.allow(clientIP(r), time.Now()) {
 				http.Error(w, "too many registration attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isVerifyEmailRequest(r) && !authEmailVerificationLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many email verification attempts, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isResendEmailVerificationRequest(r) && !authEmailVerificationResender.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many email verification emails requested, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isPasswordResetRequest(r) && !authPasswordResetRequester.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many password reset emails requested, try again later", http.StatusTooManyRequests)
+				return
+			}
+			if isResetPasswordRequest(r) && !authPasswordResetLimiter.allow(clientIP(r), time.Now()) {
+				http.Error(w, "too many password reset attempts, try again later", http.StatusTooManyRequests)
 				return
 			}
 			if isUserRouteAllowedWithoutSession(r.URL.Path) {

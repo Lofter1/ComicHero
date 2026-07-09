@@ -20,6 +20,18 @@ export const router = createRouter({
     { path: '/readingOrders', redirect: { name: 'readingOrders' } },
     { path: '/readingOrders/new', redirect: { name: 'readingOrdersNew' } },
     {
+      path: '/verify-email',
+      name: 'verifyEmail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Account', title: 'Verify email' },
+    },
+    {
+      path: '/reset-password',
+      name: 'resetPassword',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Account', title: 'Reset password' },
+    },
+    {
       path: '/readingOrders/:id',
       redirect: (to) => ({ name: 'readingOrderDetail', params: { id: to.params.id } }),
     },
