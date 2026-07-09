@@ -3102,6 +3102,24 @@ textarea {
     width: min(320px, calc(100vw - 36px));
   }
 
+  .public-session-card {
+    display: block;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .public-session-card strong,
+  .public-session-card span {
+    display: none;
+  }
+
+  .public-session-card .secondary-action {
+    min-height: 42px;
+    margin-top: 0;
+    padding: 0 18px;
+  }
+
   .nav-tabs :where(a, button) {
     justify-content: center;
     text-align: center;
