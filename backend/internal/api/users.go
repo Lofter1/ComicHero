@@ -33,6 +33,11 @@ const (
 
 	registrationRateLimitMaxAttempts = 3
 	registrationRateLimitWindow      = time.Hour
+
+	emailVerificationRateLimitMaxAttempts = 5
+	emailVerificationRateLimitWindow      = time.Minute
+	emailVerificationResendMaxAttempts    = 3
+	emailVerificationResendWindow         = time.Hour
 )
 
 type contextUserIDKey struct{}
@@ -85,6 +90,42 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 		Errors:      []int{400, 401, 500},
 	}, func(ctx context.Context, input *LoginUserInput) (*UserStatusOutput, error) {
 		return loginUser(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "verifyEmail",
+		Tags:        []string{tagUsers},
+		Summary:     "Verify email",
+		Description: "Verifies a pending email address using a single-use token and starts a session.",
+		Method:      http.MethodPost,
+		Path:        "/auth/verify-email",
+		Errors:      []int{400, 401, 500},
+	}, func(ctx context.Context, input *VerifyEmailInput) (*UserStatusOutput, error) {
+		return verifyEmail(ctx, db, input.Body.Token)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "verifyEmailLink",
+		Tags:        []string{tagUsers},
+		Summary:     "Verify email from link",
+		Description: "Verifies a pending email address using a single-use token from an email link and starts a session.",
+		Method:      http.MethodGet,
+		Path:        "/auth/verify-email",
+		Errors:      []int{400, 401, 500},
+	}, func(ctx context.Context, input *VerifyEmailLinkInput) (*UserStatusOutput, error) {
+		return verifyEmail(ctx, db, input.Token)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "resendEmailVerification",
+		Tags:        []string{tagUsers},
+		Summary:     "Resend email verification",
+		Description: "Sends a new email verification token after verifying the pending user's password.",
+		Method:      http.MethodPost,
+		Path:        "/auth/verify-email/resend",
+		Errors:      []int{400, 401, 500},
+	}, func(ctx context.Context, input *ResendEmailVerificationInput) (*UserStatusOutput, error) {
+		return resendEmailVerification(ctx, db, input.Body)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -338,7 +379,7 @@ func setupUsers(ctx context.Context, db *sqlx.DB, payload SetupUsersPayload) (*U
 		}
 		if _, err := tx.ExecContext(ctx, `
 			UPDATE users
-			SET name = ?, email = ?, password_hash = ?, is_default = 0
+			SET name = ?, email = ?, email_verified_at = CURRENT_TIMESTAMP, password_hash = ?, is_default = 0
 			WHERE id = ?
 		`, name, email, passwordHash, userID); err != nil {
 			return nil, huma.Error409Conflict("user name or email already exists")
@@ -410,10 +451,14 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 		}
 	}
 
+	verifiedAt := currentTimestamp()
+	if requiresEmailVerification(regMode) {
+		verifiedAt = ""
+	}
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO users (name, email, password_hash)
-		VALUES (?, ?, ?)
-	`, name, email, passwordHash)
+		INSERT INTO users (name, email, email_verified_at, password_hash)
+		VALUES (?, ?, ?, ?)
+	`, name, email, verifiedAt, passwordHash)
 	if err != nil {
 		return nil, huma.Error409Conflict("user name or email already exists")
 	}
@@ -421,8 +466,26 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get user id")
 	}
+	var verificationToken string
+	if requiresEmailVerification(regMode) {
+		token, _, err := createEmailVerification(ctx, tx, int(id))
+		if err != nil {
+			return nil, err
+		}
+		verificationToken = token
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, huma.Error500InternalServerError("failed to create user")
+	}
+	if verificationToken != "" {
+		if err := sendEmailVerification(ctx, emailVerificationMessage{
+			To:    email,
+			Link:  emailVerificationLink(verificationToken),
+			Token: verificationToken,
+		}); err != nil {
+			return nil, err
+		}
+		return emailVerificationRequiredStatus(ctx, db, email)
 	}
 	cookie, err := createSession(ctx, db, int(id))
 	if err != nil {
@@ -546,15 +609,17 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 	}
 
 	var row struct {
-		ID           int    `db:"id"`
-		PasswordHash string `db:"password_hash"`
+		ID              int    `db:"id"`
+		Email           string `db:"email"`
+		EmailVerifiedAt string `db:"email_verified_at"`
+		PasswordHash    string `db:"password_hash"`
 	}
 	email, err := cleanEmailAddress(payload.Email)
 	if err != nil {
 		return nil, huma.Error401Unauthorized("invalid email or password")
 	}
 	if err := db.GetContext(ctx, &row, `
-		SELECT id, password_hash FROM users WHERE email = ?
+		SELECT id, email, email_verified_at, password_hash FROM users WHERE email = ?
 	`, email); err != nil {
 		return nil, huma.Error401Unauthorized("invalid email or password")
 	}
@@ -567,11 +632,78 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 			_, _ = db.ExecContext(ctx, `UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, row.ID)
 		}
 	}
+	if row.EmailVerifiedAt == "" {
+		return emailVerificationRequiredStatus(ctx, db, row.Email)
+	}
 	cookie, err := createSession(ctx, db, row.ID)
 	if err != nil {
 		return nil, err
 	}
 	return userStatusForUser(ctx, db, mode, row.ID, cookie)
+}
+
+func verifyEmail(ctx context.Context, db *sqlx.DB, token string) (*UserStatusOutput, error) {
+	userID, err := verifyEmailToken(ctx, db, token)
+	if err != nil {
+		return nil, err
+	}
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured || mode != userModeMulti {
+		return nil, huma.Error400BadRequest("email verification is only available in multi-user mode")
+	}
+	cookie, err := createSession(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	return userStatusForUser(ctx, db, mode, userID, cookie)
+}
+
+func resendEmailVerification(ctx context.Context, db *sqlx.DB, payload ResendEmailVerificationPayload) (*UserStatusOutput, error) {
+	email, err := cleanEmailAddress(payload.Email)
+	if err != nil {
+		return nil, huma.Error401Unauthorized("invalid email or password")
+	}
+	var row struct {
+		ID              int    `db:"id"`
+		Email           string `db:"email"`
+		EmailVerifiedAt string `db:"email_verified_at"`
+		PasswordHash    string `db:"password_hash"`
+	}
+	if err := db.GetContext(ctx, &row, `
+		SELECT id, email, email_verified_at, password_hash
+		FROM users
+		WHERE email = ?
+	`, email); err != nil {
+		return nil, huma.Error401Unauthorized("invalid email or password")
+	}
+	if !checkPassword(payload.Password, row.PasswordHash) {
+		return nil, huma.Error401Unauthorized("invalid email or password")
+	}
+	if row.EmailVerifiedAt != "" {
+		mode, configured, err := userMode(ctx, db)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("failed to fetch user setup")
+		}
+		if !configured {
+			return nil, huma.Error400BadRequest("user setup is not complete")
+		}
+		return userStatusForUser(ctx, db, mode, row.ID, nil)
+	}
+	token, _, err := createEmailVerification(ctx, db, row.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := sendEmailVerification(ctx, emailVerificationMessage{
+		To:    row.Email,
+		Link:  emailVerificationLink(token),
+		Token: token,
+	}); err != nil {
+		return nil, err
+	}
+	return emailVerificationRequiredStatus(ctx, db, row.Email)
 }
 
 func logoutUser(ctx context.Context, db *sqlx.DB, token string) (*LogoutUserOutput, error) {
@@ -786,7 +918,7 @@ func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
 func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 	var user User
 	if err := db.GetContext(ctx, &user, `
-		SELECT id, name, email, is_admin FROM users WHERE id = ?
+		SELECT id, name, email, email_verified_at <> '' AS email_verified, is_admin FROM users WHERE id = ?
 	`, id); err != nil {
 		if err == sql.ErrNoRows {
 			return User{}, huma.Error401Unauthorized("login required")
@@ -794,6 +926,29 @@ func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 		return User{}, huma.Error500InternalServerError("failed to fetch user")
 	}
 	return user, nil
+}
+
+func emailVerificationRequiredStatus(ctx context.Context, db *sqlx.DB, email string) (*UserStatusOutput, error) {
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	regMode, err := registrationMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch registration mode")
+	}
+	publicAccess, err := publicAccessEnabled(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch public access setting")
+	}
+	return &UserStatusOutput{Body: UserStatus{
+		SetupRequired:             !configured,
+		Mode:                      mode,
+		RegistrationMode:          regMode,
+		PublicAccess:              publicAccess,
+		EmailVerificationRequired: true,
+		EmailVerificationEmail:    email,
+	}}, nil
 }
 
 func requireAdminUser(ctx context.Context, db *sqlx.DB) (int, error) {

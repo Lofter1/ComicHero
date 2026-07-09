@@ -29,10 +29,11 @@ type ComicPayload struct {
 }
 
 type User struct {
-	ID      int    `json:"id"      db:"id"       doc:"Local user identifier." example:"1"`
-	Name    string `json:"name"    db:"name"     doc:"Display name." example:"Justin"`
-	Email   string `json:"email"   db:"email"    doc:"Email address used to log in." example:"reader@example.com"`
-	IsAdmin bool   `json:"isAdmin" db:"is_admin" doc:"Whether the user can manage user permissions." example:"false"`
+	ID            int    `json:"id"            db:"id"                doc:"Local user identifier." example:"1"`
+	Name          string `json:"name"          db:"name"              doc:"Display name." example:"Justin"`
+	Email         string `json:"email"         db:"email"             doc:"Email address used to log in." example:"reader@example.com"`
+	EmailVerified bool   `json:"emailVerified" db:"email_verified"    doc:"Whether this user's email address has been verified." example:"true"`
+	IsAdmin       bool   `json:"isAdmin"       db:"is_admin"          doc:"Whether the user can manage user permissions." example:"false"`
 }
 
 type UserMetronPermissions struct {
@@ -106,12 +107,14 @@ type PublicAccessOutput struct {
 }
 
 type UserStatus struct {
-	SetupRequired     bool                  `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
-	Mode              string                `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
-	RegistrationMode  string                `json:"registrationMode" doc:"Configured registration mode: invite_only or open." enum:"invite_only,open" example:"invite_only"`
-	PublicAccess      bool                  `json:"publicAccess" doc:"Whether anonymous read-only access is enabled." example:"false"`
-	User              *User                 `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
-	MetronPermissions UserMetronPermissions `json:"metronPermissions" doc:"Current user's Metron endpoint permissions."`
+	SetupRequired             bool                  `json:"setupRequired" doc:"Whether the app still needs single-user or multi-user setup." example:"false"`
+	Mode                      string                `json:"mode,omitempty" doc:"Configured user mode: single or multi." enum:"single,multi" example:"single"`
+	RegistrationMode          string                `json:"registrationMode" doc:"Configured registration mode: invite_only or open." enum:"invite_only,open" example:"invite_only"`
+	PublicAccess              bool                  `json:"publicAccess" doc:"Whether anonymous read-only access is enabled." example:"false"`
+	EmailVerificationRequired bool                  `json:"emailVerificationRequired" doc:"Whether login is blocked until email verification is completed." example:"false"`
+	EmailVerificationEmail    string                `json:"emailVerificationEmail,omitempty" doc:"Email address waiting for verification." example:"reader@example.com"`
+	User                      *User                 `json:"user,omitempty" doc:"Current user, when a session is active or single-user mode is enabled."`
+	MetronPermissions         UserMetronPermissions `json:"metronPermissions" doc:"Current user's Metron endpoint permissions."`
 }
 
 type UserStatusOutput struct {
@@ -196,6 +199,27 @@ type RegisterUserInput struct {
 
 type LoginUserInput struct {
 	Body UserCredentialsPayload
+}
+
+type VerifyEmailPayload struct {
+	Token string `json:"token" minLength:"1" doc:"Email verification token."`
+}
+
+type VerifyEmailInput struct {
+	Body VerifyEmailPayload
+}
+
+type VerifyEmailLinkInput struct {
+	Token string `query:"token" minLength:"1" doc:"Email verification token."`
+}
+
+type ResendEmailVerificationPayload struct {
+	Email    string `json:"email"    minLength:"1" format:"email" doc:"Email address used to log in." example:"reader@example.com"`
+	Password string `json:"password" minLength:"6" doc:"Password." example:"correct horse battery staple"`
+}
+
+type ResendEmailVerificationInput struct {
+	Body ResendEmailVerificationPayload
 }
 
 type UpdateAccountPayload struct {

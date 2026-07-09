@@ -144,7 +144,7 @@ function registrationModeLabel(mode) {
           <p class="muted">
             {{
               registrationMode === 'open'
-                ? 'Anyone who can reach this server can register without an invite.'
+                ? 'Anyone who can reach this server can register without an invite, then verify their email.'
                 : 'New accounts need a single-use invite token to register.'
             }}
           </p>
@@ -170,7 +170,7 @@ function registrationModeLabel(mode) {
         </div>
 
         <p v-if="registrationMode === 'open'" class="warning-copy">
-          Open registration gives new accounts full read/write access to the shared library.
+          Open registration gives verified new accounts full read/write access to the shared library.
         </p>
       </div>
 

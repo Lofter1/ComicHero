@@ -82,6 +82,7 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		{name: "is_default", sql: `ALTER TABLE users ADD COLUMN is_default INTEGER NOT NULL DEFAULT 0`},
 		{name: "is_admin", sql: `ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`},
 		{name: "created_at", sql: `ALTER TABLE users ADD COLUMN created_at TEXT NOT NULL DEFAULT ''`},
+		{name: "email_verified_at", sql: `ALTER TABLE users ADD COLUMN email_verified_at TEXT NOT NULL DEFAULT ''`},
 	}
 	for _, column := range columns {
 		exists, err := columnExists(db, "users", column.name)
@@ -110,6 +111,18 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 			created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`); err != nil {
+		return err
+	}
+	hasSessionExpiry, err := columnExists(db, "user_sessions", "expires_at")
+	if err != nil {
+		return err
+	}
+	if !hasSessionExpiry {
+		if _, err := db.Exec(`ALTER TABLE user_sessions ADD COLUMN expires_at TEXT NOT NULL DEFAULT ''`); err != nil {
+			return err
+		}
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`
@@ -141,6 +154,9 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email <> ''`); err != nil {
 		return err
 	}
+	if _, err := db.Exec(`UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email_verified_at = ''`); err != nil {
+		return err
+	}
 	if _, err := db.Exec(`INSERT OR IGNORE INTO users (name, is_default) VALUES ('Default', 1)`); err != nil {
 		return err
 	}
@@ -150,6 +166,9 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		WHERE is_default = 1
 		   OR id = (SELECT MIN(id) FROM users)
 	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`UPDATE users SET email_verified_at = CURRENT_TIMESTAMP WHERE email_verified_at = '' AND (is_default = 1 OR is_admin = 1)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`
@@ -178,6 +197,23 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	if _, err := db.Exec(`
 		CREATE INDEX IF NOT EXISTS idx_user_metron_request_log_user_created
 		ON user_metron_request_log(user_id, created_at)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS user_email_verifications (
+			token_hash TEXT PRIMARY KEY,
+			user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			expires_at TEXT    NOT NULL,
+			used_at    TEXT    NOT NULL DEFAULT '',
+			created_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`); err != nil {
+		return err
+	}
+	if _, err := db.Exec(`
+		CREATE INDEX IF NOT EXISTS idx_user_email_verifications_user_expires
+		ON user_email_verifications(user_id, expires_at)
 	`); err != nil {
 		return err
 	}

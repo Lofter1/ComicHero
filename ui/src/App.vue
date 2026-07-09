@@ -37,12 +37,14 @@ import {
   loginUser,
   logoutUser,
   registerUser,
+  resendEmailVerification,
   setupUsers,
   updateAccount,
   updatePublicAccess,
   updateRegistrationMode,
   updateUserAdmin,
   updateUserMetronPermissions,
+  verifyEmail,
 } from '@/api/client.js'
 
 const activeView = ref('readingOrders')
@@ -64,6 +66,7 @@ const authForm = ref({
   passwordConfirmation: '',
   inviteToken: '',
 })
+const verificationForm = ref({ token: '', email: '', password: '' })
 const userAdminRows = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
@@ -313,11 +316,19 @@ const authRequired = computed(
   () =>
     userMode.value === 'multi' &&
     !currentUser.value &&
+    !emailVerificationRequired.value &&
     (!publicAccess.value || loginRequested.value),
+)
+const emailVerificationRequired = computed(() =>
+  Boolean(userStatus.value?.emailVerificationRequired),
 )
 const appReady = computed(
   () =>
-    Boolean(userStatus.value) && !authLoading.value && !setupRequired.value && !authRequired.value,
+    Boolean(userStatus.value) &&
+    !authLoading.value &&
+    !setupRequired.value &&
+    !authRequired.value &&
+    !emailVerificationRequired.value,
 )
 
 function hasMetronScope(scope) {
@@ -427,6 +438,11 @@ async function submitAuth() {
     }
     userStatus.value =
       authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
+    if (userStatus.value?.emailVerificationRequired) {
+      verificationForm.value.email = userStatus.value.emailVerificationEmail || authForm.value.email
+      verificationForm.value.password = authForm.value.password
+      return
+    }
     loginRequested.value = false
     await applyCurrentRoute({ replace: true, force: true })
   } catch (err) {
@@ -434,6 +450,43 @@ async function submitAuth() {
   } finally {
     authSaving.value = false
   }
+}
+
+async function submitEmailVerification() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await verifyEmail({ token: verificationForm.value.token })
+    verificationForm.value.token = ''
+    loginRequested.value = false
+    await applyCurrentRoute({ replace: true, force: true })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function resendVerificationEmail() {
+  authSaving.value = true
+  error.value = ''
+  try {
+    userStatus.value = await resendEmailVerification({
+      email: verificationForm.value.email || userStatus.value?.emailVerificationEmail,
+      password: verificationForm.value.password,
+    })
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    authSaving.value = false
+  }
+}
+
+async function verifyEmailFromRouteToken() {
+  const token = typeof route.query.token === 'string' ? route.query.token.trim() : ''
+  if (!token) return
+  verificationForm.value.token = token
+  await submitEmailVerification()
 }
 
 async function loadUserAdminRows() {
@@ -1014,6 +1067,9 @@ onMounted(async () => {
     themeMediaQuery?.addEventListener('change', handleSystemThemeChange)
   }
   await loadUserStatus()
+  if (route.name === 'verifyEmail') {
+    await verifyEmailFromRouteToken()
+  }
   if (appReady.value) {
     if (!(await enforceCurrentRouteAccess())) {
       await applyCurrentRoute({ replace: true, force: true })
@@ -1160,6 +1216,52 @@ onUnmounted(() => {
 
       <button class="primary-action" type="submit" :disabled="authSaving">
         {{ authSaving ? 'Saving...' : 'Continue' }}
+      </button>
+    </form>
+  </main>
+
+  <main v-else-if="emailVerificationRequired" class="auth-shell">
+    <form class="auth-panel" @submit.prevent="submitEmailVerification">
+      <div>
+        <p class="eyebrow">Verify Email</p>
+        <h1>Check your email</h1>
+        <p>
+          Enter the verification token sent to
+          {{ userStatus.emailVerificationEmail || verificationForm.email }}.
+        </p>
+      </div>
+
+      <div class="auth-fields">
+        <label>
+          <span>Verification token</span>
+          <input
+            v-model.trim="verificationForm.token"
+            type="text"
+            autocomplete="one-time-code"
+            required
+          />
+        </label>
+        <label>
+          <span>Password</span>
+          <input
+            v-model="verificationForm.password"
+            type="password"
+            autocomplete="current-password"
+            minlength="6"
+          />
+        </label>
+      </div>
+
+      <div v-if="error" class="toast error-toast" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <button class="primary-action" type="submit" :disabled="authSaving">
+        {{ authSaving ? 'Verifying...' : 'Verify email' }}
+      </button>
+      <button class="secondary-action" type="button" :disabled="authSaving" @click="resendVerificationEmail">
+        Resend email
       </button>
     </form>
   </main>

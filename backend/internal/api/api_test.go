@@ -127,9 +127,10 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 	if _, err := db.Exec(`
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT '',
-				password_hash TEXT NOT NULL DEFAULT '',
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
 				is_default INTEGER NOT NULL DEFAULT 0,
 				is_admin INTEGER NOT NULL DEFAULT 0
 		);
@@ -298,9 +299,10 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 		);
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT '',
-				password_hash TEXT NOT NULL DEFAULT '',
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
 				is_default INTEGER NOT NULL DEFAULT 0,
 				is_admin INTEGER NOT NULL DEFAULT 0
 		);
@@ -555,9 +557,10 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 		);
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT '',
-				password_hash TEXT NOT NULL DEFAULT '',
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
 				is_default INTEGER NOT NULL DEFAULT 0,
 				is_admin INTEGER NOT NULL DEFAULT 0
 		);
@@ -622,10 +625,11 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			metron_issue_id INTEGER
 		);
 			CREATE TABLE users (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT ''
-			);
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z'
+				);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -732,10 +736,11 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 			metron_issue_id INTEGER
 		);
 			CREATE TABLE users (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT ''
-			);
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z'
+				);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -814,10 +819,11 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 			metron_issue_id INTEGER
 		);
 			CREATE TABLE users (
-				id INTEGER PRIMARY KEY AUTOINCREMENT,
-				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT ''
-			);
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					name TEXT NOT NULL UNIQUE,
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z'
+				);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1496,6 +1502,78 @@ func TestRegistrationModeDefaultsAndAdminCanUpdate(t *testing.T) {
 	}
 }
 
+func TestOpenRegistrationRequiresEmailVerificationBeforeAccess(t *testing.T) {
+	t.Setenv("SMTP_HOST", "")
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		INSERT INTO app_settings (key, value) VALUES ('registration_mode', 'open');
+	`); err != nil {
+		t.Fatalf("seed open registration mode: %v", err)
+	}
+
+	output, err := registerUser(context.Background(), db, UserCredentialsPayload{
+		Name:                 "Open Pending",
+		Email:                "open-pending@example.com",
+		EmailConfirmation:    "open-pending@example.com",
+		Password:             "secret1",
+		PasswordConfirmation: "secret1",
+	})
+	if err != nil {
+		t.Fatalf("registerUser open: %v", err)
+	}
+	if !output.Body.EmailVerificationRequired || output.Body.EmailVerificationEmail != "open-pending@example.com" {
+		t.Fatalf("registration status = %#v; want email verification required", output.Body)
+	}
+	if len(output.SetCookie) != 0 {
+		t.Fatalf("registration cookies = %#v; want no session before verification", output.SetCookie)
+	}
+
+	var row struct {
+		ID              int    `db:"id"`
+		EmailVerifiedAt string `db:"email_verified_at"`
+	}
+	if err := db.Get(&row, `SELECT id, email_verified_at FROM users WHERE email = 'open-pending@example.com'`); err != nil {
+		t.Fatalf("fetch registered user: %v", err)
+	}
+	if row.EmailVerifiedAt != "" {
+		t.Fatalf("email_verified_at = %q; want empty before verification", row.EmailVerifiedAt)
+	}
+	var tokenCount int
+	if err := db.Get(&tokenCount, `SELECT COUNT(*) FROM user_email_verifications WHERE user_id = ? AND used_at = ''`, row.ID); err != nil {
+		t.Fatalf("count verification tokens: %v", err)
+	}
+	if tokenCount != 1 {
+		t.Fatalf("active verification token count = %d; want 1", tokenCount)
+	}
+
+	loginOutput, err := loginUser(context.Background(), db, UserCredentialsPayload{
+		Email:    "open-pending@example.com",
+		Password: "secret1",
+	})
+	if err != nil {
+		t.Fatalf("loginUser pending: %v", err)
+	}
+	if !loginOutput.Body.EmailVerificationRequired || len(loginOutput.SetCookie) != 0 {
+		t.Fatalf("pending login = %#v cookies %#v; want verification required without session", loginOutput.Body, loginOutput.SetCookie)
+	}
+
+	token, _, err := createEmailVerification(context.Background(), db, row.ID)
+	if err != nil {
+		t.Fatalf("create verification token: %v", err)
+	}
+	verified, err := verifyEmail(context.Background(), db, token)
+	if err != nil {
+		t.Fatalf("verifyEmail: %v", err)
+	}
+	if verified.Body.User == nil || !verified.Body.User.EmailVerified {
+		t.Fatalf("verified user = %#v; want verified session user", verified.Body.User)
+	}
+	if len(verified.SetCookie) != 1 || verified.SetCookie[0].Value == "" {
+		t.Fatalf("verification cookies = %#v; want session", verified.SetCookie)
+	}
+}
+
 func TestPublicAccessDefaultsAndAdminCanUpdate(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
@@ -1713,8 +1791,9 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				name TEXT NOT NULL UNIQUE,
-				email TEXT NOT NULL DEFAULT '',
-				password_hash TEXT NOT NULL DEFAULT '',
+					email TEXT NOT NULL DEFAULT '',
+					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+					password_hash TEXT NOT NULL DEFAULT '',
 				is_default INTEGER NOT NULL DEFAULT 0,
 				is_admin INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL DEFAULT ''
@@ -1753,14 +1832,21 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			expires_at TEXT NOT NULL DEFAULT ''
 		);
-		CREATE TABLE user_invites (
-			token TEXT PRIMARY KEY,
-			created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-			expires_at TEXT NOT NULL DEFAULT '',
-			used_at TEXT NOT NULL DEFAULT '',
-			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-		);
-		CREATE TABLE user_comics (
+			CREATE TABLE user_invites (
+				token TEXT PRIMARY KEY,
+				created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+				expires_at TEXT NOT NULL DEFAULT '',
+				used_at TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE TABLE user_email_verifications (
+				token_hash TEXT PRIMARY KEY,
+				user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+				expires_at TEXT NOT NULL,
+				used_at TEXT NOT NULL DEFAULT '',
+				created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);
+			CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
