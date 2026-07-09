@@ -1,10 +1,5 @@
 import { computed, ref } from 'vue'
-import {
-  getSeries,
-  importLocalSeriesFromMetron,
-  listSeries,
-  updateSeriesFavorite,
-} from '@/api/client.js'
+import { getSeries, importMetronSeries, listSeries, updateSeriesFavorite } from '@/api/client.js'
 
 export function useSeries({
   activeView,
@@ -62,11 +57,11 @@ export function useSeries({
   }
 
   async function importSelectedSeriesFromMetron() {
-    if (!selectedSeries.value?.id || seriesImportRunning(selectedSeries.value)) return
+    if (!selectedSeries.value?.metronSeriesId || seriesImportRunning(selectedSeries.value)) return
 
     error.value = ''
     try {
-      const { data: job } = await importLocalSeriesFromMetron(selectedSeries.value.id)
+      const { data: job } = await importMetronSeries(selectedSeries.value.metronSeriesId)
       trackMetronImportJob({ ...job, displayName: selectedSeries.value.name })
     } catch (err) {
       error.value = err.message
@@ -74,12 +69,12 @@ export function useSeries({
   }
 
   function seriesImportRunning(item) {
-    if (!item?.id) return false
+    if (!item?.metronSeriesId) return false
     return metronImportJobs.value.some((job) => {
       return (
         job.type === 'series' &&
-        (job.status === 'queued' || job.status === 'running' || job.status === 'canceling') &&
-        (job.metronId === item.metronSeriesId || job.displayName === item.name)
+        job.metronId === item.metronSeriesId &&
+        (job.status === 'queued' || job.status === 'running' || job.status === 'canceling')
       )
     })
   }

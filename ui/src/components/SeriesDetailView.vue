@@ -54,7 +54,7 @@ function seriesPublisherLabel(series) {
           <span aria-hidden="true">{{ selectedSeries.favorite ? '★' : '☆' }}</span>
         </button>
         <button
-          v-if="selectedSeries && !readOnly"
+          v-if="selectedSeries?.metronSeriesId && !readOnly"
           class="primary-button"
           type="button"
           :disabled="importRunning"
