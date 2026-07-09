@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"image"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -348,11 +351,11 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 		t.Fatalf("create schema: %v", err)
 	}
 
-	parent, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: "Parent"})
+	parent, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Parent"})
 	if err != nil {
 		t.Fatalf("create parent: %v", err)
 	}
-	child, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: "Child"})
+	child, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Child"})
 	if err != nil {
 		t.Fatalf("create child: %v", err)
 	}
@@ -465,7 +468,7 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 		t.Fatalf("insert owner: %v", err)
 	}
 
-	created, err := createReadingOrder(ownerCtx, db, ReadingOrderPayload{Name: "Owner list"})
+	created, err := createReadingOrder(ownerCtx, db, nil, ReadingOrderPayload{Name: "Owner list"})
 	if err != nil {
 		t.Fatalf("createReadingOrder: %v", err)
 	}
@@ -481,7 +484,7 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 		t.Fatalf("non-author canEdit = true; want false")
 	}
 
-	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Nope"}); err == nil {
+	if _, err := updateReadingOrder(otherCtx, db, nil, created.Body.ID, ReadingOrderPayload{Name: "Nope"}); err == nil {
 		t.Fatalf("updateReadingOrder as non-author succeeded; want error")
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE users SET is_admin = 1 WHERE id = 1`); err != nil {
@@ -494,12 +497,50 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	if !adminView.Body.CanEdit {
 		t.Fatalf("admin canEdit = false; want true")
 	}
-	if _, err := updateReadingOrder(otherCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Admin update"}); err != nil {
+	if _, err := updateReadingOrder(otherCtx, db, nil, created.Body.ID, ReadingOrderPayload{Name: "Admin update"}); err != nil {
 		t.Fatalf("updateReadingOrder as admin: %v", err)
 	}
-	if _, err := updateReadingOrder(ownerCtx, db, created.Body.ID, ReadingOrderPayload{Name: "Updated"}); err != nil {
+	if _, err := updateReadingOrder(ownerCtx, db, nil, created.Body.ID, ReadingOrderPayload{Name: "Updated"}); err != nil {
 		t.Fatalf("updateReadingOrder as author: %v", err)
 	}
+}
+
+func TestReadingOrderCoverUploadResizesAndDeletesUnusedOldCover(t *testing.T) {
+	ctx := testUserContext()
+	db := newMetronImportTestDB(t)
+	covers := NewCoverCache(t.TempDir(), "/covers")
+
+	created, err := createReadingOrder(ctx, db, covers, ReadingOrderPayload{
+		Name:           "Cover list",
+		CoverImageData: imageDataURL("image/png", testPNG(t, 1200, 1800)),
+	})
+	if err != nil {
+		t.Fatalf("createReadingOrder: %v", err)
+	}
+	oldImage := created.Body.Image
+	if oldImage == "" {
+		t.Fatal("created reading order missing cover image")
+	}
+	oldPath := coverPath(t, covers, oldImage)
+	assertCoverMaxDimension(t, oldPath, coverMaxDimension)
+
+	updated, err := updateReadingOrder(ctx, db, covers, created.Body.ID, ReadingOrderPayload{
+		Name:           "Cover list",
+		CoverImageData: imageDataURL("image/jpeg", testJPEG(t, 300, 450)),
+	})
+	if err != nil {
+		t.Fatalf("updateReadingOrder: %v", err)
+	}
+	if updated.Body.Image == "" {
+		t.Fatal("updated reading order missing cover image")
+	}
+	if updated.Body.Image == oldImage {
+		t.Fatalf("image was not replaced: %q", updated.Body.Image)
+	}
+	if _, err := os.Stat(oldPath); !os.IsNotExist(err) {
+		t.Fatalf("old cover still exists or stat failed: %v", err)
+	}
+	assertCoverMaxDimension(t, coverPath(t, covers, updated.Body.Image), 450)
 }
 
 func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T) {
@@ -550,6 +591,35 @@ func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T
 	}
 }
 
+func imageDataURL(mime string, data []byte) string {
+	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data)
+}
+
+func coverPath(t *testing.T, covers *CoverCache, image string) string {
+	t.Helper()
+	name, ok := covers.localFileName(image)
+	if !ok {
+		t.Fatalf("cover URL %q is not local", image)
+	}
+	return filepath.Join(covers.dir, name)
+}
+
+func assertCoverMaxDimension(t *testing.T, path string, want int) {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open cover: %v", err)
+	}
+	defer file.Close()
+	img, _, err := image.Decode(file)
+	if err != nil {
+		t.Fatalf("decode cover: %v", err)
+	}
+	if got := max(img.Bounds().Dx(), img.Bounds().Dy()); got != want {
+		t.Fatalf("cover max dimension = %d; want %d", got, want)
+	}
+}
+
 func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
 	ctx := testUserContext()
 	db := setupReadingOrderCBLTestDB(t)
@@ -563,7 +633,7 @@ func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
 		t.Fatalf("seed comics: %v", err)
 	}
 
-	created, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: "Batman & Robin"})
+	created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Batman & Robin"})
 	if err != nil {
 		t.Fatalf("create order: %v", err)
 	}
@@ -940,7 +1010,7 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	RegisterComicRoutes(api, nil, nil)
 	RegisterSeriesRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 	RegisterCharacterRoutes(api, nil)
-	RegisterReadingOrderRoutes(api, nil)
+	RegisterReadingOrderRoutes(api, nil, nil)
 	RegisterArcRoutes(api, nil)
 	RegisterStatisticsRoutes(api, nil)
 	RegisterMetronRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
@@ -1802,7 +1872,7 @@ func TestPublicAccessAllowsAnonymousReadOnlyRoutes(t *testing.T) {
 	api := humachi.New(apiRouter, DocsConfig())
 	RegisterUserRoutes(api, db)
 	RegisterComicRoutes(api, db, nil)
-	RegisterReadingOrderRoutes(api, db)
+	RegisterReadingOrderRoutes(api, db, nil)
 
 	disabled := httptest.NewRecorder()
 	router.ServeHTTP(disabled, httptest.NewRequest(http.MethodGet, "/api/comics", nil))

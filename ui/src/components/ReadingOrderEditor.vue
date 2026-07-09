@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
-import { listComics } from '@/api/client.js'
+import { assetURL, listComics } from '@/api/client.js'
 import { comicLabel } from '@/domain/comics.js'
 
 const props = defineProps({
@@ -34,6 +34,11 @@ let comicSearchTimer = null
 let comicSearchRequestId = 0
 
 const orderEntries = computed(() => props.form.entries || props.form.comics || [])
+const coverPreview = computed(() => {
+  if (props.form.coverImageData) return props.form.coverImageData
+  if (props.form.image) return assetURL(props.form.image)
+  return ''
+})
 
 watch(
   () => props.form.id,
@@ -115,6 +120,19 @@ function updateForm(patch) {
     ...props.form,
     ...patch,
   })
+}
+
+function chooseCoverImage(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.addEventListener('load', () => {
+    updateForm({
+      coverImageData: typeof reader.result === 'string' ? reader.result : '',
+    })
+  })
+  reader.readAsDataURL(file)
 }
 
 function updateEntry(index, patch) {
@@ -327,6 +345,16 @@ function endDrag() {
         rows="3"
         @input="updateForm({ description: $event.target.value })"
       />
+    </label>
+
+    <label class="cover-image-field">
+      Cover image
+      <span class="reading-order-cover-editor">
+        <span v-if="coverPreview" class="reading-order-cover-preview" aria-hidden="true">
+          <img :src="coverPreview" alt="" />
+        </span>
+        <input type="file" accept="image/*" @change="chooseCoverImage" />
+      </span>
     </label>
 
     <label>

@@ -434,10 +434,11 @@ type ReadingOrder struct {
 }
 
 type ReadingOrderPayload struct {
-	Name        string  `json:"name"        minLength:"1" doc:"Reading-order name." example:"Batman: Court of Owls"`
-	Description string  `json:"description" doc:"Reading-order description or notes."`
-	Favorite    bool    `json:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
-	Rating      float64 `json:"rating"      minimum:"0" maximum:"5" doc:"Reading-order rating from 0 to 5." example:"4.5"`
+	Name           string  `json:"name"           minLength:"1" doc:"Reading-order name." example:"Batman: Court of Owls"`
+	Description    string  `json:"description"    doc:"Reading-order description or notes."`
+	Favorite       bool    `json:"favorite"       doc:"Whether this reading order is marked as a favorite." example:"true"`
+	Rating         float64 `json:"rating"         minimum:"0" maximum:"5" doc:"Reading-order rating from 0 to 5." example:"4.5"`
+	CoverImageData string  `json:"coverImageData,omitempty" doc:"Optional uploaded cover image as a data URL. The server resizes and stores it in the cover cache."`
 }
 
 type ReadingOrderComicPayload struct {

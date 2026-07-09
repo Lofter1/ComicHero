@@ -132,12 +132,99 @@ func (c *CoverCache) LocalURL(ctx context.Context, source string) (string, error
 	return c.coverURL(name), nil
 }
 
+func (c *CoverCache) StoreImage(source []byte) (string, error) {
+	if c == nil {
+		return "", fmt.Errorf("cover cache is not configured")
+	}
+	if len(source) == 0 {
+		return "", fmt.Errorf("cover image is empty")
+	}
+	if len(source) > coverDownloadMaxBytes {
+		return "", fmt.Errorf("cover image is larger than %d bytes", coverDownloadMaxBytes)
+	}
+
+	optimized, err := optimizeCover(source)
+	if err != nil {
+		return "", fmt.Errorf("optimize cover: %w", err)
+	}
+
+	name := coverBytesFileName(optimized)
+	localPath := filepath.Join(c.dir, name)
+	if _, err := os.Stat(localPath); err == nil {
+		return c.coverURL(name), nil
+	}
+
+	if err := c.EnsureDir(); err != nil {
+		return "", fmt.Errorf("prepare cover cache: %w", err)
+	}
+
+	tmp, err := os.CreateTemp(c.dir, "cover-*")
+	if err != nil {
+		return "", fmt.Errorf("create cover file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := tmp.Write(optimized); err != nil {
+		tmp.Close()
+		return "", fmt.Errorf("save cover: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return "", fmt.Errorf("close cover file: %w", err)
+	}
+	if err := os.Rename(tmpPath, localPath); err != nil {
+		return "", fmt.Errorf("store cover: %w", err)
+	}
+
+	return c.coverURL(name), nil
+}
+
+func (c *CoverCache) RemoveLocalURL(source string) error {
+	if c == nil {
+		return nil
+	}
+	name, ok := c.localFileName(source)
+	if !ok {
+		return nil
+	}
+	if err := os.Remove(filepath.Join(c.dir, name)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
 func (c *CoverCache) coverURL(name string) string {
 	return path.Join(c.publicPath, name)
 }
 
+func (c *CoverCache) localFileName(source string) (string, bool) {
+	source = strings.TrimSpace(source)
+	if source == "" {
+		return "", false
+	}
+	if parsed, err := url.Parse(source); err == nil && parsed.Path != "" {
+		source = parsed.Path
+	}
+
+	publicPath := "/" + strings.Trim(strings.TrimSpace(c.publicPath), "/")
+	if !strings.HasPrefix(source, publicPath+"/") {
+		return "", false
+	}
+	name := path.Base(source)
+	if name == "." || name == "/" || name == "" {
+		return "", false
+	}
+	return name, true
+}
+
 func coverFileName(source string) string {
 	sum := sha256.Sum256([]byte(source))
+	hash := hex.EncodeToString(sum[:])[:24]
+	return hash + ".jpg"
+}
+
+func coverBytesFileName(source []byte) string {
+	sum := sha256.Sum256(source)
 	hash := hex.EncodeToString(sum[:])[:24]
 	return hash + ".jpg"
 }

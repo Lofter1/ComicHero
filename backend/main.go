@@ -50,7 +50,7 @@ func main() {
 		log.Fatalf("failed to prepare cover cache: %v", err)
 	}
 
-	api.RegisterReadingOrderRoutes(humaAPI, database)
+	api.RegisterReadingOrderRoutes(humaAPI, database, covers)
 	api.RegisterUserRoutes(humaAPI, database)
 	api.RegisterStatisticsRoutes(humaAPI, database)
 	api.RegisterArcRoutes(humaAPI, database)

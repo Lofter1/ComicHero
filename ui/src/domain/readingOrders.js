@@ -3,6 +3,8 @@ export function emptyReadingOrder() {
     id: null,
     name: '',
     description: '',
+    image: '',
+    coverImageData: '',
     favorite: false,
     rating: 0,
     ratingCount: 0,
@@ -45,6 +47,8 @@ export function readingOrderFormFromDetail(detail) {
     id: detail.id,
     name: detail.name,
     description: detail.description,
+    image: detail.image || '',
+    coverImageData: '',
     favorite: detail.favorite,
     rating: detail.rating || 0,
     ratingCount: detail.ratingCount || 0,
@@ -65,6 +69,7 @@ export function readingOrderPayload(order) {
     description: order.description,
     favorite: order.favorite,
     rating: Number(order.rating) || 0,
+    coverImageData: order.coverImageData || '',
   }
 }
 

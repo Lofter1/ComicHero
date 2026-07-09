@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"sort"
@@ -12,7 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB) {
+func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 	huma.Register(api, huma.Operation{
 		OperationID: "listReadingOrders",
 		Tags:        []string{tagReadingOrders},
@@ -72,7 +73,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB) {
 		DefaultStatus: 201,
 		Errors:        errsWrite,
 	}, func(ctx context.Context, input *CreateReadingOrderInput) (*CreateReadingOrderOutput, error) {
-		return createReadingOrder(ctx, db, input.Body)
+		return createReadingOrder(ctx, db, covers, input.Body)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -84,7 +85,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB) {
 		Path:        "/readingOrders/{id}",
 		Errors:      errsWrite,
 	}, func(ctx context.Context, input *UpdateReadingOrderInput) (*ReadingOrderDetailOutput, error) {
-		return updateReadingOrder(ctx, db, input.ID, input.Body)
+		return updateReadingOrder(ctx, db, covers, input.ID, input.Body)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -237,6 +238,69 @@ func readingOrderListOrder(sort, direction string) string {
 func validateReadingOrderRating(rating float64) error {
 	if rating < 0 || rating > 5 {
 		return huma.Error400BadRequest("reading order rating must be between 0 and 5")
+	}
+	return nil
+}
+
+func uploadedReadingOrderCover(covers *CoverCache, payload ReadingOrderPayload) (string, error) {
+	source := strings.TrimSpace(payload.CoverImageData)
+	if source == "" {
+		return "", nil
+	}
+	image, err := decodeImageDataURL(source)
+	if err != nil {
+		return "", err
+	}
+	localURL, err := covers.StoreImage(image)
+	if err != nil {
+		return "", huma.Error400BadRequest(err.Error())
+	}
+	return localURL, nil
+}
+
+func decodeImageDataURL(source string) ([]byte, error) {
+	encoded := strings.TrimSpace(source)
+	if strings.HasPrefix(encoded, "data:") {
+		header, body, ok := strings.Cut(encoded, ",")
+		if !ok {
+			return nil, huma.Error400BadRequest("cover image data URL is invalid")
+		}
+		if !strings.Contains(header, ";base64") {
+			return nil, huma.Error400BadRequest("cover image data URL must be base64 encoded")
+		}
+		if !strings.HasPrefix(header, "data:image/") {
+			return nil, huma.Error400BadRequest("cover image must be an image file")
+		}
+		encoded = body
+	}
+
+	image, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, huma.Error400BadRequest("cover image data is invalid")
+	}
+	return image, nil
+}
+
+func deleteUnusedCoverImage(ctx context.Context, db *sqlx.DB, covers *CoverCache, image string) error {
+	image = strings.TrimSpace(image)
+	if image == "" || covers == nil {
+		return nil
+	}
+
+	var references int
+	if err := db.GetContext(ctx, &references, `
+		SELECT
+			(SELECT COUNT(*) FROM reading_orders WHERE image = ?) +
+			(SELECT COUNT(*) FROM comics WHERE cover_image = ?) +
+			(SELECT COUNT(*) FROM characters WHERE image = ?)
+	`, image, image, image); err != nil {
+		return huma.Error500InternalServerError("failed to check cover image usage")
+	}
+	if references > 0 {
+		return nil
+	}
+	if err := covers.RemoveLocalURL(image); err != nil {
+		return huma.Error500InternalServerError("failed to delete old cover image")
 	}
 	return nil
 }
@@ -452,7 +516,7 @@ func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID in
 	return comics, nil
 }
 
-func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPayload) (*CreateReadingOrderOutput, error) {
+func createReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload ReadingOrderPayload) (*CreateReadingOrderOutput, error) {
 	userID, err := currentUserID(ctx)
 	if err != nil {
 		return nil, err
@@ -460,11 +524,16 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPa
 	if err := validateReadingOrderRating(payload.Rating); err != nil {
 		return nil, err
 	}
-	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, favorite, rating, author_user_id)
-		VALUES (?, ?, ?, ?, ?)
-	`, payload.Name, payload.Description, payload.Favorite, payload.Rating, userID)
+	image, err := uploadedReadingOrderCover(covers, payload)
 	if err != nil {
+		return nil, err
+	}
+	result, err := db.ExecContext(ctx, `
+		INSERT INTO reading_orders (name, description, image, favorite, rating, author_user_id)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`, payload.Name, payload.Description, image, payload.Favorite, payload.Rating, userID)
+	if err != nil {
+		_ = deleteUnusedCoverImage(ctx, db, covers, image)
 		return nil, huma.Error500InternalServerError("failed to create reading order")
 	}
 
@@ -481,26 +550,51 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, payload ReadingOrderPa
 	return &CreateReadingOrderOutput{Body: ro}, nil
 }
 
-func updateReadingOrder(ctx context.Context, db *sqlx.DB, id int, payload ReadingOrderPayload) (*ReadingOrderDetailOutput, error) {
+func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, payload ReadingOrderPayload) (*ReadingOrderDetailOutput, error) {
 	if err := requireReadingOrderEditor(ctx, db, id); err != nil {
 		return nil, err
 	}
 	if err := validateReadingOrderRating(payload.Rating); err != nil {
 		return nil, err
 	}
+
+	existing, err := getReadingOrderRow(ctx, db, id)
+	if err != nil {
+		return nil, err
+	}
+	image := existing.Image
+	if strings.TrimSpace(payload.CoverImageData) != "" {
+		image, err = uploadedReadingOrderCover(covers, payload)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	result, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
-		SET name = ?, description = ?, favorite = ?, rating = ?
+		SET name = ?, description = ?, image = ?, favorite = ?, rating = ?
 		WHERE id = ?
-	`, payload.Name, payload.Description, payload.Favorite, payload.Rating, id)
+	`, payload.Name, payload.Description, image, payload.Favorite, payload.Rating, id)
 	if err != nil {
+		if image != existing.Image {
+			_ = deleteUnusedCoverImage(ctx, db, covers, image)
+		}
 		return nil, huma.Error500InternalServerError("failed to update reading order")
 	}
 	if err := requireRowsAffected(result, "reading order not found"); err != nil {
 		return nil, err
 	}
 
-	return getReadingOrder(ctx, db, id)
+	detail, err := getReadingOrder(ctx, db, id)
+	if err != nil {
+		return nil, err
+	}
+	if image != existing.Image {
+		if err := deleteUnusedCoverImage(ctx, db, covers, existing.Image); err != nil {
+			return nil, err
+		}
+	}
+	return detail, nil
 }
 
 func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {

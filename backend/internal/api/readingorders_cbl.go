@@ -68,7 +68,7 @@ func importReadingOrderCBL(ctx context.Context, db *sqlx.DB, input *ReadingOrder
 		})
 	}
 
-	created, err := createReadingOrder(ctx, db, ReadingOrderPayload{Name: name})
+	created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: name})
 	if err != nil {
 		return nil, err
 	}
