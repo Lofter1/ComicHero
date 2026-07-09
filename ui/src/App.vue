@@ -116,8 +116,7 @@ const activeListParams = computed(() => {
   const params = {}
   if (options.filter === 'favorites') params.favorite = true
   if (options.filter === 'other') params.favorite = false
-  if (options.status === 'read') params.read = true
-  if (options.status === 'unread') params.read = false
+  if (options.status && options.status !== 'all') params.status = options.status
   if (options.sort) params.sort = options.sort
   if (options.direction) params.direction = options.direction
   return params
@@ -259,6 +258,7 @@ const {
   newComic,
   editComic,
   toggleComicRead,
+  toggleComicSkipped,
   resetMetronMetadata,
   searchSelectedComicMetron,
   applyMetronMetadata,
@@ -1640,6 +1640,7 @@ onUnmounted(() => {
         @export-cbl="exportSelectedReadingOrderCBL"
         @open-comic="openOrderComic"
         @toggle-read="toggleComicRead"
+        @toggle-skipped="toggleComicSkipped"
       />
 
       <ReadingOrdersBrowseView
@@ -1677,6 +1678,7 @@ onUnmounted(() => {
         @toggle-favorite="toggleArcFavorite"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
+        @toggle-skipped="toggleComicSkipped"
       />
 
       <ArcsBrowseView
@@ -1712,6 +1714,7 @@ onUnmounted(() => {
         @import-series="importSelectedSeriesFromMetron"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
+        @toggle-skipped="toggleComicSkipped"
       />
 
       <SeriesBrowseView
@@ -1748,6 +1751,7 @@ onUnmounted(() => {
         @import-appearances="importSelectedCharacterAppearances"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
+        @toggle-skipped="toggleComicSkipped"
       />
 
       <CharactersBrowseView
@@ -1785,6 +1789,7 @@ onUnmounted(() => {
         @apply-metron="applyMetronMetadata"
         @reset-metron="resetMetronMetadata"
         @toggle-read="toggleComicRead"
+        @toggle-skipped="toggleComicSkipped"
         @edit="editComic"
         @open-character="openCharacter"
         @open-series="openSeries"
@@ -1812,6 +1817,7 @@ onUnmounted(() => {
           @update:direction="updateListOption('comics', 'direction', $event)"
           @open-comic="openComic"
           @toggle-read="toggleComicRead"
+          @toggle-skipped="toggleComicSkipped"
         />
       </div>
 

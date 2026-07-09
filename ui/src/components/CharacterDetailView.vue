@@ -30,7 +30,14 @@ defineProps({
   },
 })
 
-defineEmits(['back', 'toggle-favorite', 'import-appearances', 'open-comic', 'toggle-read'])
+defineEmits([
+  'back',
+  'toggle-favorite',
+  'import-appearances',
+  'open-comic',
+  'toggle-read',
+  'toggle-skipped',
+])
 
 function characterProgress(character) {
   return formatProgress(character?.progress ?? 0)
@@ -122,6 +129,7 @@ function characterProgress(character) {
           filtered-empty-message="No appearances match these filters."
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
+          @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
       <p v-else class="empty-state">Select a character to view appearances.</p>

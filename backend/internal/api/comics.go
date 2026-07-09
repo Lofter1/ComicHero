@@ -67,12 +67,12 @@ func RegisterComicRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID: "updateComicReadStatus",
 		Tags:        []string{tagComics},
 		Summary:     "Update comic read status",
-		Description: "Marks a comic as read or unread without updating the rest of the comic metadata.",
+		Description: "Marks a comic as read, unread, skipped, or unskipped without updating the rest of the comic metadata.",
 		Method:      http.MethodPatch,
 		Path:        "/comic/{id}/read",
 		Errors:      errsWrite,
 	}, func(ctx context.Context, input *UpdateComicReadInput) (*ComicDetailOutput, error) {
-		return updateComicReadStatus(ctx, db, input.ID, input.Body.Read)
+		return updateComicReadStatus(ctx, db, input.ID, input)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -121,7 +121,7 @@ func listComics(ctx context.Context, db *sqlx.DB, input *ComicListInput) (*Comic
 func comicListQuery(input *ComicListInput, userID int) (string, []any, error) {
 	query := newSelectQuery(`
 		SELECT c.*,
-			COALESCE(uc.read, 0) AS read
+			COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped
 		FROM comics c
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 	`)
@@ -159,10 +159,25 @@ func comicListQuery(input *ComicListInput, userID int) (string, []any, error) {
 		query.where("c.publisher LIKE ?", "%"+input.Publisher+"%")
 	}
 
-	if read, ok, err := parseOptionalBool(input.Read, "read"); err != nil {
+	if input.Status != "" && input.Status != "all" {
+		statusSQL, err := comicStatusWhere(input.Status)
+		if err != nil {
+			return "", nil, err
+		}
+		if statusSQL != "" {
+			query.where(statusSQL)
+		}
+	} else if read, ok, err := parseOptionalBool(input.Read, "read"); err != nil {
 		return "", nil, err
 	} else if ok {
 		query.where("COALESCE(uc.read, 0) = ?", read)
+	}
+	if input.Status == "" || input.Status == "all" {
+		if skipped, ok, err := parseOptionalBool(input.Skipped, "skipped"); err != nil {
+			return "", nil, err
+		} else if ok {
+			query.where("COALESCE(uc.skipped, 0) = ?", skipped)
+		}
 	}
 
 	if input.ReadingOrderID > 0 {
@@ -207,6 +222,35 @@ func comicListQuery(input *ComicListInput, userID int) (string, []any, error) {
 
 	sql, args := query.build()
 	return sql, args, nil
+}
+
+func comicStatusWhere(status string) (string, error) {
+	parts := strings.Split(status, ",")
+	clauses := make([]string, 0, len(parts))
+	seen := map[string]bool{}
+
+	for _, part := range parts {
+		part = strings.TrimSpace(strings.ToLower(part))
+		if part == "" || part == "all" || seen[part] {
+			continue
+		}
+		seen[part] = true
+		switch part {
+		case "unread":
+			clauses = append(clauses, "(COALESCE(uc.read, 0) = 0 AND COALESCE(uc.skipped, 0) = 0)")
+		case "read":
+			clauses = append(clauses, "(COALESCE(uc.read, 0) = 1 AND COALESCE(uc.skipped, 0) = 0)")
+		case "skipped":
+			clauses = append(clauses, "COALESCE(uc.skipped, 0) = 1")
+		default:
+			return "", huma.Error400BadRequest("status must include only unread, read, skipped, or all")
+		}
+	}
+
+	if len(clauses) == 0 || len(clauses) == 3 {
+		return "", nil
+	}
+	return "(" + strings.Join(clauses, " OR ") + ")", nil
 }
 
 func comicListOrder(sort, direction string) string {
@@ -312,7 +356,7 @@ func getComicRow(ctx context.Context, db *sqlx.DB, id int) (Comic, error) {
 	var comic Comic
 	if err := db.GetContext(ctx, &comic, `
 		SELECT c.*,
-			COALESCE(uc.read, 0) AS read
+			COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped
 		FROM comics c
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE c.id = ?
@@ -359,7 +403,7 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
-	if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read); err != nil {
+	if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read, true, nil); err != nil {
 		return nil, err
 	}
 	return getComic(ctx, db, int(id))
@@ -399,22 +443,32 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 		return nil, err
 	}
 
-	if err := setComicReadStatusForCurrentUser(ctx, db, id, payload.Read); err != nil {
+	if err := setComicReadStatusForCurrentUser(ctx, db, id, payload.Read, true, nil); err != nil {
 		return nil, err
 	}
 
 	return getComic(ctx, db, id)
 }
 
-func updateComicReadStatus(ctx context.Context, db *sqlx.DB, id int, read bool) (*ComicDetailOutput, error) {
-	if err := setComicReadStatusForCurrentUser(ctx, db, id, read); err != nil {
+func updateComicReadStatus(ctx context.Context, db *sqlx.DB, id int, input *UpdateComicReadInput) (*ComicDetailOutput, error) {
+	read := false
+	readProvided := false
+	var skipped *bool
+	if input != nil {
+		if input.Body.Read != nil {
+			read = *input.Body.Read
+			readProvided = true
+		}
+		skipped = input.Body.Skipped
+	}
+	if err := setComicReadStatusForCurrentUser(ctx, db, id, read, readProvided, skipped); err != nil {
 		return nil, err
 	}
 
 	return getComic(ctx, db, id)
 }
 
-func setComicReadStatusForCurrentUser(ctx context.Context, db *sqlx.DB, comicID int, read bool) error {
+func setComicReadStatusForCurrentUser(ctx context.Context, db *sqlx.DB, comicID int, read bool, readProvided bool, skipped *bool) error {
 	userID, err := currentUserID(ctx)
 	if err != nil {
 		return err
@@ -424,11 +478,19 @@ func setComicReadStatusForCurrentUser(ctx context.Context, db *sqlx.DB, comicID 
 		readAt = currentTimestamp()
 	}
 
+	skippedValue := 0
+	if skipped != nil {
+		skippedValue = boolInt(*skipped)
+	}
+
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO user_comics (comic_id, user_id, read, read_at)
-		VALUES (?, ?, ?, ?)
-		ON CONFLICT(comic_id, user_id) DO UPDATE SET read = excluded.read, read_at = excluded.read_at
-	`, comicID, userID, boolInt(read), readAt)
+		INSERT INTO user_comics (comic_id, user_id, read, skipped, read_at)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(comic_id, user_id) DO UPDATE SET
+			read = CASE WHEN ? THEN excluded.read ELSE user_comics.read END,
+			skipped = CASE WHEN ? THEN excluded.skipped ELSE user_comics.skipped END,
+			read_at = CASE WHEN ? THEN excluded.read_at ELSE user_comics.read_at END
+	`, comicID, userID, boolInt(read), skippedValue, readAt, readProvided, skipped != nil, readProvided)
 	if err != nil {
 		return huma.Error500InternalServerError("failed to update comic read status")
 	}

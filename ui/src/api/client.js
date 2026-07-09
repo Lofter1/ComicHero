@@ -215,8 +215,8 @@ export function updateComic(id, payload) {
   return send(`/comics/${id}`, 'PUT', payload)
 }
 
-export function updateComicReadStatus(id, read) {
-  return send(`/comic/${id}/read`, 'PATCH', { read })
+export function updateComicReadStatus(id, payload) {
+  return send(`/comic/${id}/read`, 'PATCH', payload)
 }
 
 export function getUserStatus() {

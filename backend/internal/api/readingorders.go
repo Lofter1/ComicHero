@@ -411,7 +411,7 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 		Position int `db:"position"`
 	}{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, COALESCE(uc.read, 0) AS read, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped, roc.note AS comment, roc.tags AS tags, roc.position AS position FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE roc.reading_order_id = ?
@@ -504,7 +504,7 @@ func fetchReadingOrderComics(ctx context.Context, db *sqlx.DB, readingOrderID in
 	}
 	comics := []ReadingOrderComic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, COALESCE(uc.read, 0) AS read, roc.note AS comment, roc.tags AS tags FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped, roc.note AS comment, roc.tags AS tags FROM comics c
 		JOIN reading_order_comics roc ON roc.comic_id = c.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE roc.reading_order_id = ?

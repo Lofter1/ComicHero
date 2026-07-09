@@ -90,6 +90,20 @@ func TestComicListQuery(t *testing.T) {
 	if len(args) != 11 {
 		t.Fatalf("len(args) = %d; want 11", len(args))
 	}
+
+	query, _, err = comicListQuery(&ComicListInput{Status: "read,skipped"}, 1)
+	if err != nil {
+		t.Fatalf("comicListQuery status returned error: %v", err)
+	}
+	for _, fragment := range []string{
+		"COALESCE(uc.read, 0) = 1",
+		"COALESCE(uc.skipped, 0) = 1",
+		" OR ",
+	} {
+		if !strings.Contains(query, fragment) {
+			t.Fatalf("status query missing %q: %s", fragment, query)
+		}
+	}
 }
 
 func TestReadingOrderHelpers(t *testing.T) {
@@ -158,6 +172,7 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -324,6 +339,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -715,6 +731,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -782,6 +799,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -894,6 +912,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -978,6 +997,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -2123,6 +2143,7 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);

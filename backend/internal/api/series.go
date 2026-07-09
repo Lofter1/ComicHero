@@ -202,7 +202,7 @@ func getSeries(ctx context.Context, db *sqlx.DB, id int) (*ComicSeriesDetailOutp
 	}
 	comics := []Comic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, COALESCE(uc.read, 0) AS read FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped FROM comics c
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE c.series_id = ?
 		ORDER BY c.series_year, CAST(c.issue AS REAL), c.issue

@@ -32,7 +32,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read'])
+defineEmits(['back', 'copy', 'edit', 'export-cbl', 'open-comic', 'toggle-read', 'toggle-skipped'])
 
 const markdown = new MarkdownIt({
   html: false,
@@ -150,6 +150,7 @@ const renderedDescription = computed(() => {
           filtered-empty-message="No comics match these filters."
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
+          @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
 

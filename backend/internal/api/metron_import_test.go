@@ -68,6 +68,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
 			read_at TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		);
@@ -873,27 +874,41 @@ func TestUpdateComicReadStatus(t *testing.T) {
 		t.Fatalf("insert comic: %v", err)
 	}
 
-	detail, err := updateComicReadStatus(ctx, db, 1, true)
+	read := true
+	skipped := true
+	input := &UpdateComicReadInput{ID: 1}
+	input.Body.Read = &read
+	input.Body.Skipped = &skipped
+	detail, err := updateComicReadStatus(ctx, db, 1, input)
 	if err != nil {
 		t.Fatalf("updateComicReadStatus: %v", err)
 	}
 	if !detail.Body.Read {
 		t.Fatal("comic read status was not updated")
 	}
+	if !detail.Body.Skipped {
+		t.Fatal("comic skipped status was not updated")
+	}
 	if detail.Body.Title != "Series (2026) #1" {
 		t.Fatalf("comic metadata changed unexpectedly: %#v", detail.Body)
 	}
 
-	var storedRead int
-	if err := db.GetContext(ctx, &storedRead, `
-		SELECT read FROM user_comics WHERE comic_id = ? AND user_id = (
+	var stored struct {
+		Read    int `db:"read"`
+		Skipped int `db:"skipped"`
+	}
+	if err := db.GetContext(ctx, &stored, `
+		SELECT read, skipped FROM user_comics WHERE comic_id = ? AND user_id = (
 			SELECT id FROM users WHERE name = 'Default'
 		)
 	`, 1); err != nil {
 		t.Fatalf("read status row lookup: %v", err)
 	}
-	if storedRead != 1 {
-		t.Fatalf("stored read flag = %d; want 1", storedRead)
+	if stored.Read != 1 {
+		t.Fatalf("stored read flag = %d; want 1", stored.Read)
+	}
+	if stored.Skipped != 1 {
+		t.Fatalf("stored skipped flag = %d; want 1", stored.Skipped)
 	}
 }
 

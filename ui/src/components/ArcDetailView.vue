@@ -26,7 +26,7 @@ defineProps({
   },
 })
 
-defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
+defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read', 'toggle-skipped'])
 </script>
 
 <template>
@@ -96,6 +96,7 @@ defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read'])
           filtered-empty-message="No comics match these filters."
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
+          @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
       <p v-else class="empty-state">Select an arc to view it.</p>

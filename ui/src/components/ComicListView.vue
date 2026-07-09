@@ -98,6 +98,7 @@ const props = defineProps({
 const emit = defineEmits([
   'open-comic',
   'toggle-read',
+  'toggle-skipped',
   'update:search',
   'update:status',
   'update:sort',
@@ -145,6 +146,7 @@ const statusModel = computed({
     emit('update:status', value)
   },
 })
+const selectedStatuses = computed(() => statusValues(statusModel.value))
 
 const sortModel = computed({
   get: () => normalizeSort(props.sort == null ? localSort.value : props.sort),
@@ -190,14 +192,24 @@ const sourceComics = computed(() => (props.serverSource ? serverComics.value : p
 watch(
   () =>
     props.serverSource
-      ? props.comics.map((comic) => `${comic.id}:${comic.read ? 1 : 0}`).join('|')
+      ? props.comics
+          .map((comic) => `${comic.id}:${comic.read ? 1 : 0}:${comic.skipped ? 1 : 0}`)
+          .join('|')
       : '',
   () => {
     if (!props.serverSource) return
-    const readById = new Map(props.comics.map((comic) => [comic.id, Boolean(comic.read)]))
+    const stateById = new Map(
+      props.comics.map((comic) => [
+        comic.id,
+        { read: Boolean(comic.read), skipped: Boolean(comic.skipped) },
+      ]),
+    )
     serverComics.value = serverComics.value.map((comic) => {
-      const read = readById.get(comic.id)
-      return read !== undefined && read !== comic.read ? { ...comic, read } : comic
+      const state = stateById.get(comic.id)
+      if (!state) return comic
+      return state.read !== comic.read || state.skipped !== comic.skipped
+        ? { ...comic, ...state }
+        : comic
     })
   },
 )
@@ -206,8 +218,7 @@ const sourceParamsKey = computed(() => JSON.stringify(props.sourceParams || {}))
 const filteredComics = computed(() => {
   const filtered = sourceComics.value.filter((comic) => {
     if (!effectiveServerMode.value) {
-      if (statusModel.value === 'read' && !comic.read) return false
-      if (statusModel.value === 'unread' && comic.read) return false
+      if (!statusMatches(comic, selectedStatuses.value)) return false
       if (tag.value !== 'all' && !comicTags(comic).some((item) => item.toLowerCase() === tag.value))
         return false
     }
@@ -260,6 +271,7 @@ const tagOptions = computed(() => {
 })
 
 const readCount = computed(() => sourceComics.value.filter((comic) => comic.read).length)
+const skippedCount = computed(() => sourceComics.value.filter((comic) => comic.skipped).length)
 const hasFilters = computed(
   () =>
     searchTerm.value ||
@@ -275,10 +287,10 @@ const summaryText = computed(() => {
   const total = totalComics.value
 
   if (hasFilters.value) {
-    return `${filteredComics.value.length} matching loaded · ${loaded} of ${total} loaded · ${readCount.value} loaded read`
+    return `${filteredComics.value.length} matching loaded · ${loaded} of ${total} loaded · ${readCount.value} loaded read · ${skippedCount.value} skipped`
   }
 
-  return `${loaded} of ${total} loaded · ${readCount.value} loaded read`
+  return `${loaded} of ${total} loaded · ${readCount.value} loaded read · ${skippedCount.value} skipped`
 })
 
 const canLoadMoreServer = computed(
@@ -338,6 +350,46 @@ function clearFilters() {
   tag.value = 'all'
 }
 
+function statusValues(value) {
+  if (!value || value === 'all') return ['unread', 'read', 'skipped']
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => ['unread', 'read', 'skipped'].includes(item))
+}
+
+function statusMatches(comic, statuses) {
+  if (!statuses.length || statuses.length === 3) return true
+  return statuses.some((status) => comicStatusCategory(comic, status))
+}
+
+function comicStatusCategory(comic, status) {
+  if (status === 'skipped') return Boolean(comic.skipped)
+  if (status === 'read') return Boolean(comic.read) && !comic.skipped
+  return !comic.read && !comic.skipped
+}
+
+function statusActive(status) {
+  return selectedStatuses.value.includes(status)
+}
+
+function setAllStatuses() {
+  statusModel.value = 'all'
+}
+
+function toggleStatus(status) {
+  const current = new Set(selectedStatuses.value.length === 3 ? [] : selectedStatuses.value)
+
+  if (current.has(status)) {
+    current.delete(status)
+  } else {
+    current.add(status)
+  }
+
+  const next = ['unread', 'read', 'skipped'].filter((item) => current.has(item))
+  statusModel.value = next.length === 0 || next.length === 3 ? 'all' : next.join(',')
+}
+
 function loadMoreLocal() {
   if (props.serverSource) {
     fetchServerComics({ append: true })
@@ -364,8 +416,7 @@ async function fetchServerComics({ append = false } = {}) {
     }
 
     if (searchTerm.value) params.q = searchTerm.value
-    if (statusModel.value === 'read') params.read = true
-    if (statusModel.value === 'unread') params.read = false
+    if (statusModel.value !== 'all') params.status = statusModel.value
 
     const page = await listComics(params)
 
@@ -454,33 +505,38 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
-        <div class="inline-filter-tabs" role="tablist" aria-label="Issue read status filter">
+        <div class="inline-filter-tabs" role="group" aria-label="Issue status filters">
           <button
             type="button"
             :class="{ active: statusModel === 'all' }"
-            role="tab"
-            :aria-selected="statusModel === 'all'"
-            @click="statusModel = 'all'"
+            :aria-pressed="statusModel === 'all'"
+            @click="setAllStatuses"
           >
             All
           </button>
           <button
             type="button"
-            :class="{ active: statusModel === 'unread' }"
-            role="tab"
-            :aria-selected="statusModel === 'unread'"
-            @click="statusModel = 'unread'"
+            :class="{ active: statusActive('unread') && statusModel !== 'all' }"
+            :aria-pressed="statusActive('unread') && statusModel !== 'all'"
+            @click="toggleStatus('unread')"
           >
             Unread
           </button>
           <button
             type="button"
-            :class="{ active: statusModel === 'read' }"
-            role="tab"
-            :aria-selected="statusModel === 'read'"
-            @click="statusModel = 'read'"
+            :class="{ active: statusActive('read') && statusModel !== 'all' }"
+            :aria-pressed="statusActive('read') && statusModel !== 'all'"
+            @click="toggleStatus('read')"
           >
             Read
+          </button>
+          <button
+            type="button"
+            :class="{ active: statusActive('skipped') && statusModel !== 'all' }"
+            :aria-pressed="statusActive('skipped') && statusModel !== 'all'"
+            @click="toggleStatus('skipped')"
+          >
+            Skipped
           </button>
         </div>
 
@@ -528,6 +584,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           :read-only="readOnly"
           @open="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
+          @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
 

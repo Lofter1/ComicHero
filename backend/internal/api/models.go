@@ -16,6 +16,7 @@ type Comic struct {
 	CoverImage  string `json:"coverImage"  db:"cover_image" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
 	Description string `json:"description" db:"description" doc:"Issue synopsis or notes."`
 	Read        bool   `json:"read"        db:"read"        doc:"Whether the comic has been read." example:"false"`
+	Skipped     bool   `json:"skipped"     db:"skipped"     doc:"Whether the comic has been skipped." example:"false"`
 }
 
 type ComicPayload struct {
@@ -267,7 +268,9 @@ type ComicListInput struct {
 	Query          string `query:"q"              doc:"Case-insensitive text search across generated title metadata, publisher, and description." example:"batman"`
 	Series         string `query:"series"         doc:"Filter comics by partial series name." example:"Batman"`
 	Publisher      string `query:"publisher"      doc:"Filter comics by partial publisher name." example:"DC"`
+	Status         string `query:"status"         doc:"Comma-separated issue status filters: unread, read, skipped. Omit or use all for every status." example:"read,skipped"`
 	Read           string `query:"read"           doc:"Filter comics by read status. Use true or false." enum:"true,false" example:"false"`
+	Skipped        string `query:"skipped"        doc:"Filter comics by skipped status. Use true or false." enum:"true,false" example:"true"`
 	ReadingOrderID int    `query:"readingOrderId" doc:"Filter comics to those included in a reading order." example:"7"`
 	ArcID          int    `query:"arcId"          doc:"Filter comics to those included in an arc." example:"7"`
 	CharacterID    int    `query:"characterId"    doc:"Filter comics to those featuring a character." example:"12"`
@@ -405,7 +408,8 @@ type UpdateComicInput struct {
 type UpdateComicReadInput struct {
 	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
 	Body struct {
-		Read bool `json:"read" doc:"New read status." example:"true"`
+		Read    *bool `json:"read,omitempty" doc:"New read status." example:"true"`
+		Skipped *bool `json:"skipped,omitempty" doc:"New skipped status." example:"false"`
 	}
 }
 

@@ -43,6 +43,7 @@ const emit = defineEmits([
   'apply-metron',
   'reset-metron',
   'toggle-read',
+  'toggle-skipped',
   'open-character',
   'open-series',
 ])
@@ -106,6 +107,16 @@ function seriesLabel(comic) {
         >
           {{ selectedComic.read ? 'Mark unread' : 'Mark read' }}
         </button>
+        <button
+          v-if="selectedComic && !readOnly"
+          class="read-toggle-button large"
+          :class="{ skipped: selectedComic.skipped }"
+          type="button"
+          :disabled="quickSavingComicId === selectedComic.id"
+          @click="$emit('toggle-skipped', selectedComic)"
+        >
+          {{ selectedComic.skipped ? 'Unskip' : 'Skip' }}
+        </button>
       </div>
     </header>
 
@@ -127,6 +138,12 @@ function seriesLabel(comic) {
         </div>
 
         <div class="metadata-grid">
+          <span>
+            <strong>
+              {{ selectedComic.skipped ? 'Skipped' : selectedComic.read ? 'Read' : 'Unread' }}
+            </strong>
+            <small>Status</small>
+          </span>
           <span>
             <button
               v-if="selectedComic.seriesId"

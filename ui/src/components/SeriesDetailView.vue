@@ -25,7 +25,14 @@ defineProps({
   },
 })
 
-defineEmits(['back', 'toggle-favorite', 'import-series', 'open-comic', 'toggle-read'])
+defineEmits([
+  'back',
+  'toggle-favorite',
+  'import-series',
+  'open-comic',
+  'toggle-read',
+  'toggle-skipped',
+])
 
 function seriesYearLabel(series) {
   return series?.seriesYear ? ` (${series.seriesYear})` : ''
@@ -111,6 +118,7 @@ function seriesPublisherLabel(series) {
           filtered-empty-message="No series entries match these filters."
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
+          @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
       <p v-else class="empty-state">Select a series to view entries.</p>

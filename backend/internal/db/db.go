@@ -130,6 +130,7 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			read     INTEGER NOT NULL DEFAULT 0,
+			skipped  INTEGER NOT NULL DEFAULT 0,
 			read_at  TEXT    NOT NULL DEFAULT '',
 			PRIMARY KEY (comic_id, user_id)
 		)
@@ -146,6 +147,18 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 		}
 	}
 	if _, err := db.Exec(`UPDATE user_comics SET read_at = CURRENT_TIMESTAMP WHERE read = 1 AND read_at = ''`); err != nil {
+		return err
+	}
+	hasSkipped, err := columnExists(db, "user_comics", "skipped")
+	if err != nil {
+		return err
+	}
+	if !hasSkipped {
+		if _, err := db.Exec(`ALTER TABLE user_comics ADD COLUMN skipped INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+	if _, err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_user_comics_user_skipped ON user_comics(user_id, skipped)`); err != nil {
 		return err
 	}
 	if _, err := db.Exec(`UPDATE users SET is_default = 1 WHERE name = 'Default' AND is_default = 0`); err != nil {
@@ -270,8 +283,8 @@ func ensureUserLoginSchema(db *sqlx.DB) error {
 	}
 	if hasComicRead {
 		_, err = db.Exec(`
-			INSERT OR IGNORE INTO user_comics (comic_id, user_id, read, read_at)
-			SELECT c.id, u.id, c.read, CASE WHEN c.read = 1 THEN CURRENT_TIMESTAMP ELSE '' END
+			INSERT OR IGNORE INTO user_comics (comic_id, user_id, read, skipped, read_at)
+			SELECT c.id, u.id, c.read, 0, CASE WHEN c.read = 1 THEN CURRENT_TIMESTAMP ELSE '' END
 			FROM comics c
 			JOIN users u ON u.is_default = 1
 		`)

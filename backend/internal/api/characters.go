@@ -148,7 +148,7 @@ func getCharacter(ctx context.Context, db *sqlx.DB, id int) (*CharacterDetailOut
 	}
 	comics := []Comic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, COALESCE(uc.read, 0) AS read FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped FROM comics c
 		JOIN comic_characters cc ON cc.comic_id = c.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE cc.character_id = ?

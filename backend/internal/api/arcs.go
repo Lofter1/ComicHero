@@ -182,7 +182,7 @@ func fetchArcDetail(ctx context.Context, db *sqlx.DB, arc Arc) (*ArcDetailOutput
 	}
 	comics := []ArcComic{}
 	if err := db.SelectContext(ctx, &comics, `
-		SELECT c.*, COALESCE(uc.read, 0) AS read, ac.note AS comment FROM comics c
+		SELECT c.*, COALESCE(uc.read, 0) AS read, COALESCE(uc.skipped, 0) AS skipped, ac.note AS comment FROM comics c
 		JOIN arc_comics ac ON ac.comic_id = c.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
 		WHERE ac.arc_id = ?

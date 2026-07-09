@@ -117,7 +117,26 @@ export function useComics({
     error.value = ''
 
     try {
-      const detail = await updateComicReadStatus(comic.id, !comic.read)
+      const detail = await updateComicReadStatus(comic.id, { read: !comic.read })
+      applyComicReadState(detail)
+      refreshActiveLibraryData().catch((err) => {
+        error.value = err.message
+      })
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      quickSavingComicID.value = null
+    }
+  }
+
+  async function toggleComicSkipped(comic) {
+    if (!comic?.id || quickSavingComicID.value) return
+
+    quickSavingComicID.value = comic.id
+    error.value = ''
+
+    try {
+      const detail = await updateComicReadStatus(comic.id, { skipped: !comic.skipped })
       applyComicReadState(detail)
       refreshActiveLibraryData().catch((err) => {
         error.value = err.message
@@ -131,18 +150,20 @@ export function useComics({
 
   function applyComicReadState(detail) {
     comics.value = comics.value.map((comic) =>
-      comic.id === detail.id ? { ...comic, read: detail.read } : comic,
+      comic.id === detail.id ? { ...comic, read: detail.read, skipped: detail.skipped } : comic,
     )
 
     if (selectedComic.value?.id === detail.id) {
       selectedComic.value = { ...selectedComic.value, ...detail }
     }
     if (comicForm.value?.id === detail.id) {
-      comicForm.value = { ...comicForm.value, read: detail.read }
+      comicForm.value = { ...comicForm.value, read: detail.read, skipped: detail.skipped }
     }
     if (selectedOrder.value) {
       const orderComics = selectedOrder.value.comics.map((comic) => {
-        return comic.id === detail.id ? { ...comic, read: detail.read } : comic
+        return comic.id === detail.id
+          ? { ...comic, read: detail.read, skipped: detail.skipped }
+          : comic
       })
       selectedOrder.value = {
         ...selectedOrder.value,
@@ -152,7 +173,9 @@ export function useComics({
     }
     if (selectedArc.value) {
       const arcComics = selectedArc.value.comics.map((comic) => {
-        return comic.id === detail.id ? { ...comic, read: detail.read } : comic
+        return comic.id === detail.id
+          ? { ...comic, read: detail.read, skipped: detail.skipped }
+          : comic
       })
       selectedArc.value = {
         ...selectedArc.value,
@@ -162,7 +185,9 @@ export function useComics({
     }
     if (selectedCharacter.value) {
       const characterComics = selectedCharacter.value.comics.map((comic) => {
-        return comic.id === detail.id ? { ...comic, read: detail.read } : comic
+        return comic.id === detail.id
+          ? { ...comic, read: detail.read, skipped: detail.skipped }
+          : comic
       })
       selectedCharacter.value = {
         ...selectedCharacter.value,
@@ -172,7 +197,9 @@ export function useComics({
     }
     if (selectedSeries.value?.comics) {
       const seriesComics = selectedSeries.value.comics.map((comic) => {
-        return comic.id === detail.id ? { ...comic, read: detail.read } : comic
+        return comic.id === detail.id
+          ? { ...comic, read: detail.read, skipped: detail.skipped }
+          : comic
       })
       selectedSeries.value = {
         ...selectedSeries.value,
@@ -307,6 +334,7 @@ export function useComics({
     saveComic,
     deleteComic,
     toggleComicRead,
+    toggleComicSkipped,
     resetMetronMetadata,
     searchSelectedComicMetron,
     applyMetronMetadata,

@@ -234,6 +234,26 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 	if read != 1 {
 		t.Fatalf("backfilled read = %d; want 1", read)
 	}
+	skippedExists, err := columnExists(database, "user_comics", "skipped")
+	if err != nil {
+		t.Fatalf("check user_comics.skipped: %v", err)
+	}
+	if !skippedExists {
+		t.Fatal("user_comics.skipped missing")
+	}
+	var skipped int
+	if err := database.Get(&skipped, `
+		SELECT uc.skipped
+		FROM user_comics uc
+		JOIN users u ON u.id = uc.user_id
+		JOIN comics c ON c.id = uc.comic_id
+		WHERE u.name = 'Default' AND c.series = 'Series'
+	`); err != nil {
+		t.Fatalf("fetch backfilled skipped status: %v", err)
+	}
+	if skipped != 0 {
+		t.Fatalf("backfilled skipped = %d; want 0", skipped)
+	}
 }
 
 func TestEnsureUserLoginSchemaAddsSeriesMetronIDToLegacySeries(t *testing.T) {

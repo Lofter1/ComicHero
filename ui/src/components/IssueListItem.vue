@@ -28,7 +28,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['open', 'toggle-read'])
+defineEmits(['open', 'toggle-read', 'toggle-skipped'])
 
 function entryTags() {
   return String(props.comic.tags || '')
@@ -41,7 +41,7 @@ function entryTags() {
 <template>
   <div
     class="issue-list-item read-accent"
-    :class="{ read: comic.read, unread: !comic.read, selected }"
+    :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
   >
     <button class="issue-list-main" type="button" @click="$emit('open', comic)">
       <span v-if="showCover && comic.coverImage" class="issue-list-cover" aria-hidden="true">
@@ -64,6 +64,7 @@ function entryTags() {
       <span class="read-state-pill" :class="{ read: comic.read, unread: !comic.read }">
         {{ comic.read ? 'Read' : 'Unread' }}
       </span>
+      <span v-if="comic.skipped" class="read-state-pill skipped">Skipped</span>
       <button
         v-if="!readOnly"
         type="button"
@@ -72,6 +73,16 @@ function entryTags() {
         @click="$emit('toggle-read', comic)"
       >
         {{ comic.read ? 'Mark unread' : 'Mark read' }}
+      </button>
+      <button
+        v-if="!readOnly"
+        type="button"
+        class="read-toggle-button"
+        :class="{ skipped: comic.skipped }"
+        :disabled="quickSaving"
+        @click="$emit('toggle-skipped', comic)"
+      >
+        {{ comic.skipped ? 'Unskip' : 'Skip' }}
       </button>
     </span>
   </div>

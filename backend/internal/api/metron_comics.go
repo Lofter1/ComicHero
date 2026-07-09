@@ -396,7 +396,7 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 		return nil, huma.Error500InternalServerError("failed to get imported comic id")
 	}
 	if payload.Read {
-		if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read); err != nil {
+		if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read, true, nil); err != nil {
 			return nil, err
 		}
 	}

@@ -10,6 +10,7 @@ export function emptyComic() {
     coverImage: '',
     description: '',
     read: false,
+    skipped: false,
   }
 }
 
@@ -23,6 +24,7 @@ export function comicPayload(comic) {
     coverImage: comic.coverImage,
     description: comic.description,
     read: comic.read,
+    skipped: comic.skipped,
   }
 }
 
