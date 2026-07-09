@@ -170,7 +170,8 @@ function registrationModeLabel(mode) {
         </div>
 
         <p v-if="registrationMode === 'open'" class="warning-copy">
-          Open registration gives verified new accounts full read/write access to the shared library.
+          Open registration gives verified new accounts full read/write access to the shared
+          library.
         </p>
       </div>
 
