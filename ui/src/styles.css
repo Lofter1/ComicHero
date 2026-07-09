@@ -2838,6 +2838,10 @@ textarea {
   color: #ffffff;
 }
 
+.issue-status-tabs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .comic-list-view {
   display: grid;
   gap: 12px;
@@ -2910,6 +2914,10 @@ textarea {
 
 .comic-list-tools .inline-filter-tabs {
   min-width: 230px;
+}
+
+.comic-list-tools .issue-status-tabs {
+  min-width: 320px;
 }
 
 .issue-list {
@@ -3515,6 +3523,10 @@ textarea {
   }
 
   .comic-list-tools .inline-filter-tabs {
+    min-width: 0;
+  }
+
+  .comic-list-tools .issue-status-tabs {
     min-width: 0;
   }
 

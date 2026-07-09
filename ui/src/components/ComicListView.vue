@@ -505,7 +505,11 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
-        <div class="inline-filter-tabs" role="group" aria-label="Issue status filters">
+        <div
+          class="inline-filter-tabs issue-status-tabs"
+          role="group"
+          aria-label="Issue status filters"
+        >
           <button
             type="button"
             :class="{ active: statusModel === 'all' }"
