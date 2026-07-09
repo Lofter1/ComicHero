@@ -43,6 +43,9 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if !columns["series_year"] {
 		t.Fatal("comics table missing series_year column")
 	}
+	if !columns["series_id"] {
+		t.Fatal("comics table missing series_id column")
+	}
 	var busyTimeout int
 	if err := database.QueryRow(`PRAGMA busy_timeout`).Scan(&busyTimeout); err != nil {
 		t.Fatalf("busy timeout: %v", err)
@@ -82,6 +85,7 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	}
 	for _, name := range []string{
 		"idx_comics_series_year_issue",
+		"idx_comics_series_id_issue",
 		"idx_comics_series_year_publisher",
 		"idx_comics_series_year_cover",
 	} {
@@ -191,5 +195,59 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 	}
 	if read != 1 {
 		t.Fatalf("backfilled read = %d; want 1", read)
+	}
+}
+
+func TestEnsureUserLoginSchemaAddsSeriesMetronIDToLegacySeries(t *testing.T) {
+	database, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer database.Close()
+
+	if _, err := database.Exec(`
+		CREATE TABLE users (
+			id   INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		);
+		CREATE TABLE series (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			name        TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE UNIQUE INDEX idx_series_name_year
+		ON series(name, series_year);
+		CREATE TABLE comics (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			series      TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue       TEXT NOT NULL,
+			publisher   TEXT NOT NULL
+		);
+		INSERT INTO users (name) VALUES ('Default');
+		INSERT INTO series (name, series_year) VALUES ('Legacy Series', 2026);
+		INSERT INTO comics (series, series_year, issue, publisher) VALUES ('Legacy Series', 2026, '1', 'Publisher');
+	`); err != nil {
+		t.Fatalf("create legacy schema: %v", err)
+	}
+
+	if err := ensureUserLoginSchema(database); err != nil {
+		t.Fatalf("ensure user login schema: %v", err)
+	}
+
+	hasMetronSeriesID, err := columnExists(database, "series", "metron_series_id")
+	if err != nil {
+		t.Fatalf("check series.metron_series_id: %v", err)
+	}
+	if !hasMetronSeriesID {
+		t.Fatal("series.metron_series_id missing")
+	}
+
+	var indexCount int
+	if err := database.Get(&indexCount, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_series_metron_series_id'`); err != nil {
+		t.Fatalf("check series metron index: %v", err)
+	}
+	if indexCount != 1 {
+		t.Fatalf("idx_series_metron_series_id count = %d; want 1", indexCount)
 	}
 }

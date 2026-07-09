@@ -39,6 +39,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,
@@ -1060,6 +1061,13 @@ func TestImportLocalSeriesFromMetronUpdatesMetadataAndImportsMissingComics(t *te
 	}
 	if comicCount != 2 {
 		t.Fatalf("comic count = %d; want 2", comicCount)
+	}
+	var linkedComicCount int
+	if err := db.GetContext(ctx, &linkedComicCount, `SELECT COUNT(*) FROM comics WHERE series_id = 1`); err != nil {
+		t.Fatalf("count linked comics: %v", err)
+	}
+	if linkedComicCount != 2 {
+		t.Fatalf("linked comic count = %d; want 2", linkedComicCount)
 	}
 }
 

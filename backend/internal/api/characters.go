@@ -447,6 +447,9 @@ func importMetronCharacterAppearanceIssueWithOptions(ctx context.Context, db *sq
 		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 			return Comic{}, err
 		} else if ok {
+			if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+				return Comic{}, err
+			}
 			return getComicRow(ctx, db, id)
 		}
 	}
@@ -459,6 +462,9 @@ func importMetronCharacterAppearanceIssueWithOptions(ctx context.Context, db *sq
 				if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
 					return Comic{}, err
 				}
+			}
+			if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+				return Comic{}, err
 			}
 			return getComicRow(ctx, db, id)
 		}

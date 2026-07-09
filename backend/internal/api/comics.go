@@ -199,12 +199,7 @@ func comicListQuery(input *ComicListInput, userID int) (string, []any, error) {
 	}
 
 	if input.SeriesID > 0 {
-		query.where(`
-			EXISTS (
-				SELECT 1 FROM series s
-				WHERE s.id = ? AND s.name = c.series AND s.series_year = c.series_year
-			)
-		`, input.SeriesID)
+		query.where("c.series_id = ?", input.SeriesID)
 	}
 
 	query.orderBy(comicListOrder(input.Sort, input.Direction))
@@ -283,16 +278,18 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 		return nil, err
 	}
 
-	var seriesID *int
-	var localSeriesID int
-	if err := db.GetContext(ctx, &localSeriesID, `
-		SELECT id FROM series WHERE name = ? AND series_year = ?
-	`, comic.Series, comic.SeriesYear); err != nil {
-		if err != sql.ErrNoRows {
-			return nil, huma.Error500InternalServerError("failed to fetch comic series")
+	seriesID := comic.SeriesID
+	if seriesID == nil {
+		var localSeriesID int
+		if err := db.GetContext(ctx, &localSeriesID, `
+			SELECT id FROM series WHERE name = ? AND series_year = ?
+		`, comic.Series, comic.SeriesYear); err != nil {
+			if err != sql.ErrNoRows {
+				return nil, huma.Error500InternalServerError("failed to fetch comic series")
+			}
+		} else {
+			seriesID = &localSeriesID
 		}
-	} else {
-		seriesID = &localSeriesID
 	}
 
 	return &ComicDetailOutput{
@@ -336,10 +333,16 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 		return nil, err
 	}
 
+	seriesID, err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`, payload.Series,
+		INSERT INTO comics (series_id, series, series_year, issue, publisher, cover_date, cover_image, description)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, nullableSeriesID(seriesID),
+		payload.Series,
 		payload.SeriesYear,
 		payload.Issue,
 		payload.Publisher,
@@ -358,10 +361,6 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read); err != nil {
 		return nil, err
 	}
-	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
-		return nil, err
-	}
-
 	return getComic(ctx, db, int(id))
 }
 
@@ -372,11 +371,17 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 		return nil, err
 	}
 
+	seriesID, err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := db.ExecContext(ctx, `
 		UPDATE comics
-		SET series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?
+		SET series_id = ?, series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?
 		WHERE id = ?
-	`, payload.Series,
+	`, nullableSeriesID(seriesID),
+		payload.Series,
 		payload.SeriesYear,
 		payload.Issue,
 		payload.Publisher,
@@ -393,9 +398,6 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 		return nil, err
 	}
 
-	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
-		return nil, err
-	}
 	if err := setComicReadStatusForCurrentUser(ctx, db, id, payload.Read); err != nil {
 		return nil, err
 	}

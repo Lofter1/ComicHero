@@ -137,6 +137,7 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,
@@ -288,6 +289,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,
@@ -609,6 +611,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,
@@ -678,6 +681,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 		);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,
@@ -789,6 +793,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 		WHERE metron_series_id IS NOT NULL;
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,
@@ -872,6 +877,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 		ON series(name, series_year);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
 			series TEXT NOT NULL,
 			series_year INTEGER NOT NULL DEFAULT 0,
 			issue TEXT NOT NULL,

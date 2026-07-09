@@ -75,3 +75,10 @@ func nullableMetronID(id int) any {
 	}
 	return id
 }
+
+func nullableSeriesID(id int) any {
+	if id <= 0 {
+		return nil
+	}
+	return id
+}

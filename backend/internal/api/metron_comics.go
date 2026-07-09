@@ -148,6 +148,9 @@ func importMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 				return nil, err
 			}
 		}
+		if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+			return nil, err
+		}
 		if options.Force {
 			return updateComicFromMetron(ctx, db, client, covers, id, issue)
 		}
@@ -341,6 +344,22 @@ func attachMetronIssueID(ctx context.Context, db *sqlx.DB, comicID, metronID int
 	return nil
 }
 
+func linkComicToMetronIssueSeries(ctx context.Context, db *sqlx.DB, comicID int, issue metron.Issue) error {
+	seriesID, err := ensureMetronIssueSeriesRow(ctx, db, issue)
+	if err != nil {
+		return err
+	}
+	if seriesID == 0 {
+		return nil
+	}
+	if _, err := db.ExecContext(ctx, `
+		UPDATE comics SET series_id = ? WHERE id = ?
+	`, seriesID, comicID); err != nil {
+		return huma.Error500InternalServerError("failed to link comic to series")
+	}
+	return nil
+}
+
 func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (*ComicDetailOutput, error) {
 	options = resolveMetronImportOptions(options)
 	payload := comicPayloadFromMetronIssue(issue)
@@ -350,10 +369,16 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 		return nil, err
 	}
 
+	seriesID, err := ensureMetronIssueSeriesRow(ctx, db, issue)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO comics (series, series_year, issue, publisher, cover_date, cover_image, description, metron_issue_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, payload.Series,
+		INSERT INTO comics (series_id, series, series_year, issue, publisher, cover_date, cover_image, description, metron_issue_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, nullableSeriesID(seriesID),
+		payload.Series,
 		payload.SeriesYear,
 		payload.Issue,
 		payload.Publisher,
@@ -375,9 +400,6 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 			return nil, err
 		}
 	}
-	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
-		return nil, err
-	}
 	if err := syncMetronIssueArcsWithOptions(ctx, db, client, int(id), issue, options); err != nil {
 		return nil, err
 	}
@@ -397,11 +419,17 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		return nil, err
 	}
 
+	seriesID, err := ensureMetronIssueSeriesRow(ctx, db, issue)
+	if err != nil {
+		return nil, err
+	}
+
 	result, err := db.ExecContext(ctx, `
 		UPDATE comics
-		SET series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?, metron_issue_id = ?
+		SET series_id = ?, series = ?, series_year = ?, issue = ?, publisher = ?, cover_date = ?, cover_image = ?, description = ?, metron_issue_id = ?
 		WHERE id = ?
-	`, payload.Series,
+	`, nullableSeriesID(seriesID),
+		payload.Series,
 		payload.SeriesYear,
 		payload.Issue,
 		payload.Publisher,
@@ -417,10 +445,6 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
 		return nil, err
 	}
-	if err := ensureSeriesRow(ctx, db, payload.Series, payload.SeriesYear); err != nil {
-		return nil, err
-	}
-
 	if err := syncMetronIssueArcsWithOptions(ctx, db, client, comicID, issue, MetronImportOptions{Mode: "full"}); err != nil {
 		return nil, err
 	}
@@ -428,4 +452,23 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		return nil, err
 	}
 	return getComic(ctx, db, comicID)
+}
+
+func ensureMetronIssueSeriesRow(ctx context.Context, db *sqlx.DB, issue metron.Issue) (int, error) {
+	seriesID, err := ensureSeriesRow(ctx, db, issue.Series, issue.SeriesYear)
+	if err != nil {
+		return 0, err
+	}
+	if seriesID == 0 || issue.SeriesID <= 0 {
+		return seriesID, nil
+	}
+	if err := updateSeriesMetronMetadata(ctx, db, seriesID, metron.Series{
+		ID:        issue.SeriesID,
+		Name:      issue.Series,
+		YearBegan: issue.SeriesYear,
+		Publisher: issue.Publisher,
+	}); err != nil {
+		return 0, err
+	}
+	return seriesID, nil
 }

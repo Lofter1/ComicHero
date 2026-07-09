@@ -73,6 +73,9 @@ func importMetronSeriesWithProgressOptions(ctx context.Context, db *sqlx.DB, cli
 			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
 				return nil, err
 			} else if ok {
+				if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+					return nil, err
+				}
 				comic, err := getComicRow(ctx, db, id)
 				if err != nil {
 					return nil, err
@@ -91,6 +94,9 @@ func importMetronSeriesWithProgressOptions(ctx context.Context, db *sqlx.DB, cli
 					if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
 						return nil, err
 					}
+				}
+				if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+					return nil, err
 				}
 				comic, err := getComicRow(ctx, db, id)
 				if err != nil {
