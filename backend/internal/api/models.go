@@ -130,6 +130,7 @@ type UserStatistics struct {
 	TotalComics            int     `json:"totalComics"          doc:"Total comics in the local library." example:"120"`
 	ReadComics             int     `json:"readComics"           doc:"Comics marked read by the current user." example:"42"`
 	UnreadComics           int     `json:"unreadComics"         doc:"Comics not yet marked read by the current user." example:"78"`
+	SkippedComics          int     `json:"skippedComics"        doc:"Comics skipped by the current user." example:"3"`
 	ReadProgress           float64 `json:"readProgress"         doc:"Fraction of local comics marked read by the current user, from 0 to 1." minimum:"0" maximum:"1" example:"0.35"`
 	FirstReadAt            string  `json:"firstReadAt,omitempty" doc:"Timestamp when the current user first marked a comic read." example:"2026-07-08T13:45:00Z"`
 	LastReadAt             string  `json:"lastReadAt,omitempty"  doc:"Timestamp when the current user most recently marked a comic read." example:"2026-07-08T14:15:00Z"`
@@ -137,10 +138,12 @@ type UserStatistics struct {
 	CompletedSeries        int     `json:"completedSeries"      doc:"Number of distinct series where every local comic is marked read by the current user." example:"2"`
 	DistinctReadPublishers int     `json:"distinctReadPublishers" doc:"Number of distinct publishers where the current user has read at least one comic." example:"3"`
 	AuthoredReadingOrders  int     `json:"authoredReadingOrders" doc:"Reading orders authored by the current user." example:"4"`
-	StartedReadingOrders   int     `json:"startedReadingOrders" doc:"Reading orders where the current user has read at least one included comic." example:"5"`
+	StartedReadingOrders   int     `json:"startedReadingOrders" doc:"Reading orders formally started by the current user." example:"5"`
 	CompletedReadingOrders int     `json:"completedReadingOrders" doc:"Reading orders where every included comic is marked read by the current user." example:"2"`
-	StartedArcs            int     `json:"startedArcs"          doc:"Story arcs where the current user has read at least one included comic." example:"3"`
+	StartedArcs            int     `json:"startedArcs"          doc:"Story arcs formally started by the current user." example:"3"`
 	CompletedArcs          int     `json:"completedArcs"        doc:"Story arcs where every included comic is marked read by the current user." example:"1"`
+	StartedSeries          int     `json:"startedSeries"        doc:"Series formally started by the current user." example:"4"`
+	StartedCharacters      int     `json:"startedCharacters"    doc:"Characters formally started by the current user." example:"6"`
 	CharactersMet          int     `json:"charactersMet"        doc:"Distinct characters appearing in comics marked read by the current user." example:"17"`
 }
 

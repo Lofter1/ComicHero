@@ -212,11 +212,23 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			description TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
+		CREATE TABLE user_arc_starts (
+			arc_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (arc_id, user_id)
+		);
 		CREATE TABLE arc_comics (
 			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
 			position INTEGER NOT NULL DEFAULT 0,
 			note TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE user_series_starts (
+			series_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (series_id, user_id)
 		);
 		CREATE TABLE characters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -224,6 +236,12 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_character_starts (
+			character_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (character_id, user_id)
 		);
 		CREATE TABLE comic_characters (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
@@ -247,9 +265,12 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 		INSERT INTO reading_order_comics (reading_order_id, comic_id, position)
 		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
 		INSERT INTO arcs (id, name) VALUES (1, 'Alpha arc'), (2, 'Beta arc');
+		INSERT INTO user_arc_starts (arc_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:30:00Z');
 		INSERT INTO arc_comics (arc_id, comic_id, position)
 		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
+		INSERT INTO user_series_starts (series_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:45:00Z');
 		INSERT INTO characters (id, name) VALUES (1, 'Hero'), (2, 'Sidekick'), (3, 'Cameo');
+		INSERT INTO user_character_starts (character_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:50:00Z');
 		INSERT INTO comic_characters (comic_id, character_id)
 		VALUES (1, 1), (1, 2), (2, 2), (3, 3);
 	`); err != nil {
@@ -279,8 +300,8 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 	if stats.AuthoredReadingOrders != 1 || stats.StartedReadingOrders != 1 || stats.CompletedReadingOrders != 1 {
 		t.Fatalf("reading order stats = authored %d started %d completed %d; want 1/1/1", stats.AuthoredReadingOrders, stats.StartedReadingOrders, stats.CompletedReadingOrders)
 	}
-	if stats.StartedArcs != 1 || stats.CompletedArcs != 1 {
-		t.Fatalf("arc stats = started %d completed %d; want 1/1", stats.StartedArcs, stats.CompletedArcs)
+	if stats.StartedArcs != 1 || stats.CompletedArcs != 1 || stats.StartedSeries != 1 || stats.StartedCharacters != 1 {
+		t.Fatalf("started/completed stats = arcs %d/%d series %d characters %d; want 1/1/1/1", stats.StartedArcs, stats.CompletedArcs, stats.StartedSeries, stats.StartedCharacters)
 	}
 	if stats.CharactersMet != 2 {
 		t.Fatalf("characters met = %d; want 2", stats.CharactersMet)
@@ -290,9 +311,17 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 	for _, achievement := range result.Body.Achievements {
 		achievements[achievement.ID] = achievement
 	}
-	for _, id := range []string{"first-read", "list-finisher", "arc-explorer", "curator"} {
+	for _, id := range []string{"first-read", "reading-order-finisher", "arc-explorer", "series-finisher", "curator"} {
 		if !achievements[id].Earned {
 			t.Fatalf("achievement %q not earned", id)
+		}
+	}
+	for _, id := range []string{"reading-order-starter", "arc-starter", "series-starter", "character-starter"} {
+		if !achievements[id].Earned {
+			t.Fatalf("started achievement %q not earned", id)
+		}
+		if achievements[id].EarnedAt == "" {
+			t.Fatalf("started achievement %q missing earned timestamp", id)
 		}
 	}
 	if achievements["first-read"].EarnedAt != "2026-07-01T10:00:00Z" {
