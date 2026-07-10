@@ -165,13 +165,17 @@ func dashboardArcs(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardIte
 			GROUP BY ac.arc_id
 		) totals ON totals.arc_id = a.id
 		LEFT JOIN arc_comics next_ac ON next_ac.arc_id = a.id
-			AND next_ac.position = (
-				SELECT MIN(candidate.position)
+			AND next_ac.comic_id = (
+				SELECT candidate.comic_id
 				FROM arc_comics candidate
+				JOIN comics candidate_comic ON candidate_comic.id = candidate.comic_id
 				LEFT JOIN user_comics candidate_uc ON candidate_uc.comic_id = candidate.comic_id AND candidate_uc.user_id = ?
 				WHERE candidate.arc_id = a.id
 					AND COALESCE(candidate_uc.read, 0) = 0
 					AND COALESCE(candidate_uc.skipped, 0) = 0
+				ORDER BY candidate_comic.cover_date, candidate_comic.series, candidate_comic.series_year,
+					CAST(candidate_comic.issue AS REAL), candidate_comic.issue, candidate_comic.id
+				LIMIT 1
 			)
 		LEFT JOIN comics c ON c.id = next_ac.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
@@ -221,7 +225,8 @@ func dashboardCharacters(ctx context.Context, db *sqlx.DB, userID int) ([]Dashbo
 				WHERE candidate.character_id = ch.id
 					AND COALESCE(candidate_uc.read, 0) = 0
 					AND COALESCE(candidate_uc.skipped, 0) = 0
-				ORDER BY candidate_comic.series, candidate_comic.series_year, CAST(candidate_comic.issue AS REAL), candidate_comic.issue
+				ORDER BY candidate_comic.cover_date, candidate_comic.series, candidate_comic.series_year,
+					CAST(candidate_comic.issue AS REAL), candidate_comic.issue, candidate_comic.id
 				LIMIT 1
 			)
 		LEFT JOIN comics c ON c.id = next_cc.comic_id
@@ -273,7 +278,8 @@ func dashboardSeries(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardI
 			WHERE candidate.series_id = s.id
 				AND COALESCE(candidate_uc.read, 0) = 0
 				AND COALESCE(candidate_uc.skipped, 0) = 0
-			ORDER BY candidate.series_year, CAST(candidate.issue AS REAL), candidate.issue
+			ORDER BY candidate.cover_date, candidate.series_year,
+				CAST(candidate.issue AS REAL), candidate.issue, candidate.id
 			LIMIT 1
 		)
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
