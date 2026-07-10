@@ -471,9 +471,11 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 		INSERT INTO series (id, name, series_year) VALUES (1, 'Alpha', 2020);
 		INSERT INTO comics (id, series_id, series, series_year, issue, publisher)
 		VALUES (1, 1, 'Alpha', 2020, '1', 'Pub'), (2, 1, 'Alpha', 2020, '2', 'Pub');
-		INSERT INTO reading_orders (id, name, author_user_id) VALUES (1, 'Alpha order', 1);
+		INSERT INTO reading_orders (id, name, author_user_id) VALUES
+			(1, 'Alpha order', 1),
+			(2, 'Favorite only', 1);
 		INSERT INTO user_reading_orders (reading_order_id, user_id, started_at)
-		VALUES (1, 1, '2026-07-01T10:00:00Z');
+		VALUES (1, 1, '2026-07-01T10:00:00Z'), (2, 1, NULL);
 		INSERT INTO reading_order_comics (reading_order_id, comic_id, position)
 		VALUES (1, 1, 1), (1, 2, 2);
 	`); err != nil {

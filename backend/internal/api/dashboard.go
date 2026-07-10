@@ -103,7 +103,7 @@ func dashboardReadingOrders(ctx context.Context, db *sqlx.DB, userID int) ([]Das
 		SELECT ro.id, ro.name, started.started_at
 		FROM user_reading_orders started
 		JOIN reading_orders ro ON ro.id = started.reading_order_id
-		WHERE started.user_id = ?
+		WHERE started.user_id = ? AND started.started_at IS NOT NULL
 		ORDER BY started.started_at, ro.name
 	`, userID); err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func dashboardArcs(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardIte
 			)
 		LEFT JOIN comics c ON c.id = next_ac.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
-		WHERE started.user_id = ?
+		WHERE started.user_id = ? AND started.started_at IS NOT NULL
 		ORDER BY started.started_at, a.name
 	`, userID, userID, userID, userID); err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func dashboardCharacters(ctx context.Context, db *sqlx.DB, userID int) ([]Dashbo
 			)
 		LEFT JOIN comics c ON c.id = next_cc.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
-		WHERE started.user_id = ?
+		WHERE started.user_id = ? AND started.started_at IS NOT NULL
 		ORDER BY started.started_at, ch.name
 	`, userID, userID, userID, userID); err != nil {
 		return nil, err
@@ -283,7 +283,7 @@ func dashboardSeries(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardI
 			LIMIT 1
 		)
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
-		WHERE started.user_id = ?
+		WHERE started.user_id = ? AND started.started_at IS NOT NULL
 		ORDER BY started.started_at, s.name, s.series_year
 	`, userID, userID, userID, userID); err != nil {
 		return nil, err
