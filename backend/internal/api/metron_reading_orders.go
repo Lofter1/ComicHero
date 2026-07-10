@@ -11,6 +11,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type MetronImportOptionsInput struct {
+	Body MetronImportOptions
+}
+
 func registerMetronReadingOrdersRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
 
 	huma.Register(api, huma.Operation{
@@ -65,6 +69,23 @@ func registerMetronReadingOrdersRoutes(api huma.API, db *sqlx.DB, client *metron
 			return nil, err
 		}
 		job := startMetronReadingListImportWithOptions(ctx, importJobs, db, client, covers, input.ID, input.Body)
+		return &MetronImportJobOutput{Body: job}, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "importAllMetronReadingLists",
+		Tags:          []string{tagMetron},
+		Summary:       "Import all Metron reading lists",
+		Description:   "Starts one background job that paginates the unfiltered Metron reading-list endpoint and imports every available reading list.",
+		Method:        http.MethodPost,
+		Path:          "/metron/readingLists/importAll",
+		DefaultStatus: http.StatusAccepted,
+		Errors:        errsMetronSync,
+	}, func(ctx context.Context, input *MetronImportOptionsInput) (*MetronImportJobOutput, error) {
+		if err := authorizeMetron(ctx, db, metronScopeImport, "POST /metron/readingLists/importAll"); err != nil {
+			return nil, err
+		}
+		job := startAllMetronReadingListsImport(ctx, importJobs, db, client, covers, input.Body)
 		return &MetronImportJobOutput{Body: job}, nil
 	})
 }

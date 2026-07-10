@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import {
   assetURL,
   getMetronReadingList,
+  importAllMetronReadingLists,
   importMetronCharacterAppearances,
   importMetronComic,
   importMetronReadingList,
@@ -48,6 +49,7 @@ const selectedReadingList = ref(null)
 const readingListDetailOpen = ref(false)
 const readingListDetailLoading = ref(false)
 const readingListDetailStatus = ref('')
+const importingAllReadingLists = ref(false)
 
 const busy = computed(() => searching.value)
 const searchLabel = computed(() => {
@@ -173,6 +175,28 @@ async function importReadingList(list) {
     emit('error', err.message)
   } finally {
     importingKey.value = ''
+  }
+}
+
+async function importAllReadingLists() {
+  const confirmed = window.confirm(
+    'Pulling every reading list from Metron may take a long time and make many API requests. Continue?',
+  )
+  if (!confirmed) return
+
+  importingAllReadingLists.value = true
+  importStatus.value = 'Importing all Metron reading lists in the background.'
+  try {
+    const { data: job, rateLimit: nextRateLimit } = await importAllMetronReadingLists(
+      importOptions.value,
+    )
+    updateRateLimit(nextRateLimit)
+    trackJob(job, 'All reading lists')
+  } catch (err) {
+    updateRateLimit(err.rateLimit)
+    emit('error', err.message)
+  } finally {
+    importingAllReadingLists.value = false
   }
 }
 
@@ -580,7 +604,21 @@ function formatDate(value) {
         </template>
 
         <template v-else-if="activeSearch === 'readingLists'">
-          <h3>Reading Lists</h3>
+          <div class="section-title">
+            <h3>Reading Lists</h3>
+            <button
+              type="button"
+              class="secondary-action"
+              :disabled="importingAllReadingLists || rowImporting('readingLists', 0)"
+              @click="importAllReadingLists"
+            >
+              {{
+                importingAllReadingLists || rowImporting('readingLists', 0)
+                  ? 'Pulling all...'
+                  : 'Pull all'
+              }}
+            </button>
+          </div>
           <p v-if="searching" class="muted">Searching Metron reading lists...</p>
           <p v-else-if="readingListResults.length === 0" class="muted">
             No Metron reading-list results yet.

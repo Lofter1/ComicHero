@@ -459,6 +459,10 @@ export function importMetronReadingList(id, options = {}) {
   return sendWithMeta(`/metron/readingLists/${id}/import`, 'POST', options)
 }
 
+export function importAllMetronReadingLists(options = {}) {
+  return sendWithMeta('/metron/readingLists/importAll', 'POST', options)
+}
+
 export function searchMetronSeries(params) {
   return requestWithMeta(`/metron/series${queryString(params)}`)
 }

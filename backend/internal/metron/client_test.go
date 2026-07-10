@@ -100,6 +100,30 @@ func TestClientUsesBasicAuthAndDocumentedListPaths(t *testing.T) {
 	}
 }
 
+func TestListReadingListsFetchesEveryUnfilteredPage(t *testing.T) {
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("page") == "2" {
+			w.Write([]byte(`{"count":2,"next":null,"results":[{"id":2,"name":"Second"}]}`))
+			return
+		}
+		if len(r.URL.Query()) != 0 {
+			t.Fatalf("first-page query = %v; want no filters", r.URL.Query())
+		}
+		w.Write([]byte(`{"count":2,"next":"` + server.URL + `/reading_list/?page=2","results":[{"id":1,"name":"First"}]}`))
+	}))
+	defer server.Close()
+
+	lists, err := New(Config{BaseURL: server.URL}).ListReadingLists(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lists) != 2 || lists[0].ID != 1 || lists[1].ID != 2 {
+		t.Fatalf("lists = %#v", lists)
+	}
+}
+
 func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

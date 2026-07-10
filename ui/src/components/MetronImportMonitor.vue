@@ -64,13 +64,15 @@ function isActiveJob(job) {
 
 function jobTitle(job) {
   const type =
-    job.type === 'readingList'
-      ? 'Reading list'
-      : job.type === 'character'
-        ? 'Character'
-        : job.type === 'arc'
-          ? 'Arc'
-          : job.type
+    job.type === 'readingLists'
+      ? 'Reading lists'
+      : job.type === 'readingList'
+        ? 'Reading list'
+        : job.type === 'character'
+          ? 'Character'
+          : job.type === 'arc'
+            ? 'Arc'
+            : job.type
   return job.displayName ? `${type} import for ${job.displayName}` : `${type} import`
 }
 
