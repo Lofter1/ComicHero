@@ -212,11 +212,20 @@ function toggleAccountMenu() {
           </router-link>
           <router-link
             v-if="isAdmin"
-            :to="{ name: 'users' }"
+            :to="{ name: 'settings' }"
             class="account-menu-item"
             @click="closeMenus"
           >
             <span aria-hidden="true">⚙</span>
+            <span>App settings</span>
+          </router-link>
+          <router-link
+            v-if="isAdmin"
+            :to="{ name: 'users' }"
+            class="account-menu-item"
+            @click="closeMenus"
+          >
+            <span aria-hidden="true">#</span>
             <span>Manage users</span>
           </router-link>
           <a

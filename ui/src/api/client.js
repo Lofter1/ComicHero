@@ -307,6 +307,26 @@ export function updatePublicAccess(payload) {
   return send('/users/public-access', 'PUT', payload)
 }
 
+export function getMetronComicScan() {
+  return request('/metron/scans/comics')
+}
+
+export function metronComicScanEventsURL() {
+  return `${API_BASE}/metron/scans/comics/events`
+}
+
+export function updateMetronComicScan(payload) {
+  return send('/metron/scans/comics', 'PUT', payload)
+}
+
+export function triggerMetronComicScan() {
+  return send('/metron/scans/comics/trigger', 'POST', {})
+}
+
+export function stopMetronComicScan() {
+  return send('/metron/scans/comics/stop', 'POST', {})
+}
+
 export function updateUserMetronPermissions(id, payload) {
   return send(`/users/${id}/metron-permissions`, 'PUT', payload)
 }

@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AccountView from '@/components/AccountView.vue'
+import AppSettingsView from '@/components/AppSettingsView.vue'
 import ArcDetailView from '@/components/ArcDetailView.vue'
 import ArcsBrowseView from '@/components/ArcsBrowseView.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
@@ -34,17 +35,22 @@ import {
   deleteUser as deleteUserRequest,
   getAccountStatistics,
   getDashboard,
+  getMetronComicScan,
   getUserStatus,
   listUsers,
   loginUser,
+  metronComicScanEventsURL,
   logoutUser,
   registerUser,
   resendEmailVerification,
   requestPasswordReset,
   resetPassword,
   setupUsers,
+  stopMetronComicScan,
+  triggerMetronComicScan,
   updateAccount,
   updatePublicAccess,
+  updateMetronComicScan,
   updateComicReadStatus,
   updateRegistrationMode,
   updateUserAdmin,
@@ -95,6 +101,9 @@ const deletingUserID = ref(null)
 const generatingInvite = ref(false)
 const savingRegistrationMode = ref(false)
 const savingPublicAccess = ref(false)
+const metronComicScan = ref(null)
+const savingMetronComicScan = ref(false)
+let metronComicScanEvents = null
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -590,6 +599,65 @@ async function loadUserAdminRows() {
   userAdminRows.value = await listUsers()
 }
 
+async function saveMetronComicScan(settings) {
+  savingMetronComicScan.value = true
+  error.value = ''
+  try {
+    metronComicScan.value = await updateMetronComicScan(settings)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingMetronComicScan.value = false
+  }
+}
+
+async function runMetronComicScan() {
+  try {
+    metronComicScan.value = await triggerMetronComicScan()
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+function connectMetronComicScanEvents() {
+  if (metronComicScanEvents || typeof EventSource === 'undefined') return false
+  metronComicScanEvents = new EventSource(metronComicScanEventsURL(), { withCredentials: true })
+  metronComicScanEvents.addEventListener('scan', (event) => {
+    try {
+      const payload = JSON.parse(event.data)
+      metronComicScan.value = payload.scan || payload
+    } catch (err) {
+      error.value = err.message
+    }
+  })
+  metronComicScanEvents.onerror = () => {
+    if (metronComicScanEvents?.readyState === EventSource.CLOSED) {
+      closeMetronComicScanEvents()
+      getMetronComicScan()
+        .then((status) => {
+          metronComicScan.value = status
+        })
+        .catch((err) => {
+          error.value = err.message
+        })
+    }
+  }
+  return true
+}
+
+function closeMetronComicScanEvents() {
+  metronComicScanEvents?.close()
+  metronComicScanEvents = null
+}
+
+async function cancelMetronComicScan() {
+  try {
+    metronComicScan.value = await stopMetronComicScan()
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
 async function generateUserInvite() {
   generatingInvite.value = true
   error.value = ''
@@ -824,6 +892,7 @@ function routeToAppState() {
   if (route.name === 'characterDetail') return entityRouteState('characters')
   if (route.name === 'metron') return { view: 'metron', mode: 'browse' }
   if (route.name === 'users') return { view: 'users', mode: 'browse' }
+  if (route.name === 'settings') return { view: 'settings', mode: 'browse' }
   if (route.name === 'account') return { view: 'account', mode: 'browse' }
   if (route.name === 'progress') return { view: 'progress', mode: 'browse' }
   if (route.name === 'notFound') return { view: 'notFound', mode: 'browse' }
@@ -839,6 +908,7 @@ function browseRouteLocation(view) {
   if (view === 'characters') return { name: 'characters' }
   if (view === 'metron') return { name: 'metron' }
   if (view === 'users') return { name: 'users' }
+  if (view === 'settings') return { name: 'settings' }
   if (view === 'account') return { name: 'account' }
   if (view === 'progress') return { name: 'progress' }
   return null
@@ -1052,6 +1122,10 @@ async function loadActiveViewData(options = {}) {
     await loadUserAdminRows()
     return
   }
+  if (activeView.value === 'settings') {
+    if (!connectMetronComicScanEvents()) metronComicScan.value = await getMetronComicScan()
+    return
+  }
   if (activeView.value === 'account') {
     return
   }
@@ -1215,7 +1289,8 @@ watch(showInfiniteScrollSentinel, () => {
   nextTick(observeLoadMoreSentinel)
 })
 
-watch(activeView, () => {
+watch(activeView, (view) => {
+  if (view !== 'settings') closeMetronComicScanEvents()
   nextTick(observeLoadMoreSentinel)
 })
 
@@ -1278,6 +1353,7 @@ watch(search, () => {
 })
 
 onUnmounted(() => {
+  closeMetronComicScanEvents()
   closeMetronImportEvents()
   if (searchDebounceTimer) {
     window.clearTimeout(searchDebounceTimer)
@@ -1643,15 +1719,24 @@ onUnmounted(() => {
         :saving-admin-user-id="savingAdminUserID"
         :deleting-user-id="deletingUserID"
         :current-user-id="currentUser?.id"
+        @save="saveUserMetronPermissions"
+        @save-admin="saveUserAdmin"
+        @delete-user="removeUser"
+      />
+
+      <AppSettingsView
+        v-else-if="activeView === 'settings'"
+        :metron-comic-scan="metronComicScan"
+        :saving="savingMetronComicScan"
         :registration-mode="registrationMode"
         :saving-registration-mode="savingRegistrationMode"
         :public-access="publicAccess"
         :saving-public-access="savingPublicAccess"
         :invite="generatedInvite"
         :generating-invite="generatingInvite"
-        @save="saveUserMetronPermissions"
-        @save-admin="saveUserAdmin"
-        @delete-user="removeUser"
+        @save="saveMetronComicScan"
+        @trigger="runMetronComicScan"
+        @stop="cancelMetronComicScan"
         @update-registration-mode="saveRegistrationMode"
         @update-public-access="savePublicAccess"
         @generate-invite="generateUserInvite"

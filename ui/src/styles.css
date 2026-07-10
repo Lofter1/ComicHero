@@ -887,11 +887,111 @@ textarea {
   max-width: 1160px;
 }
 
+.app-settings-view {
+  display: grid;
+  gap: 20px;
+  max-width: 1160px;
+}
+
+.metron-scan-panel {
+  gap: 22px;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.metron-scan-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.metron-scan-heading-copy {
+  display: grid;
+  gap: 6px;
+  max-width: 760px;
+}
+
+.metron-scan-toggle {
+  flex: 0 0 auto;
+  min-width: 150px;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 11px 14px;
+}
+
+.metron-scan-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 360px));
+  gap: 16px 24px;
+}
+
+.metron-scan-field {
+  display: grid;
+  gap: 7px;
+  color: var(--label-ink);
+  font-weight: 800;
+}
+
+.metron-scan-field input,
+.metron-scan-field select {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding-block: 0;
+  line-height: 1.2;
+}
+
+.metron-scan-status {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px 14px;
+  color: var(--muted);
+}
+
+.metron-scan-status > div {
+  display: grid;
+  gap: 1px;
+}
+
+.metron-scan-status strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.metron-scan-status span,
+.metron-scan-status p {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.metron-scan-status p {
+  margin-left: auto;
+}
+
+.metron-scan-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.metron-scan-actions > button {
+  width: 160px;
+  min-height: 44px;
+}
+
 .user-access-panel {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .user-registration-panel,
@@ -905,6 +1005,16 @@ textarea {
   background: var(--surface-soft);
   padding: 20px;
   box-shadow: 0 8px 24px var(--shadow-panel);
+}
+
+.user-access-panel > div {
+  height: 100%;
+}
+
+.user-registration-panel > .registration-mode-toggle,
+.user-public-panel > .registration-mode-toggle,
+.user-invite-panel > .primary-button {
+  margin-top: auto;
 }
 
 .public-session-card {
@@ -3551,6 +3661,37 @@ textarea {
 }
 
 @media (max-width: 720px) {
+  .metron-scan-panel {
+    padding: 18px;
+  }
+
+  .metron-scan-heading,
+  .metron-scan-status {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .metron-scan-toggle {
+    align-self: flex-start;
+  }
+
+  .metron-scan-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .metron-scan-status p {
+    margin-left: 0;
+  }
+
+  .metron-scan-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .metron-scan-actions > button {
+    width: 100%;
+  }
+
   .sidebar {
     padding: 12px;
   }
