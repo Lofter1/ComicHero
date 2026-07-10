@@ -49,6 +49,21 @@ func RegisterCharacterRoutes(api huma.API, db *sqlx.DB) {
 	}, func(ctx context.Context, input *UpdateCharacterFavoriteInput) (*CharacterDetailOutput, error) {
 		return updateCharacterFavorite(ctx, db, input.ID, input.Body.Favorite)
 	})
+
+	for _, operation := range []struct {
+		id      string
+		summary string
+		method  string
+		started bool
+	}{{"startCharacter", "Start reading a character", http.MethodPost, true}, {"stopCharacter", "Stop reading a character", http.MethodDelete, false}} {
+		op := operation
+		huma.Register(api, huma.Operation{OperationID: op.id, Tags: []string{tagCharacters}, Summary: op.summary, Method: op.method, Path: "/characters/{id}/start", Errors: errsWrite}, func(ctx context.Context, input *CharacterInput) (*CharacterDetailOutput, error) {
+			if err := setContentStarted(ctx, db, "user_character_starts", "character_id", "characters", input.ID, op.started); err != nil {
+				return nil, err
+			}
+			return getCharacter(ctx, db, input.ID)
+		})
+	}
 }
 
 func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput) (*CharacterListOutput, error) {
@@ -57,15 +72,16 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 		return nil, err
 	}
 	query := newSelectQuery(`
-		SELECT ch.*,
+		SELECT ch.*, started.started_at AS started_at,
 			COUNT(cc.comic_id) AS appearance_count,
 			COALESCE(AVG(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
 		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
 		LEFT JOIN comics c ON c.id = cc.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		LEFT JOIN user_character_starts started ON started.character_id = ch.id AND started.user_id = ?
 	`)
-	query.args = append(query.args, userID)
+	query.args = append(query.args, userID, userID)
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
 		query.where(`(
@@ -80,6 +96,13 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 		return nil, err
 	} else if ok {
 		query.where("ch.favorite = ?", favorite)
+	}
+	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
+		return nil, err
+	} else if ok && started {
+		query.where("started.started_at IS NOT NULL")
+	} else if ok {
+		query.where("started.started_at IS NULL")
 	}
 	query.groupBy("GROUP BY ch.id")
 	query.orderBy(characterListOrder(input.Sort, input.Direction))
@@ -173,16 +196,17 @@ func getCharacterRow(ctx context.Context, db *sqlx.DB, id int) (Character, error
 	}
 	var character Character
 	if err := db.GetContext(ctx, &character, `
-		SELECT ch.*,
+		SELECT ch.*, started.started_at AS started_at,
 			COUNT(cc.comic_id) AS appearance_count,
 			COALESCE(AVG(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
 		LEFT JOIN comic_characters cc ON cc.character_id = ch.id
 		LEFT JOIN comics c ON c.id = cc.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		LEFT JOIN user_character_starts started ON started.character_id = ch.id AND started.user_id = ?
 		WHERE ch.id = ?
 		GROUP BY ch.id
-	`, userID, id); err != nil {
+	`, userID, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return Character{}, huma.Error404NotFound("character not found")
 		}

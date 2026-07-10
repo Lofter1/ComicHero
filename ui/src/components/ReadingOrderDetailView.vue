@@ -34,6 +34,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  startSaving: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits([
@@ -43,6 +47,8 @@ const emit = defineEmits([
   'export-cbl',
   'open-comic',
   'rate',
+  'start',
+  'stop',
   'toggle-read',
   'toggle-skipped',
 ])
@@ -68,12 +74,30 @@ const renderedDescription = computed(() => {
 
       <div class="detail-nav-actions">
         <button
-          v-if="selectedOrder"
+          v-if="selectedOrder && !readOnly && !selectedOrder.startedAt"
+          class="primary-button"
+          type="button"
+          :disabled="startSaving"
+          @click="$emit('start')"
+        >
+          {{ startSaving ? 'Starting...' : 'Start reading order' }}
+        </button>
+        <button
+          v-if="selectedOrder && !readOnly && selectedOrder.startedAt"
           class="secondary-button"
           type="button"
-          @click="$emit('export-cbl')"
+          :disabled="startSaving"
+          @click="$emit('stop')"
         >
-          Export CBL
+          {{ startSaving ? 'Stopping...' : 'Stop reading' }}
+        </button>
+        <button
+          v-if="selectedOrder?.canEdit"
+          class="primary-button"
+          type="button"
+          @click="$emit('edit')"
+        >
+          Edit
         </button>
         <button
           v-if="
@@ -90,12 +114,12 @@ const renderedDescription = computed(() => {
           {{ saving ? 'Copying...' : 'Copy' }}
         </button>
         <button
-          v-if="selectedOrder?.canEdit"
-          class="primary-button"
+          v-if="selectedOrder"
+          class="secondary-button"
           type="button"
-          @click="$emit('edit')"
+          @click="$emit('export-cbl')"
         >
-          Edit
+          Export CBL
         </button>
       </div>
     </header>
@@ -146,6 +170,10 @@ const renderedDescription = computed(() => {
           <span v-if="selectedOrder.authorName">
             <strong>{{ selectedOrder.authorName }}</strong>
             <small>Author</small>
+          </span>
+          <span v-if="selectedOrder.startedAt">
+            <strong>Started</strong>
+            <small>{{ new Date(selectedOrder.startedAt).toLocaleDateString() }}</small>
           </span>
         </div>
 

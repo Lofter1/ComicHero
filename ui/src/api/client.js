@@ -159,6 +159,14 @@ export function getArc(id) {
   return request(`/arcs/${id}`)
 }
 
+export function startReadingOrder(id) {
+  return send(`/readingOrders/${id}/start`, 'POST', {})
+}
+
+export function stopReadingOrder(id) {
+  return request(`/readingOrders/${id}/start`, { method: 'DELETE' })
+}
+
 export function createArc(payload) {
   return send('/arcs', 'POST', payload)
 }
@@ -175,12 +183,20 @@ export function setArcComics(id, payload) {
   return send(`/arcs/${id}/comics`, 'PUT', payload)
 }
 
+export function setArcStarted(id, started) {
+  return request(`/arcs/${id}/start`, { method: started ? 'POST' : 'DELETE' })
+}
+
 export function getSeries(id) {
   return request(`/series/${id}`)
 }
 
 export function updateSeriesFavorite(id, favorite) {
   return send(`/series/${id}/favorite`, 'PATCH', { favorite })
+}
+
+export function setSeriesStarted(id, started) {
+  return request(`/series/${id}/start`, { method: started ? 'POST' : 'DELETE' })
 }
 
 export function importLocalSeriesFromMetron(id) {
@@ -193,6 +209,10 @@ export function getCharacter(id) {
 
 export function updateCharacterFavorite(id, favorite) {
   return send(`/characters/${id}/favorite`, 'PATCH', { favorite })
+}
+
+export function setCharacterStarted(id, started) {
+  return request(`/characters/${id}/start`, { method: started ? 'POST' : 'DELETE' })
 }
 
 export function searchMetronCharacters(params) {

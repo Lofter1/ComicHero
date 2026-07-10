@@ -82,24 +82,6 @@ function seriesLabel(comic) {
       <div class="detail-nav-actions">
         <button
           v-if="selectedComic && !readOnly"
-          class="secondary-button"
-          type="button"
-          :disabled="metronActionDisabled"
-          @click="runMetronAction"
-        >
-          {{ metronActionLabel }}
-        </button>
-        <button
-          v-if="selectedComic?.metronIssueId && !readOnly"
-          class="ghost-button"
-          type="button"
-          :disabled="metronActionDisabled"
-          @click="forceMetronRefresh"
-        >
-          Force refresh
-        </button>
-        <button
-          v-if="selectedComic && !readOnly"
           class="read-toggle-button large"
           type="button"
           :disabled="quickSavingComicId === selectedComic.id"
@@ -116,6 +98,24 @@ function seriesLabel(comic) {
           @click="$emit('toggle-skipped', selectedComic)"
         >
           {{ selectedComic.skipped ? 'Unskip' : 'Skip' }}
+        </button>
+        <button
+          v-if="selectedComic && !readOnly"
+          class="secondary-button"
+          type="button"
+          :disabled="metronActionDisabled"
+          @click="runMetronAction"
+        >
+          {{ metronActionLabel }}
+        </button>
+        <button
+          v-if="selectedComic?.metronIssueId && !readOnly"
+          class="ghost-button"
+          type="button"
+          :disabled="metronActionDisabled"
+          @click="forceMetronRefresh"
+        >
+          Force refresh
         </button>
       </div>
     </header>

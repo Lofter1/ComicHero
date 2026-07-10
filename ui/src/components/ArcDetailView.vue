@@ -24,9 +24,17 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  startSaving: { type: Boolean, default: false },
 })
 
-defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read', 'toggle-skipped'])
+defineEmits([
+  'back',
+  'toggle-favorite',
+  'toggle-started',
+  'open-comic',
+  'toggle-read',
+  'toggle-skipped',
+])
 </script>
 
 <template>
@@ -45,6 +53,15 @@ defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read', 'toggle-ski
           @click="$emit('toggle-favorite', selectedArc)"
         >
           <span aria-hidden="true">{{ selectedArc.favorite ? '★' : '☆' }}</span>
+        </button>
+        <button
+          v-if="selectedArc && !readOnly"
+          :class="selectedArc.startedAt ? 'secondary-button' : 'primary-button'"
+          type="button"
+          :disabled="startSaving"
+          @click="$emit('toggle-started')"
+        >
+          {{ startSaving ? 'Saving...' : selectedArc.startedAt ? 'Stop reading' : 'Start reading' }}
         </button>
       </div>
     </header>
@@ -79,6 +96,10 @@ defineEmits(['back', 'toggle-favorite', 'open-comic', 'toggle-read', 'toggle-ski
             <strong>{{ selectedArc.comics.length }}</strong>
             <small>Comics</small>
           </span>
+          <span v-if="selectedArc.startedAt"
+            ><strong>Started</strong
+            ><small>{{ new Date(selectedArc.startedAt).toLocaleDateString() }}</small></span
+          >
         </div>
 
         <ComicListView

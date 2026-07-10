@@ -3,6 +3,7 @@ import {
   getCharacter,
   importMetronCharacterAppearances,
   listCharacters,
+  setCharacterStarted,
   updateCharacterFavorite,
 } from '@/api/client.js'
 import { formatProgress } from '@/domain/readingOrders.js'
@@ -18,6 +19,7 @@ export function useCharacters({
   const characters = ref([])
   const selectedCharacter = ref(null)
   const quickSavingCharacterID = ref(null)
+  const startSaving = ref(false)
 
   const visibleCharacters = computed(() => characters.value)
   const favoriteVisibleCharacters = computed(() =>
@@ -70,6 +72,28 @@ export function useCharacters({
     }
   }
 
+  async function toggleSelectedCharacterStarted() {
+    if (!selectedCharacter.value?.id || startSaving.value) return
+    startSaving.value = true
+    error.value = ''
+    try {
+      const detail = await setCharacterStarted(
+        selectedCharacter.value.id,
+        !selectedCharacter.value.startedAt,
+      )
+      selectedCharacter.value = detail
+      characters.value = characters.value.map((character) =>
+        character.id === detail.id
+          ? { ...character, startedAt: detail.startedAt || null }
+          : character,
+      )
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      startSaving.value = false
+    }
+  }
+
   function characterProgress(character) {
     return formatProgress(character?.progress ?? 0)
   }
@@ -117,10 +141,12 @@ export function useCharacters({
     characters,
     selectedCharacter,
     quickSavingCharacterID,
+    startSaving,
     visibleCharacters,
     characterBrowseSections,
     openCharacter,
     toggleCharacterFavorite,
+    toggleSelectedCharacterStarted,
     characterProgress,
     importSelectedCharacterAppearances,
     characterImportRunning,

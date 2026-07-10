@@ -28,11 +28,13 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  startSaving: { type: Boolean, default: false },
 })
 
 defineEmits([
   'back',
   'toggle-favorite',
+  'toggle-started',
   'import-appearances',
   'open-comic',
   'toggle-read',
@@ -60,6 +62,21 @@ function characterProgress(character) {
           @click="$emit('toggle-favorite', selectedCharacter)"
         >
           <span aria-hidden="true">{{ selectedCharacter.favorite ? '★' : '☆' }}</span>
+        </button>
+        <button
+          v-if="selectedCharacter && !readOnly"
+          :class="selectedCharacter.startedAt ? 'secondary-button' : 'primary-button'"
+          type="button"
+          :disabled="startSaving"
+          @click="$emit('toggle-started')"
+        >
+          {{
+            startSaving
+              ? 'Saving...'
+              : selectedCharacter.startedAt
+                ? 'Stop reading'
+                : 'Start reading'
+          }}
         </button>
         <button
           v-if="selectedCharacter?.metronCharacterId && !readOnly"
@@ -103,6 +120,10 @@ function characterProgress(character) {
             <strong>{{ selectedCharacter.aliases?.length || 0 }}</strong>
             <small>Aliases</small>
           </span>
+          <span v-if="selectedCharacter.startedAt"
+            ><strong>Started</strong
+            ><small>{{ new Date(selectedCharacter.startedAt).toLocaleDateString() }}</small></span
+          >
         </div>
         <div class="progress-meter" aria-label="Character read progress">
           <span :style="{ width: characterProgress(selectedCharacter) }"></span>

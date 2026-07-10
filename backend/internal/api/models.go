@@ -300,6 +300,7 @@ type Character struct {
 	Description       string   `json:"description"                db:"description"         doc:"Character description from Metron."`
 	Image             string   `json:"image"                      db:"image"               doc:"Character image URL from Metron." format:"uri"`
 	Favorite          bool     `json:"favorite"                   db:"favorite"            doc:"Whether this character is marked as a favorite." example:"true"`
+	StartedAt         *string  `json:"startedAt,omitempty"        db:"started_at"          doc:"When the current user formally started reading this character."`
 	Progress          float64  `json:"progress"                   db:"progress"            doc:"Fraction of appearances marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	Aliases           []string `json:"aliases"                    db:"-"                   doc:"Known character aliases."`
 	AppearanceCount   int      `json:"appearanceCount"            db:"appearance_count"    doc:"Number of local comics this character appears in." example:"25"`
@@ -313,6 +314,7 @@ type CharacterDetail struct {
 type CharacterListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across character names and aliases." example:"bat"`
 	Favorite  string `query:"favorite" doc:"Filter characters by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Started   string `query:"started" doc:"Filter characters by current-user started status." enum:"true,false" example:"true"`
 	Sort      string `query:"sort"     doc:"Sort field." enum:"name,appearances,aliases,progress" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
@@ -342,6 +344,7 @@ type ComicSeries struct {
 	Name        string   `json:"name"        db:"name"        doc:"Series name." example:"Batman"`
 	SeriesYear  int      `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in generated comic titles." minimum:"0" example:"2011"`
 	Favorite    bool     `json:"favorite"    db:"favorite"    doc:"Whether this series is marked as a favorite." example:"true"`
+	StartedAt   *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started reading this series."`
 	Publisher   string   `json:"publisher"   db:"publisher"   doc:"Publisher name from Metron series metadata." example:"DC Comics"`
 	Volume      int      `json:"volume"      db:"volume"      doc:"Metron series volume number." example:"2"`
 	YearEnd     int      `json:"yearEnd"     db:"year_end"    doc:"Final publication year from Metron, when known." example:"2016"`
@@ -362,6 +365,7 @@ type ComicSeriesDetail struct {
 type ComicSeriesListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across series names, publishers, years, and issue numbers." example:"batman"`
 	Favorite  string `query:"favorite" doc:"Filter series by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Started   string `query:"started" doc:"Filter series by current-user started status." enum:"true,false" example:"true"`
 	Sort      string `query:"sort"     doc:"Sort field." enum:"name,year,publisher,entries,progress" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
@@ -435,6 +439,7 @@ type ReadingOrder struct {
 	Rating      float64  `json:"rating"      db:"rating"      doc:"Average user rating from 1 to 5, or 0 when unrated." minimum:"0" maximum:"5" example:"4.5"`
 	RatingCount int      `json:"ratingCount" db:"rating_count" doc:"Number of user ratings represented by this score." example:"23"`
 	MyRating    *float64 `json:"myRating,omitempty" db:"my_rating" doc:"Current user's rating for this reading order, when rated." minimum:"1" maximum:"5" example:"4"`
+	StartedAt   *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started this reading order." example:"2026-07-10T12:30:00Z"`
 	Progress    float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	AuthorName  string   `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
 	CanEdit     bool     `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
@@ -488,6 +493,7 @@ type ReadingOrderDetail struct {
 type ReadingOrderListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
 	Favorite  string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Started   string `query:"started" doc:"Filter reading orders by whether the current user formally started them. Use true or false." enum:"true,false" example:"true"`
 	ComicID   int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
 	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress,rating" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
@@ -553,6 +559,7 @@ type Arc struct {
 	Description string  `json:"description" db:"description" doc:"Arc description or notes."`
 	Image       string  `json:"image"       db:"image"       doc:"Story arc image URL from Metron." format:"uri"`
 	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this arc is marked as a favorite." example:"true"`
+	StartedAt   *string `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started reading this arc."`
 	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 }
 
@@ -580,6 +587,7 @@ type ArcDetail struct {
 type ArcListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
 	Favorite  string `query:"favorite" doc:"Filter arcs by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Started   string `query:"started" doc:"Filter arcs by current-user started status." enum:"true,false" example:"true"`
 	ComicID   int    `query:"comicId"  doc:"Filter arcs to those containing a comic." example:"42"`
 	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`

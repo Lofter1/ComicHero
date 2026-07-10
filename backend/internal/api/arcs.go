@@ -35,6 +35,21 @@ func RegisterArcRoutes(api huma.API, db *sqlx.DB) {
 		return getArc(ctx, db, input.ID)
 	})
 
+	for _, operation := range []struct {
+		id      string
+		summary string
+		method  string
+		started bool
+	}{{"startArc", "Start reading an arc", http.MethodPost, true}, {"stopArc", "Stop reading an arc", http.MethodDelete, false}} {
+		op := operation
+		huma.Register(api, huma.Operation{OperationID: op.id, Tags: []string{tagArcs}, Summary: op.summary, Method: op.method, Path: "/arcs/{id}/start", Errors: errsWrite}, func(ctx context.Context, input *ArcInput) (*ArcDetailOutput, error) {
+			if err := setContentStarted(ctx, db, "user_arc_starts", "arc_id", "arcs", input.ID, op.started); err != nil {
+				return nil, err
+			}
+			return getArc(ctx, db, input.ID)
+		})
+	}
+
 	huma.Register(api, huma.Operation{
 		OperationID:   "createArc",
 		Tags:          []string{tagArcs},
@@ -119,6 +134,7 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 			a.description,
 			a.image,
 			a.favorite,
+			started.started_at AS started_at,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
 				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
@@ -127,8 +143,9 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 		LEFT JOIN arc_comics ac ON ac.arc_id = a.id
 		LEFT JOIN comics c ON c.id = ac.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		LEFT JOIN user_arc_starts started ON started.arc_id = a.id AND started.user_id = ?
 	`)
-	query.args = append(query.args, userID)
+	query.args = append(query.args, userID, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -138,6 +155,13 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 		return "", nil, err
 	} else if ok {
 		query.where("a.favorite = ?", favorite)
+	}
+	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
+		return "", nil, err
+	} else if ok && started {
+		query.where("started.started_at IS NOT NULL")
+	} else if ok {
+		query.where("started.started_at IS NULL")
 	}
 	if input.ComicID > 0 {
 		query.where(`
@@ -165,10 +189,17 @@ func arcListOrder(sort, direction string) string {
 }
 
 func getArc(ctx context.Context, db *sqlx.DB, id int) (*ArcDetailOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 	var arc Arc
 	if err := db.GetContext(ctx, &arc, `
-		SELECT * FROM arcs WHERE id = ?
-	`, id); err != nil {
+		SELECT a.*, started.started_at AS started_at
+		FROM arcs a
+		LEFT JOIN user_arc_starts started ON started.arc_id = a.id AND started.user_id = ?
+		WHERE a.id = ?
+	`, userID, id); err != nil {
 		return nil, huma.Error404NotFound("arc not found")
 	}
 

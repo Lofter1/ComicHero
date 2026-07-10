@@ -4,6 +4,7 @@ import {
   deleteArc as removeArc,
   getArc,
   listArcs,
+  setArcStarted,
   setArcComics,
   updateArc,
 } from '@/api/client.js'
@@ -13,6 +14,7 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
   const arcs = ref([])
   const selectedArc = ref(null)
   const quickSavingArcID = ref(null)
+  const startSaving = ref(false)
   const arcForm = ref(emptyArc())
 
   const visibleArcs = computed(() => arcs.value)
@@ -75,6 +77,23 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     }
     if (arcForm.value?.id === detail.id) {
       arcForm.value = { ...arcForm.value, favorite: detail.favorite }
+    }
+  }
+
+  async function toggleSelectedArcStarted() {
+    if (!selectedArc.value?.id || startSaving.value) return
+    startSaving.value = true
+    error.value = ''
+    try {
+      const detail = await setArcStarted(selectedArc.value.id, !selectedArc.value.startedAt)
+      selectedArc.value = detail
+      arcs.value = arcs.value.map((arc) =>
+        arc.id === detail.id ? { ...arc, startedAt: detail.startedAt || null } : arc,
+      )
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      startSaving.value = false
     }
   }
 
@@ -147,12 +166,14 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
     arcs,
     selectedArc,
     quickSavingArcID,
+    startSaving,
     arcForm,
     visibleArcs,
     arcBrowseSections,
     arcProgress,
     openArc,
     toggleArcFavorite,
+    toggleSelectedArcStarted,
     newArc,
     editArc,
     saveArc,

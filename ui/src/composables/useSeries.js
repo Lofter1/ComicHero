@@ -1,5 +1,11 @@
 import { computed, ref } from 'vue'
-import { getSeries, importMetronSeries, listSeries, updateSeriesFavorite } from '@/api/client.js'
+import {
+  getSeries,
+  importMetronSeries,
+  listSeries,
+  setSeriesStarted,
+  updateSeriesFavorite,
+} from '@/api/client.js'
 
 export function useSeries({
   activeView,
@@ -11,6 +17,7 @@ export function useSeries({
 }) {
   const series = ref([])
   const selectedSeries = ref(null)
+  const startSaving = ref(false)
 
   const visibleSeries = computed(() => series.value)
   const favoriteVisibleSeries = computed(() => series.value.filter((item) => item.favorite))
@@ -56,6 +63,26 @@ export function useSeries({
     }
   }
 
+  async function toggleSelectedSeriesStarted() {
+    if (!selectedSeries.value?.id || startSaving.value) return
+    startSaving.value = true
+    error.value = ''
+    try {
+      const detail = await setSeriesStarted(
+        selectedSeries.value.id,
+        !selectedSeries.value.startedAt,
+      )
+      selectedSeries.value = detail
+      series.value = series.value.map((item) =>
+        item.id === detail.id ? { ...item, startedAt: detail.startedAt || null } : item,
+      )
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      startSaving.value = false
+    }
+  }
+
   async function importSelectedSeriesFromMetron() {
     if (!selectedSeries.value?.metronSeriesId || seriesImportRunning(selectedSeries.value)) return
 
@@ -92,10 +119,12 @@ export function useSeries({
   return {
     series,
     selectedSeries,
+    startSaving,
     visibleSeries,
     seriesBrowseSections,
     openSeries,
     toggleSeriesFavorite,
+    toggleSelectedSeriesStarted,
     importSelectedSeriesFromMetron,
     seriesImportRunning,
     refreshSelectedSeriesDetail,

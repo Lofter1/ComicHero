@@ -185,6 +185,12 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
+		CREATE TABLE user_reading_orders (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
 		CREATE TABLE reading_order_ratings (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -237,6 +243,7 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			(2, 1, 1, '2026-07-02T12:30:00Z'),
 			(4, 2, 1, '2026-07-03T08:00:00Z');
 		INSERT INTO reading_orders (id, name, author_user_id) VALUES (1, 'Alpha order', 1), (2, 'Other order', 2);
+		INSERT INTO user_reading_orders (reading_order_id, user_id) VALUES (1, 1);
 		INSERT INTO reading_order_comics (reading_order_id, comic_id, position)
 		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
 		INSERT INTO arcs (id, name) VALUES (1, 'Alpha arc'), (2, 'Beta arc');
@@ -321,6 +328,12 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
+		CREATE TABLE user_reading_orders (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
 		CREATE TABLE reading_order_ratings (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -329,6 +342,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
+		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -721,6 +735,12 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
+		CREATE TABLE user_reading_orders (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
 		CREATE TABLE reading_order_ratings (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -831,6 +851,59 @@ func TestRateReadingOrderUsesUserRatings(t *testing.T) {
 	}
 }
 
+func TestStartReadingOrderIsPerUserAndIdempotent(t *testing.T) {
+	ctx := testUserContext()
+	db := setupReadingOrderCBLTestDB(t)
+	if _, err := db.Exec(`INSERT INTO users (id, name) VALUES (2, 'Second Reader')`); err != nil {
+		t.Fatalf("insert second user: %v", err)
+	}
+
+	created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Started order"})
+	if err != nil {
+		t.Fatalf("create reading order: %v", err)
+	}
+	started, err := startReadingOrder(ctx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("start reading order: %v", err)
+	}
+	if started.Body.StartedAt == nil || *started.Body.StartedAt == "" {
+		t.Fatal("startedAt is empty after starting reading order")
+	}
+	firstStartedAt := *started.Body.StartedAt
+	startedList, err := listReadingOrders(ctx, db, &ReadingOrderListInput{Started: "true"})
+	if err != nil {
+		t.Fatalf("list started reading orders: %v", err)
+	}
+	if len(startedList.Body) != 1 || startedList.Body[0].ID != created.Body.ID {
+		t.Fatalf("started reading orders = %#v; want created order", startedList.Body)
+	}
+
+	startedAgain, err := startReadingOrder(ctx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("start reading order again: %v", err)
+	}
+	if startedAgain.Body.StartedAt == nil || *startedAgain.Body.StartedAt != firstStartedAt {
+		t.Fatalf("repeated start changed startedAt from %q to %#v", firstStartedAt, startedAgain.Body.StartedAt)
+	}
+
+	secondCtx := context.WithValue(context.Background(), contextUserIDKey{}, 2)
+	secondDetail, err := getReadingOrder(secondCtx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("get reading order as second user: %v", err)
+	}
+	if secondDetail.Body.StartedAt != nil {
+		t.Fatalf("second user's startedAt = %#v; want nil", secondDetail.Body.StartedAt)
+	}
+
+	stopped, err := stopReadingOrder(ctx, db, created.Body.ID)
+	if err != nil {
+		t.Fatalf("stop reading order: %v", err)
+	}
+	if stopped.Body.StartedAt != nil {
+		t.Fatalf("startedAt after stop = %#v; want nil", stopped.Body.StartedAt)
+	}
+}
+
 func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -850,6 +923,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
+		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -963,6 +1037,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 		CREATE UNIQUE INDEX idx_series_metron_series_id
 		ON series(metron_series_id)
 		WHERE metron_series_id IS NOT NULL;
+		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -1048,6 +1123,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 		);
 		CREATE UNIQUE INDEX idx_series_name_year
 		ON series(name, series_year);
+		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -2201,6 +2277,12 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			rating REAL NOT NULL DEFAULT 0,
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE user_reading_orders (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,

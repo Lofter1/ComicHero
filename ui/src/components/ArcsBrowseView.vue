@@ -60,11 +60,18 @@ const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'progress', label: 'Progress' },
 ]
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'favorites', label: 'Favorites' },
+  { value: 'started', label: 'Started' },
+  { value: 'other', label: 'Other' },
+]
 
 const visibleArcs = computed(() => props.arcs)
 const visibleSections = computed(() => {
   if (props.filter === 'favorites') return sectionList('Favorites', visibleArcs.value)
   if (props.filter === 'other') return sectionList('Other Arcs', visibleArcs.value)
+  if (props.filter === 'started') return sectionList('Started Arcs', visibleArcs.value)
   return sectionList('All Arcs', visibleArcs.value)
 })
 
@@ -85,6 +92,7 @@ function sectionList(title, arcs) {
             :sort="sort"
             :direction="direction"
             :sort-options="sortOptions"
+            :filter-options="filterOptions"
             @update:search="$emit('update:search', $event)"
             @update:filter="$emit('update:filter', $event)"
             @update:sort="$emit('update:sort', $event)"
@@ -113,6 +121,7 @@ function sectionList(title, arcs) {
                   <span>
                     <strong>{{ arc.name }}</strong>
                     <small>{{ arc.description || 'No description' }}</small>
+                    <span v-if="arc.startedAt" class="started-pill">Started</span>
                   </span>
                 </button>
                 <button

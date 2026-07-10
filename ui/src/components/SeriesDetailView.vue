@@ -23,11 +23,13 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  startSaving: { type: Boolean, default: false },
 })
 
 defineEmits([
   'back',
   'toggle-favorite',
+  'toggle-started',
   'import-series',
   'open-comic',
   'toggle-read',
@@ -59,6 +61,17 @@ function seriesPublisherLabel(series) {
           @click="$emit('toggle-favorite', selectedSeries)"
         >
           <span aria-hidden="true">{{ selectedSeries.favorite ? '★' : '☆' }}</span>
+        </button>
+        <button
+          v-if="selectedSeries && !readOnly"
+          :class="selectedSeries.startedAt ? 'secondary-button' : 'primary-button'"
+          type="button"
+          :disabled="startSaving"
+          @click="$emit('toggle-started')"
+        >
+          {{
+            startSaving ? 'Saving...' : selectedSeries.startedAt ? 'Stop reading' : 'Start reading'
+          }}
         </button>
         <button
           v-if="selectedSeries?.metronSeriesId && !readOnly"
@@ -101,6 +114,10 @@ function seriesPublisherLabel(series) {
             <strong>{{ seriesPublisherLabel(selectedSeries) }}</strong>
             <small>Publisher</small>
           </span>
+          <span v-if="selectedSeries.startedAt"
+            ><strong>Started</strong
+            ><small>{{ new Date(selectedSeries.startedAt).toLocaleDateString() }}</small></span
+          >
         </div>
 
         <ComicListView

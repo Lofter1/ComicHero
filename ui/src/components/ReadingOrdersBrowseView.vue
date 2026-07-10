@@ -69,11 +69,18 @@ const sortOptions = [
   { value: 'rating', label: 'Rating' },
   { value: 'progress', label: 'Progress' },
 ]
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'favorites', label: 'Favorites' },
+  { value: 'started', label: 'Started' },
+  { value: 'other', label: 'Other' },
+]
 
 const visibleOrders = computed(() => props.orders)
 const visibleSections = computed(() => {
   if (props.filter === 'favorites') return sectionList('Favorites', visibleOrders.value)
   if (props.filter === 'other') return sectionList('Other Orders', visibleOrders.value)
+  if (props.filter === 'started') return sectionList('Started Orders', visibleOrders.value)
   return sectionList('All Orders', visibleOrders.value)
 })
 const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
@@ -106,6 +113,7 @@ function handleCBLFile(event) {
             :sort="sort"
             :direction="direction"
             :sort-options="sortOptions"
+            :filter-options="filterOptions"
             @update:search="$emit('update:search', $event)"
             @update:filter="$emit('update:filter', $event)"
             @update:sort="$emit('update:sort', $event)"
@@ -177,6 +185,7 @@ function handleCBLFile(event) {
                       Rating: {{ formatRating(order.rating) }}
                       <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
                     </span>
+                    <span v-if="order.startedAt" class="started-pill">Started</span>
                   </span>
                 </button>
                 <button

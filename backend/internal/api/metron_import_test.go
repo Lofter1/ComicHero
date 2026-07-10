@@ -38,6 +38,12 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_reading_orders_metron_reading_list_id
 		ON reading_orders(metron_reading_list_id)
 		WHERE metron_reading_list_id IS NOT NULL;
+		CREATE TABLE user_reading_orders (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
 		CREATE TABLE reading_order_ratings (
 			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -99,6 +105,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_series_metron_series_id
 		ON series(metron_series_id)
 		WHERE metron_series_id IS NOT NULL;
+		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
 
 		CREATE TABLE characters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -111,6 +118,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_characters_metron_character_id
 		ON characters(metron_character_id)
 		WHERE metron_character_id IS NOT NULL;
+		CREATE TABLE user_character_starts (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (character_id, user_id));
 
 		CREATE TABLE character_aliases (
 			character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
@@ -135,6 +143,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_arcs_metron_arc_id
 		ON arcs(metron_arc_id)
 		WHERE metron_arc_id IS NOT NULL;
+		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
 
 		CREATE TABLE arc_comics (
 			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,

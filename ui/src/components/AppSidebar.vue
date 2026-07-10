@@ -115,14 +115,6 @@ function toggleAccountMenu() {
         <span>Comics</span>
       </router-link>
       <router-link
-        v-if="user"
-        :to="{ name: 'progress' }"
-        :class="{ active: activeView === 'progress' }"
-        @click="closeMenus"
-      >
-        <span>Progress</span>
-      </router-link>
-      <router-link
         :to="{ name: 'series' }"
         :class="{ active: activeView === 'series' }"
         @click="closeMenus"

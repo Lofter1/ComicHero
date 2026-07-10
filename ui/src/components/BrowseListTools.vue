@@ -26,6 +26,14 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  filterOptions: {
+    type: Array,
+    default: () => [
+      { value: 'all', label: 'All' },
+      { value: 'favorites', label: 'Favorites' },
+      { value: 'other', label: 'Other' },
+    ],
+  },
 })
 
 const emit = defineEmits(['update:search', 'update:filter', 'update:sort', 'update:direction'])
@@ -39,33 +47,22 @@ const searchModel = computed({
 <template>
   <div class="comic-list-tools browse-list-tools">
     <input v-model="searchModel" type="search" :placeholder="searchPlaceholder" />
-    <div class="inline-filter-tabs" role="tablist" aria-label="Favorite filter">
+    <div
+      class="inline-filter-tabs"
+      :class="{ 'four-filter-tabs': filterOptions.length === 4 }"
+      role="tablist"
+      aria-label="List filter"
+    >
       <button
+        v-for="option in filterOptions"
+        :key="option.value"
         type="button"
-        :class="{ active: filter === 'all' }"
+        :class="{ active: filter === option.value }"
         role="tab"
-        :aria-selected="filter === 'all'"
-        @click="$emit('update:filter', 'all')"
+        :aria-selected="filter === option.value"
+        @click="$emit('update:filter', option.value)"
       >
-        All
-      </button>
-      <button
-        type="button"
-        :class="{ active: filter === 'favorites' }"
-        role="tab"
-        :aria-selected="filter === 'favorites'"
-        @click="$emit('update:filter', 'favorites')"
-      >
-        Favorites
-      </button>
-      <button
-        type="button"
-        :class="{ active: filter === 'other' }"
-        role="tab"
-        :aria-selected="filter === 'other'"
-        @click="$emit('update:filter', 'other')"
-      >
-        Other
+        {{ option.label }}
       </button>
     </div>
     <select
