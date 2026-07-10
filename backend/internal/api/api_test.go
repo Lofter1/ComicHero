@@ -499,6 +499,74 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 	}
 }
 
+func TestDashboardNextComicUsesAscendingCoverDate(t *testing.T) {
+	ctx := testUserContext()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+
+	if _, err := db.Exec(`
+		CREATE TABLE series (id INTEGER PRIMARY KEY, name TEXT NOT NULL, series_year INTEGER NOT NULL DEFAULT 0);
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY, metron_issue_id INTEGER, series_id INTEGER,
+			series TEXT NOT NULL, series_year INTEGER NOT NULL DEFAULT 0, issue TEXT NOT NULL,
+			publisher TEXT NOT NULL DEFAULT '', cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL, user_id INTEGER NOT NULL, read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (comic_id, user_id)
+		);
+		CREATE TABLE arcs (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+		CREATE TABLE arc_comics (arc_id INTEGER NOT NULL, comic_id INTEGER NOT NULL, position INTEGER NOT NULL DEFAULT 0);
+		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL);
+		CREATE TABLE characters (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
+		CREATE TABLE comic_characters (comic_id INTEGER NOT NULL, character_id INTEGER NOT NULL);
+		CREATE TABLE user_character_starts (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL);
+		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL);
+
+		INSERT INTO series (id, name, series_year) VALUES (1, 'Release order', 2020);
+		INSERT INTO comics (id, series_id, series, series_year, issue, cover_date) VALUES
+			(1, 1, 'Release order', 2020, '1', '2026-03-01'),
+			(2, 1, 'Release order', 2020, '2', '2026-01-01'),
+			(3, 1, 'Release order', 2020, '3', '2026-02-01');
+		INSERT INTO arcs (id, name) VALUES (1, 'Arc');
+		INSERT INTO arc_comics (arc_id, comic_id, position) VALUES (1, 1, 1), (1, 2, 3), (1, 3, 2);
+		INSERT INTO user_arc_starts (arc_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO characters (id, name) VALUES (1, 'Hero');
+		INSERT INTO comic_characters (comic_id, character_id) VALUES (1, 1), (2, 1), (3, 1);
+		INSERT INTO user_character_starts (character_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO user_series_starts (series_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+
+	loaders := []struct {
+		name string
+		load func(context.Context, *sqlx.DB, int) ([]DashboardItem, error)
+	}{
+		{name: "arc", load: dashboardArcs},
+		{name: "character", load: dashboardCharacters},
+		{name: "series", load: dashboardSeries},
+	}
+	for _, loader := range loaders {
+		t.Run(loader.name, func(t *testing.T) {
+			items, err := loader.load(ctx, db, 1)
+			if err != nil {
+				t.Fatalf("load dashboard items: %v", err)
+			}
+			if len(items) != 1 || items[0].NextComic == nil {
+				t.Fatalf("items = %#v; want one item with a next comic", items)
+			}
+			if got := items[0].NextComic.ID; got != 2 {
+				t.Fatalf("next comic = %d; want earliest release-date comic 2", got)
+			}
+		})
+	}
+}
+
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
