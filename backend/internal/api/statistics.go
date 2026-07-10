@@ -119,12 +119,8 @@ func readUserStatistics(ctx context.Context, db *sqlx.DB, userID int) (UserStati
 	}
 	if err := db.GetContext(ctx, &stats.StartedReadingOrders, `
 		SELECT COUNT(*)
-		FROM (
-			SELECT roc.reading_order_id
-			FROM reading_order_comics roc
-			JOIN user_comics uc ON uc.comic_id = roc.comic_id AND uc.user_id = ? AND uc.read = 1
-			GROUP BY roc.reading_order_id
-		)
+		FROM user_reading_orders
+		WHERE user_id = ?
 	`, userID); err != nil {
 		return stats, err
 	}

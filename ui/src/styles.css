@@ -1942,6 +1942,21 @@ textarea {
   line-height: 1.2;
 }
 
+.started-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  padding: 4px 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .favorite-pill {
   background: var(--warning-soft);
   color: var(--warning-ink);

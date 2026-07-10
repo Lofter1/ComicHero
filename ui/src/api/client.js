@@ -159,6 +159,14 @@ export function getArc(id) {
   return request(`/arcs/${id}`)
 }
 
+export function startReadingOrder(id) {
+  return send(`/readingOrders/${id}/start`, 'POST', {})
+}
+
+export function stopReadingOrder(id) {
+  return request(`/readingOrders/${id}/start`, { method: 'DELETE' })
+}
+
 export function createArc(payload) {
   return send('/arcs', 'POST', payload)
 }

@@ -116,6 +116,7 @@ const activeListParams = computed(() => {
   const params = {}
   if (options.filter === 'favorites') params.favorite = true
   if (options.filter === 'other') params.favorite = false
+  if (options.filter === 'started') params.started = true
   if (options.status && options.status !== 'all') params.status = options.status
   if (options.sort) params.sort = options.sort
   if (options.direction) params.direction = options.direction
@@ -218,6 +219,7 @@ const {
   selectedOrder,
   quickSavingOrderID,
   ratingSaving,
+  startSaving,
   cblImporting,
   orderForm,
   visibleOrders,
@@ -226,6 +228,8 @@ const {
   openReadingOrder,
   toggleReadingOrderFavorite,
   rateSelectedReadingOrder,
+  startSelectedReadingOrder,
+  stopSelectedReadingOrder,
   refreshSelectedReadingOrderDetail,
   newReadingOrder,
   saveReadingOrder,
@@ -1637,11 +1641,14 @@ onUnmounted(() => {
         :read-only="isReadOnlyGuest"
         :saving="saving"
         :rating-saving="ratingSaving"
+        :start-saving="startSaving"
         @back="backToPreviousPage"
         @copy="copySelectedReadingOrder"
         @edit="editReadingOrder"
         @export-cbl="exportSelectedReadingOrderCBL"
         @rate="rateSelectedReadingOrder"
+        @start="startSelectedReadingOrder"
+        @stop="stopSelectedReadingOrder"
         @open-comic="openOrderComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"

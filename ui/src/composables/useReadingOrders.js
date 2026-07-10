@@ -7,6 +7,8 @@ import {
   getReadingOrder,
   importReadingOrderCBL,
   rateReadingOrder,
+  startReadingOrder,
+  stopReadingOrder,
   setReadingOrderComics,
   updateReadingOrder,
   listReadingOrders,
@@ -30,6 +32,7 @@ export function useReadingOrders({
   const selectedOrder = ref(null)
   const quickSavingOrderID = ref(null)
   const ratingSaving = ref(false)
+  const startSaving = ref(false)
   const cblImporting = ref(false)
   const orderForm = ref(emptyReadingOrder())
 
@@ -90,6 +93,42 @@ export function useReadingOrders({
       error.value = err.message
     } finally {
       quickSavingOrderID.value = null
+    }
+  }
+
+  async function startSelectedReadingOrder() {
+    if (!selectedOrder.value?.id || selectedOrder.value.startedAt || startSaving.value) return
+
+    startSaving.value = true
+    error.value = ''
+    try {
+      const detail = await startReadingOrder(selectedOrder.value.id)
+      selectedOrder.value = detail
+      readingOrders.value = readingOrders.value.map((order) =>
+        order.id === detail.id ? { ...order, startedAt: detail.startedAt } : order,
+      )
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      startSaving.value = false
+    }
+  }
+
+  async function stopSelectedReadingOrder() {
+    if (!selectedOrder.value?.id || !selectedOrder.value.startedAt || startSaving.value) return
+
+    startSaving.value = true
+    error.value = ''
+    try {
+      const detail = await stopReadingOrder(selectedOrder.value.id)
+      selectedOrder.value = detail
+      readingOrders.value = readingOrders.value.map((order) =>
+        order.id === detail.id ? { ...order, startedAt: null } : order,
+      )
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      startSaving.value = false
     }
   }
 
@@ -316,6 +355,7 @@ export function useReadingOrders({
     selectedOrder,
     quickSavingOrderID,
     ratingSaving,
+    startSaving,
     cblImporting,
     orderForm,
     visibleOrders,
@@ -325,6 +365,8 @@ export function useReadingOrders({
     refreshSelectedReadingOrderDetail,
     toggleReadingOrderFavorite,
     rateSelectedReadingOrder,
+    startSelectedReadingOrder,
+    stopSelectedReadingOrder,
     newReadingOrder,
     editReadingOrder,
     saveReadingOrder,

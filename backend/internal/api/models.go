@@ -435,6 +435,7 @@ type ReadingOrder struct {
 	Rating      float64  `json:"rating"      db:"rating"      doc:"Average user rating from 1 to 5, or 0 when unrated." minimum:"0" maximum:"5" example:"4.5"`
 	RatingCount int      `json:"ratingCount" db:"rating_count" doc:"Number of user ratings represented by this score." example:"23"`
 	MyRating    *float64 `json:"myRating,omitempty" db:"my_rating" doc:"Current user's rating for this reading order, when rated." minimum:"1" maximum:"5" example:"4"`
+	StartedAt   *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started this reading order." example:"2026-07-10T12:30:00Z"`
 	Progress    float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	AuthorName  string   `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
 	CanEdit     bool     `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
@@ -488,6 +489,7 @@ type ReadingOrderDetail struct {
 type ReadingOrderListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across name and description." example:"batman"`
 	Favorite  string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
+	Started   string `query:"started" doc:"Filter reading orders by whether the current user formally started them. Use true or false." enum:"true,false" example:"true"`
 	ComicID   int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
 	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress,rating" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`

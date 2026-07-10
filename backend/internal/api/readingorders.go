@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -18,7 +19,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID: "listReadingOrders",
 		Tags:        []string{tagReadingOrders},
 		Summary:     "List reading orders",
-		Description: "Returns reading orders with computed read progress. Results can be filtered by text, favorite status, or a comic they contain.",
+		Description: "Returns reading orders with computed read progress. Results can be filtered by text, favorite status, current-user started status, or a comic they contain.",
 		Method:      http.MethodGet,
 		Path:        "/readingOrders",
 		Errors:      errsRead,
@@ -98,6 +99,30 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		Errors:      errsWrite,
 	}, func(ctx context.Context, input *UpdateReadingOrderRatingInput) (*ReadingOrderDetailOutput, error) {
 		return rateReadingOrder(ctx, db, input.ID, input.Body.Rating)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "startReadingOrder",
+		Tags:        []string{tagReadingOrders},
+		Summary:     "Start a reading order",
+		Description: "Formally marks a reading order as started by the current user. Repeated requests preserve the original start time.",
+		Method:      http.MethodPost,
+		Path:        "/readingOrders/{id}/start",
+		Errors:      errsWrite,
+	}, func(ctx context.Context, input *ReadingOrderInput) (*ReadingOrderDetailOutput, error) {
+		return startReadingOrder(ctx, db, input.ID)
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "stopReadingOrder",
+		Tags:        []string{tagReadingOrders},
+		Summary:     "Stop reading a reading order",
+		Description: "Removes the current user's active reading-order start state without changing comic read history.",
+		Method:      http.MethodDelete,
+		Path:        "/readingOrders/{id}/start",
+		Errors:      errsWrite,
+	}, func(ctx context.Context, input *ReadingOrderInput) (*ReadingOrderDetailOutput, error) {
+		return stopReadingOrder(ctx, db, input.ID)
 	})
 
 	huma.Register(api, huma.Operation{
@@ -194,6 +219,7 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
 			my_rating.rating AS my_rating,
+			started.started_at AS started_at,
 			COALESCE(author.name, '') AS author_name,
 			CASE
 				WHEN ro.author_user_id = ?
@@ -216,8 +242,10 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 		) rating_summary ON rating_summary.reading_order_id = ro.id
 		LEFT JOIN reading_order_ratings my_rating
 			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
+		LEFT JOIN user_reading_orders started
+			ON started.reading_order_id = ro.id AND started.user_id = ?
 	`)
-	query.args = append(query.args, editUserID, editUserID, userID, userID)
+	query.args = append(query.args, editUserID, editUserID, userID, userID, userID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -227,6 +255,13 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 		return "", nil, err
 	} else if ok {
 		query.where("ro.favorite = ?", favorite)
+	}
+	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
+		return "", nil, err
+	} else if ok && started {
+		query.where("started.started_at IS NOT NULL")
+	} else if ok {
+		query.where("started.started_at IS NULL")
 	}
 	if input.ComicID > 0 {
 		query.where(`
@@ -349,6 +384,7 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
 			my_rating.rating AS my_rating,
+			started.started_at AS started_at,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
 			CASE
@@ -365,14 +401,64 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 		) rating_summary ON rating_summary.reading_order_id = ro.id
 		LEFT JOIN reading_order_ratings my_rating
 			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
+		LEFT JOIN user_reading_orders started
+			ON started.reading_order_id = ro.id AND started.user_id = ?
 		WHERE ro.id = ?
-	`, editUserID, editUserID, userID, id); err != nil {
+	`, editUserID, editUserID, userID, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return ReadingOrder{}, huma.Error404NotFound("reading order not found")
 		}
 		return ReadingOrder{}, huma.Error500InternalServerError("failed to fetch reading order")
 	}
 	return readingOrder, nil
+}
+
+func startReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var exists int
+	if err := db.GetContext(ctx, &exists, `SELECT COUNT(*) FROM reading_orders WHERE id = ?`, id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to check reading order")
+	}
+	if exists == 0 {
+		return nil, huma.Error404NotFound("reading order not found")
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO user_reading_orders (reading_order_id, user_id, started_at)
+		VALUES (?, ?, ?)
+		ON CONFLICT(reading_order_id, user_id) DO NOTHING
+	`, id, userID, time.Now().UTC().Format(time.RFC3339)); err != nil {
+		return nil, huma.Error500InternalServerError("failed to start reading order")
+	}
+	return getReadingOrder(ctx, db, id)
+}
+
+func stopReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := db.ExecContext(ctx, `
+		DELETE FROM user_reading_orders
+		WHERE reading_order_id = ? AND user_id = ?
+	`, id, userID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to stop reading order")
+	}
+	if deleted, err := result.RowsAffected(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to check reading order state")
+	} else if deleted == 0 {
+		var exists int
+		if err := db.GetContext(ctx, &exists, `SELECT COUNT(*) FROM reading_orders WHERE id = ?`, id); err != nil {
+			return nil, huma.Error500InternalServerError("failed to check reading order")
+		}
+		if exists == 0 {
+			return nil, huma.Error404NotFound("reading order not found")
+		}
+	}
+	return getReadingOrder(ctx, db, id)
 }
 
 func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) (*ReadingOrderDetailOutput, error) {
