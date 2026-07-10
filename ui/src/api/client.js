@@ -441,10 +441,9 @@ export function continueMetronImportJob(id) {
   return send(`/metron/imports/${id}/continue`, 'POST', {})
 }
 
-export function updateComicFromMetron(id, metronIssueId, options = {}) {
+export function updateComicFromMetron(id, metronIssueId) {
   return sendWithMeta(`/comics/${id}/metron`, 'PATCH', {
     metronIssueId,
-    force: Boolean(options.force),
   })
 }
 

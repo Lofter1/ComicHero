@@ -38,7 +38,6 @@ const searching = ref(false)
 const importingKey = ref('')
 const importStatus = ref('')
 const importMode = ref('quick')
-const importForce = ref(false)
 const fullImportData = ref(['comics', 'series', 'arcs', 'characters'])
 const comicResults = ref([])
 const characterResults = ref([])
@@ -77,11 +76,10 @@ const quotaReset = computed(() => {
   return new Date(nextReset * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 })
 const importOptions = computed(() => {
-  const force = importForce.value
   if (importMode.value === 'full') {
-    return { mode: 'full', fullData: normalizedFullImportData.value, force }
+    return { mode: 'full', fullData: normalizedFullImportData.value }
   }
-  return { mode: 'quick', force }
+  return { mode: 'quick' }
 })
 const normalizedFullImportData = computed(() => {
   if (importMode.value !== 'full') return []
@@ -481,10 +479,6 @@ function formatDate(value) {
           Full
         </button>
       </div>
-      <label class="inline-toggle">
-        <input v-model="importForce" type="checkbox" />
-        Force refresh
-      </label>
       <fieldset v-if="importMode === 'full'" class="metron-data-options">
         <label class="inline-toggle">
           <input

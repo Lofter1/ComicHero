@@ -2,6 +2,9 @@
 
 ComicHero is a self-hosted reading-order tracker for comics. It helps you build reading orders, track read progress, and optionally import metadata from [Metron](https://metron.cloud/).
 
+> [!IMPORTANT]
+> Update to ComicHero 1.5.1 or later. Earlier versions can send broken conditional requests to Metron that may cause accounts to be falsely flagged as duplicates and blocked.
+
 ## Features
 
 - Build ordered reading lists with per-entry notes.
