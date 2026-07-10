@@ -306,6 +306,170 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 	}
 }
 
+func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
+	ctx := testUserContext()
+	db, err := sqlx.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	if _, err := db.Exec(`
+		CREATE TABLE users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			email TEXT NOT NULL DEFAULT '',
+			email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
+			password_hash TEXT NOT NULL DEFAULT '',
+			is_default INTEGER NOT NULL DEFAULT 0,
+			is_admin INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE series (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_issue_id INTEGER,
+			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
+			series TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0,
+			issue TEXT NOT NULL,
+			publisher TEXT NOT NULL,
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE user_comics (
+			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			read INTEGER NOT NULL DEFAULT 0,
+			skipped INTEGER NOT NULL DEFAULT 0,
+			read_at TEXT NOT NULL DEFAULT '',
+			PRIMARY KEY (comic_id, user_id)
+		);
+		CREATE TABLE reading_orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_reading_list_id INTEGER,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0,
+			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+		);
+		CREATE TABLE user_reading_orders (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
+		CREATE TABLE reading_order_ratings (
+			reading_order_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			rating REAL NOT NULL,
+			PRIMARY KEY (reading_order_id, user_id)
+		);
+		CREATE TABLE reading_order_comics (
+			reading_order_id INTEGER NOT NULL,
+			comic_id INTEGER NOT NULL,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT '',
+			tags TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE reading_order_children (
+			parent_reading_order_id INTEGER NOT NULL,
+			child_reading_order_id INTEGER NOT NULL,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE arcs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_arc_starts (
+			arc_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (arc_id, user_id)
+		);
+		CREATE TABLE arc_comics (
+			arc_id INTEGER NOT NULL,
+			comic_id INTEGER NOT NULL,
+			position INTEGER NOT NULL DEFAULT 0,
+			note TEXT NOT NULL DEFAULT ''
+		);
+		CREATE TABLE characters (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			metron_character_id INTEGER,
+			name TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT '',
+			image TEXT NOT NULL DEFAULT '',
+			favorite INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE TABLE user_character_starts (
+			character_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (character_id, user_id)
+		);
+		CREATE TABLE comic_characters (
+			comic_id INTEGER NOT NULL,
+			character_id INTEGER NOT NULL,
+			PRIMARY KEY (comic_id, character_id)
+		);
+		CREATE TABLE user_series_starts (
+			series_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL,
+			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (series_id, user_id)
+		);
+
+		INSERT INTO users (id, name, is_default) VALUES (1, 'Reader', 1);
+		INSERT INTO series (id, name, series_year) VALUES (1, 'Alpha', 2020);
+		INSERT INTO comics (id, series_id, series, series_year, issue, publisher)
+		VALUES (1, 1, 'Alpha', 2020, '1', 'Pub'), (2, 1, 'Alpha', 2020, '2', 'Pub');
+		INSERT INTO reading_orders (id, name, author_user_id) VALUES (1, 'Alpha order', 1);
+		INSERT INTO user_reading_orders (reading_order_id, user_id, started_at)
+		VALUES (1, 1, '2026-07-01T10:00:00Z');
+		INSERT INTO reading_order_comics (reading_order_id, comic_id, position)
+		VALUES (1, 1, 1), (1, 2, 2);
+	`); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+
+	dashboard, err := getDashboard(ctx, db)
+	if err != nil {
+		t.Fatalf("getDashboard: %v", err)
+	}
+	if len(dashboard.Body.Items) != 1 {
+		t.Fatalf("dashboard items = %d; want 1", len(dashboard.Body.Items))
+	}
+	if got := dashboard.Body.Items[0].NextComic.ID; got != 1 {
+		t.Fatalf("next comic = %d; want 1", got)
+	}
+
+	read := true
+	input := &UpdateComicReadInput{}
+	input.Body.Read = &read
+	if _, err := updateComicReadStatus(ctx, db, 1, input); err != nil {
+		t.Fatalf("updateComicReadStatus: %v", err)
+	}
+
+	dashboard, err = getDashboard(ctx, db)
+	if err != nil {
+		t.Fatalf("getDashboard after read: %v", err)
+	}
+	if got := dashboard.Body.Items[0].NextComic.ID; got != 2 {
+		t.Fatalf("next comic after read = %d; want 2", got)
+	}
+}
+
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")
@@ -1182,6 +1346,7 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	RegisterCharacterRoutes(api, nil)
 	RegisterReadingOrderRoutes(api, nil, nil)
 	RegisterArcRoutes(api, nil)
+	RegisterDashboardRoutes(api, nil)
 	RegisterStatisticsRoutes(api, nil)
 	RegisterMetronRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 
@@ -1189,8 +1354,8 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 8 {
-		t.Fatalf("len(tags) = %d; want 8", len(openAPI.Tags))
+	if len(openAPI.Tags) != 9 {
+		t.Fatalf("len(tags) = %d; want 9", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get
@@ -1204,6 +1369,11 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	accountStatistics := openAPI.Paths["/account/statistics"].Get
 	if len(accountStatistics.Tags) != 1 || accountStatistics.Tags[0] != tagStatistics {
 		t.Fatalf("account statistics tags = %#v; want Statistics tag", accountStatistics.Tags)
+	}
+
+	dashboard := openAPI.Paths["/dashboard"].Get
+	if len(dashboard.Tags) != 1 || dashboard.Tags[0] != tagDashboard {
+		t.Fatalf("dashboard tags = %#v; want Dashboard tag", dashboard.Tags)
 	}
 
 	listCharacters := openAPI.Paths["/characters"].Get

@@ -52,6 +52,7 @@ func main() {
 
 	api.RegisterReadingOrderRoutes(humaAPI, database, covers)
 	api.RegisterUserRoutes(humaAPI, database)
+	api.RegisterDashboardRoutes(humaAPI, database)
 	api.RegisterStatisticsRoutes(humaAPI, database)
 	api.RegisterArcRoutes(humaAPI, database)
 	api.RegisterComicRoutes(humaAPI, database, covers)

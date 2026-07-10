@@ -10,6 +10,7 @@ import CharactersBrowseView from '@/components/CharactersBrowseView.vue'
 import CharacterDetailView from '@/components/CharacterDetailView.vue'
 import ComicDetailView from '@/components/ComicDetailView.vue'
 import ComicListView from '@/components/ComicListView.vue'
+import DashboardView from '@/components/DashboardView.vue'
 import MetronImport from '@/components/MetronImport.vue'
 import MetronImportMonitor from '@/components/MetronImportMonitor.vue'
 import ProgressView from '@/components/ProgressView.vue'
@@ -32,6 +33,7 @@ import {
   deleteAccount as deleteAccountRequest,
   deleteUser as deleteUserRequest,
   getAccountStatistics,
+  getDashboard,
   getUserStatus,
   listUsers,
   loginUser,
@@ -43,13 +45,14 @@ import {
   setupUsers,
   updateAccount,
   updatePublicAccess,
+  updateComicReadStatus,
   updateRegistrationMode,
   updateUserAdmin,
   updateUserMetronPermissions,
   verifyEmail,
 } from '@/api/client.js'
 
-const activeView = ref('readingOrders')
+const activeView = ref('dashboard')
 const viewMode = ref('browse')
 const loading = ref(false)
 const saving = ref(false)
@@ -84,6 +87,8 @@ const accountDeleting = ref(false)
 const accountStatistics = ref(null)
 const accountStatisticsLoading = ref(false)
 const accountStatisticsError = ref('')
+const dashboard = ref(null)
+const dashboardLoading = ref(false)
 const savingUserID = ref(null)
 const savingAdminUserID = ref(null)
 const deletingUserID = ref(null)
@@ -290,6 +295,7 @@ const {
 })
 
 const toolbarResultCount = computed(() => {
+  if (activeView.value === 'dashboard') return dashboard.value?.items?.length || 0
   if (activeView.value === 'readingOrders') return visibleOrders.value.length
   if (activeView.value === 'arcs') return visibleArcs.value.length
   if (activeView.value === 'comics') return comics.value.length
@@ -300,6 +306,7 @@ const toolbarResultCount = computed(() => {
   return 0
 })
 const toolbarTotalCount = computed(() => {
+  if (activeView.value === 'dashboard') return dashboard.value?.items?.length || 0
   if (activeView.value === 'readingOrders') return listTotal('readingOrders')
   if (activeView.value === 'arcs') return listTotal('arcs')
   if (activeView.value === 'comics') return listTotal('comics')
@@ -310,6 +317,7 @@ const toolbarTotalCount = computed(() => {
   return 0
 })
 const loadingLabel = computed(() => {
+  if (activeView.value === 'dashboard') return 'Loading dashboard...'
   if (activeView.value === 'readingOrders') return 'Loading orders...'
   if (activeView.value === 'arcs') return 'Loading arcs...'
   if (activeView.value === 'comics') return 'Loading comics...'
@@ -797,6 +805,7 @@ function entityRouteState(routeView, detailMode = 'detail') {
 }
 
 function routeToAppState() {
+  if (route.name === 'dashboard') return { view: 'dashboard', mode: 'browse' }
   if (route.name === 'readingOrders') return { view: 'readingOrders', mode: 'browse' }
   if (route.name === 'readingOrdersNew') return { view: 'readingOrders', mode: 'edit', isNew: true }
   if (route.name === 'readingOrderDetail') return entityRouteState('readingOrders')
@@ -818,10 +827,11 @@ function routeToAppState() {
   if (route.name === 'account') return { view: 'account', mode: 'browse' }
   if (route.name === 'progress') return { view: 'progress', mode: 'browse' }
   if (route.name === 'notFound') return { view: 'notFound', mode: 'browse' }
-  return { view: 'readingOrders', mode: 'browse', replace: true }
+  return { view: 'dashboard', mode: 'browse', replace: true }
 }
 
 function browseRouteLocation(view) {
+  if (view === 'dashboard') return { name: 'dashboard' }
   if (view === 'readingOrders') return { name: 'readingOrders' }
   if (view === 'arcs') return { name: 'arcs' }
   if (view === 'comics') return { name: 'comics' }
@@ -1008,6 +1018,10 @@ async function ensureMetronImportMonitor() {
 }
 
 async function loadActiveViewData(options = {}) {
+  if (activeView.value === 'dashboard') {
+    await loadDashboard()
+    return
+  }
   if (activeView.value === 'readingOrders') {
     await loadReadingOrders(options)
     return
@@ -1044,6 +1058,37 @@ async function loadActiveViewData(options = {}) {
   if (activeView.value === 'progress') {
     await loadAccountStatistics()
     return
+  }
+}
+
+async function loadDashboard() {
+  dashboardLoading.value = true
+  try {
+    dashboard.value = await getDashboard()
+  } finally {
+    dashboardLoading.value = false
+  }
+}
+
+async function markDashboardComicRead(comic) {
+  await setDashboardComicStatus(comic, { read: true })
+}
+
+async function markDashboardComicSkipped(comic) {
+  await setDashboardComicStatus(comic, { skipped: true })
+}
+
+async function setDashboardComicStatus(comic, payload) {
+  if (!comic?.id || quickSavingComicID.value) return
+  quickSavingComicID.value = comic.id
+  error.value = ''
+  try {
+    await updateComicReadStatus(comic.id, payload)
+    await loadDashboard()
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    quickSavingComicID.value = null
   }
 }
 
@@ -1577,6 +1622,18 @@ onUnmounted(() => {
         @error="showError"
         @job-started="trackMetronImportJob"
         @quota-updated="updateMetronQuota"
+      />
+
+      <DashboardView
+        v-else-if="activeView === 'dashboard'"
+        :dashboard="dashboard"
+        :loading="dashboardLoading"
+        :quick-saving-comic-id="quickSavingComicID"
+        :read-only="isReadOnlyGuest"
+        @refresh="loadDashboard"
+        @open-comic="openComic"
+        @mark-read="markDashboardComicRead"
+        @mark-skipped="markDashboardComicSkipped"
       />
 
       <UserManagementView
