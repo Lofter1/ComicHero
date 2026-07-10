@@ -36,10 +36,12 @@ import {
   getAccountStatistics,
   getDashboard,
   getMetronComicScan,
+  getMetronComicDiscovery,
   getUserStatus,
   listUsers,
   loginUser,
   metronComicScanEventsURL,
+  metronComicDiscoveryEventsURL,
   logoutUser,
   registerUser,
   resendEmailVerification,
@@ -47,10 +49,13 @@ import {
   resetPassword,
   setupUsers,
   stopMetronComicScan,
+  stopMetronComicDiscovery,
   triggerMetronComicScan,
+  triggerMetronComicDiscovery,
   updateAccount,
   updatePublicAccess,
   updateMetronComicScan,
+  updateMetronComicDiscovery,
   updateComicReadStatus,
   updateRegistrationMode,
   updateUserAdmin,
@@ -104,6 +109,9 @@ const savingPublicAccess = ref(false)
 const metronComicScan = ref(null)
 const savingMetronComicScan = ref(false)
 let metronComicScanEvents = null
+const metronComicDiscovery = ref(null)
+const savingMetronComicDiscovery = ref(false)
+let metronComicDiscoveryEvents = null
 const search = ref('')
 const defaultListOptions = {
   readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
@@ -658,6 +666,67 @@ async function cancelMetronComicScan() {
   }
 }
 
+async function saveMetronComicDiscovery(settings) {
+  savingMetronComicDiscovery.value = true
+  error.value = ''
+  try {
+    metronComicDiscovery.value = await updateMetronComicDiscovery(settings)
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    savingMetronComicDiscovery.value = false
+  }
+}
+
+async function runMetronComicDiscovery() {
+  try {
+    metronComicDiscovery.value = await triggerMetronComicDiscovery()
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+async function cancelMetronComicDiscovery() {
+  try {
+    metronComicDiscovery.value = await stopMetronComicDiscovery()
+  } catch (err) {
+    error.value = err.message
+  }
+}
+
+function connectMetronComicDiscoveryEvents() {
+  if (metronComicDiscoveryEvents || typeof EventSource === 'undefined') return false
+  metronComicDiscoveryEvents = new EventSource(metronComicDiscoveryEventsURL(), {
+    withCredentials: true,
+  })
+  metronComicDiscoveryEvents.addEventListener('discovery', (event) => {
+    try {
+      const payload = JSON.parse(event.data)
+      metronComicDiscovery.value = payload.discovery || payload
+    } catch (err) {
+      error.value = err.message
+    }
+  })
+  metronComicDiscoveryEvents.onerror = () => {
+    if (metronComicDiscoveryEvents?.readyState === EventSource.CLOSED) {
+      closeMetronComicDiscoveryEvents()
+      getMetronComicDiscovery()
+        .then((status) => {
+          metronComicDiscovery.value = status
+        })
+        .catch((err) => {
+          error.value = err.message
+        })
+    }
+  }
+  return true
+}
+
+function closeMetronComicDiscoveryEvents() {
+  metronComicDiscoveryEvents?.close()
+  metronComicDiscoveryEvents = null
+}
+
 async function generateUserInvite() {
   generatingInvite.value = true
   error.value = ''
@@ -1124,6 +1193,8 @@ async function loadActiveViewData(options = {}) {
   }
   if (activeView.value === 'settings') {
     if (!connectMetronComicScanEvents()) metronComicScan.value = await getMetronComicScan()
+    if (!connectMetronComicDiscoveryEvents())
+      metronComicDiscovery.value = await getMetronComicDiscovery()
     return
   }
   if (activeView.value === 'account') {
@@ -1290,7 +1361,10 @@ watch(showInfiniteScrollSentinel, () => {
 })
 
 watch(activeView, (view) => {
-  if (view !== 'settings') closeMetronComicScanEvents()
+  if (view !== 'settings') {
+    closeMetronComicScanEvents()
+    closeMetronComicDiscoveryEvents()
+  }
   nextTick(observeLoadMoreSentinel)
 })
 
@@ -1354,6 +1428,7 @@ watch(search, () => {
 
 onUnmounted(() => {
   closeMetronComicScanEvents()
+  closeMetronComicDiscoveryEvents()
   closeMetronImportEvents()
   if (searchDebounceTimer) {
     window.clearTimeout(searchDebounceTimer)
@@ -1727,7 +1802,9 @@ onUnmounted(() => {
       <AppSettingsView
         v-else-if="activeView === 'settings'"
         :metron-comic-scan="metronComicScan"
+        :metron-comic-discovery="metronComicDiscovery"
         :saving="savingMetronComicScan"
+        :saving-discovery="savingMetronComicDiscovery"
         :registration-mode="registrationMode"
         :saving-registration-mode="savingRegistrationMode"
         :public-access="publicAccess"
@@ -1737,6 +1814,9 @@ onUnmounted(() => {
         @save="saveMetronComicScan"
         @trigger="runMetronComicScan"
         @stop="cancelMetronComicScan"
+        @save-discovery="saveMetronComicDiscovery"
+        @trigger-discovery="runMetronComicDiscovery"
+        @stop-discovery="cancelMetronComicDiscovery"
         @update-registration-mode="saveRegistrationMode"
         @update-public-access="savePublicAccess"
         @generate-invite="generateUserInvite"

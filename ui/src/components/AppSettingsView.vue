@@ -3,7 +3,9 @@ import { reactive, watch } from 'vue'
 
 const props = defineProps({
   metronComicScan: { type: Object, default: null },
+  metronComicDiscovery: { type: Object, default: null },
   saving: { type: Boolean, default: false },
+  savingDiscovery: { type: Boolean, default: false },
   registrationMode: { type: String, default: 'invite_only' },
   savingRegistrationMode: { type: Boolean, default: false },
   publicAccess: { type: Boolean, default: false },
@@ -16,16 +18,26 @@ const emit = defineEmits([
   'save',
   'trigger',
   'stop',
+  'save-discovery',
+  'trigger-discovery',
+  'stop-discovery',
   'update-registration-mode',
   'update-public-access',
   'generate-invite',
 ])
 const draft = reactive({})
+const discoveryDraft = reactive({})
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 watch(
   () => props.metronComicScan?.settings,
   (settings) => Object.assign(draft, settings || {}),
+  { immediate: true },
+)
+
+watch(
+  () => props.metronComicDiscovery?.settings,
+  (settings) => Object.assign(discoveryDraft, settings || {}),
   { immediate: true },
 )
 
@@ -45,6 +57,25 @@ function save() {
     startTime: draft.startTime || '02:00',
     dailyCallLimit: Number(draft.dailyCallLimit) || 1,
     minIntervalSeconds: Math.max(0, Number(draft.minIntervalSeconds) || 0),
+  })
+}
+
+function toggleDiscoveryWeekday(day, checked) {
+  const selected = new Set(discoveryDraft.weekdays || [])
+  if (checked) selected.add(day)
+  else selected.delete(day)
+  discoveryDraft.weekdays = [...selected]
+}
+
+function saveDiscovery() {
+  emit('save-discovery', {
+    enabled: Boolean(discoveryDraft.enabled),
+    schedule: discoveryDraft.schedule || 'daily',
+    weekdays: discoveryDraft.schedule === 'weekly' ? discoveryDraft.weekdays || [] : [],
+    monthDay: Math.min(31, Math.max(1, Number(discoveryDraft.monthDay) || 1)),
+    startTime: discoveryDraft.startTime || '03:00',
+    publisherName: String(discoveryDraft.publisherName || '').trim(),
+    seriesName: String(discoveryDraft.seriesName || '').trim(),
   })
 }
 
@@ -152,6 +183,107 @@ function registrationModeLabel(mode) {
         <p v-if="publicAccess" class="access-note">
           Public visitors cannot edit data, but they can see your shared library.
         </p>
+      </div>
+    </section>
+
+    <section v-if="metronComicDiscovery" class="account-settings-panel metron-scan-panel">
+      <header class="metron-scan-heading">
+        <div class="metron-scan-heading-copy">
+          <p class="eyebrow">Metron discovery</p>
+          <h3>Automatic new comics</h3>
+          <p class="muted">
+            Import recently modified comics from every page of Metron's issue list. List metadata is
+            saved directly without requesting individual issue details.
+          </p>
+        </div>
+        <label class="compact-toggle metron-scan-toggle">
+          <input v-model="discoveryDraft.enabled" type="checkbox" />
+          <span>{{ discoveryDraft.enabled ? 'Enabled' : 'Disabled' }}</span>
+        </label>
+      </header>
+
+      <div class="metron-scan-fields">
+        <label class="metron-scan-field">
+          <span>Schedule</span>
+          <select v-model="discoveryDraft.schedule">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </label>
+        <label class="metron-scan-field">
+          <span>Start time (server time)</span>
+          <input v-model="discoveryDraft.startTime" type="time" />
+        </label>
+        <label class="metron-scan-field">
+          <span>Publisher name filter</span>
+          <input v-model="discoveryDraft.publisherName" type="text" placeholder="All publishers" />
+        </label>
+        <label class="metron-scan-field">
+          <span>Series name filter</span>
+          <input v-model="discoveryDraft.seriesName" type="text" placeholder="All series" />
+        </label>
+        <label v-if="discoveryDraft.schedule === 'monthly'" class="metron-scan-field">
+          <span>Day of month</span>
+          <input v-model.number="discoveryDraft.monthDay" type="number" min="1" max="31" />
+        </label>
+      </div>
+
+      <fieldset v-if="discoveryDraft.schedule === 'weekly'" class="permission-scopes">
+        <legend>Run on</legend>
+        <label v-for="day in weekdays" :key="`discovery-${day}`">
+          <input
+            type="checkbox"
+            :checked="(discoveryDraft.weekdays || []).includes(day)"
+            @change="toggleDiscoveryWeekday(day, $event.target.checked)"
+          />
+          <span>{{ day.charAt(0).toUpperCase() + day.slice(1) }}</span>
+        </label>
+      </fieldset>
+
+      <div class="metron-scan-status" aria-live="polite">
+        <div>
+          <strong>{{ metronComicDiscovery.found }}</strong>
+          <span>list results found</span>
+        </div>
+        <div>
+          <strong>{{ metronComicDiscovery.imported }}</strong>
+          <span>imported</span>
+        </div>
+        <div v-if="metronComicDiscovery.alreadyPresent">
+          <strong>{{ metronComicDiscovery.alreadyPresent }}</strong>
+          <span>already present</span>
+        </div>
+        <p>
+          <template v-if="metronComicDiscovery.running">Import running</template>
+          <template v-else-if="metronComicDiscovery.stopReason">
+            Last pull: {{ metronComicDiscovery.stopReason }}
+          </template>
+          <template v-else>Not run yet</template>
+        </p>
+      </div>
+
+      <div class="metron-scan-actions">
+        <button
+          type="button"
+          class="primary-button"
+          :disabled="savingDiscovery"
+          @click="saveDiscovery"
+        >
+          {{ savingDiscovery ? 'Saving...' : 'Save settings' }}
+        </button>
+        <button
+          v-if="!metronComicDiscovery.running"
+          type="button"
+          class="secondary-action"
+          :disabled="!discoveryDraft.enabled"
+          @click="$emit('trigger-discovery')"
+        >
+          Pull now
+        </button>
+        <button v-else type="button" class="danger-text-button" @click="$emit('stop-discovery')">
+          Stop pull
+        </button>
       </div>
     </section>
 
