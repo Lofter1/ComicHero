@@ -17,16 +17,34 @@ import (
 const DefaultBaseURL = "https://metron.cloud/api"
 
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
-	username   string
-	password   string
-	cache      map[string]cachedResponse
-	cacheMu    sync.RWMutex
-	rateLimit  RateLimit
-	rateMu     sync.RWMutex
-	requestMu  sync.RWMutex
-	requestLog []RequestLogEntry
+	baseURL     string
+	httpClient  *http.Client
+	username    string
+	password    string
+	cache       map[string]cachedResponse
+	cacheMu     sync.RWMutex
+	rateLimit   RateLimit
+	rateMu      sync.RWMutex
+	requestMu   sync.RWMutex
+	requestLog  []RequestLogEntry
+	intervalMu  sync.Mutex
+	minInterval time.Duration
+	nextRequest time.Time
+}
+
+// SetMinInterval sets the minimum time between starts of outbound Metron HTTP
+// requests. It is applied in the client immediately, so scheduled and manual
+// Metron operations share the same pacing boundary.
+func (c *Client) SetMinInterval(interval time.Duration) {
+	if interval < 0 {
+		interval = 0
+	}
+	c.intervalMu.Lock()
+	c.minInterval = interval
+	if interval == 0 {
+		c.nextRequest = time.Time{}
+	}
+	c.intervalMu.Unlock()
 }
 
 type Config struct {
@@ -521,6 +539,9 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	if err := c.waitForRateLimit(ctx); err != nil {
 		return FetchInfo{}, err
 	}
+	if err := c.waitForMinInterval(ctx); err != nil {
+		return FetchInfo{}, err
+	}
 
 	requestURL := c.requestURL(path)
 	if len(values) > 0 {
@@ -588,6 +609,25 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	c.storeCache(cacheKey, lastModified, body)
 
 	return FetchInfo{LastModified: lastModified}, json.Unmarshal(body, target)
+}
+
+func (c *Client) waitForMinInterval(ctx context.Context) error {
+	c.intervalMu.Lock()
+	defer c.intervalMu.Unlock()
+	if c.minInterval <= 0 {
+		return nil
+	}
+	if wait := time.Until(c.nextRequest); wait > 0 {
+		timer := time.NewTimer(wait)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	c.nextRequest = time.Now().Add(c.minInterval)
+	return nil
 }
 
 func (c *Client) recordRequest(req *http.Request, status int, started time.Time, conditional bool, errMessage string) {

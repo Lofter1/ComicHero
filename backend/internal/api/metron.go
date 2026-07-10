@@ -10,7 +10,7 @@ import (
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
 )
 
-func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
+func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore, comicScanners ...*metronComicScanner) {
 
 	registerMetronComicRoutes(api, db, client, covers, importJobs)
 
@@ -42,6 +42,9 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 	})
 
 	registerMetronJobRoutes(api, db, client, covers, importJobs)
+	if len(comicScanners) > 0 && comicScanners[0] != nil {
+		registerMetronComicScannerRoutes(api, db, comicScanners[0])
+	}
 
 	huma.Register(api, huma.Operation{
 		OperationID: "listMetronRequests",

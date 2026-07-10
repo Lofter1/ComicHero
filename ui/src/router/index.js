@@ -155,6 +155,12 @@ export const router = createRouter({
       meta: { eyebrow: 'Users', title: 'Manage users', requiresAdmin: true },
     },
     {
+      path: '/settings',
+      name: 'settings',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Administration', title: 'App settings', requiresAdmin: true },
+    },
+    {
       path: '/account',
       name: 'account',
       component: EmptyRouteView,

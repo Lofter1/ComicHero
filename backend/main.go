@@ -62,9 +62,12 @@ func main() {
 		Password: os.Getenv("METRON_PASSWORD"),
 	})
 	metronImportJobs := api.NewMetronImportJobStore()
+	metronComicScanner := api.NewMetronComicScanner(database, metronClient, covers)
+	metronComicScanner.Start()
+	defer metronComicScanner.Stop()
 	api.RegisterSeriesRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
 	api.RegisterCharacterRoutes(humaAPI, database)
-	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, metronImportJobs)
+	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, metronImportJobs, metronComicScanner)
 	serveCovers(router, "/covers", covers.Dir())
 	if err := serveStatic(router, os.Getenv("STATIC_DIR")); err != nil {
 		log.Fatalf("failed to prepare static assets: %v", err)
