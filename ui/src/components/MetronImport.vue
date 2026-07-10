@@ -202,6 +202,14 @@ function closeReadingListDetail() {
   selectedReadingList.value = null
 }
 
+function importSelectedReadingList() {
+  const list = selectedReadingList.value
+  if (!list) return
+
+  closeReadingListDetail()
+  importReadingList(list)
+}
+
 async function importSeries(item) {
   const id = item.id
   importingKey.value = `series:${id}`
@@ -745,7 +753,7 @@ function formatDate(value) {
             class="primary-button"
             type="button"
             :disabled="!selectedReadingList || rowImporting('readingList', selectedReadingList.id)"
-            @click="importReadingList(selectedReadingList)"
+            @click="importSelectedReadingList"
           >
             {{
               selectedReadingList && rowImporting('readingList', selectedReadingList.id)
