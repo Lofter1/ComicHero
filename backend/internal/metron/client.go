@@ -350,6 +350,22 @@ func (c *Client) SearchReadingLists(ctx context.Context, query string) ([]Readin
 	return lists, nil
 }
 
+// SearchModifiedReadingLists returns every reading-list page modified after
+// the supplied timestamp without expanding list items.
+func (c *Client) SearchModifiedReadingLists(ctx context.Context, modifiedAfter string) ([]ReadingList, error) {
+	values := url.Values{}
+	values.Set("modified_gt", modifiedAfter)
+	results, err := c.getAllList(ctx, "/reading_list/", values)
+	if err != nil {
+		return nil, err
+	}
+	lists := make([]ReadingList, 0, len(results))
+	for _, raw := range results {
+		lists = append(lists, readingListFromMap(raw))
+	}
+	return lists, nil
+}
+
 func (c *Client) SearchArcs(ctx context.Context, query string) ([]MetronArc, error) {
 	values := url.Values{}
 	if query != "" {

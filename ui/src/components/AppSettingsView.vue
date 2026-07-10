@@ -70,6 +70,8 @@ function toggleDiscoveryWeekday(day, checked) {
 function saveDiscovery() {
   emit('save-discovery', {
     enabled: Boolean(discoveryDraft.enabled),
+    pullComics: Boolean(discoveryDraft.pullComics),
+    pullReadingLists: Boolean(discoveryDraft.pullReadingLists),
     schedule: discoveryDraft.schedule || 'daily',
     weekdays: discoveryDraft.schedule === 'weekly' ? discoveryDraft.weekdays || [] : [],
     monthDay: Math.min(31, Math.max(1, Number(discoveryDraft.monthDay) || 1)),
@@ -190,10 +192,9 @@ function registrationModeLabel(mode) {
       <header class="metron-scan-heading">
         <div class="metron-scan-heading-copy">
           <p class="eyebrow">Metron discovery</p>
-          <h3>Automatic new comics</h3>
+          <h3>Automatic new Metron data</h3>
           <p class="muted">
-            Import recently modified comics from every page of Metron's issue list. List metadata is
-            saved directly without requesting individual issue details.
+            Import recently modified comics, reading lists, or both from Metron on one schedule.
           </p>
         </div>
         <label class="compact-toggle metron-scan-toggle">
@@ -201,6 +202,18 @@ function registrationModeLabel(mode) {
           <span>{{ discoveryDraft.enabled ? 'Enabled' : 'Disabled' }}</span>
         </label>
       </header>
+
+      <fieldset class="permission-scopes metron-discovery-types">
+        <legend>Pull content</legend>
+        <label>
+          <input v-model="discoveryDraft.pullComics" type="checkbox" />
+          <span>Comics</span>
+        </label>
+        <label>
+          <input v-model="discoveryDraft.pullReadingLists" type="checkbox" />
+          <span>Reading lists</span>
+        </label>
+      </fieldset>
 
       <div class="metron-scan-fields">
         <label class="metron-scan-field">
@@ -217,11 +230,21 @@ function registrationModeLabel(mode) {
         </label>
         <label class="metron-scan-field">
           <span>Publisher name filter</span>
-          <input v-model="discoveryDraft.publisherName" type="text" placeholder="All publishers" />
+          <input
+            v-model="discoveryDraft.publisherName"
+            type="text"
+            placeholder="All publishers"
+            :disabled="!discoveryDraft.pullComics"
+          />
         </label>
         <label class="metron-scan-field">
           <span>Series name filter</span>
-          <input v-model="discoveryDraft.seriesName" type="text" placeholder="All series" />
+          <input
+            v-model="discoveryDraft.seriesName"
+            type="text"
+            placeholder="All series"
+            :disabled="!discoveryDraft.pullComics"
+          />
         </label>
         <label v-if="discoveryDraft.schedule === 'monthly'" class="metron-scan-field">
           <span>Day of month</span>
@@ -267,7 +290,9 @@ function registrationModeLabel(mode) {
         <button
           type="button"
           class="primary-button"
-          :disabled="savingDiscovery"
+          :disabled="
+            savingDiscovery || (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)
+          "
           @click="saveDiscovery"
         >
           {{ savingDiscovery ? 'Saving...' : 'Save settings' }}
@@ -276,7 +301,10 @@ function registrationModeLabel(mode) {
           v-if="!metronComicDiscovery.running"
           type="button"
           class="secondary-action"
-          :disabled="!discoveryDraft.enabled"
+          :disabled="
+            !discoveryDraft.enabled ||
+            (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)
+          "
           @click="$emit('trigger-discovery')"
         >
           Pull now
