@@ -119,6 +119,9 @@ func serveStatic(router chi.Router, diskDir string) error {
 	router.Handle("/*", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestPath := strings.TrimPrefix(filepath.Clean(r.URL.Path), string(filepath.Separator))
 		if info, err := fs.Stat(fsys, requestPath); err == nil && !info.IsDir() {
+			if requestPath == "sw.js" || requestPath == "registerSW.js" || requestPath == "manifest.webmanifest" {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			files.ServeHTTP(w, r)
 			return
 		}
