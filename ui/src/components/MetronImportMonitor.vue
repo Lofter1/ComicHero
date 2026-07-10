@@ -64,7 +64,9 @@ function isActiveJob(job) {
 
 function jobTitle(job) {
   const type =
-    job.type === 'readingList'
+    job.type === 'readingLists'
+      ? 'Reading lists'
+      : job.type === 'readingList'
       ? 'Reading list'
       : job.type === 'character'
         ? 'Character'

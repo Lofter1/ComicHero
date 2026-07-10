@@ -350,6 +350,19 @@ func (c *Client) SearchReadingLists(ctx context.Context, query string) ([]Readin
 	return lists, nil
 }
 
+// ListReadingLists returns every page from the unfiltered reading-list endpoint.
+func (c *Client) ListReadingLists(ctx context.Context) ([]ReadingList, error) {
+	results, err := c.getAllList(ctx, "/reading_list/", nil)
+	if err != nil {
+		return nil, err
+	}
+	lists := make([]ReadingList, 0, len(results))
+	for _, raw := range results {
+		lists = append(lists, readingListFromMap(raw))
+	}
+	return lists, nil
+}
+
 // SearchModifiedReadingLists returns every reading-list page modified after
 // the supplied timestamp without expanding list items.
 func (c *Client) SearchModifiedReadingLists(ctx context.Context, modifiedAfter string) ([]ReadingList, error) {

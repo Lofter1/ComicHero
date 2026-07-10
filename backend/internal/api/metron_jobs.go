@@ -21,7 +21,7 @@ import (
 
 type MetronImportJob struct {
 	ID        string              `json:"id" doc:"Import job identifier." example:"metron-1"`
-	Type      string              `json:"type" doc:"Import type." enum:"comic,readingList,series,character,arc" example:"series"`
+	Type      string              `json:"type" doc:"Import type." enum:"comic,readingList,readingLists,series,character,arc" example:"series"`
 	MetronID  int                 `json:"metronId" doc:"Metron resource identifier." example:"123456"`
 	Options   MetronImportOptions `json:"options" doc:"Import depth and data-expansion options used by this job."`
 	Status    string              `json:"status" doc:"Current job status." enum:"queued,running,canceling,succeeded,failed,canceled" example:"running"`
@@ -422,6 +422,8 @@ func successMessage(jobType string) string {
 		return "Comic import finished."
 	case "readingList":
 		return "Reading list import finished."
+	case "readingLists":
+		return "All reading lists imported."
 	case "arc":
 		return "Arc import finished."
 	case "series":
@@ -609,6 +611,35 @@ func startMetronReadingListImportWithOptions(parent context.Context, store *metr
 			return err
 		}
 		return markMetronSynced(ctx, db, metronResourceReadingList, metronID, info)
+	})
+}
+
+func startAllMetronReadingListsImport(parent context.Context, store *metronImportJobStore, db *sqlx.DB, client *metron.Client, covers *CoverCache, options MetronImportOptions) MetronImportJob {
+	options = resolveMetronImportOptions(options)
+	return store.startWithContextAndOptions(parent, "readingLists", 0, options, "Fetching all reading lists from Metron...", func(ctx context.Context, progress func(int, int, string)) error {
+		lists, err := client.ListReadingLists(ctx)
+		if err != nil {
+			return metronImportError(err)
+		}
+		progress(0, len(lists), "Importing all Metron reading lists...")
+		failed := 0
+		for i, summary := range lists {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			list, err := client.GetReadingList(ctx, summary.ID)
+			if err == nil {
+				err = importMetronReadingListWithOptions(ctx, db, client, covers, *list, false, func(int, int, string) {}, options)
+			}
+			if err != nil {
+				failed++
+			}
+			progress(i+1, len(lists), fmt.Sprintf("Imported %d of %d reading lists...", i+1-failed, len(lists)))
+		}
+		if failed > 0 {
+			return fmt.Errorf("failed to import %d of %d reading lists", failed, len(lists))
+		}
+		return nil
 	})
 }
 
@@ -815,6 +846,8 @@ func continueMetronImportJob(ctx context.Context, store *metronImportJobStore, d
 		next = startMetronComicImportWithOptions(ctx, store, db, client, covers, job.MetronID, job.Options)
 	case "readingList":
 		next = startMetronReadingListContinue(ctx, store, db, client, covers, job.MetronID, job.Options)
+	case "readingLists":
+		next = startAllMetronReadingListsImport(ctx, store, db, client, covers, job.Options)
 	case "arc":
 		next = startMetronArcContinue(ctx, store, db, client, covers, job.MetronID, job.Options)
 	case "series":
