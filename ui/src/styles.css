@@ -383,6 +383,7 @@ button:disabled {
 .sidebar {
   position: sticky;
   top: 0;
+  z-index: 30;
   height: 100vh;
   border-right: 1px solid var(--line);
   background: var(--sidebar-bg);
@@ -614,6 +615,15 @@ h4 {
 .toolbar {
   justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.toolbar > div,
+.toolbar h2 {
+  min-width: 0;
+}
+
+.toolbar h2 {
+  overflow-wrap: anywhere;
 }
 
 .sticky-toolbar {
@@ -1053,6 +1063,7 @@ textarea {
 }
 
 .registration-mode-toggle button {
+  min-width: 0;
   min-height: 38px;
   border: 0;
   border-radius: 7px;
@@ -1062,7 +1073,8 @@ textarea {
   font-size: 0.9rem;
   font-weight: 900;
   line-height: 1.2;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .registration-mode-toggle button.active {
@@ -3931,8 +3943,20 @@ textarea {
     right: 10px;
     bottom: 10px;
     width: calc(100vw - 20px);
-    max-height: 58vh;
+    max-height: 42vh;
     overflow: auto;
+  }
+
+  .import-monitor.collapsed {
+    width: auto;
+    max-width: calc(100vw - 20px);
+  }
+
+  .character-row .status-pill {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: center;
   }
 
   .metron-results .detail-panel {
