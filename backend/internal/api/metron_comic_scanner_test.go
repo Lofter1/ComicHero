@@ -77,3 +77,22 @@ func TestMetronComicScanSubscriptionSendsSnapshotAndProgress(t *testing.T) {
 		t.Fatalf("progress scanned = %d", progress.Scanned)
 	}
 }
+
+func TestComicScanIntervalIsScopedToOneRun(t *testing.T) {
+	var firstRunNext time.Time
+	if err := waitForComicScanInterval(context.Background(), &firstRunNext, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if firstRunNext.IsZero() {
+		t.Fatal("first scan run did not record its next request time")
+	}
+
+	var otherRunNext time.Time
+	started := time.Now()
+	if err := waitForComicScanInterval(context.Background(), &otherRunNext, time.Second); err != nil {
+		t.Fatal(err)
+	}
+	if elapsed := time.Since(started); elapsed > 100*time.Millisecond {
+		t.Fatalf("independent scan run waited %v for another run", elapsed)
+	}
+}
