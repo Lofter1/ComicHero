@@ -70,6 +70,10 @@ function achievementTimestampLabel(achievement) {
             <small>Read comics</small>
           </span>
           <span>
+            <strong>{{ statisticsView.statistics.skippedComics }}</strong>
+            <small>Skipped comics</small>
+          </span>
+          <span>
             <strong>{{ formatTimestamp(statisticsView.statistics.firstReadAt) }}</strong>
             <small>First read timestamp</small>
           </span>
@@ -99,8 +103,24 @@ function achievementTimestampLabel(achievement) {
             <small>Reading orders completed</small>
           </span>
           <span>
+            <strong>{{ statisticsView.statistics.startedReadingOrders }}</strong>
+            <small>Reading orders started</small>
+          </span>
+          <span>
             <strong>{{ statisticsView.statistics.completedArcs }}</strong>
             <small>Story arcs completed</small>
+          </span>
+          <span>
+            <strong>{{ statisticsView.statistics.startedArcs }}</strong>
+            <small>Story arcs started</small>
+          </span>
+          <span>
+            <strong>{{ statisticsView.statistics.startedSeries }}</strong>
+            <small>Series started</small>
+          </span>
+          <span>
+            <strong>{{ statisticsView.statistics.startedCharacters }}</strong>
+            <small>Character paths started</small>
           </span>
           <span>
             <strong>{{ statisticsView.statistics.charactersMet }}</strong>
