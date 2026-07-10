@@ -58,15 +58,10 @@ const metronActionLabel = computed(() =>
 function runMetronAction() {
   if (!props.selectedComic) return
   if (props.selectedComic.metronIssueId) {
-    emit('apply-metron', props.selectedComic.metronIssueId, { force: false })
+    emit('apply-metron', props.selectedComic.metronIssueId)
     return
   }
   emit('search-metron')
-}
-
-function forceMetronRefresh() {
-  if (!props.selectedComic?.metronIssueId) return
-  emit('apply-metron', props.selectedComic.metronIssueId, { force: true })
 }
 
 function seriesLabel(comic) {
@@ -107,15 +102,6 @@ function seriesLabel(comic) {
           @click="runMetronAction"
         >
           {{ metronActionLabel }}
-        </button>
-        <button
-          v-if="selectedComic?.metronIssueId && !readOnly"
-          class="ghost-button"
-          type="button"
-          :disabled="metronActionDisabled"
-          @click="forceMetronRefresh"
-        >
-          Force refresh
         </button>
       </div>
     </header>

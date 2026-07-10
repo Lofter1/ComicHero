@@ -293,7 +293,7 @@ export function useComics({
     }
   }
 
-  async function applyMetronMetadata(metronIssueID, options = {}) {
+  async function applyMetronMetadata(metronIssueID) {
     if (!selectedComic.value?.id || !metronIssueID) return
 
     metronMetadataApplyingID.value = metronIssueID
@@ -301,12 +301,10 @@ export function useComics({
     error.value = ''
 
     try {
-      const { data } = await updateComicFromMetron(selectedComic.value.id, metronIssueID, options)
+      const { data } = await updateComicFromMetron(selectedComic.value.id, metronIssueID)
       applyComicDetailState(data)
       await loadComics({ force: true })
-      metronMetadataStatus.value = options.force
-        ? 'Metadata force-refreshed from Metron.'
-        : 'Metadata updated from Metron.'
+      metronMetadataStatus.value = 'Metadata updated from Metron.'
       metronMetadataOpen.value = false
       metronMetadataResults.value = []
     } catch (err) {

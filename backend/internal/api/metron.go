@@ -50,7 +50,7 @@ func RegisterMetronRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		OperationID: "listMetronRequests",
 		Tags:        []string{tagMetron},
 		Summary:     "List recent Metron requests",
-		Description: "Returns recent outbound Metron API calls recorded by this server, including path, query, status, duration, and conditional-request state.",
+		Description: "Returns recent outbound Metron API calls recorded by this server, including path, query, status, and duration.",
 		Method:      http.MethodGet,
 		Path:        "/metron/requests",
 		Errors:      errsRead,

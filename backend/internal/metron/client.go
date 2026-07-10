@@ -21,8 +21,6 @@ type Client struct {
 	httpClient  *http.Client
 	username    string
 	password    string
-	cache       map[string]cachedResponse
-	cacheMu     sync.RWMutex
 	rateLimit   RateLimit
 	rateMu      sync.RWMutex
 	requestMu   sync.RWMutex
@@ -213,7 +211,6 @@ func New(config Config) *Client {
 		},
 		username: config.Username,
 		password: config.Password,
-		cache:    make(map[string]cachedResponse),
 	}
 }
 
@@ -576,7 +573,6 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 		requestURL += "?" + values.Encode()
 	}
 
-	cacheKey := requestURL
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return FetchInfo{}, err
@@ -584,15 +580,7 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	c.authorize(req)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "ComicHero/0.1")
-	conditionalHeader := conditional.LastModified != ""
-	if conditional.LastModified != "" && !conditional.Force {
-		req.Header.Set("If-Modified-Since", conditional.LastModified)
-	} else if !conditional.Force {
-		if cached, ok := c.cached(cacheKey); ok && cached.lastModified != "" {
-			req.Header.Set("If-Modified-Since", cached.lastModified)
-			conditionalHeader = true
-		}
-	}
+	conditionalHeader := false
 
 	started := time.Now()
 	resp, err := c.httpClient.Do(req)
@@ -602,18 +590,6 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	}
 	defer resp.Body.Close()
 	c.recordRequest(req, resp.StatusCode, started, conditionalHeader, "")
-
-	if resp.StatusCode == http.StatusNotModified {
-		c.updateRateLimit(resp.Header)
-		info := FetchInfo{LastModified: req.Header.Get("If-Modified-Since"), NotModified: true}
-		if conditional.LastModified == "" {
-			if cached, ok := c.cached(cacheKey); ok {
-				info.NotModified = false
-				return info, json.Unmarshal(cached.body, target)
-			}
-		}
-		return info, nil
-	}
 
 	rateLimit := c.updateRateLimit(resp.Header)
 
@@ -633,10 +609,7 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 	if err != nil {
 		return FetchInfo{}, err
 	}
-	lastModified := resp.Header.Get("Last-Modified")
-	c.storeCache(cacheKey, lastModified, body)
-
-	return FetchInfo{LastModified: lastModified}, json.Unmarshal(body, target)
+	return FetchInfo{}, json.Unmarshal(body, target)
 }
 
 func (c *Client) waitForMinInterval(ctx context.Context) error {
@@ -785,30 +758,6 @@ func (c *Client) requestURL(path string) string {
 		return path
 	}
 	return c.baseURL + path
-}
-
-func (c *Client) cached(key string) (cachedResponse, bool) {
-	c.cacheMu.RLock()
-	defer c.cacheMu.RUnlock()
-	cached, ok := c.cache[key]
-	return cached, ok
-}
-
-func (c *Client) storeCache(key, lastModified string, body []byte) {
-	if lastModified == "" {
-		return
-	}
-	c.cacheMu.Lock()
-	defer c.cacheMu.Unlock()
-	c.cache[key] = cachedResponse{
-		lastModified: lastModified,
-		body:         append([]byte(nil), body...),
-	}
-}
-
-type cachedResponse struct {
-	lastModified string
-	body         []byte
 }
 
 type pagedResponse struct {

@@ -117,36 +117,27 @@ func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
 	}
 }
 
-func TestClientUsesConditionalCacheForDetailRequests(t *testing.T) {
+func TestClientDoesNotSendConditionalRequestHeaders(t *testing.T) {
 	requests := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		if requests == 2 {
-			if got := r.Header.Get("If-Modified-Since"); got != "Wed, 12 Feb 2026 10:30:00 GMT" {
-				t.Fatalf("If-Modified-Since = %q", got)
-			}
-			w.WriteHeader(http.StatusNotModified)
-			return
+		if got := r.Header.Get("If-Modified-Since"); got != "" {
+			t.Fatalf("If-Modified-Since = %q; want empty", got)
 		}
-
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Last-Modified", "Wed, 12 Feb 2026 10:30:00 GMT")
-		w.Write([]byte(`{"id":123,"series":{"name":"Series"},"number":"1","cover_date":"2026-01-01"}`))
+		w.Write([]byte(`{"id":123,"series":{"name":"Series"},"number":"1"}`))
 	}))
 	defer server.Close()
 
 	client := New(Config{BaseURL: server.URL})
-
-	first, err := client.GetIssue(context.Background(), 123)
-	if err != nil {
-		t.Fatalf("first GetIssue: %v", err)
+	for range 2 {
+		if _, err := client.GetIssue(context.Background(), 123); err != nil {
+			t.Fatalf("GetIssue: %v", err)
+		}
 	}
-	second, err := client.GetIssue(context.Background(), 123)
-	if err != nil {
-		t.Fatalf("second GetIssue: %v", err)
-	}
-	if first.ID != second.ID || second.Series != "Series" {
-		t.Fatalf("unexpected cached issue: first=%#v second=%#v", first, second)
+	if requests != 2 {
+		t.Fatalf("requests = %d; want 2 unconditional pulls", requests)
 	}
 }
 
