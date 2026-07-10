@@ -37,7 +37,7 @@ type MetronComicScanSettings struct {
 	Weekdays           []string `json:"weekdays,omitempty" doc:"Lowercase weekday names used by a weekly schedule."`
 	StartTime          string   `json:"startTime" doc:"Server-local scan start time in HH:MM format." example:"02:00"`
 	DailyCallLimit     int      `json:"dailyCallLimit" minimum:"1" doc:"Maximum Metron issue calls shared by all scans during one server-local calendar day." example:"100"`
-	MinIntervalSeconds int      `json:"minIntervalSeconds" minimum:"0" doc:"Minimum seconds between outbound Metron HTTP calls." example:"20"`
+	MinIntervalSeconds int      `json:"minIntervalSeconds" minimum:"0" doc:"Minimum seconds between Metron issue calls made by this incomplete-comic scan." example:"20"`
 }
 
 type MetronComicScanStatus struct {
@@ -84,8 +84,6 @@ func NewMetronComicScanner(db *sqlx.DB, client *metron.Client, covers *CoverCach
 func (s *metronComicScanner) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.shutdown = cancel
-	settings, _ := loadMetronComicScanSettings(ctx, s.db)
-	s.applyInterval(settings)
 	go s.scheduleLoop(ctx)
 }
 
@@ -159,14 +157,6 @@ func saveMetronComicScanSettings(ctx context.Context, db *sqlx.DB, settings Metr
 	}
 	_, err = db.ExecContext(ctx, `INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`, metronComicScanSettingsKey, string(value))
 	return err
-}
-
-func (s *metronComicScanner) applyInterval(settings MetronComicScanSettings) {
-	interval := time.Duration(0)
-	if settings.Enabled {
-		interval = time.Duration(settings.MinIntervalSeconds) * time.Second
-	}
-	s.client.SetMinInterval(interval)
 }
 
 func (s *metronComicScanner) scheduleLoop(ctx context.Context) {
@@ -258,8 +248,13 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 	err := s.db.SelectContext(ctx, &rows, `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '') ORDER BY id`)
 	if err == nil {
 		s.setScanned(len(rows))
+		var nextRequest time.Time
+		interval := time.Duration(settings.MinIntervalSeconds) * time.Second
 		for _, row := range rows {
 			if ctx.Err() != nil {
+				break
+			}
+			if waitErr := waitForComicScanInterval(ctx, &nextRequest, interval); waitErr != nil {
 				break
 			}
 			claimed, claimErr := claimMetronComicScanCall(ctx, s.db, settings.DailyCallLimit, time.Now())
@@ -299,6 +294,23 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 	s.cancel = nil
 	s.mu.Unlock()
 	s.broadcastSnapshot()
+}
+
+func waitForComicScanInterval(ctx context.Context, nextRequest *time.Time, interval time.Duration) error {
+	if interval <= 0 {
+		return nil
+	}
+	if wait := time.Until(*nextRequest); wait > 0 {
+		timer := time.NewTimer(wait)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	*nextRequest = time.Now().Add(interval)
+	return nil
 }
 
 func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *CoverCache, comicID int, issue metron.Issue) error {
@@ -491,7 +503,6 @@ func registerMetronComicScannerRoutes(api huma.API, db *sqlx.DB, scanner *metron
 		if err := saveMetronComicScanSettings(ctx, db, input.Body); err != nil {
 			return nil, huma.Error500InternalServerError("failed to save comic scan settings")
 		}
-		scanner.applyInterval(input.Body)
 		select {
 		case scanner.wake <- struct{}{}:
 		default:
