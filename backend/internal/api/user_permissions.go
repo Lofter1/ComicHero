@@ -32,14 +32,16 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 	}
 
 	var rows []struct {
-		ID            int            `db:"id"`
-		Name          string         `db:"name"`
-		Email         string         `db:"email"`
-		EmailVerified bool           `db:"email_verified"`
-		IsAdmin       bool           `db:"is_admin"`
-		Allowed       sql.NullBool   `db:"allowed"`
-		Scopes        sql.NullString `db:"scopes"`
-		HourlyLimit   sql.NullInt64  `db:"hourly_limit"`
+		ID              int            `db:"id"`
+		Name            string         `db:"name"`
+		Email           string         `db:"email"`
+		EmailVerified   bool           `db:"email_verified"`
+		EmailVerifiedAt string         `db:"email_verified_at"`
+		IsAdmin         bool           `db:"is_admin"`
+		CreatedAt       string         `db:"created_at"`
+		Allowed         sql.NullBool   `db:"allowed"`
+		Scopes          sql.NullString `db:"scopes"`
+		HourlyLimit     sql.NullInt64  `db:"hourly_limit"`
 	}
 	if err := db.SelectContext(ctx, &rows, `
 		SELECT
@@ -47,7 +49,9 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 			u.name,
 			u.email,
 			u.email_verified_at <> '' AS email_verified,
+			u.email_verified_at,
 			u.is_admin,
+			u.created_at,
 			p.allowed,
 			p.scopes,
 			p.hourly_limit
@@ -62,11 +66,13 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 	for _, row := range rows {
 		users = append(users, UserAdminView{
 			User: User{
-				ID:            row.ID,
-				Name:          row.Name,
-				Email:         row.Email,
-				EmailVerified: row.EmailVerified,
-				IsAdmin:       row.IsAdmin,
+				ID:              row.ID,
+				Name:            row.Name,
+				Email:           row.Email,
+				EmailVerified:   row.EmailVerified,
+				EmailVerifiedAt: row.EmailVerifiedAt,
+				IsAdmin:         row.IsAdmin,
+				CreatedAt:       row.CreatedAt,
 			},
 			MetronPermissions: permissionsFromRow(row.IsAdmin, row.Allowed, row.Scopes, row.HourlyLimit),
 		})

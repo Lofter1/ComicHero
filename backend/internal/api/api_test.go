@@ -1602,6 +1602,37 @@ func TestAdminCanPromoteOtherUsers(t *testing.T) {
 	}
 }
 
+func TestListUsersIncludesAccountTimestamps(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO users (id, name, email, email_verified_at, is_admin, created_at)
+		VALUES (2, 'Reader', 'reader@example.com', '2026-07-10 11:00:00', 0, '2026-07-09 10:00:00')
+	`); err != nil {
+		t.Fatalf("create reader user: %v", err)
+	}
+
+	adminCtx := context.WithValue(context.Background(), contextUserIDKey{}, 1)
+	output, err := listUsers(adminCtx, db)
+	if err != nil {
+		t.Fatalf("listUsers: %v", err)
+	}
+
+	for _, entry := range output.Body {
+		if entry.User.ID != 2 {
+			continue
+		}
+		if entry.User.CreatedAt != "2026-07-09 10:00:00" {
+			t.Fatalf("createdAt = %q; want seeded timestamp", entry.User.CreatedAt)
+		}
+		if !entry.User.EmailVerified || entry.User.EmailVerifiedAt != "2026-07-10 11:00:00" {
+			t.Fatalf("email verification = (%v, %q); want verified timestamp", entry.User.EmailVerified, entry.User.EmailVerifiedAt)
+		}
+		return
+	}
+
+	t.Fatal("reader missing from users response")
+}
+
 func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	db := setupMountedAuthTestDB(t)
 	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {

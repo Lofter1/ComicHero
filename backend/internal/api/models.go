@@ -31,11 +31,13 @@ type ComicPayload struct {
 }
 
 type User struct {
-	ID            int    `json:"id"            db:"id"                doc:"Local user identifier." example:"1"`
-	Name          string `json:"name"          db:"name"              doc:"Display name." example:"Justin"`
-	Email         string `json:"email"         db:"email"             doc:"Email address used to log in." example:"reader@example.com"`
-	EmailVerified bool   `json:"emailVerified" db:"email_verified"    doc:"Whether this user's email address has been verified." example:"true"`
-	IsAdmin       bool   `json:"isAdmin"       db:"is_admin"          doc:"Whether the user can manage user permissions." example:"false"`
+	ID              int    `json:"id"              db:"id"                doc:"Local user identifier." example:"1"`
+	Name            string `json:"name"            db:"name"              doc:"Display name." example:"Justin"`
+	Email           string `json:"email"           db:"email"             doc:"Email address used to log in." example:"reader@example.com"`
+	EmailVerified   bool   `json:"emailVerified"   db:"email_verified"    doc:"Whether this user's email address has been verified." example:"true"`
+	EmailVerifiedAt string `json:"emailVerifiedAt" db:"email_verified_at" doc:"When the user's email address was verified." example:"2026-07-10T10:30:00Z"`
+	IsAdmin         bool   `json:"isAdmin"         db:"is_admin"          doc:"Whether the user can manage user permissions." example:"false"`
+	CreatedAt       string `json:"createdAt"       db:"created_at"        doc:"When the user account was created." example:"2026-07-10T10:00:00Z"`
 }
 
 type UserMetronPermissions struct {

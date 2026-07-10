@@ -1003,9 +1003,42 @@ textarea {
   font-weight: 800;
 }
 
+.user-directory-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0 12px;
+}
+
+.user-directory-toolbar h3 {
+  margin: 2px 0 0;
+}
+
+.user-search-field {
+  width: min(360px, 100%);
+}
+
+.user-directory-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 8px;
+  width: min(680px, 100%);
+}
+
+.user-search-field input {
+  min-height: 40px;
+}
+
+.user-directory-filters select {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
 .user-permission-list {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .user-permission-row {
@@ -1024,12 +1057,38 @@ textarea {
   gap: 14px;
   min-width: 0;
   flex-wrap: wrap;
+  padding: 13px 48px 13px 18px;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+}
+
+.user-permission-header::-webkit-details-marker {
+  display: none;
+}
+
+.user-permission-header::after {
+  content: '›';
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  transform: translateY(-50%);
+  transition: transform 140ms ease;
+}
+
+.user-permission-row[open] .user-permission-header {
   border-bottom: 1px solid var(--line);
-  padding: 16px 18px;
+}
+
+.user-permission-row[open] .user-permission-header::after {
+  transform: translateY(-50%) rotate(90deg);
 }
 
 .user-summary {
-  min-width: 180px;
+  min-width: 0;
 }
 
 .user-permission-header h3 {
@@ -1042,6 +1101,38 @@ textarea {
   color: var(--muted);
   font-size: 0.86rem;
   font-weight: 700;
+}
+
+.user-summary .user-account-dates {
+  display: flex;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.user-summary-badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.user-summary-badges span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 4px 8px;
+}
+
+.user-summary-badges .user-role-badge {
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
+  color: var(--warning-ink);
 }
 
 .user-card-sections {
@@ -3379,6 +3470,29 @@ textarea {
   .user-permission-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .user-directory-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .user-search-field {
+    width: 100%;
+  }
+
+  .user-directory-filters {
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .user-directory-filters .user-search-field {
+    grid-column: 1 / -1;
+  }
+
+  .user-summary-badges {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .user-card-sections,
