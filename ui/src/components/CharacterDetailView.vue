@@ -53,6 +53,18 @@ function characterProgress(character) {
       <div class="detail-nav-actions">
         <button
           v-if="selectedCharacter && !readOnly"
+          type="button"
+          class="favorite-toggle detail-favorite-toggle"
+          :class="{ active: selectedCharacter.favorite }"
+          :disabled="quickSavingCharacterId === selectedCharacter.id"
+          :aria-label="selectedCharacter.favorite ? 'Remove from favorites' : 'Add to favorites'"
+          :title="selectedCharacter.favorite ? 'Remove from favorites' : 'Add to favorites'"
+          @click="$emit('toggle-favorite', selectedCharacter)"
+        >
+          <span aria-hidden="true">{{ selectedCharacter.favorite ? '★' : '☆' }}</span>
+        </button>
+        <button
+          v-if="selectedCharacter && !readOnly"
           :class="selectedCharacter.startedAt ? 'secondary-button' : 'primary-button'"
           type="button"
           :disabled="startSaving"
@@ -65,18 +77,6 @@ function characterProgress(character) {
                 ? 'Stop reading'
                 : 'Start reading'
           }}
-        </button>
-        <button
-          v-if="selectedCharacter && !readOnly"
-          type="button"
-          class="favorite-toggle detail-favorite-toggle"
-          :class="{ active: selectedCharacter.favorite }"
-          :disabled="quickSavingCharacterId === selectedCharacter.id"
-          :aria-label="selectedCharacter.favorite ? 'Remove from favorites' : 'Add to favorites'"
-          :title="selectedCharacter.favorite ? 'Remove from favorites' : 'Add to favorites'"
-          @click="$emit('toggle-favorite', selectedCharacter)"
-        >
-          <span aria-hidden="true">{{ selectedCharacter.favorite ? '★' : '☆' }}</span>
         </button>
         <button
           v-if="selectedCharacter?.metronCharacterId && !readOnly"

@@ -44,15 +44,6 @@ defineEmits([
       <div class="detail-nav-actions">
         <button
           v-if="selectedArc && !readOnly"
-          :class="selectedArc.startedAt ? 'secondary-button' : 'primary-button'"
-          type="button"
-          :disabled="startSaving"
-          @click="$emit('toggle-started')"
-        >
-          {{ startSaving ? 'Saving...' : selectedArc.startedAt ? 'Stop reading' : 'Start reading' }}
-        </button>
-        <button
-          v-if="selectedArc && !readOnly"
           type="button"
           class="favorite-toggle detail-favorite-toggle"
           :class="{ active: selectedArc.favorite }"
@@ -62,6 +53,15 @@ defineEmits([
           @click="$emit('toggle-favorite', selectedArc)"
         >
           <span aria-hidden="true">{{ selectedArc.favorite ? '★' : '☆' }}</span>
+        </button>
+        <button
+          v-if="selectedArc && !readOnly"
+          :class="selectedArc.startedAt ? 'secondary-button' : 'primary-button'"
+          type="button"
+          :disabled="startSaving"
+          @click="$emit('toggle-started')"
+        >
+          {{ startSaving ? 'Saving...' : selectedArc.startedAt ? 'Stop reading' : 'Start reading' }}
         </button>
       </div>
     </header>

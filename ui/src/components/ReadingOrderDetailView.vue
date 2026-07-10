@@ -92,12 +92,12 @@ const renderedDescription = computed(() => {
           {{ startSaving ? 'Stopping...' : 'Stop reading' }}
         </button>
         <button
-          v-if="selectedOrder"
-          class="secondary-button"
+          v-if="selectedOrder?.canEdit"
+          class="primary-button"
           type="button"
-          @click="$emit('export-cbl')"
+          @click="$emit('edit')"
         >
-          Export CBL
+          Edit
         </button>
         <button
           v-if="
@@ -114,12 +114,12 @@ const renderedDescription = computed(() => {
           {{ saving ? 'Copying...' : 'Copy' }}
         </button>
         <button
-          v-if="selectedOrder?.canEdit"
-          class="primary-button"
+          v-if="selectedOrder"
+          class="secondary-button"
           type="button"
-          @click="$emit('edit')"
+          @click="$emit('export-cbl')"
         >
-          Edit
+          Export CBL
         </button>
       </div>
     </header>

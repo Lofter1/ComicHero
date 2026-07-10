@@ -53,17 +53,6 @@ function seriesPublisherLabel(series) {
       <div class="detail-nav-actions">
         <button
           v-if="selectedSeries && !readOnly"
-          :class="selectedSeries.startedAt ? 'secondary-button' : 'primary-button'"
-          type="button"
-          :disabled="startSaving"
-          @click="$emit('toggle-started')"
-        >
-          {{
-            startSaving ? 'Saving...' : selectedSeries.startedAt ? 'Stop reading' : 'Start reading'
-          }}
-        </button>
-        <button
-          v-if="selectedSeries && !readOnly"
           type="button"
           class="favorite-toggle detail-favorite-toggle"
           :class="{ active: selectedSeries.favorite }"
@@ -72,6 +61,17 @@ function seriesPublisherLabel(series) {
           @click="$emit('toggle-favorite', selectedSeries)"
         >
           <span aria-hidden="true">{{ selectedSeries.favorite ? '★' : '☆' }}</span>
+        </button>
+        <button
+          v-if="selectedSeries && !readOnly"
+          :class="selectedSeries.startedAt ? 'secondary-button' : 'primary-button'"
+          type="button"
+          :disabled="startSaving"
+          @click="$emit('toggle-started')"
+        >
+          {{
+            startSaving ? 'Saving...' : selectedSeries.startedAt ? 'Stop reading' : 'Start reading'
+          }}
         </button>
         <button
           v-if="selectedSeries?.metronSeriesId && !readOnly"
