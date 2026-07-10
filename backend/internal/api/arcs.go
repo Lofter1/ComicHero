@@ -43,7 +43,7 @@ func RegisterArcRoutes(api huma.API, db *sqlx.DB) {
 	}{{"startArc", "Start reading an arc", http.MethodPost, true}, {"stopArc", "Stop reading an arc", http.MethodDelete, false}} {
 		op := operation
 		huma.Register(api, huma.Operation{OperationID: op.id, Tags: []string{tagArcs}, Summary: op.summary, Method: op.method, Path: "/arcs/{id}/start", Errors: errsWrite}, func(ctx context.Context, input *ArcInput) (*ArcDetailOutput, error) {
-			if err := setContentStarted(ctx, db, "user_arc_starts", "arc_id", "arcs", input.ID, op.started); err != nil {
+			if err := setContentStarted(ctx, db, "user_arcs", "arc_id", "arcs", input.ID, op.started); err != nil {
 				return nil, err
 			}
 			return getArc(ctx, db, input.ID)
@@ -133,8 +133,8 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 			a.name,
 			a.description,
 			a.image,
-			a.favorite,
-			started.started_at AS started_at,
+			COALESCE(preference.favorite, 0) AS favorite,
+			preference.started_at AS started_at,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
 				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
@@ -143,7 +143,7 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 		LEFT JOIN arc_comics ac ON ac.arc_id = a.id
 		LEFT JOIN comics c ON c.id = ac.comic_id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
-		LEFT JOIN user_arc_starts started ON started.arc_id = a.id AND started.user_id = ?
+		LEFT JOIN user_arcs preference ON preference.arc_id = a.id AND preference.user_id = ?
 	`)
 	query.args = append(query.args, userID, userID)
 
@@ -154,14 +154,14 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
 		return "", nil, err
 	} else if ok {
-		query.where("a.favorite = ?", favorite)
+		query.where("COALESCE(preference.favorite, 0) = ?", favorite)
 	}
 	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
 		return "", nil, err
 	} else if ok && started {
-		query.where("started.started_at IS NOT NULL")
+		query.where("preference.started_at IS NOT NULL")
 	} else if ok {
-		query.where("started.started_at IS NULL")
+		query.where("preference.started_at IS NULL")
 	}
 	if input.ComicID > 0 {
 		query.where(`
@@ -195,9 +195,10 @@ func getArc(ctx context.Context, db *sqlx.DB, id int) (*ArcDetailOutput, error) 
 	}
 	var arc Arc
 	if err := db.GetContext(ctx, &arc, `
-		SELECT a.*, started.started_at AS started_at
+		SELECT a.id, a.metron_arc_id, a.name, a.description, a.image,
+			COALESCE(preference.favorite, 0) AS favorite, preference.started_at AS started_at
 		FROM arcs a
-		LEFT JOIN user_arc_starts started ON started.arc_id = a.id AND started.user_id = ?
+		LEFT JOIN user_arcs preference ON preference.arc_id = a.id AND preference.user_id = ?
 		WHERE a.id = ?
 	`, userID, id); err != nil {
 		return nil, huma.Error404NotFound("arc not found")
@@ -234,9 +235,9 @@ func fetchArcDetail(ctx context.Context, db *sqlx.DB, arc Arc) (*ArcDetailOutput
 
 func createArc(ctx context.Context, db *sqlx.DB, payload ArcPayload) (*CreateArcOutput, error) {
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO arcs (name, description, favorite)
-		VALUES (?, ?, ?)
-	`, payload.Name, payload.Description, payload.Favorite)
+		INSERT INTO arcs (name, description)
+		VALUES (?, ?)
+	`, payload.Name, payload.Description)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create arc")
 	}
@@ -245,11 +246,22 @@ func createArc(ctx context.Context, db *sqlx.DB, payload ArcPayload) (*CreateArc
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new arc id")
 	}
+	if err := setContentFavorite(ctx, db, "user_arcs", "arc_id", "arcs", int(id), payload.Favorite); err != nil {
+		return nil, err
+	}
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	var arc Arc
 	if err := db.GetContext(ctx, &arc, `
-		SELECT * FROM arcs WHERE id = ?
-	`, id); err != nil {
+		SELECT a.id, a.metron_arc_id, a.name, a.description, a.image,
+			COALESCE(preference.favorite, 0) AS favorite, preference.started_at AS started_at
+		FROM arcs a
+		LEFT JOIN user_arcs preference ON preference.arc_id = a.id AND preference.user_id = ?
+		WHERE a.id = ?
+	`, userID, id); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch created arc")
 	}
 
@@ -259,13 +271,16 @@ func createArc(ctx context.Context, db *sqlx.DB, payload ArcPayload) (*CreateArc
 func updateArc(ctx context.Context, db *sqlx.DB, id int, payload ArcPayload) (*ArcDetailOutput, error) {
 	result, err := db.ExecContext(ctx, `
 		UPDATE arcs
-		SET name = ?, description = ?, favorite = ?
+		SET name = ?, description = ?
 		WHERE id = ?
-	`, payload.Name, payload.Description, payload.Favorite, id)
+	`, payload.Name, payload.Description, id)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to update arc")
 	}
 	if err := requireRowsAffected(result, "arc not found"); err != nil {
+		return nil, err
+	}
+	if err := setContentFavorite(ctx, db, "user_arcs", "arc_id", "arcs", id, payload.Favorite); err != nil {
 		return nil, err
 	}
 

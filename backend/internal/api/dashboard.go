@@ -155,7 +155,7 @@ func dashboardArcs(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardIte
 			COALESCE(c.description, '') AS description,
 			COALESCE(uc.read, 0) AS read,
 			COALESCE(uc.skipped, 0) AS skipped
-		FROM user_arc_starts started
+		FROM user_arcs started
 		JOIN arcs a ON a.id = started.arc_id
 		LEFT JOIN (
 			SELECT ac.arc_id, COUNT(*) AS total_count,
@@ -207,7 +207,7 @@ func dashboardCharacters(ctx context.Context, db *sqlx.DB, userID int) ([]Dashbo
 			COALESCE(c.description, '') AS description,
 			COALESCE(uc.read, 0) AS read,
 			COALESCE(uc.skipped, 0) AS skipped
-		FROM user_character_starts started
+		FROM user_characters started
 		JOIN characters ch ON ch.id = started.character_id
 		LEFT JOIN (
 			SELECT cc.character_id,
@@ -262,7 +262,7 @@ func dashboardSeries(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardI
 			COALESCE(c.description, '') AS description,
 			COALESCE(uc.read, 0) AS read,
 			COALESCE(uc.skipped, 0) AS skipped
-		FROM user_series_starts started
+		FROM user_series started
 		JOIN series s ON s.id = started.series_id
 		LEFT JOIN (
 			SELECT c_total.series_id, COUNT(*) AS total_count,
