@@ -24,13 +24,15 @@ const (
 )
 
 type MetronComicDiscoverySettings struct {
-	Enabled       bool     `json:"enabled"`
-	Schedule      string   `json:"schedule" enum:"daily,weekly,monthly"`
-	Weekdays      []string `json:"weekdays,omitempty"`
-	MonthDay      int      `json:"monthDay,omitempty" minimum:"1" maximum:"31"`
-	StartTime     string   `json:"startTime" example:"03:00"`
-	PublisherName string   `json:"publisherName,omitempty"`
-	SeriesName    string   `json:"seriesName,omitempty"`
+	Enabled          bool     `json:"enabled"`
+	PullComics       bool     `json:"pullComics"`
+	PullReadingLists bool     `json:"pullReadingLists"`
+	Schedule         string   `json:"schedule" enum:"daily,weekly,monthly"`
+	Weekdays         []string `json:"weekdays,omitempty"`
+	MonthDay         int      `json:"monthDay,omitempty" minimum:"1" maximum:"31"`
+	StartTime        string   `json:"startTime" example:"03:00"`
+	PublisherName    string   `json:"publisherName,omitempty"`
+	SeriesName       string   `json:"seriesName,omitempty"`
 }
 
 type MetronComicDiscoveryStatus struct {
@@ -81,7 +83,7 @@ func (d *metronComicDiscovery) Stop() {
 }
 
 func defaultMetronComicDiscoverySettings() MetronComicDiscoverySettings {
-	return MetronComicDiscoverySettings{Schedule: "daily", Weekdays: []string{"monday"}, MonthDay: 1, StartTime: "03:00"}
+	return MetronComicDiscoverySettings{PullComics: true, Schedule: "daily", Weekdays: []string{"monday"}, MonthDay: 1, StartTime: "03:00"}
 }
 
 func loadMetronComicDiscoverySettings(ctx context.Context, db *sqlx.DB) (MetronComicDiscoverySettings, error) {
@@ -93,13 +95,28 @@ func loadMetronComicDiscoverySettings(ctx context.Context, db *sqlx.DB) (MetronC
 		}
 		return settings, err
 	}
-	return settings, json.Unmarshal([]byte(value), &settings)
+	var stored map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(value), &stored); err != nil {
+		return settings, err
+	}
+	if err := json.Unmarshal([]byte(value), &settings); err != nil {
+		return settings, err
+	}
+	if _, hasComics := stored["pullComics"]; !hasComics {
+		if _, hasLists := stored["pullReadingLists"]; !hasLists {
+			settings.PullComics = true
+		}
+	}
+	return settings, nil
 }
 
 func validateMetronComicDiscoverySettings(settings *MetronComicDiscoverySettings) error {
 	settings.Schedule = strings.ToLower(strings.TrimSpace(settings.Schedule))
 	settings.PublisherName = strings.TrimSpace(settings.PublisherName)
 	settings.SeriesName = strings.TrimSpace(settings.SeriesName)
+	if !settings.PullComics && !settings.PullReadingLists {
+		return errors.New("at least one content type must be selected")
+	}
 	if settings.Schedule != "daily" && settings.Schedule != "weekly" && settings.Schedule != "monthly" {
 		return errors.New("schedule must be daily, weekly, or monthly")
 	}
@@ -237,32 +254,75 @@ func (d *metronComicDiscovery) stop(reason string) bool {
 }
 
 func (d *metronComicDiscovery) run(ctx context.Context, settings MetronComicDiscoverySettings, modifiedAfter string) {
-	issues, err := d.client.SearchModifiedIssues(ctx, metron.IssueModifiedSearchOptions{ModifiedAfter: modifiedAfter, PublisherName: settings.PublisherName, SeriesName: settings.SeriesName})
-	if err == nil {
-		d.update(func(status *MetronComicDiscoveryStatus) { status.Found = len(issues) })
-		for _, issue := range issues {
-			if ctx.Err() != nil {
-				break
+	var runErr error
+	if settings.PullComics {
+		issues, err := d.client.SearchModifiedIssues(ctx, metron.IssueModifiedSearchOptions{ModifiedAfter: modifiedAfter, PublisherName: settings.PublisherName, SeriesName: settings.SeriesName})
+		if err != nil {
+			runErr = err
+		} else {
+			d.update(func(status *MetronComicDiscoveryStatus) { status.Found = len(issues) })
+			for _, issue := range issues {
+				if ctx.Err() != nil {
+					break
+				}
+				if _, exists, checkErr := existingComicIDByMetronIssueID(ctx, d.db, issue.ID); checkErr != nil {
+					d.increment("failed")
+					continue
+				} else if exists {
+					d.increment("present")
+					continue
+				}
+				if _, importErr := importMetronComicWithOptions(ctx, d.db, d.client, d.covers, issue, MetronImportOptions{Mode: "basic"}); importErr != nil {
+					d.increment("failed")
+				} else {
+					d.increment("imported")
+				}
 			}
-			if _, exists, checkErr := existingComicIDByMetronIssueID(ctx, d.db, issue.ID); checkErr != nil {
-				d.increment("failed")
-				continue
-			} else if exists {
-				d.increment("present")
-				continue
+		}
+	}
+	if settings.PullReadingLists && ctx.Err() == nil {
+		lists, err := d.client.SearchModifiedReadingLists(ctx, modifiedAfter)
+		if err != nil {
+			if runErr == nil {
+				runErr = err
 			}
-			if _, importErr := importMetronComicWithOptions(ctx, d.db, d.client, d.covers, issue, MetronImportOptions{Mode: "basic"}); importErr != nil {
-				d.increment("failed")
+		} else {
+			d.update(func(status *MetronComicDiscoveryStatus) { status.Found += len(lists) })
+			defaultUserID, userErr := ensureDefaultUser(ctx, d.db)
+			if userErr != nil {
+				runErr = userErr
 			} else {
-				d.increment("imported")
+				userCtx := context.WithValue(ctx, contextUserIDKey{}, defaultUserID)
+				for _, list := range lists {
+					if ctx.Err() != nil {
+						break
+					}
+					if _, exists, checkErr := existingReadingOrderIDByMetronID(ctx, d.db, list.ID); checkErr != nil {
+						d.increment("failed")
+						continue
+					} else if exists {
+						d.increment("present")
+						continue
+					}
+					detail, detailErr := d.client.GetReadingList(ctx, list.ID)
+					if detailErr != nil {
+						d.increment("failed")
+						continue
+					}
+					if importErr := importMetronReadingListWithOptions(userCtx, d.db, d.client, d.covers, *detail, false, func(int, int, string) {}, defaultMetronImportOptions()); importErr != nil {
+						d.increment("failed")
+					} else {
+						d.increment("imported")
+					}
+				}
 			}
 		}
 	}
 	d.mu.Lock()
 	d.status.Running = false
 	d.status.FinishedAt = time.Now().UTC().Format(time.RFC3339)
-	if err != nil {
-		d.status.StopReason = err.Error()
+	if runErr != nil {
+		d.status.StopReason = runErr.Error()
 	} else if ctx.Err() != nil && d.status.StopReason == "" {
 		d.status.StopReason = "stopped"
 	} else if d.status.StopReason == "manual" || d.status.StopReason == "scheduled" {
