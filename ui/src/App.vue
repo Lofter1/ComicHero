@@ -156,10 +156,12 @@ const {
 
 const {
   selectedSeries,
+  startSaving: seriesStartSaving,
   visibleSeries,
   seriesBrowseSections,
   openSeries,
   toggleSeriesFavorite,
+  toggleSelectedSeriesStarted,
   importSelectedSeriesFromMetron,
   seriesImportRunning,
   refreshSelectedSeriesDetail,
@@ -176,10 +178,12 @@ const {
 const {
   selectedCharacter,
   quickSavingCharacterID,
+  startSaving: characterStartSaving,
   visibleCharacters,
   characterBrowseSections,
   openCharacter,
   toggleCharacterFavorite,
+  toggleSelectedCharacterStarted,
   importSelectedCharacterAppearances,
   characterImportRunning,
   refreshSelectedCharacterDetail,
@@ -196,12 +200,14 @@ const {
 const {
   selectedArc,
   quickSavingArcID,
+  startSaving: arcStartSaving,
   arcForm,
   visibleArcs,
   arcBrowseSections,
   arcProgress,
   openArc,
   toggleArcFavorite,
+  toggleSelectedArcStarted,
   newArc,
   editArc,
   loadArcs,
@@ -1683,10 +1689,12 @@ onUnmounted(() => {
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :quick-saving-arc-id="quickSavingArcID"
+        :start-saving="arcStartSaving"
         :read-only="isReadOnlyGuest"
         @back="backToPreviousPage"
         @edit="editArc"
         @toggle-favorite="toggleArcFavorite"
+        @toggle-started="toggleSelectedArcStarted"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
@@ -1719,9 +1727,11 @@ onUnmounted(() => {
         :selected-comic-id="selectedComic?.id"
         :quick-saving-comic-id="quickSavingComicID"
         :import-running="seriesImportRunning(selectedSeries)"
+        :start-saving="seriesStartSaving"
         :read-only="isReadOnlyGuest"
         @back="backToPreviousPage"
         @toggle-favorite="toggleSeriesFavorite"
+        @toggle-started="toggleSelectedSeriesStarted"
         @import-series="importSelectedSeriesFromMetron"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
@@ -1756,9 +1766,11 @@ onUnmounted(() => {
         :quick-saving-comic-id="quickSavingComicID"
         :quick-saving-character-id="quickSavingCharacterID"
         :import-running="characterImportRunning(selectedCharacter)"
+        :start-saving="characterStartSaving"
         :read-only="isReadOnlyGuest"
         @back="backToPreviousPage"
         @toggle-favorite="toggleCharacterFavorite"
+        @toggle-started="toggleSelectedCharacterStarted"
         @import-appearances="importSelectedCharacterAppearances"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"

@@ -183,12 +183,20 @@ export function setArcComics(id, payload) {
   return send(`/arcs/${id}/comics`, 'PUT', payload)
 }
 
+export function setArcStarted(id, started) {
+  return request(`/arcs/${id}/start`, { method: started ? 'POST' : 'DELETE' })
+}
+
 export function getSeries(id) {
   return request(`/series/${id}`)
 }
 
 export function updateSeriesFavorite(id, favorite) {
   return send(`/series/${id}/favorite`, 'PATCH', { favorite })
+}
+
+export function setSeriesStarted(id, started) {
+  return request(`/series/${id}/start`, { method: started ? 'POST' : 'DELETE' })
 }
 
 export function importLocalSeriesFromMetron(id) {
@@ -201,6 +209,10 @@ export function getCharacter(id) {
 
 export function updateCharacterFavorite(id, favorite) {
   return send(`/characters/${id}/favorite`, 'PATCH', { favorite })
+}
+
+export function setCharacterStarted(id, started) {
+  return request(`/characters/${id}/start`, { method: started ? 'POST' : 'DELETE' })
 }
 
 export function searchMetronCharacters(params) {

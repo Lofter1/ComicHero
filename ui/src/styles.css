@@ -2955,6 +2955,10 @@ textarea {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.four-filter-tabs {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .comic-list-view {
   display: grid;
   gap: 12px;
@@ -3031,6 +3035,10 @@ textarea {
 
 .comic-list-tools .issue-status-tabs {
   min-width: 320px;
+}
+
+.comic-list-tools .four-filter-tabs {
+  min-width: 360px;
 }
 
 .issue-list {

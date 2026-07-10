@@ -64,11 +64,18 @@ const sortOptions = [
   { value: 'entries', label: 'Entries' },
   { value: 'progress', label: 'Progress' },
 ]
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'favorites', label: 'Favorites' },
+  { value: 'started', label: 'Started' },
+  { value: 'other', label: 'Other' },
+]
 
 const visibleSeries = computed(() => props.series)
 const visibleSections = computed(() => {
   if (props.filter === 'favorites') return sectionList('Favorites', visibleSeries.value)
   if (props.filter === 'other') return sectionList('Other Series', visibleSeries.value)
+  if (props.filter === 'started') return sectionList('Started Series', visibleSeries.value)
   return sectionList('All Series', visibleSeries.value)
 })
 const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
@@ -98,6 +105,7 @@ function seriesPublisherLabel(series) {
           :sort="sort"
           :direction="direction"
           :sort-options="sortOptions"
+          :filter-options="filterOptions"
           @update:search="$emit('update:search', $event)"
           @update:filter="$emit('update:filter', $event)"
           @update:sort="$emit('update:sort', $event)"
@@ -138,6 +146,7 @@ function seriesPublisherLabel(series) {
                   <span>
                     <strong>{{ item.name }}{{ seriesYearLabel(item) }}</strong>
                     <small>{{ seriesPublisherLabel(item) }}</small>
+                    <span v-if="item.startedAt" class="started-pill">Started</span>
                   </span>
                 </button>
                 <button

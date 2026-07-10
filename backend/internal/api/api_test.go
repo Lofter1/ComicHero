@@ -342,6 +342,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
+		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -922,6 +923,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
+		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -1035,6 +1037,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 		CREATE UNIQUE INDEX idx_series_metron_series_id
 		ON series(metron_series_id)
 		WHERE metron_series_id IS NOT NULL;
+		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -1120,6 +1123,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 		);
 		CREATE UNIQUE INDEX idx_series_name_year
 		ON series(name, series_year);
+		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,

@@ -62,11 +62,18 @@ const sortOptions = [
   { value: 'aliases', label: 'Aliases' },
   { value: 'progress', label: 'Progress' },
 ]
+const filterOptions = [
+  { value: 'all', label: 'All' },
+  { value: 'favorites', label: 'Favorites' },
+  { value: 'started', label: 'Started' },
+  { value: 'other', label: 'Other' },
+]
 
 const visibleCharacters = computed(() => props.characters)
 const visibleSections = computed(() => {
   if (props.filter === 'favorites') return sectionList('Favorites', visibleCharacters.value)
   if (props.filter === 'other') return sectionList('Other Characters', visibleCharacters.value)
+  if (props.filter === 'started') return sectionList('Started Characters', visibleCharacters.value)
   return sectionList('All Characters', visibleCharacters.value)
 })
 const hasFilters = computed(() => props.searchTerm || props.filter !== 'all')
@@ -91,6 +98,7 @@ function characterProgress(character) {
           :sort="sort"
           :direction="direction"
           :sort-options="sortOptions"
+          :filter-options="filterOptions"
           @update:search="$emit('update:search', $event)"
           @update:filter="$emit('update:filter', $event)"
           @update:sort="$emit('update:sort', $event)"
@@ -125,6 +133,7 @@ function characterProgress(character) {
                       character.aliases.join(', ')
                     }}</small>
                     <small v-else>No aliases saved</small>
+                    <span v-if="character.startedAt" class="started-pill">Started</span>
                   </span>
                 </button>
                 <button

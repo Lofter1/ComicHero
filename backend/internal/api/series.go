@@ -50,6 +50,21 @@ func RegisterSeriesRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		return updateSeriesFavorite(ctx, db, input.ID, input.Body.Favorite)
 	})
 
+	for _, operation := range []struct {
+		id      string
+		summary string
+		method  string
+		started bool
+	}{{"startSeries", "Start reading a series", http.MethodPost, true}, {"stopSeries", "Stop reading a series", http.MethodDelete, false}} {
+		op := operation
+		huma.Register(api, huma.Operation{OperationID: op.id, Tags: []string{tagSeries}, Summary: op.summary, Method: op.method, Path: "/series/{id}/start", Errors: errsWrite}, func(ctx context.Context, input *ComicSeriesInput) (*ComicSeriesDetailOutput, error) {
+			if err := setContentStarted(ctx, db, "user_series_starts", "series_id", "series", input.ID, op.started); err != nil {
+				return nil, err
+			}
+			return getSeries(ctx, db, input.ID)
+		})
+	}
+
 	huma.Register(api, huma.Operation{
 		OperationID:   "importSeriesFromMetron",
 		Tags:          []string{tagSeries, tagMetron},
@@ -80,7 +95,7 @@ func listSeries(ctx context.Context, db *sqlx.DB, input *ComicSeriesListInput) (
 	if err != nil {
 		return nil, err
 	}
-	countQuery, countArgs, err := seriesListCountQuery(input)
+	countQuery, countArgs, err := seriesListCountQuery(input, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +125,7 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 			s.name,
 			s.series_year,
 			s.favorite,
+			started.started_at AS started_at,
 			s.publisher,
 			s.volume,
 			s.year_end,
@@ -132,8 +148,9 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 		FROM series s
 		LEFT JOIN comics c ON c.series_id = s.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		LEFT JOIN user_series_starts started ON started.series_id = s.id AND started.user_id = ?
 	`)
-	query.args = append(query.args, userID)
+	query.args = append(query.args, userID, userID)
 
 	if err := applySeriesListFilters(query, input); err != nil {
 		return "", nil, err
@@ -145,8 +162,9 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 	return sql, args, nil
 }
 
-func seriesListCountQuery(input *ComicSeriesListInput) (string, []any, error) {
-	query := newSelectQuery(`SELECT s.id FROM series s`)
+func seriesListCountQuery(input *ComicSeriesListInput, userID int) (string, []any, error) {
+	query := newSelectQuery(`SELECT s.id FROM series s LEFT JOIN user_series_starts started ON started.series_id = s.id AND started.user_id = ?`)
+	query.args = append(query.args, userID)
 	if err := applySeriesListFilters(query, input); err != nil {
 		return "", nil, err
 	}
@@ -170,6 +188,13 @@ func applySeriesListFilters(query *selectQuery, input *ComicSeriesListInput) err
 		return err
 	} else if ok {
 		query.where("s.favorite = ?", favorite)
+	}
+	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
+		return err
+	} else if ok && started {
+		query.where("started.started_at IS NOT NULL")
+	} else if ok {
+		query.where("started.started_at IS NULL")
 	}
 	return nil
 }
@@ -232,6 +257,7 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 			s.name,
 			s.series_year,
 			s.favorite,
+			started.started_at AS started_at,
 			s.publisher,
 			s.volume,
 			s.year_end,
@@ -254,9 +280,10 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 		FROM series s
 		LEFT JOIN comics c ON c.series_id = s.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		LEFT JOIN user_series_starts started ON started.series_id = s.id AND started.user_id = ?
 		WHERE s.id = ?
 		GROUP BY s.id
-	`, userID, id); err != nil {
+	`, userID, userID, id); err != nil {
 		if err == sql.ErrNoRows {
 			return ComicSeries{}, huma.Error404NotFound("series not found")
 		}
