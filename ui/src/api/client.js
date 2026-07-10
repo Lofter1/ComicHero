@@ -327,6 +327,26 @@ export function stopMetronComicScan() {
   return send('/metron/scans/comics/stop', 'POST', {})
 }
 
+export function getMetronComicDiscovery() {
+  return request('/metron/discovery/comics')
+}
+
+export function metronComicDiscoveryEventsURL() {
+  return `${API_BASE}/metron/discovery/comics/events`
+}
+
+export function updateMetronComicDiscovery(payload) {
+  return send('/metron/discovery/comics', 'PUT', payload)
+}
+
+export function triggerMetronComicDiscovery() {
+  return send('/metron/discovery/comics/trigger', 'POST', {})
+}
+
+export function stopMetronComicDiscovery() {
+  return send('/metron/discovery/comics/stop', 'POST', {})
+}
+
 export function updateUserMetronPermissions(id, payload) {
   return send(`/users/${id}/metron-permissions`, 'PUT', payload)
 }

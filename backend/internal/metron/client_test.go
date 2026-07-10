@@ -202,3 +202,35 @@ func TestClientReturnsRateLimitErrorOnTooManyRequests(t *testing.T) {
 		t.Fatalf("unexpected rate limit error: %#v", rateLimitErr.RateLimit)
 	}
 }
+
+func TestSearchModifiedIssuesUsesFiltersAndAllPages(t *testing.T) {
+	var paths []string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.URL.String())
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Query().Get("page") == "2" {
+			w.Write([]byte(`{"count":2,"next":null,"results":[{"id":2,"series":{"name":"Saga"},"number":"2"}]}`))
+			return
+		}
+		w.Write([]byte(`{"count":2,"next":"` + server.URL + `/issue/?page=2","results":[{"id":1,"series":{"name":"Saga"},"number":"1"}]}`))
+	}))
+	defer server.Close()
+	client := New(Config{BaseURL: server.URL})
+	issues, err := client.SearchModifiedIssues(context.Background(), IssueModifiedSearchOptions{ModifiedAfter: "2026-07-01T12:00:00Z", PublisherName: "Image", SeriesName: "Saga"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 2 {
+		t.Fatalf("issues = %d; want 2", len(issues))
+	}
+	if len(paths) != 2 {
+		t.Fatalf("paths = %#v", paths)
+	}
+	if paths[0] != "/issue/?modified_gt=2026-07-01T12%3A00%3A00Z&publisher_name=Image&series_name=Saga" {
+		t.Fatalf("first path = %q", paths[0])
+	}
+	if paths[1] != "/issue/?page=2" {
+		t.Fatalf("second path = %q", paths[1])
+	}
+}
