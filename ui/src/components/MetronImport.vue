@@ -612,7 +612,11 @@ function formatDate(value) {
               :disabled="importingAllReadingLists || rowImporting('readingLists', 0)"
               @click="importAllReadingLists"
             >
-              {{ importingAllReadingLists || rowImporting('readingLists', 0) ? 'Pulling all...' : 'Pull all' }}
+              {{
+                importingAllReadingLists || rowImporting('readingLists', 0)
+                  ? 'Pulling all...'
+                  : 'Pull all'
+              }}
             </button>
           </div>
           <p v-if="searching" class="muted">Searching Metron reading lists...</p>

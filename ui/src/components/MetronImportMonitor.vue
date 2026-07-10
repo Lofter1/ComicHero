@@ -67,12 +67,12 @@ function jobTitle(job) {
     job.type === 'readingLists'
       ? 'Reading lists'
       : job.type === 'readingList'
-      ? 'Reading list'
-      : job.type === 'character'
-        ? 'Character'
-        : job.type === 'arc'
-          ? 'Arc'
-          : job.type
+        ? 'Reading list'
+        : job.type === 'character'
+          ? 'Character'
+          : job.type === 'arc'
+            ? 'Arc'
+            : job.type
   return job.displayName ? `${type} import for ${job.displayName}` : `${type} import`
 }
 
