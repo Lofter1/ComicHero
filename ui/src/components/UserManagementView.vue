@@ -169,7 +169,7 @@ function registrationModeLabel(mode) {
           </button>
         </div>
 
-        <p v-if="registrationMode === 'open'" class="warning-copy">
+        <p v-if="registrationMode === 'open'" class="access-note">
           Open registration gives verified new accounts full read/write access to the shared
           library.
         </p>
@@ -232,7 +232,7 @@ function registrationModeLabel(mode) {
             Public read-only
           </button>
         </div>
-        <p v-if="publicAccess" class="warning-copy">
+        <p v-if="publicAccess" class="access-note">
           Public visitors cannot edit data, but they can see your shared library.
         </p>
       </div>
