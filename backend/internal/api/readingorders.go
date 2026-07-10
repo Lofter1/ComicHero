@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -215,11 +214,11 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ro.name,
 			ro.description,
 			ro.image,
-			ro.favorite,
+			COALESCE(preference.favorite, 0) AS favorite,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
 			my_rating.rating AS my_rating,
-			started.started_at AS started_at,
+			preference.started_at AS started_at,
 			COALESCE(author.name, '') AS author_name,
 			CASE
 				WHEN ro.author_user_id = ?
@@ -242,8 +241,8 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 		) rating_summary ON rating_summary.reading_order_id = ro.id
 		LEFT JOIN reading_order_ratings my_rating
 			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
-		LEFT JOIN user_reading_orders started
-			ON started.reading_order_id = ro.id AND started.user_id = ?
+		LEFT JOIN user_reading_orders preference
+			ON preference.reading_order_id = ro.id AND preference.user_id = ?
 	`)
 	query.args = append(query.args, editUserID, editUserID, userID, userID, userID)
 
@@ -254,14 +253,14 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
 		return "", nil, err
 	} else if ok {
-		query.where("ro.favorite = ?", favorite)
+		query.where("COALESCE(preference.favorite, 0) = ?", favorite)
 	}
 	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
 		return "", nil, err
 	} else if ok && started {
-		query.where("started.started_at IS NOT NULL")
+		query.where("preference.started_at IS NOT NULL")
 	} else if ok {
-		query.where("started.started_at IS NULL")
+		query.where("preference.started_at IS NULL")
 	}
 	if input.ComicID > 0 {
 		query.where(`
@@ -380,11 +379,11 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ro.name,
 			ro.description,
 			ro.image,
-			ro.favorite,
+			COALESCE(preference.favorite, 0) AS favorite,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
 			my_rating.rating AS my_rating,
-			started.started_at AS started_at,
+			preference.started_at AS started_at,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
 			CASE
@@ -401,8 +400,8 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 		) rating_summary ON rating_summary.reading_order_id = ro.id
 		LEFT JOIN reading_order_ratings my_rating
 			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
-		LEFT JOIN user_reading_orders started
-			ON started.reading_order_id = ro.id AND started.user_id = ?
+		LEFT JOIN user_reading_orders preference
+			ON preference.reading_order_id = ro.id AND preference.user_id = ?
 		WHERE ro.id = ?
 	`, editUserID, editUserID, userID, userID, id); err != nil {
 		if err == sql.ErrNoRows {
@@ -414,49 +413,15 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 }
 
 func startReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
-	userID, err := currentUserID(ctx)
-	if err != nil {
+	if err := setContentStarted(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", id, true); err != nil {
 		return nil, err
-	}
-	var exists int
-	if err := db.GetContext(ctx, &exists, `SELECT COUNT(*) FROM reading_orders WHERE id = ?`, id); err != nil {
-		return nil, huma.Error500InternalServerError("failed to check reading order")
-	}
-	if exists == 0 {
-		return nil, huma.Error404NotFound("reading order not found")
-	}
-	if _, err := db.ExecContext(ctx, `
-		INSERT INTO user_reading_orders (reading_order_id, user_id, started_at)
-		VALUES (?, ?, ?)
-		ON CONFLICT(reading_order_id, user_id) DO NOTHING
-	`, id, userID, time.Now().UTC().Format(time.RFC3339)); err != nil {
-		return nil, huma.Error500InternalServerError("failed to start reading order")
 	}
 	return getReadingOrder(ctx, db, id)
 }
 
 func stopReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
-	userID, err := currentUserID(ctx)
-	if err != nil {
+	if err := setContentStarted(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", id, false); err != nil {
 		return nil, err
-	}
-	result, err := db.ExecContext(ctx, `
-		DELETE FROM user_reading_orders
-		WHERE reading_order_id = ? AND user_id = ?
-	`, id, userID)
-	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to stop reading order")
-	}
-	if deleted, err := result.RowsAffected(); err != nil {
-		return nil, huma.Error500InternalServerError("failed to check reading order state")
-	} else if deleted == 0 {
-		var exists int
-		if err := db.GetContext(ctx, &exists, `SELECT COUNT(*) FROM reading_orders WHERE id = ?`, id); err != nil {
-			return nil, huma.Error500InternalServerError("failed to check reading order")
-		}
-		if exists == 0 {
-			return nil, huma.Error404NotFound("reading order not found")
-		}
 	}
 	return getReadingOrder(ctx, db, id)
 }
@@ -543,7 +508,7 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 			ro.name,
 			ro.description,
 			ro.image,
-			ro.favorite,
+			COALESCE(preference.favorite, 0) AS favorite,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
 			CASE
@@ -555,10 +520,12 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 			roc.note AS comment
 		FROM reading_orders ro
 		LEFT JOIN users author ON author.id = ro.author_user_id
+		LEFT JOIN user_reading_orders preference
+			ON preference.reading_order_id = ro.id AND preference.user_id = ?
 		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
 		WHERE roc.parent_reading_order_id = ?
 		ORDER BY roc.position, ro.name
-	`, userID, userID, readingOrderID); err != nil {
+	`, userID, userID, userID, readingOrderID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
 	}
 
@@ -633,9 +600,9 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, pa
 		return nil, err
 	}
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, author_user_id)
-		VALUES (?, ?, ?, ?, ?)
-	`, payload.Name, payload.Description, image, payload.Favorite, userID)
+		INSERT INTO reading_orders (name, description, image, author_user_id)
+		VALUES (?, ?, ?, ?)
+	`, payload.Name, payload.Description, image, userID)
 	if err != nil {
 		_ = deleteUnusedCoverImage(ctx, db, covers, image)
 		return nil, huma.Error500InternalServerError("failed to create reading order")
@@ -644,6 +611,9 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, pa
 	id, err := result.LastInsertId()
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
+	}
+	if err := setContentFavorite(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", int(id), payload.Favorite); err != nil {
+		return nil, err
 	}
 
 	ro, err := getReadingOrderRow(ctx, db, int(id))
@@ -673,9 +643,9 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 
 	result, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
-		SET name = ?, description = ?, image = ?, favorite = ?
+		SET name = ?, description = ?, image = ?
 		WHERE id = ?
-	`, payload.Name, payload.Description, image, payload.Favorite, id)
+	`, payload.Name, payload.Description, image, id)
 	if err != nil {
 		if image != existing.Image {
 			_ = deleteUnusedCoverImage(ctx, db, covers, image)
@@ -683,6 +653,9 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 		return nil, huma.Error500InternalServerError("failed to update reading order")
 	}
 	if err := requireRowsAffected(result, "reading order not found"); err != nil {
+		return nil, err
+	}
+	if err := setContentFavorite(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", id, payload.Favorite); err != nil {
 		return nil, err
 	}
 

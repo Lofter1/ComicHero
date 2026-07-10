@@ -58,7 +58,7 @@ func RegisterSeriesRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 	}{{"startSeries", "Start reading a series", http.MethodPost, true}, {"stopSeries", "Stop reading a series", http.MethodDelete, false}} {
 		op := operation
 		huma.Register(api, huma.Operation{OperationID: op.id, Tags: []string{tagSeries}, Summary: op.summary, Method: op.method, Path: "/series/{id}/start", Errors: errsWrite}, func(ctx context.Context, input *ComicSeriesInput) (*ComicSeriesDetailOutput, error) {
-			if err := setContentStarted(ctx, db, "user_series_starts", "series_id", "series", input.ID, op.started); err != nil {
+			if err := setContentStarted(ctx, db, "user_series", "series_id", "series", input.ID, op.started); err != nil {
 				return nil, err
 			}
 			return getSeries(ctx, db, input.ID)
@@ -124,8 +124,8 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 			s.metron_series_id,
 			s.name,
 			s.series_year,
-			s.favorite,
-			started.started_at AS started_at,
+			COALESCE(preference.favorite, 0) AS favorite,
+			preference.started_at AS started_at,
 			s.publisher,
 			s.volume,
 			s.year_end,
@@ -148,7 +148,7 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 		FROM series s
 		LEFT JOIN comics c ON c.series_id = s.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
-		LEFT JOIN user_series_starts started ON started.series_id = s.id AND started.user_id = ?
+		LEFT JOIN user_series preference ON preference.series_id = s.id AND preference.user_id = ?
 	`)
 	query.args = append(query.args, userID, userID)
 
@@ -163,7 +163,7 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 }
 
 func seriesListCountQuery(input *ComicSeriesListInput, userID int) (string, []any, error) {
-	query := newSelectQuery(`SELECT s.id FROM series s LEFT JOIN user_series_starts started ON started.series_id = s.id AND started.user_id = ?`)
+	query := newSelectQuery(`SELECT s.id FROM series s LEFT JOIN user_series preference ON preference.series_id = s.id AND preference.user_id = ?`)
 	query.args = append(query.args, userID)
 	if err := applySeriesListFilters(query, input); err != nil {
 		return "", nil, err
@@ -187,14 +187,14 @@ func applySeriesListFilters(query *selectQuery, input *ComicSeriesListInput) err
 	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
 		return err
 	} else if ok {
-		query.where("s.favorite = ?", favorite)
+		query.where("COALESCE(preference.favorite, 0) = ?", favorite)
 	}
 	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
 		return err
 	} else if ok && started {
-		query.where("started.started_at IS NOT NULL")
+		query.where("preference.started_at IS NOT NULL")
 	} else if ok {
-		query.where("started.started_at IS NULL")
+		query.where("preference.started_at IS NULL")
 	}
 	return nil
 }
@@ -256,8 +256,8 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 			s.metron_series_id,
 			s.name,
 			s.series_year,
-			s.favorite,
-			started.started_at AS started_at,
+			COALESCE(preference.favorite, 0) AS favorite,
+			preference.started_at AS started_at,
 			s.publisher,
 			s.volume,
 			s.year_end,
@@ -280,7 +280,7 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 		FROM series s
 		LEFT JOIN comics c ON c.series_id = s.id
 		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
-		LEFT JOIN user_series_starts started ON started.series_id = s.id AND started.user_id = ?
+		LEFT JOIN user_series preference ON preference.series_id = s.id AND preference.user_id = ?
 		WHERE s.id = ?
 		GROUP BY s.id
 	`, userID, userID, id); err != nil {
@@ -297,15 +297,7 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 }
 
 func updateSeriesFavorite(ctx context.Context, db *sqlx.DB, id int, favorite bool) (*ComicSeriesDetailOutput, error) {
-	result, err := db.ExecContext(ctx, `
-		UPDATE series
-		SET favorite = ?
-		WHERE id = ?
-	`, favorite, id)
-	if err != nil {
-		return nil, huma.Error500InternalServerError("failed to update series favorite")
-	}
-	if err := requireRowsAffected(result, "series not found"); err != nil {
+	if err := setContentFavorite(ctx, db, "user_series", "series_id", "series", id, favorite); err != nil {
 		return nil, err
 	}
 	return getSeries(ctx, db, id)

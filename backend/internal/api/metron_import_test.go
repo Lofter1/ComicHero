@@ -41,7 +41,8 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (
@@ -105,7 +106,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_series_metron_series_id
 		ON series(metron_series_id)
 		WHERE metron_series_id IS NOT NULL;
-		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
+		CREATE TABLE user_series (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (series_id, user_id));
 
 		CREATE TABLE characters (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,7 +119,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_characters_metron_character_id
 		ON characters(metron_character_id)
 		WHERE metron_character_id IS NOT NULL;
-		CREATE TABLE user_character_starts (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (character_id, user_id));
+		CREATE TABLE user_characters (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (character_id, user_id));
 
 		CREATE TABLE character_aliases (
 			character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
@@ -143,7 +144,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_arcs_metron_arc_id
 		ON arcs(metron_arc_id)
 		WHERE metron_arc_id IS NOT NULL;
-		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
+		CREATE TABLE user_arcs (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (arc_id, user_id));
 
 		CREATE TABLE arc_comics (
 			arc_id INTEGER NOT NULL REFERENCES arcs(id) ON DELETE CASCADE,
@@ -396,6 +397,8 @@ func TestListCharactersReturnsFavoriteAndProgress(t *testing.T) {
 	if _, err := db.ExecContext(ctx, `
 		INSERT INTO characters (id, name, favorite) VALUES (1, 'Hero', 1);
 		INSERT INTO characters (id, name, favorite) VALUES (2, 'Villain', 0);
+		INSERT INTO user_characters (character_id, user_id, favorite)
+		VALUES (1, (SELECT id FROM users WHERE name = 'Default'), 1);
 		INSERT INTO comics (id, series, issue, publisher, read) VALUES (1, 'Series', 1, 'Publisher', 1);
 		INSERT INTO comics (id, series, issue, publisher, read) VALUES (2, 'Series', 2, 'Publisher', 0);
 		INSERT INTO user_comics (comic_id, user_id, read) SELECT id, (SELECT id FROM users WHERE name = 'Default'), read FROM comics WHERE id IN (1, 2);
@@ -511,7 +514,9 @@ func TestImportCharacterAppearancesFromMetron(t *testing.T) {
 
 	if _, err := db.ExecContext(ctx, `
 		INSERT INTO characters (id, name, description, image, favorite, metron_character_id)
-		VALUES (1, 'Old Hero', 'Old description', 'old-image', 1, 301)
+		VALUES (1, 'Old Hero', 'Old description', 'old-image', 1, 301);
+		INSERT INTO user_characters (character_id, user_id, favorite)
+		VALUES (1, (SELECT id FROM users WHERE name = 'Default'), 1)
 	`); err != nil {
 		t.Fatalf("insert character: %v", err)
 	}

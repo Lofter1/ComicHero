@@ -188,7 +188,8 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (
@@ -212,10 +213,11 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			description TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
-		CREATE TABLE user_arc_starts (
+		CREATE TABLE user_arcs (
 			arc_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (arc_id, user_id)
 		);
 		CREATE TABLE arc_comics (
@@ -224,10 +226,11 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			position INTEGER NOT NULL DEFAULT 0,
 			note TEXT NOT NULL DEFAULT ''
 		);
-		CREATE TABLE user_series_starts (
+		CREATE TABLE user_series (
 			series_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (series_id, user_id)
 		);
 		CREATE TABLE characters (
@@ -237,10 +240,11 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
-		CREATE TABLE user_character_starts (
+		CREATE TABLE user_characters (
 			character_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (character_id, user_id)
 		);
 		CREATE TABLE comic_characters (
@@ -261,16 +265,16 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			(2, 1, 1, '2026-07-02T12:30:00Z'),
 			(4, 2, 1, '2026-07-03T08:00:00Z');
 		INSERT INTO reading_orders (id, name, author_user_id) VALUES (1, 'Alpha order', 1), (2, 'Other order', 2);
-		INSERT INTO user_reading_orders (reading_order_id, user_id) VALUES (1, 1);
+		INSERT INTO user_reading_orders (reading_order_id, user_id, started_at) VALUES (1, 1, CURRENT_TIMESTAMP);
 		INSERT INTO reading_order_comics (reading_order_id, comic_id, position)
 		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
 		INSERT INTO arcs (id, name) VALUES (1, 'Alpha arc'), (2, 'Beta arc');
-		INSERT INTO user_arc_starts (arc_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:30:00Z');
+		INSERT INTO user_arcs (arc_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:30:00Z');
 		INSERT INTO arc_comics (arc_id, comic_id, position)
 		VALUES (1, 1, 1), (1, 2, 2), (2, 3, 1);
-		INSERT INTO user_series_starts (series_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:45:00Z');
+		INSERT INTO user_series (series_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:45:00Z');
 		INSERT INTO characters (id, name) VALUES (1, 'Hero'), (2, 'Sidekick'), (3, 'Cameo');
-		INSERT INTO user_character_starts (character_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:50:00Z');
+		INSERT INTO user_characters (character_id, user_id, started_at) VALUES (1, 1, '2026-07-01T09:50:00Z');
 		INSERT INTO comic_characters (comic_id, character_id)
 		VALUES (1, 1), (1, 2), (2, 2), (3, 3);
 	`); err != nil {
@@ -392,7 +396,8 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (
@@ -421,10 +426,11 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
-		CREATE TABLE user_arc_starts (
+		CREATE TABLE user_arcs (
 			arc_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (arc_id, user_id)
 		);
 		CREATE TABLE arc_comics (
@@ -441,10 +447,11 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
-		CREATE TABLE user_character_starts (
+		CREATE TABLE user_characters (
 			character_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (character_id, user_id)
 		);
 		CREATE TABLE comic_characters (
@@ -452,10 +459,11 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 			character_id INTEGER NOT NULL,
 			PRIMARY KEY (comic_id, character_id)
 		);
-		CREATE TABLE user_series_starts (
+		CREATE TABLE user_series (
 			series_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (series_id, user_id)
 		);
 
@@ -521,11 +529,11 @@ func TestDashboardNextComicUsesAscendingCoverDate(t *testing.T) {
 		);
 		CREATE TABLE arcs (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 		CREATE TABLE arc_comics (arc_id INTEGER NOT NULL, comic_id INTEGER NOT NULL, position INTEGER NOT NULL DEFAULT 0);
-		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL);
+		CREATE TABLE user_arcs (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0);
 		CREATE TABLE characters (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
 		CREATE TABLE comic_characters (comic_id INTEGER NOT NULL, character_id INTEGER NOT NULL);
-		CREATE TABLE user_character_starts (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL);
-		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL);
+		CREATE TABLE user_characters (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0);
+		CREATE TABLE user_series (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0);
 
 		INSERT INTO series (id, name, series_year) VALUES (1, 'Release order', 2020);
 		INSERT INTO comics (id, series_id, series, series_year, issue, cover_date) VALUES
@@ -534,11 +542,11 @@ func TestDashboardNextComicUsesAscendingCoverDate(t *testing.T) {
 			(3, 1, 'Release order', 2020, '3', '2026-02-01');
 		INSERT INTO arcs (id, name) VALUES (1, 'Arc');
 		INSERT INTO arc_comics (arc_id, comic_id, position) VALUES (1, 1, 1), (1, 2, 3), (1, 3, 2);
-		INSERT INTO user_arc_starts (arc_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO user_arcs (arc_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
 		INSERT INTO characters (id, name) VALUES (1, 'Hero');
 		INSERT INTO comic_characters (comic_id, character_id) VALUES (1, 1), (2, 1), (3, 1);
-		INSERT INTO user_character_starts (character_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
-		INSERT INTO user_series_starts (series_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO user_characters (character_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO user_series (series_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
@@ -592,7 +600,8 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (
@@ -603,7 +612,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
-		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
+		CREATE TABLE user_arcs (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (arc_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -999,7 +1008,8 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (
@@ -1184,7 +1194,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 			image TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0
 		);
-		CREATE TABLE user_arc_starts (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (arc_id, user_id));
+		CREATE TABLE user_arcs (arc_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (arc_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -1298,7 +1308,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 		CREATE UNIQUE INDEX idx_series_metron_series_id
 		ON series(metron_series_id)
 		WHERE metron_series_id IS NOT NULL;
-		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
+		CREATE TABLE user_series (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (series_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -1384,7 +1394,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 		);
 		CREATE UNIQUE INDEX idx_series_name_year
 		ON series(name, series_year);
-		CREATE TABLE user_series_starts (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (series_id, user_id));
+		CREATE TABLE user_series (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (series_id, user_id));
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -2548,7 +2558,8 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,
-			started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT,
+			favorite INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
 		CREATE TABLE reading_order_ratings (

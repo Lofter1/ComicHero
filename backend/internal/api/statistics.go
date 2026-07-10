@@ -147,7 +147,7 @@ func readUserStatistics(ctx context.Context, db *sqlx.DB, userID int) (UserStati
 	}
 	if err := db.GetContext(ctx, &stats.StartedArcs, `
 		SELECT COUNT(*)
-		FROM user_arc_starts
+		FROM user_arcs
 		WHERE user_id = ?
 	`, userID); err != nil {
 		return stats, err
@@ -166,14 +166,14 @@ func readUserStatistics(ctx context.Context, db *sqlx.DB, userID int) (UserStati
 	}
 	if err := db.GetContext(ctx, &stats.StartedSeries, `
 		SELECT COUNT(*)
-		FROM user_series_starts
+		FROM user_series
 		WHERE user_id = ?
 	`, userID); err != nil {
 		return stats, err
 	}
 	if err := db.GetContext(ctx, &stats.StartedCharacters, `
 		SELECT COUNT(*)
-		FROM user_character_starts
+		FROM user_characters
 		WHERE user_id = ?
 	`, userID); err != nil {
 		return stats, err
@@ -217,17 +217,17 @@ func achievementEarnedAt(ctx context.Context, db *sqlx.DB, userID int, stats Use
 	} else if value != "" {
 		earnedAt["reading-order-starter"] = value
 	}
-	if value, err := readStartedThresholdTimestamp(ctx, db, "user_arc_starts", userID, 1); err != nil {
+	if value, err := readStartedThresholdTimestamp(ctx, db, "user_arcs", userID, 1); err != nil {
 		return nil, err
 	} else if value != "" {
 		earnedAt["arc-starter"] = value
 	}
-	if value, err := readStartedThresholdTimestamp(ctx, db, "user_series_starts", userID, 1); err != nil {
+	if value, err := readStartedThresholdTimestamp(ctx, db, "user_series", userID, 1); err != nil {
 		return nil, err
 	} else if value != "" {
 		earnedAt["series-starter"] = value
 	}
-	if value, err := readStartedThresholdTimestamp(ctx, db, "user_character_starts", userID, 1); err != nil {
+	if value, err := readStartedThresholdTimestamp(ctx, db, "user_characters", userID, 1); err != nil {
 		return nil, err
 	} else if value != "" {
 		earnedAt["character-starter"] = value
