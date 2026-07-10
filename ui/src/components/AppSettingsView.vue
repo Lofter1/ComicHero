@@ -230,11 +230,21 @@ function registrationModeLabel(mode) {
         </label>
         <label class="metron-scan-field">
           <span>Publisher name filter</span>
-          <input v-model="discoveryDraft.publisherName" type="text" placeholder="All publishers" :disabled="!discoveryDraft.pullComics" />
+          <input
+            v-model="discoveryDraft.publisherName"
+            type="text"
+            placeholder="All publishers"
+            :disabled="!discoveryDraft.pullComics"
+          />
         </label>
         <label class="metron-scan-field">
           <span>Series name filter</span>
-          <input v-model="discoveryDraft.seriesName" type="text" placeholder="All series" :disabled="!discoveryDraft.pullComics" />
+          <input
+            v-model="discoveryDraft.seriesName"
+            type="text"
+            placeholder="All series"
+            :disabled="!discoveryDraft.pullComics"
+          />
         </label>
         <label v-if="discoveryDraft.schedule === 'monthly'" class="metron-scan-field">
           <span>Day of month</span>
@@ -280,7 +290,9 @@ function registrationModeLabel(mode) {
         <button
           type="button"
           class="primary-button"
-          :disabled="savingDiscovery || (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)"
+          :disabled="
+            savingDiscovery || (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)
+          "
           @click="saveDiscovery"
         >
           {{ savingDiscovery ? 'Saving...' : 'Save settings' }}
@@ -289,7 +301,10 @@ function registrationModeLabel(mode) {
           v-if="!metronComicDiscovery.running"
           type="button"
           class="secondary-action"
-          :disabled="!discoveryDraft.enabled || (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)"
+          :disabled="
+            !discoveryDraft.enabled ||
+            (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)
+          "
           @click="$emit('trigger-discovery')"
         >
           Pull now
