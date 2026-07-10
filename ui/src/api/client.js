@@ -283,6 +283,10 @@ export function getAccountStatistics() {
   return request('/account/statistics')
 }
 
+export function getDashboard() {
+  return request('/dashboard')
+}
+
 export function deleteAccount(payload) {
   return send('/account', 'DELETE', payload)
 }

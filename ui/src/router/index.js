@@ -16,7 +16,7 @@ const routeAccess = {
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: { name: 'readingOrders' } },
+    { path: '/', redirect: { name: 'dashboard' } },
     { path: '/readingOrders', redirect: { name: 'readingOrders' } },
     { path: '/readingOrders/new', redirect: { name: 'readingOrdersNew' } },
     {
@@ -40,6 +40,12 @@ export const router = createRouter({
       redirect: (to) => ({ name: 'readingOrderEdit', params: { id: to.params.id } }),
     },
     { path: '/achievements', redirect: { name: 'progress' } },
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'Dashboard', title: 'Dashboard', requiresUser: true },
+    },
     {
       path: '/reading-orders',
       name: 'readingOrders',
@@ -176,9 +182,9 @@ export function setRouteAccessContext(context) {
 export function routeAccessRedirect(to) {
   if (!routeAccess.loaded) return null
   if (to.meta.requiresMetron && (!routeAccess.canAccessMetron || routeAccess.readOnlyGuest)) {
-    return { name: 'readingOrders' }
+    return { name: 'dashboard' }
   }
-  if (to.meta.requiresAdmin && !routeAccess.isAdmin) return { name: 'readingOrders' }
+  if (to.meta.requiresAdmin && !routeAccess.isAdmin) return { name: 'dashboard' }
   if (to.meta.requiresUser && !routeAccess.hasUser) return { name: 'readingOrders' }
   return null
 }

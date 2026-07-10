@@ -94,6 +94,13 @@ function toggleAccountMenu() {
 
     <nav id="primary-navigation" class="nav-tabs" aria-label="Primary">
       <router-link
+        :to="{ name: 'dashboard' }"
+        :class="{ active: activeView === 'dashboard' }"
+        @click="closeMenus"
+      >
+        <span>Dashboard</span>
+      </router-link>
+      <router-link
         :to="{ name: 'readingOrders' }"
         :class="{ active: activeView === 'readingOrders' }"
         @click="closeMenus"

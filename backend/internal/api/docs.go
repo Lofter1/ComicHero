@@ -4,6 +4,7 @@ import "github.com/danielgtaylor/huma/v2"
 
 const (
 	tagComics        = "Comics"
+	tagDashboard     = "Dashboard"
 	tagSeries        = "Series"
 	tagCharacters    = "Characters"
 	tagArcs          = "Arcs"
@@ -28,6 +29,7 @@ func DocsConfig() huma.Config {
 	}
 	config.OpenAPI.Tags = []*huma.Tag{
 		{Name: tagComics, Description: "Track comic metadata, read status, and reading-order membership."},
+		{Name: tagDashboard, Description: "Summarize active reading queues and achievement highlights."},
 		{Name: tagSeries, Description: "Browse local comic series, their read progress, and favorite state."},
 		{Name: tagCharacters, Description: "Browse characters imported from Metron and their local comic appearances."},
 		{Name: tagArcs, Description: "Manage story arcs and their ordered comic entries."},
