@@ -23,6 +23,8 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  canDelete: { type: Boolean, default: false },
+  deleting: { type: Boolean, default: false },
   startSaving: { type: Boolean, default: false },
 })
 
@@ -34,6 +36,7 @@ defineEmits([
   'open-comic',
   'toggle-read',
   'toggle-skipped',
+  'delete',
 ])
 
 function seriesYearLabel(series) {
@@ -51,6 +54,15 @@ function seriesPublisherLabel(series) {
     <header class="detail-nav sticky-toolbar">
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
+        <button
+          v-if="selectedSeries && canDelete"
+          class="danger-button"
+          type="button"
+          :disabled="deleting"
+          @click="$emit('delete')"
+        >
+          {{ deleting ? 'Deleting...' : 'Delete series' }}
+        </button>
         <button
           v-if="selectedSeries && !readOnly"
           type="button"

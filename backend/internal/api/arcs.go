@@ -79,7 +79,7 @@ func RegisterArcRoutes(api huma.API, db *sqlx.DB) {
 		OperationID:   "deleteArc",
 		Tags:          []string{tagArcs},
 		Summary:       "Delete an arc",
-		Description:   "Deletes an arc by ID and clears its comic-entry links.",
+		Description:   "Deletes an arc by ID and clears its comic-entry and user-preference links. Admin access is required.",
 		Method:        http.MethodDelete,
 		Path:          "/arcs/{id}",
 		DefaultStatus: 204,
@@ -288,6 +288,9 @@ func updateArc(ctx context.Context, db *sqlx.DB, id int, payload ArcPayload) (*A
 }
 
 func deleteArc(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
+	if _, err := requireAdminUser(ctx, db); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `
 		DELETE FROM arcs WHERE id = ?
 	`, id)

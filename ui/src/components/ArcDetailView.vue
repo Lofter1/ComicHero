@@ -24,6 +24,8 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  canDelete: { type: Boolean, default: false },
+  deleting: { type: Boolean, default: false },
   startSaving: { type: Boolean, default: false },
 })
 
@@ -34,6 +36,7 @@ defineEmits([
   'open-comic',
   'toggle-read',
   'toggle-skipped',
+  'delete',
 ])
 </script>
 
@@ -42,6 +45,15 @@ defineEmits([
     <header class="detail-nav sticky-toolbar">
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
+        <button
+          v-if="selectedArc && canDelete"
+          class="danger-button"
+          type="button"
+          :disabled="deleting"
+          @click="$emit('delete')"
+        >
+          {{ deleting ? 'Deleting...' : 'Delete arc' }}
+        </button>
         <button
           v-if="selectedArc && !readOnly"
           type="button"

@@ -79,7 +79,7 @@ func RegisterComicRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID:   "deleteComic",
 		Tags:          []string{tagComics},
 		Summary:       "Delete a comic",
-		Description:   "Deletes a comic by ID and removes it from reading orders.",
+		Description:   "Deletes a comic by ID and removes its reading-order, arc, character, and user-progress links. Admin access is required.",
 		Method:        http.MethodDelete,
 		Path:          "/comics/{id}",
 		DefaultStatus: 204,
@@ -508,6 +508,9 @@ func boolInt(value bool) int {
 }
 
 func deleteComic(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
+	if _, err := requireAdminUser(ctx, db); err != nil {
+		return nil, err
+	}
 	result, err := db.ExecContext(ctx, `DELETE FROM comics WHERE id = ?`, id)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to delete comic")
