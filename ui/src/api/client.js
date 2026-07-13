@@ -124,6 +124,10 @@ export function assetURL(path) {
   return `${base.origin}${path}`
 }
 
+export function getSystemInfo() {
+  return request('/system')
+}
+
 function pagedListResult(data, pagination) {
   const items = Array.isArray(data) ? data : []
   return {
