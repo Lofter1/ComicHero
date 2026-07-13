@@ -1,6 +1,6 @@
 # ComicHero
 
-ComicHero is a self-hosted comic library and reading-order tracker. Build curated reading orders, follow your progress across series and story arcs, and enrich your library with metadata from [Metron](https://metron.cloud/).
+ComicHero is a self-hosted reading-order tracker for comics. Build curated reading orders, follow your progress across series and story arcs, and enrich tracked comics with metadata from [Metron](https://metron.cloud/).
 
 > [!IMPORTANT]
 > Use ComicHero 1.5.1 or later. Earlier releases can send malformed conditional requests to Metron, which may cause accounts to be incorrectly flagged as duplicates and blocked.
@@ -22,10 +22,10 @@ Join the Discord to ask questions, share feedback and reading orders, and follow
 - Run scheduled Metron discovery jobs for new comics and reading lists.
 - Fill incomplete comic metadata automatically while respecting configurable call limits and retry cooldowns.
 - Choose single-user or multi-user setup, invite users, or enable open registration.
-- Optionally expose the shared library to read-only visitors.
+- Optionally give visitors read-only access to shared ComicHero content.
 - Run as a single container or standalone binary backed by SQLite.
 
-ComicHero uses a shared library: comics and other catalog data are common to the instance, while reading state, favorites, ratings, and progress are associated with individual users.
+ComicHero shares comics, reading orders, arcs, series, and characters across the instance, while reading state, favorites, ratings, and progress are associated with individual users.
 
 ## Quick start with Docker
 
@@ -121,7 +121,7 @@ The first-run wizard offers two modes:
 
 Multi-user registration defaults to `invite_only`, where an administrator generates single-use invitation links. Administrators can instead enable `open` registration; new users then need to verify their email address before receiving a session. Password-reset links expire after 30 minutes.
 
-Public read-only access can be enabled separately. Because the catalog and reading orders are shared across the instance, only enable open registration or public access when that exposure is intentional.
+Public read-only access can be enabled separately. Because comics, reading orders, and related content are shared across the instance, only enable open registration or public access when that exposure is intentional.
 
 ## Metron integration
 
@@ -137,7 +137,7 @@ Imports and scans are rate-limited upstream. Use your own Metron account, choose
 
 ## Data, backups, and upgrades
 
-The database contains the catalog, accounts, reading progress, settings, and job state. Cover images are cached separately. In the standard container deployment, both live under `/data` in the `comichero-data` volume.
+The database contains comic metadata, reading orders, accounts, reading progress, settings, and job state. Cover images are cached separately. In the standard container deployment, both live under `/data` in the `comichero-data` volume.
 
 Back up both the SQLite database and cover directory. For a simple consistent backup, stop ComicHero before copying its data volume. Never commit the database, `.env`, or cached covers to Git.
 

@@ -262,7 +262,7 @@ function toggleAccountMenu() {
       </div>
       <div v-else-if="readOnlyGuest" class="public-session-card">
         <strong>Public access</strong>
-        <span>Read-only library</span>
+        <span>Read-only access</span>
         <button type="button" class="secondary-action" @click="login">Log in</button>
       </div>
     </div>
