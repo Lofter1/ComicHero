@@ -140,7 +140,7 @@ func dashboardArcs(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardIte
 			a.name,
 			started.started_at,
 			CASE
-				WHEN totals.total_count = 0 THEN 0.0
+				WHEN COALESCE(totals.total_count, 0) = 0 THEN 0.0
 				ELSE CAST(totals.read_count AS REAL) / totals.total_count
 			END AS progress,
 			COALESCE(c.id, 0) AS comic_id,
@@ -247,7 +247,7 @@ func dashboardSeries(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardI
 			CASE WHEN s.series_year > 0 THEN s.name || ' (' || s.series_year || ')' ELSE s.name END AS name,
 			started.started_at,
 			CASE
-				WHEN totals.total_count = 0 THEN 0.0
+				WHEN COALESCE(totals.total_count, 0) = 0 THEN 0.0
 				ELSE CAST(totals.read_count AS REAL) / totals.total_count
 			END AS progress,
 			COALESCE(c.id, 0) AS comic_id,
