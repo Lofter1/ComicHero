@@ -2539,8 +2539,9 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 					email_verified_at TEXT NOT NULL DEFAULT '2026-01-01T00:00:00Z',
 					password_hash TEXT NOT NULL DEFAULT '',
 				is_default INTEGER NOT NULL DEFAULT 0,
-				is_admin INTEGER NOT NULL DEFAULT 0,
-			created_at TEXT NOT NULL DEFAULT ''
+			is_admin INTEGER NOT NULL DEFAULT 0,
+		created_at TEXT NOT NULL DEFAULT '',
+		last_login_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE TABLE app_settings (
 			key TEXT PRIMARY KEY,

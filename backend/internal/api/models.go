@@ -38,6 +38,7 @@ type User struct {
 	EmailVerifiedAt string `json:"emailVerifiedAt" db:"email_verified_at" doc:"When the user's email address was verified." example:"2026-07-10T10:30:00Z"`
 	IsAdmin         bool   `json:"isAdmin"         db:"is_admin"          doc:"Whether the user can manage user permissions." example:"false"`
 	CreatedAt       string `json:"createdAt"       db:"created_at"        doc:"When the user account was created." example:"2026-07-10T10:00:00Z"`
+	LastLoginAt     string `json:"lastLoginAt"     db:"last_login_at"     doc:"When the user most recently logged in successfully." example:"2026-07-10T11:00:00Z"`
 }
 
 type UserMetronPermissions struct {

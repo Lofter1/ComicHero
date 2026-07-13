@@ -367,6 +367,10 @@ export function deleteUser(id) {
   return request(`/users/${id}`, { method: 'DELETE' })
 }
 
+export function listAuditEvents(params = {}) {
+  return request(`/audit-events${queryString(params)}`)
+}
+
 export function deleteComic(id) {
   return request(`/comics/${id}`, { method: 'DELETE' })
 }

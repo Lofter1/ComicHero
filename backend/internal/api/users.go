@@ -49,6 +49,13 @@ type contextPublicAccessKey struct{}
 
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
+		OperationID: "listAuditEvents", Tags: []string{tagUsers}, Summary: "List user audit events",
+		Description: "Lists successful state-changing API requests, newest first. Admin users only.",
+		Method:      http.MethodGet, Path: "/audit-events", Errors: []int{401, 403, 500},
+	}, func(ctx context.Context, input *AuditEventListInput) (*AuditEventListOutput, error) {
+		return listAuditEvents(ctx, db, input)
+	})
+	huma.Register(api, huma.Operation{
 		OperationID: "getUserStatus",
 		Tags:        []string{tagUsers},
 		Summary:     "Get user setup and session status",
@@ -646,6 +653,9 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 	if err != nil {
 		return nil, err
 	}
+	if _, err := db.ExecContext(ctx, `UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`, row.ID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record login")
+	}
 	return userStatusForUser(ctx, db, mode, row.ID, cookie)
 }
 
@@ -989,7 +999,7 @@ func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
 func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 	var user User
 	if err := db.GetContext(ctx, &user, `
-		SELECT id, name, email, email_verified_at <> '' AS email_verified, is_admin FROM users WHERE id = ?
+		SELECT id, name, email, email_verified_at <> '' AS email_verified, is_admin, created_at FROM users WHERE id = ?
 	`, id); err != nil {
 		if err == sql.ErrNoRows {
 			return User{}, huma.Error401Unauthorized("login required")
