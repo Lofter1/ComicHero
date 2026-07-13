@@ -8,15 +8,14 @@ import (
 )
 
 type SystemInfo struct {
-	Version     string `json:"version" doc:"Version of the running ComicHero build." example:"v1.5.1"`
-	ShowVersion bool   `json:"showVersion" doc:"Whether clients should display the running version."`
+	Version string `json:"version" doc:"Version of the running ComicHero build." example:"v1.5.1"`
 }
 
 type SystemInfoOutput struct {
 	Body SystemInfo
 }
 
-func RegisterSystemRoutes(api huma.API, version string, showVersion bool) {
+func RegisterSystemRoutes(api huma.API, version string) {
 	huma.Register(api, huma.Operation{
 		OperationID: "getSystemInfo",
 		Tags:        []string{tagSystem},
@@ -25,9 +24,6 @@ func RegisterSystemRoutes(api huma.API, version string, showVersion bool) {
 		Method:      http.MethodGet,
 		Path:        "/system",
 	}, func(context.Context, *struct{}) (*SystemInfoOutput, error) {
-		return &SystemInfoOutput{Body: SystemInfo{
-			Version:     version,
-			ShowVersion: showVersion,
-		}}, nil
+		return &SystemInfoOutput{Body: SystemInfo{Version: version}}, nil
 	})
 }

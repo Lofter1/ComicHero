@@ -56,7 +56,7 @@ func main() {
 	})
 
 	humaAPI := humachi.New(apiRouter, api.DocsConfig())
-	api.RegisterSystemRoutes(humaAPI, version, envBool("SHOW_VERSION", true))
+	api.RegisterSystemRoutes(humaAPI, version)
 	covers := api.NewCoverCache(env("COVER_CACHE_DIR", "./public/covers"), "/covers")
 	if err := covers.EnsureDir(); err != nil {
 		log.Fatalf("failed to prepare cover cache: %v", err)

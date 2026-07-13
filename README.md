@@ -100,7 +100,6 @@ ComicHero reads the process environment and `.env` files in the current or paren
 | `COVER_CACHE_DIR` | `./public/covers` | Storage directory for downloaded and optimized cover images. |
 | `ACCESS_LOG_PATH` | `./data/access.log` | Append-only JSON Lines HTTP access log. Set it explicitly to an empty value to disable file logging. |
 | `STATIC_DIR` | embedded frontend | Optional directory from which to serve frontend files instead of the embedded build. |
-| `SHOW_VERSION` | `true` | Show the running ComicHero version below the sidebar branding. Set to `false` to hide it. |
 | `METRON_BASE_URL` | `https://metron.cloud/api` | Metron API base URL. |
 | `METRON_USERNAME` | empty | Metron username used for search, import, and maintenance jobs. |
 | `METRON_PASSWORD` | empty | Metron password. |

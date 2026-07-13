@@ -13,7 +13,7 @@ import (
 func TestSystemInfo(t *testing.T) {
 	router := chi.NewRouter()
 	api := humachi.New(router, DocsConfig())
-	RegisterSystemRoutes(api, "v1.6.0", false)
+	RegisterSystemRoutes(api, "v1.6.0")
 
 	request := httptest.NewRequest(http.MethodGet, "/system", nil)
 	response := httptest.NewRecorder()
@@ -26,7 +26,7 @@ func TestSystemInfo(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if body.Version != "v1.6.0" || body.ShowVersion {
-		t.Fatalf("body = %#v; want version v1.6.0 with display disabled", body)
+	if body.Version != "v1.6.0" {
+		t.Fatalf("body = %#v; want version v1.6.0", body)
 	}
 }

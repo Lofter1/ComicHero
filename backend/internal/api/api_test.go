@@ -1474,7 +1474,7 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	RegisterArcRoutes(api, nil)
 	RegisterDashboardRoutes(api, nil)
 	RegisterStatisticsRoutes(api, nil)
-	RegisterSystemRoutes(api, "test", true)
+	RegisterSystemRoutes(api, "test")
 	RegisterMetronRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 
 	openAPI := api.OpenAPI()
