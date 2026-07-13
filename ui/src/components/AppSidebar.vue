@@ -38,6 +38,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  version: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['set-theme', 'login', 'logout'])
@@ -75,7 +79,10 @@ function toggleAccountMenu() {
 <template>
   <aside class="sidebar" :class="{ 'menu-open': menuOpen }">
     <div class="sidebar-header">
-      <h1>ComicHero</h1>
+      <div class="sidebar-branding">
+        <h1>ComicHero</h1>
+        <span v-if="version" class="version-tag">{{ version }}</span>
+      </div>
       <button
         type="button"
         class="mobile-menu-button"

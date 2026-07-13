@@ -1474,14 +1474,15 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	RegisterArcRoutes(api, nil)
 	RegisterDashboardRoutes(api, nil)
 	RegisterStatisticsRoutes(api, nil)
+	RegisterSystemRoutes(api, "test")
 	RegisterMetronRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 
 	openAPI := api.OpenAPI()
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 9 {
-		t.Fatalf("len(tags) = %d; want 9", len(openAPI.Tags))
+	if len(openAPI.Tags) != 10 {
+		t.Fatalf("len(tags) = %d; want 10", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get

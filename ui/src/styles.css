@@ -401,6 +401,24 @@ button:disabled {
   gap: 12px;
 }
 
+.sidebar-branding {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.version-tag {
+  display: inline-flex;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .mobile-menu-button {
   display: none;
   place-items: center;

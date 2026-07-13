@@ -56,6 +56,7 @@ func main() {
 	})
 
 	humaAPI := humachi.New(apiRouter, api.DocsConfig())
+	api.RegisterSystemRoutes(humaAPI, version)
 	covers := api.NewCoverCache(env("COVER_CACHE_DIR", "./public/covers"), "/covers")
 	if err := covers.EnsureDir(); err != nil {
 		log.Fatalf("failed to prepare cover cache: %v", err)
@@ -171,6 +172,9 @@ func loadEnvFiles(paths ...string) {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			setEnvLine(scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("failed to read env file %q: %v", path, err)
 		}
 		if err := file.Close(); err != nil {
 			log.Printf("failed to close env file %q: %v", path, err)

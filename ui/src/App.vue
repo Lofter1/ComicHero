@@ -37,6 +37,7 @@ import {
   getDashboard,
   getMetronComicScan,
   getMetronComicDiscovery,
+  getSystemInfo,
   getUserStatus,
   listUsers,
   listAuditEvents,
@@ -72,6 +73,7 @@ const error = ref('')
 const authLoading = ref(true)
 const authSaving = ref(false)
 const userStatus = ref(null)
+const systemInfo = ref(null)
 const authMode = ref('login')
 const loginRequested = ref(false)
 const setupForm = ref({ mode: 'single', name: '', email: '', password: '' })
@@ -1352,7 +1354,8 @@ onMounted(async () => {
     themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
     themeMediaQuery?.addEventListener('change', handleSystemThemeChange)
   }
-  await loadUserStatus()
+  const [, info] = await Promise.all([loadUserStatus(), getSystemInfo().catch(() => null)])
+  systemInfo.value = info
   if (route.name === 'verifyEmail') {
     await verifyEmailFromRouteToken()
   } else if (route.name === 'resetPassword') {
@@ -1744,6 +1747,7 @@ onUnmounted(() => {
       :read-only-guest="isReadOnlyGuest"
       :show-metron="canAccessMetronArea && !isReadOnlyGuest"
       :auth-saving="authSaving"
+      :version="systemInfo?.version || ''"
       @set-theme="setThemePreference"
       @login="requestLogin"
       @logout="signOut"
