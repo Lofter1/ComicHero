@@ -163,17 +163,6 @@ func env(key, fallback string) string {
 	return value
 }
 
-func envBool(key string, fallback bool) bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
-	case "1", "true", "yes", "on":
-		return true
-	case "0", "false", "no", "off":
-		return false
-	default:
-		return fallback
-	}
-}
-
 func loadEnvFiles(paths ...string) {
 	for _, path := range paths {
 		file, err := os.Open(path)
@@ -183,6 +172,9 @@ func loadEnvFiles(paths ...string) {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			setEnvLine(scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("failed to read env file %q: %v", path, err)
 		}
 		if err := file.Close(); err != nil {
 			log.Printf("failed to close env file %q: %v", path, err)
