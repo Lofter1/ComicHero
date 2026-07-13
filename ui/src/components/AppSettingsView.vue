@@ -57,6 +57,7 @@ function save() {
     startTime: draft.startTime || '02:00',
     dailyCallLimit: Number(draft.dailyCallLimit) || 1,
     minIntervalSeconds: Math.max(0, Number(draft.minIntervalSeconds) || 0),
+    recheckCooldownDays: Math.max(0, Number(draft.recheckCooldownDays) || 0),
   })
 }
 
@@ -351,7 +352,17 @@ function registrationModeLabel(mode) {
           <span>Minimum Metron interval (seconds)</span>
           <input v-model.number="draft.minIntervalSeconds" min="0" step="1" type="number" />
         </label>
+        <label class="metron-scan-field">
+          <span>Re-check cooldown (days)</span>
+          <input v-model.number="draft.recheckCooldownDays" min="0" step="1" type="number" />
+        </label>
       </div>
+      <p class="muted metron-scan-hint">
+        Some issues have no publisher, cover date, or synopsis on Metron itself, so they can stay
+        "incomplete" no matter how often they're checked. The cooldown skips a comic for this many
+        days after it was last checked, so those rows stop using up the whole daily call budget. Set
+        to 0 to recheck everything every run.
+      </p>
 
       <fieldset v-if="draft.schedule === 'weekly'" class="permission-scopes">
         <legend>Run on</legend>
@@ -372,12 +383,16 @@ function registrationModeLabel(mode) {
         </div>
         <div v-if="metronComicScan.running">
           <strong>{{ metronComicScan.updated }}</strong>
-          <span>updated from {{ metronComicScan.scanned }} scanned</span>
+          <span
+            >updated ({{ metronComicScan.failed }} failed) from
+            {{ metronComicScan.scanned }} scanned</span
+          >
         </div>
         <p v-else>
           Quota resets daily · {{ metronComicScan.usageDate }}
           <template v-if="metronComicScan.stopReason">
-            · Last scan: {{ metronComicScan.stopReason }}
+            · Last scan: {{ metronComicScan.stopReason }} ({{ metronComicScan.updated }} updated,
+            {{ metronComicScan.failed }} failed)
           </template>
         </p>
       </div>
