@@ -5,6 +5,9 @@ ComicHero is a self-hosted reading-order tracker for comics. It helps you build 
 > [!IMPORTANT]
 > Update to ComicHero 1.5.1 or later. Earlier versions can send broken conditional requests to Metron that may cause accounts to be falsely flagged as duplicates and blocked.
 
+> [!INFO]
+> Join the [Discord](https://discord.gg/GebUwAVP)
+
 ## Features
 
 - Build ordered reading lists with per-entry notes.
