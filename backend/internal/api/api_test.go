@@ -537,29 +537,36 @@ func TestDashboardNextComicUsesAscendingCoverDate(t *testing.T) {
 		CREATE TABLE user_characters (character_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0);
 		CREATE TABLE user_series (series_id INTEGER NOT NULL, user_id INTEGER NOT NULL, started_at TEXT, favorite INTEGER NOT NULL DEFAULT 0);
 
-		INSERT INTO series (id, name, series_year) VALUES (1, 'Release order', 2020);
+		INSERT INTO series (id, name, series_year) VALUES
+			(1, 'Release order', 2020),
+			(2, 'Empty series', 2020);
 		INSERT INTO comics (id, series_id, series, series_year, issue, cover_date) VALUES
 			(1, 1, 'Release order', 2020, '1', '2026-03-01'),
 			(2, 1, 'Release order', 2020, '2', '2026-01-01'),
 			(3, 1, 'Release order', 2020, '3', '2026-02-01');
-		INSERT INTO arcs (id, name) VALUES (1, 'Arc');
+		INSERT INTO arcs (id, name) VALUES (1, 'Arc'), (2, 'Empty arc');
 		INSERT INTO arc_comics (arc_id, comic_id, position) VALUES (1, 1, 1), (1, 2, 3), (1, 3, 2);
-		INSERT INTO user_arcs (arc_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO user_arcs (arc_id, user_id, started_at) VALUES
+			(1, 1, '2026-01-01'),
+			(2, 1, '2026-01-02');
 		INSERT INTO characters (id, name) VALUES (1, 'Hero');
 		INSERT INTO comic_characters (comic_id, character_id) VALUES (1, 1), (2, 1), (3, 1);
 		INSERT INTO user_characters (character_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
-		INSERT INTO user_series (series_id, user_id, started_at) VALUES (1, 1, '2026-01-01');
+		INSERT INTO user_series (series_id, user_id, started_at) VALUES
+			(1, 1, '2026-01-01'),
+			(2, 1, '2026-01-02');
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
 	}
 
 	loaders := []struct {
-		name string
-		load func(context.Context, *sqlx.DB, int) ([]DashboardItem, error)
+		name             string
+		load             func(context.Context, *sqlx.DB, int) ([]DashboardItem, error)
+		expectsEmptyItem bool
 	}{
-		{name: "arc", load: dashboardArcs},
+		{name: "arc", load: dashboardArcs, expectsEmptyItem: true},
 		{name: "character", load: dashboardCharacters},
-		{name: "series", load: dashboardSeries},
+		{name: "series", load: dashboardSeries, expectsEmptyItem: true},
 	}
 	for _, loader := range loaders {
 		t.Run(loader.name, func(t *testing.T) {
@@ -567,11 +574,19 @@ func TestDashboardNextComicUsesAscendingCoverDate(t *testing.T) {
 			if err != nil {
 				t.Fatalf("load dashboard items: %v", err)
 			}
-			if len(items) != 1 || items[0].NextComic == nil {
-				t.Fatalf("items = %#v; want one item with a next comic", items)
+			if len(items) == 0 || items[0].NextComic == nil {
+				t.Fatalf("items = %#v; want an item with a next comic", items)
 			}
 			if got := items[0].NextComic.ID; got != 2 {
 				t.Fatalf("next comic = %d; want earliest release-date comic 2", got)
+			}
+			if loader.expectsEmptyItem {
+				if len(items) != 2 {
+					t.Fatalf("items = %#v; want populated and empty started items", items)
+				}
+				if items[1].NextComic != nil || items[1].Progress != 0 {
+					t.Fatalf("empty item = %#v; want no next comic and zero progress", items[1])
+				}
 			}
 		})
 	}
