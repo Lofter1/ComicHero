@@ -147,6 +147,7 @@ The backend reads environment variables from the process environment and, when p
 | `DB_PATH`         | `./data/comicorder.db`     | SQLite database path.                               |
 | `STATIC_DIR`      | _(embedded)_                | Optional: serve the frontend from this directory instead of the copy embedded in the binary. Useful for local frontend development. |
 | `COVER_CACHE_DIR` | `./public/covers`          | Directory where downloaded cover images are cached. |
+| `ACCESS_LOG_PATH` | `./data/access.log`         | Append-only JSON Lines HTTP access log. Set to an empty value to disable file logging. |
 | `COOKIE_SECURE`   | auto-detected              | Sets the `Secure` flag on session cookies. Auto-detected from the request (direct TLS, or `X-Forwarded-Proto: https` from a reverse proxy) unless explicitly set to `true` or `false`. |
 | `APP_BASE_URL`    | `http://localhost:8080`    | Public base URL used in account email links. Set this to your HTTPS origin for public instances. |
 | `SMTP_HOST`       | empty                      | SMTP host for sending account emails such as verification and password reset. If unset, links are logged instead of sent. |
@@ -176,6 +177,12 @@ When the backend is running, Huma exposes interactive API documentation at:
 ```text
 http://localhost:8080/api/docs
 ```
+
+## Access logs
+
+ComicHero writes every HTTP request to `ACCESS_LOG_PATH` as one JSON object per line. Entries include the timestamp, method, path (without its query string), response status, duration, response size, remote address, forwarded address, and user agent. This format can be consumed by log-analysis tools and fail2ban filters. Query strings are omitted to avoid recording invite or password-reset tokens.
+
+The standard container stores the log at `/data/access.log`, alongside other persistent application data. ComicHero appends to the file but does not rotate it; configure the host's log rotation tooling according to your retention requirements.
 
 ## Roadmap
 

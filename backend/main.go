@@ -36,6 +36,16 @@ func main() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	accessLogPath := "./data/access.log"
+	if configuredPath, configured := os.LookupEnv("ACCESS_LOG_PATH"); configured {
+		accessLogPath = configuredPath
+	}
+	accessLog, err := newAccessLogger(accessLogPath)
+	if err != nil {
+		log.Fatalf("failed to open access log: %v", err)
+	}
+	defer accessLog.Close()
+	router.Use(accessLog.Middleware)
 
 	apiRouter := chi.NewRouter()
 	apiRouter.Use(api.UserMiddleware(database))
