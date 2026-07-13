@@ -31,13 +31,14 @@ var weekdayNames = map[string]time.Weekday{
 }
 
 type MetronComicScanSettings struct {
-	Enabled            bool     `json:"enabled" doc:"Whether automatic and manual incomplete-data scans are enabled."`
-	ScanComics         bool     `json:"scanComics" doc:"Whether the comics table is included in scans."`
-	Schedule           string   `json:"schedule" enum:"daily,weekly" doc:"Run every day or only on selected weekdays."`
-	Weekdays           []string `json:"weekdays,omitempty" doc:"Lowercase weekday names used by a weekly schedule."`
-	StartTime          string   `json:"startTime" doc:"Server-local scan start time in HH:MM format." example:"02:00"`
-	DailyCallLimit     int      `json:"dailyCallLimit" minimum:"1" doc:"Maximum Metron issue calls shared by all scans during one server-local calendar day." example:"100"`
-	MinIntervalSeconds int      `json:"minIntervalSeconds" minimum:"0" doc:"Minimum seconds between Metron issue calls made by this incomplete-comic scan." example:"20"`
+	Enabled             bool     `json:"enabled" doc:"Whether automatic and manual incomplete-data scans are enabled."`
+	ScanComics          bool     `json:"scanComics" doc:"Whether the comics table is included in scans."`
+	Schedule            string   `json:"schedule" enum:"daily,weekly" doc:"Run every day or only on selected weekdays."`
+	Weekdays            []string `json:"weekdays,omitempty" doc:"Lowercase weekday names used by a weekly schedule."`
+	StartTime           string   `json:"startTime" doc:"Server-local scan start time in HH:MM format." example:"02:00"`
+	DailyCallLimit      int      `json:"dailyCallLimit" minimum:"1" doc:"Maximum Metron issue calls shared by all scans during one server-local calendar day." example:"100"`
+	MinIntervalSeconds  int      `json:"minIntervalSeconds" minimum:"0" doc:"Minimum seconds between Metron issue calls made by this incomplete-comic scan." example:"20"`
+	RecheckCooldownDays int      `json:"recheckCooldownDays" minimum:"0" doc:"Days to wait before re-checking a comic that was already synced but is still missing a field Metron may not provide (e.g. no synopsis on record). 0 disables the cooldown and rechecks every run." example:"30"`
 }
 
 type MetronComicScanStatus struct {
@@ -95,7 +96,7 @@ func (s *metronComicScanner) Stop() {
 }
 
 func defaultMetronComicScanSettings() MetronComicScanSettings {
-	return MetronComicScanSettings{ScanComics: true, Schedule: "daily", StartTime: "02:00", DailyCallLimit: 100, MinIntervalSeconds: 20}
+	return MetronComicScanSettings{ScanComics: true, Schedule: "daily", StartTime: "02:00", DailyCallLimit: 100, MinIntervalSeconds: 20, RecheckCooldownDays: 30}
 }
 
 func loadMetronComicScanSettings(ctx context.Context, db *sqlx.DB) (MetronComicScanSettings, error) {
@@ -126,6 +127,9 @@ func validateMetronComicScanSettings(settings *MetronComicScanSettings) error {
 	}
 	if settings.MinIntervalSeconds < 0 {
 		return errors.New("minIntervalSeconds cannot be negative")
+	}
+	if settings.RecheckCooldownDays < 0 {
+		return errors.New("recheckCooldownDays cannot be negative")
 	}
 	seen := map[string]bool{}
 	weekdays := make([]string, 0, len(settings.Weekdays))
@@ -245,7 +249,15 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 		ID       int `db:"id"`
 		MetronID int `db:"metron_issue_id"`
 	}
-	err := s.db.SelectContext(ctx, &rows, `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '') ORDER BY id`)
+	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '')`
+	args := []any{}
+	if settings.RecheckCooldownDays > 0 {
+		cutoff := time.Now().Add(-time.Duration(settings.RecheckCooldownDays) * 24 * time.Hour).UTC().Format(time.RFC3339)
+		query += ` AND (metron_synced_at = '' OR metron_synced_at <= ?)`
+		args = append(args, cutoff)
+	}
+	query += ` ORDER BY id`
+	err := s.db.SelectContext(ctx, &rows, query, args...)
 	if err == nil {
 		s.setScanned(len(rows))
 		var nextRequest time.Time
@@ -330,7 +342,8 @@ func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *C
 			cover = current
 		}
 	}
-	_, err := db.ExecContext(ctx, `UPDATE comics SET publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END WHERE id = ?`, issue.Publisher, issue.CoverDate, cover, issue.Description, comicID)
+	syncedAt := time.Now().UTC().Format(time.RFC3339)
+	_, err := db.ExecContext(ctx, `UPDATE comics SET publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END, metron_synced_at = ? WHERE id = ?`, issue.Publisher, issue.CoverDate, cover, issue.Description, syncedAt, comicID)
 	if err != nil {
 		return err
 	}
