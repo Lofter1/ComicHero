@@ -7,16 +7,17 @@ type Comic struct {
 	MetronIssueID *int `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
 	SeriesID      *int `json:"seriesId,omitempty"      db:"series_id"       doc:"Local series identifier for this comic's series, when available." example:"5"`
 
-	Title       string `json:"title"       db:"-"           doc:"Generated display title built from series, seriesYear, and issue." example:"Batman (2011) #6"`
-	Series      string `json:"series"      db:"series"      doc:"Series name." example:"Batman"`
-	SeriesYear  int    `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in the generated title." minimum:"0" example:"2011"`
-	Issue       string `json:"issue"       db:"issue"       doc:"Issue number." example:"6.LR"`
-	Publisher   string `json:"publisher"   db:"publisher"   doc:"Publisher name." example:"DC Comics"`
-	CoverDate   string `json:"coverDate"   db:"cover_date"  doc:"Cover date as provided by the source." example:"2012-04-01"`
-	CoverImage  string `json:"coverImage"  db:"cover_image" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
-	Description string `json:"description" db:"description" doc:"Issue synopsis or notes."`
-	Read        bool   `json:"read"        db:"read"        doc:"Whether the comic has been read." example:"false"`
-	Skipped     bool   `json:"skipped"     db:"skipped"     doc:"Whether the comic has been skipped." example:"false"`
+	Title          string `json:"title"       db:"-"           doc:"Generated display title built from series, seriesYear, and issue." example:"Batman (2011) #6"`
+	Series         string `json:"series"      db:"series"      doc:"Series name." example:"Batman"`
+	SeriesYear     int    `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in the generated title." minimum:"0" example:"2011"`
+	Issue          string `json:"issue"       db:"issue"       doc:"Issue number." example:"6.LR"`
+	Publisher      string `json:"publisher"   db:"publisher"   doc:"Publisher name." example:"DC Comics"`
+	CoverDate      string `json:"coverDate"   db:"cover_date"  doc:"Cover date as provided by the source." example:"2012-04-01"`
+	CoverImage     string `json:"coverImage"  db:"cover_image" doc:"Absolute URL for the cover image." format:"uri" example:"https://static.metron.cloud/media/issue/cover.jpg"`
+	Description    string `json:"description" db:"description" doc:"Issue synopsis or notes."`
+	MetronSyncedAt string `json:"-" db:"metron_synced_at"`
+	Read           bool   `json:"read"        db:"read"        doc:"Whether the comic has been read." example:"false"`
+	Skipped        bool   `json:"skipped"     db:"skipped"     doc:"Whether the comic has been skipped." example:"false"`
 }
 
 type ComicPayload struct {
