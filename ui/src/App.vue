@@ -74,6 +74,7 @@ const authLoading = ref(true)
 const authSaving = ref(false)
 const userStatus = ref(null)
 const systemInfo = ref(null)
+const updateNoticeDismissed = ref(false)
 const authMode = ref('login')
 const loginRequested = ref(false)
 const setupForm = ref({ mode: 'single', name: '', email: '', password: '' })
@@ -1763,6 +1764,25 @@ onUnmounted(() => {
       <div v-if="error" class="toast error-toast" role="alert" aria-live="assertive">
         <span>{{ error }}</span>
         <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
+      </div>
+
+      <div
+        v-if="systemInfo?.updateAvailable && !updateNoticeDismissed"
+        class="toast update-toast"
+        role="status"
+        aria-live="polite"
+      >
+        <span>
+          ComicHero {{ systemInfo.latestVersion }} is available.
+          <a :href="systemInfo.releaseUrl" target="_blank" rel="noreferrer">View release</a>
+        </span>
+        <button
+          type="button"
+          aria-label="Dismiss update notice"
+          @click="updateNoticeDismissed = true"
+        >
+          Dismiss
+        </button>
       </div>
 
       <MetronImportMonitor

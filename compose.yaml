@@ -14,6 +14,7 @@ services:
       COVER_CACHE_DIR: /data/covers
       ACCESS_LOG_PATH: /data/access.log
       SHOW_VERSION: ${SHOW_VERSION:-true}
+      CHECK_FOR_UPDATES: ${CHECK_FOR_UPDATES:-true}
       METRON_BASE_URL: https://metron.cloud/api
       METRON_USERNAME: ${METRON_USERNAME:-}
       METRON_PASSWORD: ${METRON_PASSWORD:-}

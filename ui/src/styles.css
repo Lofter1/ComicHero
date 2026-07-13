@@ -3419,6 +3419,17 @@ textarea {
   font-weight: 800;
 }
 
+.update-toast {
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
+  color: var(--warning-ink);
+}
+
+.update-toast a {
+  color: inherit;
+  font-weight: 800;
+}
+
 .dashboard-view {
   display: grid;
   gap: 18px;
