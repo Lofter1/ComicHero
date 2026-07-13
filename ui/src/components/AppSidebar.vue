@@ -230,6 +230,16 @@ function toggleAccountMenu() {
           </router-link>
           <a
             class="account-menu-item"
+            href="https://discord.gg/GebUwAVP"
+            target="_blank"
+            rel="noreferrer"
+            @click="closeMenus"
+          >
+            <span aria-hidden="true">♥</span>
+            <span>Join the community</span>
+          </a>
+          <a
+            class="account-menu-item"
             href="https://github.com/Lofter1/ComicHero/issues/new"
             target="_blank"
             rel="noreferrer"
@@ -252,7 +262,7 @@ function toggleAccountMenu() {
       </div>
       <div v-else-if="readOnlyGuest" class="public-session-card">
         <strong>Public access</strong>
-        <span>Read-only library</span>
+        <span>Read-only access</span>
         <button type="button" class="secondary-action" @click="login">Log in</button>
       </div>
     </div>
