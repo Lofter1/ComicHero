@@ -39,6 +39,7 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 		EmailVerifiedAt string         `db:"email_verified_at"`
 		IsAdmin         bool           `db:"is_admin"`
 		CreatedAt       string         `db:"created_at"`
+		LastLoginAt     string         `db:"last_login_at"`
 		Allowed         sql.NullBool   `db:"allowed"`
 		Scopes          sql.NullString `db:"scopes"`
 		HourlyLimit     sql.NullInt64  `db:"hourly_limit"`
@@ -52,6 +53,7 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 			u.email_verified_at,
 			u.is_admin,
 			u.created_at,
+			u.last_login_at,
 			p.allowed,
 			p.scopes,
 			p.hourly_limit
@@ -73,6 +75,7 @@ func listUsers(ctx context.Context, db *sqlx.DB) (*UserListOutput, error) {
 				EmailVerifiedAt: row.EmailVerifiedAt,
 				IsAdmin:         row.IsAdmin,
 				CreatedAt:       row.CreatedAt,
+				LastLoginAt:     row.LastLoginAt,
 			},
 			MetronPermissions: permissionsFromRow(row.IsAdmin, row.Allowed, row.Scopes, row.HourlyLimit),
 		})

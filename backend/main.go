@@ -49,6 +49,7 @@ func main() {
 
 	apiRouter := chi.NewRouter()
 	apiRouter.Use(api.UserMiddleware(database))
+	apiRouter.Use(api.AuditMiddleware(database))
 	router.Mount("/api", apiRouter)
 	router.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent)

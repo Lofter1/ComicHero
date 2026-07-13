@@ -1,38 +1,40 @@
 # ComicHero
 
-ComicHero is a self-hosted reading-order tracker for comics. It helps you build reading orders, track read progress, and optionally import metadata from [Metron](https://metron.cloud/).
+ComicHero is a self-hosted reading-order tracker for comics. Build curated reading orders, follow your progress across series and story arcs, and enrich tracked comics with metadata from [Metron](https://metron.cloud/).
 
 > [!IMPORTANT]
-> Update to ComicHero 1.5.1 or later. Earlier versions can send broken conditional requests to Metron that may cause accounts to be falsely flagged as duplicates and blocked.
+> Use ComicHero 1.5.1 or later. Earlier releases can send malformed conditional requests to Metron, which may cause accounts to be incorrectly flagged as duplicates and blocked.
 
+[![Latest release](https://img.shields.io/github/v/release/Lofter1/ComicHero?label=release)](https://github.com/Lofter1/ComicHero/releases/latest)
+[![Container image](https://img.shields.io/badge/container-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/Lofter1/ComicHero/pkgs/container/comichero)
+[![Join the ComicHero community on Discord](https://img.shields.io/badge/Join_the_community-Discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/GebUwAVP)
 
-Join the [Discord](https://discord.gg/GebUwAVP)
+Join the Discord to ask questions, share feedback and reading orders, and follow development.
 
-## Features
+## What ComicHero can do
 
-- Build ordered reading lists with per-entry notes.
-- Track read/unread progress across comics and reading orders.
-- Search Metron for comics, series, and reading lists.
-- Import Metron comics, reading lists, and series in background jobs.
-- Run as a single Docker container with SQLite storage.
+- Create, edit, reorder, rate, and favorite reading orders with per-entry notes and tags.
+- Track comics as unread, read, or skipped with progress calculated per user.
+- Browse comics by reading order, series, story arc, and character.
+- Mark reading orders, series, arcs, and characters as started or favorite.
+- Continue active reading from the dashboard and review statistics and achievements.
+- Search and import comics, reading lists, series, arcs, and characters from Metron.
+- Run scheduled Metron discovery jobs for new comics and reading lists.
+- Fill incomplete comic metadata automatically while respecting configurable call limits and retry cooldowns.
+- Choose single-user or multi-user setup, invite users, or enable open registration.
+- Optionally give visitors read-only access to shared ComicHero content.
+- Run as a single container or standalone binary backed by SQLite.
 
-## Stack
+ComicHero shares comics, reading orders, arcs, series, and characters across the instance, while reading state, favorites, ratings, and progress are associated with individual users.
 
-- Backend: Go, chi, Huma, sqlx, SQLite, goose migrations.
-- Frontend: Vue 3 and Vite.
-- Packaging: Docker and Docker Compose.
+## Quick start with Docker
 
-## Installation
-
-Metron credentials are optional and only needed if you want to import comics, reading lists, and series from [Metron](https://metron.cloud/). Every install option below supports setting them either as environment variables (`METRON_USERNAME` / `METRON_PASSWORD`) or via a `.env` file — pick whichever fits the option you're using.
-
-### Option 1: Docker (recommended)
-
-Pull the published image and run it, passing Metron credentials as environment variables if you want them:
+Metron credentials are optional. Omit the two `METRON_*` variables if you only want to manage data manually.
 
 ```sh
 docker run -d \
   --name comichero \
+  --restart unless-stopped \
   -p 8080:8080 \
   -v comichero-data:/data \
   -e METRON_USERNAME=your-metron-username \
@@ -40,171 +42,165 @@ docker run -d \
   ghcr.io/lofter1/comichero:latest
 ```
 
-Omit the two `-e` lines if you don't need Metron import. Open `http://localhost:8080`. SQLite data and cached covers live in the `comichero-data` volume.
+Open `http://localhost:8080` and complete the first-run setup. ComicHero asks whether the instance should use single-user or multi-user mode and creates its initial account.
 
-Images are published on every tagged release (`ghcr.io/lofter1/comichero:v1.2.3`) and `latest` always points at the most recent release. See the [Releases page](https://github.com/Lofter1/ComicHero/releases) for available tags.
+The named volume stores the SQLite database and cached cover images. Images are published for tagged releases, and `latest` points to the newest release. Pin a version such as `ghcr.io/lofter1/comichero:1.5.1` when reproducible deployments matter.
 
-### Option 2: Docker Compose
+## Installation options
 
-1. Copy the example environment file:
+### Docker Compose
 
-   ```sh
-   cp .env.example .env
-   ```
+```sh
+cp .env.example .env
+docker compose up -d
+```
 
-2. Open `.env` and, if you want Metron import, fill in:
+Add your Metron credentials to `.env` before starting if you want imports. The included [compose.yaml](compose.yaml) publishes ComicHero on port `8080` and persists `/data` in the `comichero-data` volume.
 
-   ```
-   METRON_USERNAME=your-metron-username
-   METRON_PASSWORD=your-metron-password
-   ```
+To build the container from your checkout instead of pulling the published image, uncomment `build: .` in `compose.yaml` and run:
 
-3. Start the app:
+```sh
+docker compose up -d --build
+```
 
-   ```sh
-   docker compose up
-   ```
+### Prebuilt binary
 
-   This pulls `ghcr.io/lofter1/comichero:latest` as defined in `compose.yaml`. To build from a local checkout instead, run `docker compose up --build` (see the commented-out `build: .` line in `compose.yaml`).
-
-4. Open `http://localhost:8080`.
-
-### Option 3: Prebuilt binary
-
-Each [release](https://github.com/Lofter1/ComicHero/releases) includes standalone binaries for Linux and macOS (amd64 and arm64), with the frontend already embedded, plus a `.env.example` template. No Docker, Node, or Go required.
+Each [release](https://github.com/Lofter1/ComicHero/releases) provides standalone Linux and macOS binaries for amd64 and arm64. The web interface is embedded, so Node.js is not required at runtime.
 
 ```sh
 curl -LO https://github.com/Lofter1/ComicHero/releases/latest/download/comichero_<version>_linux_amd64.tar.gz
 tar -xzf comichero_<version>_linux_amd64.tar.gz
 cd comichero_<version>_linux_amd64
-cp .env.example .env   # optional: fill in METRON_USERNAME / METRON_PASSWORD
+cp .env.example .env
 ./comichero
 ```
 
-Replace `linux_amd64` with `linux_arm64`, `darwin_amd64`, or `darwin_arm64` as needed. The binary reads `.env` from its own directory automatically; see [Configuration](#configuration) for all available variables.
+Replace `linux_amd64` with `linux_arm64`, `darwin_amd64`, or `darwin_arm64` as appropriate. The binary reads `.env` from its working directory.
 
-### Option 4: Build from source
+### Build from source
 
-Requirements: Go matching `backend/go.mod`, Node.js 24 LTS, npm.
+Requirements are Go matching `backend/go.mod`, Node.js 24 LTS, and npm.
 
 ```sh
-cp .env.example .env   # optional: fill in METRON_USERNAME / METRON_PASSWORD
-make install-ui
+npm --prefix ui install
 make build-standalone
 ./dist/comichero
 ```
 
-This builds the frontend, embeds it into the Go binary, and produces a single standalone executable at `dist/comichero` — the same artifact published in releases.
+This builds the Vue frontend, embeds it in the Go application, and writes a standalone executable to `dist/comichero`.
 
-## Local Development
+## Configuration
 
-Requirements:
+ComicHero reads the process environment and `.env` files in the current or parent directory. Process environment variables take precedence.
 
-- Go matching `backend/go.mod`
-- Node.js 24 LTS
-- npm
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PORT` | `8080` | HTTP port used by the server. |
+| `DB_PATH` | `./data/comicorder.db` | SQLite database file. Parent directories are created automatically. |
+| `COVER_CACHE_DIR` | `./public/covers` | Storage directory for downloaded and optimized cover images. |
+| `ACCESS_LOG_PATH` | `./data/access.log` | Append-only JSON Lines HTTP access log. Set it explicitly to an empty value to disable file logging. |
+| `STATIC_DIR` | embedded frontend | Optional directory from which to serve frontend files instead of the embedded build. |
+| `METRON_BASE_URL` | `https://metron.cloud/api` | Metron API base URL. |
+| `METRON_USERNAME` | empty | Metron username used for search, import, and maintenance jobs. |
+| `METRON_PASSWORD` | empty | Metron password. |
+| `APP_BASE_URL` | `http://localhost:<PORT>` | Public origin used in verification and password-reset links. |
+| `COOKIE_SECURE` | auto-detected | Force session cookies to use or omit `Secure` with `true` or `false`. Otherwise TLS and `X-Forwarded-Proto` are detected. |
+| `SMTP_HOST` | empty | SMTP server for verification and password-reset emails. Links are logged when SMTP is unset. |
+| `SMTP_PORT` | `587` | SMTP server port. |
+| `SMTP_USERNAME` | empty | Optional SMTP username. |
+| `SMTP_PASSWORD` | empty | Optional SMTP password. |
+| `SMTP_FROM` | SMTP username or `noreply@localhost` | Sender address for account email. |
 
-Install frontend dependencies:
+For a public deployment, put ComicHero behind HTTPS, set `APP_BASE_URL` to its public HTTPS origin, and configure SMTP. Ensure the reverse proxy sends `X-Forwarded-Proto: https`, or set `COOKIE_SECURE=true` explicitly.
+
+## Accounts and access
+
+The first-run wizard offers two modes:
+
+- **Single-user** creates a personal instance with one account.
+- **Multi-user** enables account administration and per-user reading progress.
+
+Multi-user registration defaults to `invite_only`, where an administrator generates single-use invitation links. Administrators can instead enable `open` registration; new users then need to verify their email address before receiving a session. Password-reset links expire after 30 minutes.
+
+Public read-only access can be enabled separately. Because comics, reading orders, and related content are shared across the instance, only enable open registration or public access when that exposure is intentional.
+
+## Metron integration
+
+[Metron](https://metron.cloud/) supplies optional comic metadata and cover images. With credentials configured, ComicHero can:
+
+- search for and import individual records;
+- import complete Metron series and reading lists in background jobs;
+- discover newly modified comics and reading lists on a daily, weekly, or monthly schedule;
+- repair missing publisher, cover, cover-date, and description fields on a schedule;
+- apply call limits, minimum request intervals, and cooldowns for incomplete records.
+
+Imports and scans are rate-limited upstream. Use your own Metron account, choose conservative schedules, and review Metron’s terms before enabling automation.
+
+## Data, backups, and upgrades
+
+The database contains comic metadata, reading orders, accounts, reading progress, settings, and job state. Cover images are cached separately. In the standard container deployment, both live under `/data` in the `comichero-data` volume.
+
+Back up both the SQLite database and cover directory. For a simple consistent backup, stop ComicHero before copying its data volume. Never commit the database, `.env`, or cached covers to Git.
+
+Database migrations run automatically when ComicHero starts. Before upgrading, back up `/data`, then pull the desired image and recreate the container:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+Use the [release notes](https://github.com/Lofter1/ComicHero/releases) to check for version-specific instructions.
+
+## Local development
+
+Install dependencies and run all checks:
 
 ```sh
 npm --prefix ui install
-```
-
-Run backend tests:
-
-```sh
-make test-backend
-```
-
-Run frontend build verification:
-
-```sh
-make test-ui
-```
-
-Run both:
-
-```sh
 make test
+make lint
 ```
 
-Start the backend and frontend separately:
+Run the backend and Vite development server together with `make dev`, or separately:
 
 ```sh
 make dev-backend
 make dev-ui
 ```
 
-The Vite dev server proxies `/api` and `/covers` to the Go backend.
+The Vite server runs at `http://localhost:5173` and proxies `/api` and `/covers` to the Go backend. Additional development guidance is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Configuration
+## API and health checks
 
-The backend reads environment variables from the process environment and, when present, `.env` files.
+With ComicHero running:
 
-| Variable          | Default                    | Description                                         |
-| ----------------- | -------------------------- | --------------------------------------------------- |
-| `PORT`            | `8080`                     | HTTP port for the Go server.                        |
-| `DB_PATH`         | `./data/comicorder.db`     | SQLite database path.                               |
-| `STATIC_DIR`      | _(embedded)_                | Optional: serve the frontend from this directory instead of the copy embedded in the binary. Useful for local frontend development. |
-| `COVER_CACHE_DIR` | `./public/covers`          | Directory where downloaded cover images are cached. |
-| `ACCESS_LOG_PATH` | `./data/access.log`         | Append-only JSON Lines HTTP access log. Set to an empty value to disable file logging. |
-| `COOKIE_SECURE`   | auto-detected              | Sets the `Secure` flag on session cookies. Auto-detected from the request (direct TLS, or `X-Forwarded-Proto: https` from a reverse proxy) unless explicitly set to `true` or `false`. |
-| `APP_BASE_URL`    | `http://localhost:8080`    | Public base URL used in account email links. Set this to your HTTPS origin for public instances. |
-| `SMTP_HOST`       | empty                      | SMTP host for sending account emails such as verification and password reset. If unset, links are logged instead of sent. |
-| `SMTP_PORT`       | `587`                      | SMTP port. |
-| `SMTP_USERNAME`   | empty                      | Optional SMTP username. |
-| `SMTP_PASSWORD`   | empty                      | Optional SMTP password. |
-| `SMTP_FROM`       | `SMTP_USERNAME` or `noreply@localhost` | From address for email verification messages. Many providers require this to match the authenticated SMTP account. |
-| `METRON_BASE_URL` | `https://metron.cloud/api` | Metron API base URL.                                |
-| `METRON_USERNAME` | empty                      | Optional Metron username.                           |
-| `METRON_PASSWORD` | empty                      | Optional Metron password.                           |
-
-### User registration modes
-
-ComicHero asks you to choose single-user or multi-user mode on first run. In multi-user mode, admins can choose how new accounts are created:
-
-- `invite_only` is the default. New registrations require a valid single-use invite token generated by an admin.
-- `open` allows anyone who can reach the server to register with a name, email, and password, without an invite token. These users must verify their email address before they receive a session.
-
-Open registration is intended only for instances you deliberately expose for self-service signup. ComicHero uses a shared-library model: comics, arcs, series, characters, and reading orders are not isolated per account. A verified new account can read and write the shared library data according to the app's normal user capabilities, so leave registration on `invite_only` unless you understand and accept that exposure. For public instances, serve ComicHero over HTTPS and set `APP_BASE_URL` to the HTTPS origin and configure SMTP; `COOKIE_SECURE` is detected automatically from the request but can be forced with an explicit `true`/`false` if you're behind a proxy that doesn't set `X-Forwarded-Proto`. Admins can change the mode and remove unwanted accounts from the user management screen.
-
-Users can request a password reset from the login screen. Reset links use the same SMTP settings and expire after 30 minutes.
-
-## API Documentation
-
-When the backend is running, Huma exposes interactive API documentation at:
-
-```text
-http://localhost:8080/api/docs
-```
+- Interactive API documentation: `http://localhost:8080/api/docs`
+- Health endpoint: `http://localhost:8080/healthz`
 
 ## Access logs
 
-ComicHero writes every HTTP request to `ACCESS_LOG_PATH` as one JSON object per line. Entries include the timestamp, method, path (without its query string), response status, duration, response size, remote address, forwarded address, and user agent. This format can be consumed by log-analysis tools and fail2ban filters. Query strings are omitted to avoid recording invite or password-reset tokens.
+ComicHero writes every HTTP request to `ACCESS_LOG_PATH` as one JSON object per line. Entries include the timestamp, method, path without its query string, response status, duration, response size, remote address, forwarded address, and user agent. This format can be consumed by log-analysis tools and fail2ban filters. Query strings are omitted to avoid recording invite or password-reset tokens.
 
-The standard container stores the log at `/data/access.log`, alongside other persistent application data. ComicHero appends to the file but does not rotate it; configure the host's log rotation tooling according to your retention requirements.
+The standard container stores the log at `/data/access.log` alongside other persistent application data. ComicHero appends to the file but does not rotate it; configure the host's log-rotation tooling according to your retention requirements.
 
-## Roadmap
+## Project stack
 
-- Optional login and user management for deployments that need multiple users.
-- Edit views for all stored data.
-- Sync read status with Metron when running in single-user mode.
-- Open Source like approach on Reading Orders
+- Go, chi, Huma, sqlx, SQLite, and goose
+- Vue 3, Vue Router, Vite, and a generated service worker
+- Docker, Docker Compose, and standalone release binaries
 
-## Data and Privacy
+## Community and support
 
-ComicHero is intended for self-hosted personal reading-order data. The repository does not include comic metadata, cover images, credentials, or a database. Local runtime data paths such as `backend/data`, `tmp`, and cached covers are ignored by Git.
-
-Metron data and cover images may be subject to Metron's terms. Use your own API credentials and respect upstream rate limits.
+Questions, feedback, and reading-order discussion are welcome in the [ComicHero Discord community](https://discord.gg/GebUwAVP). For reproducible bugs and feature requests, open a [GitHub issue](https://github.com/Lofter1/ComicHero/issues).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and pull-request guidelines.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md).
+Please follow [SECURITY.md](SECURITY.md) when reporting a vulnerability.
 
 ## License
 
-ComicHero is licensed under the [MIT License](LICENSE).
+ComicHero is available under the [MIT License](LICENSE).

@@ -191,6 +191,10 @@ export function getSeries(id) {
   return request(`/series/${id}`)
 }
 
+export function deleteSeries(id) {
+  return request(`/series/${id}`, { method: 'DELETE' })
+}
+
 export function updateSeriesFavorite(id, favorite) {
   return send(`/series/${id}/favorite`, 'PATCH', { favorite })
 }
@@ -205,6 +209,10 @@ export function importLocalSeriesFromMetron(id) {
 
 export function getCharacter(id) {
   return request(`/characters/${id}`)
+}
+
+export function deleteCharacter(id) {
+  return request(`/characters/${id}`, { method: 'DELETE' })
 }
 
 export function updateCharacterFavorite(id, favorite) {
@@ -357,6 +365,10 @@ export function updateUserAdmin(id, payload) {
 
 export function deleteUser(id) {
   return request(`/users/${id}`, { method: 'DELETE' })
+}
+
+export function listAuditEvents(params = {}) {
+  return request(`/audit-events${queryString(params)}`)
 }
 
 export function deleteComic(id) {

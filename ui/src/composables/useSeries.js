@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import {
+  deleteSeries as removeSeries,
   getSeries,
   importMetronSeries,
   listSeries,
@@ -18,6 +19,7 @@ export function useSeries({
   const series = ref([])
   const selectedSeries = ref(null)
   const startSaving = ref(false)
+  const deleting = ref(false)
 
   const visibleSeries = computed(() => series.value)
   const favoriteVisibleSeries = computed(() => series.value.filter((item) => item.favorite))
@@ -112,6 +114,30 @@ export function useSeries({
     }
   }
 
+  async function deleteSelectedSeries() {
+    if (!selectedSeries.value?.id || deleting.value) return
+    const comicCount = selectedSeries.value.entryCount || selectedSeries.value.comics?.length || 0
+    if (
+      !confirm(
+        `Delete ${selectedSeries.value.name} and its ${comicCount} linked comic${comicCount === 1 ? '' : 's'}? This cannot be undone.`,
+      )
+    )
+      return
+
+    deleting.value = true
+    error.value = ''
+    try {
+      await removeSeries(selectedSeries.value.id)
+      selectedSeries.value = null
+      await loadSeries({ force: true })
+      viewMode.value = 'browse'
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      deleting.value = false
+    }
+  }
+
   async function loadSeries(options = {}) {
     await loadPagedList('series', series, listSeries, options)
   }
@@ -120,6 +146,7 @@ export function useSeries({
     series,
     selectedSeries,
     startSaving,
+    deleting,
     visibleSeries,
     seriesBrowseSections,
     openSeries,
@@ -128,6 +155,7 @@ export function useSeries({
     importSelectedSeriesFromMetron,
     seriesImportRunning,
     refreshSelectedSeriesDetail,
+    deleteSelectedSeries,
     loadSeries,
   }
 }

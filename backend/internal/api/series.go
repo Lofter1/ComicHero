@@ -80,6 +80,50 @@ func RegisterSeriesRoutes(api huma.API, db *sqlx.DB, client *metron.Client, cove
 		}
 		return importLocalSeriesFromMetron(ctx, db, client, covers, importJobs, input.ID)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "deleteSeries",
+		Tags:          []string{tagSeries},
+		Summary:       "Delete a series",
+		Description:   "Deletes a series and every comic linked to it. Related reading-order, arc, character, and user-progress links are removed by cascading foreign keys. Admin access is required.",
+		Method:        http.MethodDelete,
+		Path:          "/series/{id}",
+		DefaultStatus: http.StatusNoContent,
+		Errors:        errsWrite,
+	}, func(ctx context.Context, input *ComicSeriesInput) (*struct{}, error) {
+		return deleteSeries(ctx, db, input.ID)
+	})
+}
+
+func deleteSeries(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
+	if _, err := requireAdminUser(ctx, db); err != nil {
+		return nil, err
+	}
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start series deletion")
+	}
+	defer tx.Rollback()
+	var series struct {
+		Name string `db:"name"`
+		Year int    `db:"series_year"`
+	}
+	if err := tx.GetContext(ctx, &series, `SELECT name, series_year FROM series WHERE id = ?`, id); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, huma.Error404NotFound("series not found")
+		}
+		return nil, huma.Error500InternalServerError("failed to find series")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM comics WHERE series_id = ? OR (series = ? AND series_year = ?)`, id, series.Name, series.Year); err != nil {
+		return nil, huma.Error500InternalServerError("failed to delete series comics")
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM series WHERE id = ?`, id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to delete series")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to commit series deletion")
+	}
+	return &struct{}{}, nil
 }
 
 func listSeries(ctx context.Context, db *sqlx.DB, input *ComicSeriesListInput) (*ComicSeriesListOutput, error) {

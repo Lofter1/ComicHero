@@ -39,6 +39,7 @@ import {
   getMetronComicDiscovery,
   getUserStatus,
   listUsers,
+  listAuditEvents,
   loginUser,
   metronComicScanEventsURL,
   metronComicDiscoveryEventsURL,
@@ -92,6 +93,7 @@ const passwordResetForm = ref({
   completed: false,
 })
 const userAdminRows = ref([])
+const auditEvents = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
 const accountDeleting = ref(false)
@@ -179,6 +181,7 @@ const {
 const {
   selectedSeries,
   startSaving: seriesStartSaving,
+  deleting: seriesDeleting,
   visibleSeries,
   seriesBrowseSections,
   openSeries,
@@ -187,6 +190,7 @@ const {
   importSelectedSeriesFromMetron,
   seriesImportRunning,
   refreshSelectedSeriesDetail,
+  deleteSelectedSeries,
   loadSeries,
 } = useSeries({
   activeView,
@@ -201,6 +205,7 @@ const {
   selectedCharacter,
   quickSavingCharacterID,
   startSaving: characterStartSaving,
+  deleting: characterDeleting,
   visibleCharacters,
   characterBrowseSections,
   openCharacter,
@@ -209,6 +214,7 @@ const {
   importSelectedCharacterAppearances,
   characterImportRunning,
   refreshSelectedCharacterDetail,
+  deleteSelectedCharacter,
   loadCharacters,
 } = useCharacters({
   activeView,
@@ -232,6 +238,7 @@ const {
   toggleSelectedArcStarted,
   newArc,
   editArc,
+  deleteArc,
   loadArcs,
 } = useArcs({
   activeView,
@@ -291,6 +298,7 @@ const {
   openOrderComic,
   newComic,
   editComic,
+  deleteComic,
   toggleComicRead,
   toggleComicSkipped,
   resetMetronMetadata,
@@ -604,7 +612,9 @@ function preparePasswordResetFromRouteToken() {
 }
 
 async function loadUserAdminRows() {
-  userAdminRows.value = await listUsers()
+  const [users, events] = await Promise.all([listUsers(), listAuditEvents({ limit: 200 })])
+  userAdminRows.value = users
+  auditEvents.value = events
 }
 
 async function saveMetronComicScan(settings) {
@@ -1790,6 +1800,7 @@ onUnmounted(() => {
       <UserManagementView
         v-else-if="activeView === 'users'"
         :users="userAdminRows"
+        :audit-events="auditEvents"
         :saving-user-id="savingUserID"
         :saving-admin-user-id="savingAdminUserID"
         :deleting-user-id="deletingUserID"
@@ -1913,8 +1924,11 @@ onUnmounted(() => {
         :quick-saving-arc-id="quickSavingArcID"
         :start-saving="arcStartSaving"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="saving"
         @back="backToPreviousPage"
         @edit="editArc"
+        @delete="deleteArc"
         @toggle-favorite="toggleArcFavorite"
         @toggle-started="toggleSelectedArcStarted"
         @open-comic="openComic"
@@ -1951,10 +1965,13 @@ onUnmounted(() => {
         :import-running="seriesImportRunning(selectedSeries)"
         :start-saving="seriesStartSaving"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="seriesDeleting"
         @back="backToPreviousPage"
         @toggle-favorite="toggleSeriesFavorite"
         @toggle-started="toggleSelectedSeriesStarted"
         @import-series="importSelectedSeriesFromMetron"
+        @delete="deleteSelectedSeries"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
@@ -1990,10 +2007,13 @@ onUnmounted(() => {
         :import-running="characterImportRunning(selectedCharacter)"
         :start-saving="characterStartSaving"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="characterDeleting"
         @back="backToPreviousPage"
         @toggle-favorite="toggleCharacterFavorite"
         @toggle-started="toggleSelectedCharacterStarted"
         @import-appearances="importSelectedCharacterAppearances"
+        @delete="deleteSelectedCharacter"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
@@ -2029,6 +2049,8 @@ onUnmounted(() => {
         :metron-metadata-status="metronMetadataStatus"
         :metron-metadata-results="metronMetadataResults"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="saving"
         @back="backToPreviousPage"
         @search-metron="searchSelectedComicMetron"
         @apply-metron="applyMetronMetadata"
@@ -2036,6 +2058,7 @@ onUnmounted(() => {
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
         @edit="editComic"
+        @delete="deleteComic"
         @open-character="openCharacter"
         @open-series="openSeries"
       />

@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import {
+  deleteCharacter as removeCharacter,
   getCharacter,
   importMetronCharacterAppearances,
   listCharacters,
@@ -20,6 +21,7 @@ export function useCharacters({
   const selectedCharacter = ref(null)
   const quickSavingCharacterID = ref(null)
   const startSaving = ref(false)
+  const deleting = ref(false)
 
   const visibleCharacters = computed(() => characters.value)
   const favoriteVisibleCharacters = computed(() =>
@@ -133,6 +135,24 @@ export function useCharacters({
     }
   }
 
+  async function deleteSelectedCharacter() {
+    if (!selectedCharacter.value?.id || deleting.value) return
+    if (!confirm(`Delete ${selectedCharacter.value.name}? This cannot be undone.`)) return
+
+    deleting.value = true
+    error.value = ''
+    try {
+      await removeCharacter(selectedCharacter.value.id)
+      selectedCharacter.value = null
+      await loadCharacters({ force: true })
+      viewMode.value = 'browse'
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      deleting.value = false
+    }
+  }
+
   async function loadCharacters(options = {}) {
     await loadPagedList('characters', characters, listCharacters, options)
   }
@@ -142,6 +162,7 @@ export function useCharacters({
     selectedCharacter,
     quickSavingCharacterID,
     startSaving,
+    deleting,
     visibleCharacters,
     characterBrowseSections,
     openCharacter,
@@ -151,6 +172,7 @@ export function useCharacters({
     importSelectedCharacterAppearances,
     characterImportRunning,
     refreshSelectedCharacterDetail,
+    deleteSelectedCharacter,
     loadCharacters,
   }
 }

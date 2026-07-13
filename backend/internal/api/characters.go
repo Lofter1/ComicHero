@@ -64,6 +64,33 @@ func RegisterCharacterRoutes(api huma.API, db *sqlx.DB) {
 			return getCharacter(ctx, db, input.ID)
 		})
 	}
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "deleteCharacter",
+		Tags:          []string{tagCharacters},
+		Summary:       "Delete a character",
+		Description:   "Deletes a character and its aliases, appearance links, and user preferences. Admin access is required.",
+		Method:        http.MethodDelete,
+		Path:          "/characters/{id}",
+		DefaultStatus: http.StatusNoContent,
+		Errors:        errsWrite,
+	}, func(ctx context.Context, input *CharacterInput) (*struct{}, error) {
+		return deleteCharacter(ctx, db, input.ID)
+	})
+}
+
+func deleteCharacter(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
+	if _, err := requireAdminUser(ctx, db); err != nil {
+		return nil, err
+	}
+	result, err := db.ExecContext(ctx, `DELETE FROM characters WHERE id = ?`, id)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to delete character")
+	}
+	if err := requireRowsAffected(result, "character not found"); err != nil {
+		return nil, err
+	}
+	return &struct{}{}, nil
 }
 
 func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput) (*CharacterListOutput, error) {
