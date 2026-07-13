@@ -360,8 +360,8 @@ function registrationModeLabel(mode) {
       <p class="muted metron-scan-hint">
         Some issues have no publisher, cover date, or synopsis on Metron itself, so they can stay
         "incomplete" no matter how often they're checked. The cooldown skips a comic for this many
-        days after it was last checked, so those rows stop using up the whole daily call budget.
-        Set to 0 to recheck everything every run.
+        days after it was last checked, so those rows stop using up the whole daily call budget. Set
+        to 0 to recheck everything every run.
       </p>
 
       <fieldset v-if="draft.schedule === 'weekly'" class="permission-scopes">
