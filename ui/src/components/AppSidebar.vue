@@ -230,6 +230,16 @@ function toggleAccountMenu() {
           </router-link>
           <a
             class="account-menu-item"
+            href="https://discord.gg/GebUwAVP"
+            target="_blank"
+            rel="noreferrer"
+            @click="closeMenus"
+          >
+            <span aria-hidden="true">♥</span>
+            <span>Join the community</span>
+          </a>
+          <a
+            class="account-menu-item"
             href="https://github.com/Lofter1/ComicHero/issues/new"
             target="_blank"
             rel="noreferrer"
