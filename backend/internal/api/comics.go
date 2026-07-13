@@ -403,6 +403,9 @@ func createComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, payload C
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
+	if err := setCreatedProvenance(ctx, db, "comics", int(id)); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record comic provenance")
+	}
 	if err := setComicReadStatusForCurrentUser(ctx, db, int(id), payload.Read, true, nil); err != nil {
 		return nil, err
 	}
@@ -441,6 +444,9 @@ func updateComic(ctx context.Context, db *sqlx.DB, covers *CoverCache, id int, p
 
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
 		return nil, err
+	}
+	if err := setChangedProvenance(ctx, db, "comics", id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record comic provenance")
 	}
 
 	if err := setComicReadStatusForCurrentUser(ctx, db, id, payload.Read, true, nil); err != nil {

@@ -612,6 +612,9 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, pa
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new id")
 	}
+	if err := setCreatedProvenance(ctx, db, "reading_orders", int(id)); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record reading order provenance")
+	}
 	if err := setContentFavorite(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", int(id), payload.Favorite); err != nil {
 		return nil, err
 	}
@@ -654,6 +657,9 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 	}
 	if err := requireRowsAffected(result, "reading order not found"); err != nil {
 		return nil, err
+	}
+	if err := setChangedProvenance(ctx, db, "reading_orders", id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record reading order provenance")
 	}
 	if err := setContentFavorite(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", id, payload.Favorite); err != nil {
 		return nil, err

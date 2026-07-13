@@ -3,9 +3,11 @@ package api
 import "net/http"
 
 type Comic struct {
-	ID            int  `json:"id"                      db:"id"              doc:"Local comic identifier." example:"42"`
-	MetronIssueID *int `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
-	SeriesID      *int `json:"seriesId,omitempty"      db:"series_id"       doc:"Local series identifier for this comic's series, when available." example:"5"`
+	MasterDataProvenance
+	ID             int    `json:"id"                      db:"id"              doc:"Local comic identifier." example:"42"`
+	MetronIssueID  *int   `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
+	MetronSyncedAt string `json:"metronSyncedAt,omitempty" db:"metron_synced_at" doc:"When incomplete metadata was last checked against Metron."`
+	SeriesID       *int   `json:"seriesId,omitempty"      db:"series_id"       doc:"Local series identifier for this comic's series, when available." example:"5"`
 
 	Title       string `json:"title"       db:"-"           doc:"Generated display title built from series, seriesYear, and issue." example:"Batman (2011) #6"`
 	Series      string `json:"series"      db:"series"      doc:"Series name." example:"Batman"`
@@ -321,6 +323,7 @@ type ComicListOutput struct {
 }
 
 type Character struct {
+	MasterDataProvenance
 	ID                int      `json:"id"                         db:"id"                  doc:"Local character identifier." example:"12"`
 	MetronCharacterID *int     `json:"metronCharacterId,omitempty" db:"metron_character_id" doc:"Linked Metron character identifier, when imported." example:"100"`
 	Name              string   `json:"name"                       db:"name"                doc:"Character name." example:"Batman"`
@@ -365,6 +368,7 @@ type CharacterListOutput struct {
 }
 
 type ComicSeries struct {
+	MasterDataProvenance
 	ID             int  `json:"id"                       db:"id"               doc:"Local series identifier." example:"5"`
 	MetronSeriesID *int `json:"metronSeriesId,omitempty" db:"metron_series_id" doc:"Linked Metron series identifier, when known." example:"405"`
 
@@ -455,6 +459,7 @@ type UpdateComicFromMetronInput struct {
 }
 
 type ReadingOrder struct {
+	MasterDataProvenance
 	ID                  int  `json:"id"                                  db:"id"                     doc:"Local reading-order identifier." example:"7"`
 	MetronReadingListID *int `json:"metronReadingListId,omitempty"       db:"metron_reading_list_id" doc:"Linked Metron reading-list identifier, when imported." example:"9876"`
 	AuthorUserID        *int `json:"authorUserId,omitempty"              db:"author_user_id"         doc:"User who created or owns this reading order." example:"1"`
@@ -579,6 +584,7 @@ type ReadingOrderListOutput struct {
 }
 
 type Arc struct {
+	MasterDataProvenance
 	ID          int  `json:"id"                    db:"id"            doc:"Local arc identifier." example:"7"`
 	MetronArcID *int `json:"metronArcId,omitempty" db:"metron_arc_id" doc:"Linked Metron story-arc identifier, when imported." example:"9876"`
 

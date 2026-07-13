@@ -246,6 +246,9 @@ func createArc(ctx context.Context, db *sqlx.DB, payload ArcPayload) (*CreateArc
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to get new arc id")
 	}
+	if err := setCreatedProvenance(ctx, db, "arcs", int(id)); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record arc provenance")
+	}
 	if err := setContentFavorite(ctx, db, "user_arcs", "arc_id", "arcs", int(id), payload.Favorite); err != nil {
 		return nil, err
 	}
@@ -279,6 +282,9 @@ func updateArc(ctx context.Context, db *sqlx.DB, id int, payload ArcPayload) (*A
 	}
 	if err := requireRowsAffected(result, "arc not found"); err != nil {
 		return nil, err
+	}
+	if err := setChangedProvenance(ctx, db, "arcs", id); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record arc provenance")
 	}
 	if err := setContentFavorite(ctx, db, "user_arcs", "arc_id", "arcs", id, payload.Favorite); err != nil {
 		return nil, err
