@@ -13,6 +13,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  auditEvents: {
+    type: Array,
+    default: () => [],
+  },
   savingUserID: {
     type: Number,
     default: null,
@@ -181,6 +185,7 @@ function formatTimestamp(value) {
                   Email verified {{ formatTimestamp(entry.user.emailVerifiedAt) }}
                 </span>
                 <span v-else>Email not verified</span>
+                <span>Last login {{ formatTimestamp(entry.user.lastLoginAt) }}</span>
               </p>
             </div>
             <div class="user-summary-badges" aria-hidden="true">
@@ -286,5 +291,37 @@ function formatTimestamp(value) {
         </details>
       </div>
     </template>
+
+    <section class="detail-panel">
+      <header class="section-heading">
+        <p class="eyebrow">Audit log</p>
+        <h3>Recent changes</h3>
+      </header>
+      <p v-if="auditEvents.length === 0" class="empty-state">
+        No state-changing actions recorded yet.
+      </p>
+      <div v-else class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="event in auditEvents" :key="event.id">
+              <td>{{ formatTimestamp(event.occurredAt) }}</td>
+              <td>{{ event.userName || 'System / unauthenticated' }}</td>
+              <td>
+                <code>{{ event.method }} {{ event.path }}</code>
+              </td>
+              <td>{{ event.statusCode }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   </section>
 </template>

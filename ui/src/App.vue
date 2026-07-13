@@ -39,6 +39,7 @@ import {
   getMetronComicDiscovery,
   getUserStatus,
   listUsers,
+  listAuditEvents,
   loginUser,
   metronComicScanEventsURL,
   metronComicDiscoveryEventsURL,
@@ -92,6 +93,7 @@ const passwordResetForm = ref({
   completed: false,
 })
 const userAdminRows = ref([])
+const auditEvents = ref([])
 const generatedInvite = ref(null)
 const accountSaving = ref(false)
 const accountDeleting = ref(false)
@@ -604,7 +606,9 @@ function preparePasswordResetFromRouteToken() {
 }
 
 async function loadUserAdminRows() {
-  userAdminRows.value = await listUsers()
+  const [users, events] = await Promise.all([listUsers(), listAuditEvents({ limit: 200 })])
+  userAdminRows.value = users
+  auditEvents.value = events
 }
 
 async function saveMetronComicScan(settings) {
@@ -1790,6 +1794,7 @@ onUnmounted(() => {
       <UserManagementView
         v-else-if="activeView === 'users'"
         :users="userAdminRows"
+        :audit-events="auditEvents"
         :saving-user-id="savingUserID"
         :saving-admin-user-id="savingAdminUserID"
         :deleting-user-id="deletingUserID"
