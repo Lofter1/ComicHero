@@ -166,6 +166,7 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 			cover_date TEXT NOT NULL DEFAULT '',
 			cover_image TEXT NOT NULL DEFAULT '',
 			description TEXT NOT NULL DEFAULT '',
+			metron_synced_at TEXT NOT NULL DEFAULT '',
 			metron_issue_id INTEGER
 		);
 		CREATE TABLE user_comics (
@@ -374,7 +375,8 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 			publisher TEXT NOT NULL,
 			cover_date TEXT NOT NULL DEFAULT '',
 			cover_image TEXT NOT NULL DEFAULT '',
-			description TEXT NOT NULL DEFAULT ''
+			description TEXT NOT NULL DEFAULT '',
+			metron_synced_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE TABLE user_comics (
 			comic_id INTEGER NOT NULL REFERENCES comics(id) ON DELETE CASCADE,

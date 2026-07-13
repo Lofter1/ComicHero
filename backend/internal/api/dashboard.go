@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"time"
@@ -51,10 +53,12 @@ func getDashboard(ctx context.Context, db *sqlx.DB) (*DashboardOutput, error) {
 
 	items, err := dashboardItems(ctx, db, userID)
 	if err != nil {
+		log.Printf("failed to fetch dashboard for user %d: %v", userID, err)
 		return nil, huma.Error500InternalServerError("failed to fetch dashboard")
 	}
 	achievements, err := dashboardAchievements(ctx, db, userID)
 	if err != nil {
+		log.Printf("failed to fetch dashboard achievements for user %d: %v", userID, err)
 		return nil, huma.Error500InternalServerError("failed to fetch dashboard achievements")
 	}
 
@@ -68,15 +72,18 @@ func getDashboard(ctx context.Context, db *sqlx.DB) (*DashboardOutput, error) {
 
 func dashboardItems(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardItem, error) {
 	items := []DashboardItem{}
-	for _, loader := range []func(context.Context, *sqlx.DB, int) ([]DashboardItem, error){
-		dashboardReadingOrders,
-		dashboardArcs,
-		dashboardCharacters,
-		dashboardSeries,
+	for _, loader := range []struct {
+		name string
+		load func(context.Context, *sqlx.DB, int) ([]DashboardItem, error)
+	}{
+		{name: "reading orders", load: dashboardReadingOrders},
+		{name: "arcs", load: dashboardArcs},
+		{name: "characters", load: dashboardCharacters},
+		{name: "series", load: dashboardSeries},
 	} {
-		loaded, err := loader(ctx, db, userID)
+		loaded, err := loader.load(ctx, db, userID)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("load %s: %w", loader.name, err)
 		}
 		items = append(items, loaded...)
 	}
