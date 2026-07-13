@@ -35,6 +35,8 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  canDelete: { type: Boolean, default: false },
+  deleting: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -46,6 +48,7 @@ const emit = defineEmits([
   'toggle-skipped',
   'open-character',
   'open-series',
+  'delete',
 ])
 
 const metronActionDisabled = computed(
@@ -75,6 +78,15 @@ function seriesLabel(comic) {
     <header class="detail-nav sticky-toolbar">
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div class="detail-nav-actions">
+        <button
+          v-if="selectedComic && canDelete"
+          class="danger-button"
+          type="button"
+          :disabled="deleting"
+          @click="$emit('delete')"
+        >
+          {{ deleting ? 'Deleting...' : 'Delete comic' }}
+        </button>
         <button
           v-if="selectedComic && !readOnly"
           class="read-toggle-button large"

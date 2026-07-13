@@ -179,6 +179,7 @@ const {
 const {
   selectedSeries,
   startSaving: seriesStartSaving,
+  deleting: seriesDeleting,
   visibleSeries,
   seriesBrowseSections,
   openSeries,
@@ -187,6 +188,7 @@ const {
   importSelectedSeriesFromMetron,
   seriesImportRunning,
   refreshSelectedSeriesDetail,
+  deleteSelectedSeries,
   loadSeries,
 } = useSeries({
   activeView,
@@ -201,6 +203,7 @@ const {
   selectedCharacter,
   quickSavingCharacterID,
   startSaving: characterStartSaving,
+  deleting: characterDeleting,
   visibleCharacters,
   characterBrowseSections,
   openCharacter,
@@ -209,6 +212,7 @@ const {
   importSelectedCharacterAppearances,
   characterImportRunning,
   refreshSelectedCharacterDetail,
+  deleteSelectedCharacter,
   loadCharacters,
 } = useCharacters({
   activeView,
@@ -232,6 +236,7 @@ const {
   toggleSelectedArcStarted,
   newArc,
   editArc,
+  deleteArc,
   loadArcs,
 } = useArcs({
   activeView,
@@ -291,6 +296,7 @@ const {
   openOrderComic,
   newComic,
   editComic,
+  deleteComic,
   toggleComicRead,
   toggleComicSkipped,
   resetMetronMetadata,
@@ -1913,8 +1919,11 @@ onUnmounted(() => {
         :quick-saving-arc-id="quickSavingArcID"
         :start-saving="arcStartSaving"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="saving"
         @back="backToPreviousPage"
         @edit="editArc"
+        @delete="deleteArc"
         @toggle-favorite="toggleArcFavorite"
         @toggle-started="toggleSelectedArcStarted"
         @open-comic="openComic"
@@ -1951,10 +1960,13 @@ onUnmounted(() => {
         :import-running="seriesImportRunning(selectedSeries)"
         :start-saving="seriesStartSaving"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="seriesDeleting"
         @back="backToPreviousPage"
         @toggle-favorite="toggleSeriesFavorite"
         @toggle-started="toggleSelectedSeriesStarted"
         @import-series="importSelectedSeriesFromMetron"
+        @delete="deleteSelectedSeries"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
@@ -1990,10 +2002,13 @@ onUnmounted(() => {
         :import-running="characterImportRunning(selectedCharacter)"
         :start-saving="characterStartSaving"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="characterDeleting"
         @back="backToPreviousPage"
         @toggle-favorite="toggleCharacterFavorite"
         @toggle-started="toggleSelectedCharacterStarted"
         @import-appearances="importSelectedCharacterAppearances"
+        @delete="deleteSelectedCharacter"
         @open-comic="openComic"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
@@ -2029,6 +2044,8 @@ onUnmounted(() => {
         :metron-metadata-status="metronMetadataStatus"
         :metron-metadata-results="metronMetadataResults"
         :read-only="isReadOnlyGuest"
+        :can-delete="isAdmin"
+        :deleting="saving"
         @back="backToPreviousPage"
         @search-metron="searchSelectedComicMetron"
         @apply-metron="applyMetronMetadata"
@@ -2036,6 +2053,7 @@ onUnmounted(() => {
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
         @edit="editComic"
+        @delete="deleteComic"
         @open-character="openCharacter"
         @open-series="openSeries"
       />
