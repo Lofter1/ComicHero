@@ -56,6 +56,7 @@ func main() {
 	})
 
 	humaAPI := humachi.New(apiRouter, api.DocsConfig())
+	api.RegisterSystemRoutes(humaAPI, version, envBool("SHOW_VERSION", true))
 	covers := api.NewCoverCache(env("COVER_CACHE_DIR", "./public/covers"), "/covers")
 	if err := covers.EnsureDir(); err != nil {
 		log.Fatalf("failed to prepare cover cache: %v", err)
@@ -160,6 +161,17 @@ func env(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func envBool(key string, fallback bool) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func loadEnvFiles(paths ...string) {
