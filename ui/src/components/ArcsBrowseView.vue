@@ -123,9 +123,12 @@ function sectionList(title, arcs) {
                   <span>
                     <strong>{{ arc.name }}</strong>
                     <small>{{ arc.description || 'No description' }}</small>
-                    <span v-if="arc.startedAt" class="started-pill">Started</span>
-                    <span class="status-pill">Favorites: {{ arc.favoriteCount }}</span>
-                    <span class="status-pill">Reading: {{ arc.startedCount }}</span>
+                    <span class="row-byline">
+                      <span v-if="arc.startedAt" class="started-pill">Started</span>
+                      <span class="engagement-stats">
+                        {{ arc.favoriteCount }} favorites · {{ arc.startedCount }} reading
+                      </span>
+                    </span>
                   </span>
                 </button>
                 <button

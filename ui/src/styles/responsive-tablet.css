@@ -1,0 +1,187 @@
+/* Tablet layout and compact application navigation. */
+
+@media (max-width: 960px) {
+  .app-shell,
+  .split-view,
+  .form-grid,
+  .progress-summary-panel,
+  .metadata-grid,
+  .user-access-panel,
+  .order-entry,
+  .metron-search,
+  .metron-results {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 18px;
+    gap: 12px;
+    box-shadow: 0 6px 18px var(--shadow-soft);
+    overflow: visible;
+  }
+
+  .mobile-menu-button {
+    display: grid;
+  }
+
+  .sidebar:not(.menu-open) .nav-tabs {
+    display: none;
+  }
+
+  .sidebar-actions {
+    position: absolute;
+    top: 50%;
+    right: 72px;
+    display: block;
+    margin-top: 0;
+    width: auto;
+    transform: translateY(-50%);
+  }
+
+  .sidebar.menu-open .nav-tabs {
+    display: grid;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 18px;
+    width: min(360px, calc(100vw - 36px));
+    grid-template-columns: 1fr;
+    gap: 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    z-index: 40;
+    background: var(--surface);
+    padding: 10px;
+    box-shadow: 0 18px 40px var(--shadow-panel);
+    backdrop-filter: none;
+    isolation: isolate;
+  }
+
+  .account-menu-trigger {
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    display: inline-flex;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .account-menu-trigger .account-avatar {
+    width: 30px;
+    min-width: 30px;
+    height: 30px;
+  }
+
+  .account-trigger-copy,
+  .account-menu-caret {
+    display: none;
+  }
+
+  .account-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    bottom: auto;
+    left: auto;
+    width: min(320px, calc(100vw - 36px));
+  }
+
+  .public-session-card {
+    display: block;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .public-session-card strong,
+  .public-session-card span {
+    display: none;
+  }
+
+  .public-session-card .secondary-action {
+    min-height: 42px;
+    margin-top: 0;
+    padding: 0 18px;
+  }
+
+  .nav-tabs :where(a, button) {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .content {
+    max-width: none;
+    padding: 22px;
+  }
+
+  .toolbar.sticky-toolbar {
+    margin-top: -22px;
+    margin-bottom: 0;
+  }
+
+  .toolbar {
+    align-items: center;
+  }
+
+  .toolbar-actions,
+  .panel-actions,
+  .editor-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .detail-nav {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .detail-nav > button {
+    min-width: 78px;
+  }
+
+  .detail-nav-actions {
+    flex: 1 1 220px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 10px;
+  }
+
+  .comic-list-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comic-list-tools input,
+  .comic-list-tools select,
+  .comic-list-tools .inline-filter-tabs {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .browse-list-sticky .comic-list-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .browse-header-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .browse-header-actions .cbl-import-button {
+    min-width: 0;
+  }
+
+  .import-monitor {
+    right: 16px;
+    bottom: 16px;
+  }
+}

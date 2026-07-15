@@ -63,6 +63,7 @@ const emit = defineEmits([
 ])
 
 const cblFileInput = ref(null)
+const orderActionsOpen = ref(false)
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -93,7 +94,13 @@ function sectionList(title, orders) {
 
 function chooseCBLFile() {
   if (props.cblImporting) return
+  orderActionsOpen.value = false
   cblFileInput.value?.click()
+}
+
+function createReadingOrder() {
+  orderActionsOpen.value = false
+  emit('new-order')
 }
 
 function handleCBLFile(event) {
@@ -120,39 +127,55 @@ function handleCBLFile(event) {
             @update:filter="$emit('update:filter', $event)"
             @update:sort="$emit('update:sort', $event)"
             @update:direction="$emit('update:direction', $event)"
-          />
-          <div v-if="!readOnly" class="browse-header-actions">
-            <input
-              ref="cblFileInput"
-              hidden
-              type="file"
-              accept=".cbl,application/xml,text/xml"
-              @change="handleCBLFile"
-            />
-            <button
-              class="secondary-button icon-text-button cbl-import-button"
-              :class="{ loading: cblImporting }"
-              type="button"
-              :disabled="cblImporting"
-              :aria-busy="cblImporting"
-              aria-label="Import CBL"
-              title="Import CBL"
-              @click="chooseCBLFile"
-            >
-              <span v-if="cblImporting" class="button-spinner" aria-hidden="true"></span>
-              {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
-            </button>
-            <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
-            <button
-              class="primary-button icon-text-button"
-              type="button"
-              aria-label="New order"
-              title="New order"
-              @click="$emit('new-order')"
-            >
-              <span aria-hidden="true" class="button-icon">+</span>
-            </button>
-          </div>
+          >
+            <template #actions>
+              <div v-if="!readOnly" class="browse-header-actions order-actions">
+                <button
+                  class="secondary-button icon-text-button mobile-order-actions-trigger"
+                  type="button"
+                  :aria-expanded="orderActionsOpen"
+                  aria-label="Actions"
+                  title="Actions"
+                  @click="orderActionsOpen = !orderActionsOpen"
+                >
+                  <span aria-hidden="true" class="vertical-ellipsis">⋮</span>
+                </button>
+                <input
+                  ref="cblFileInput"
+                  hidden
+                  type="file"
+                  accept=".cbl,application/xml,text/xml"
+                  @change="handleCBLFile"
+                />
+                <div class="order-actions-panel" :class="{ open: orderActionsOpen }">
+                  <button
+                    class="secondary-button icon-text-button cbl-import-button"
+                    :class="{ loading: cblImporting }"
+                    type="button"
+                    :disabled="cblImporting"
+                    :aria-busy="cblImporting"
+                    aria-label="Import CBL"
+                    title="Import CBL"
+                    @click="chooseCBLFile"
+                  >
+                    <span v-if="cblImporting" class="button-spinner" aria-hidden="true"></span>
+                    {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
+                  </button>
+                  <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
+                  <button
+                    class="primary-button icon-text-button new-order-action"
+                    type="button"
+                    aria-label="New reading order"
+                    title="New reading order"
+                    @click="createReadingOrder"
+                  >
+                    <span aria-hidden="true" class="button-icon">+</span>
+                    <span class="order-action-label">New reading order</span>
+                  </button>
+                </div>
+              </div>
+            </template>
+          </BrowseListTools>
         </div>
       </div>
       <div v-if="visibleOrders.length" class="sectioned-list">
@@ -180,16 +203,19 @@ function handleCBLFile(event) {
                   <span>
                     <strong>{{ order.name }}</strong>
                     <small>{{ order.description || 'No description' }}</small>
-                    <span v-if="order.authorName" class="author-pill"
-                      >Author: {{ order.authorName }}</span
-                    >
-                    <span v-if="order.rating" class="author-pill">
-                      Rating: {{ formatRating(order.rating) }}
-                      <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
+                    <span class="row-byline">
+                      <span v-if="order.authorName" class="author-pill">
+                        Author: {{ order.authorName }}
+                      </span>
+                      <span v-if="order.rating" class="author-pill">
+                        Rating: {{ formatRating(order.rating) }}
+                        <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
+                      </span>
+                      <span v-if="order.startedAt" class="started-pill">Started</span>
+                      <span class="engagement-stats">
+                        {{ order.favoriteCount }} favorites · {{ order.startedCount }} reading
+                      </span>
                     </span>
-                    <span v-if="order.startedAt" class="started-pill">Started</span>
-                    <span class="status-pill">Favorites: {{ order.favoriteCount }}</span>
-                    <span class="status-pill">Reading: {{ order.startedCount }}</span>
                   </span>
                 </button>
                 <button

@@ -133,7 +133,7 @@ function seriesPublisherLabel(series) {
             <div
               v-for="item in section.series"
               :key="item.id"
-              class="row series-row"
+              class="row order-row"
               :class="{ selected: selectedSeriesId === item.id }"
             >
               <span class="order-row-content">
@@ -142,13 +142,19 @@ function seriesPublisherLabel(series) {
                   type="button"
                   @click="$emit('open-series', item)"
                 >
-                  <span v-if="item.coverImage" class="series-list-cover" aria-hidden="true">
+                  <span v-if="item.coverImage" class="issue-list-cover" aria-hidden="true">
                     <img :src="assetURL(item.coverImage)" alt="" loading="lazy" />
                   </span>
                   <span>
                     <strong>{{ item.name }}{{ seriesYearLabel(item) }}</strong>
                     <small>{{ seriesPublisherLabel(item) }}</small>
-                    <span v-if="item.startedAt" class="started-pill">Started</span>
+                    <span class="row-byline">
+                      <span v-if="item.startedAt" class="started-pill">Started</span>
+                      <span class="engagement-stats">
+                        {{ item.entryCount }} entries · {{ formatProgress(item.progress) }} ·
+                        {{ item.favoriteCount }} favorites · {{ item.startedCount }} reading
+                      </span>
+                    </span>
                   </span>
                 </button>
                 <button
@@ -162,12 +168,6 @@ function seriesPublisherLabel(series) {
                 >
                   <span aria-hidden="true">{{ item.favorite ? '★' : '☆' }}</span>
                 </button>
-              </span>
-              <span class="row-meta">
-                <span class="status-pill">{{ item.entryCount }} entries</span>
-                <span class="status-pill">{{ formatProgress(item.progress) }}</span>
-                <span class="status-pill">Favorites: {{ item.favoriteCount }}</span>
-                <span class="status-pill">Reading: {{ item.startedCount }}</span>
               </span>
               <span class="row-progress" aria-label="Series read progress">
                 <span :style="{ width: formatProgress(item.progress) }"></span>

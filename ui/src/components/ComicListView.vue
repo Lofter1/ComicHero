@@ -116,6 +116,7 @@ const localDirection = ref('asc')
 const visibleLimit = ref(props.localPageSize)
 const loadMoreSentinel = ref(null)
 const autoLoadSupported = ref(false)
+const comicOptionsOpen = ref(false)
 
 let loadMoreObserver = null
 
@@ -344,12 +345,6 @@ function comicTags(comic) {
     .filter(Boolean)
 }
 
-function clearFilters() {
-  searchText.value = ''
-  statusModel.value = 'all'
-  tag.value = 'all'
-}
-
 function statusValues(value) {
   if (!value || value === 'all') return ['unread', 'read', 'skipped']
   return String(value)
@@ -505,73 +500,81 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
-        <div
-          class="inline-filter-tabs issue-status-tabs"
-          role="group"
-          aria-label="Issue status filters"
+        <button
+          class="mobile-comic-options-trigger"
+          type="button"
+          :aria-expanded="comicOptionsOpen"
+          @click="comicOptionsOpen = !comicOptionsOpen"
         >
-          <button
-            type="button"
-            :class="{ active: statusModel === 'all' }"
-            :aria-pressed="statusModel === 'all'"
-            @click="setAllStatuses"
-          >
-            All
-          </button>
-          <button
-            type="button"
-            :class="{ active: statusActive('unread') && statusModel !== 'all' }"
-            :aria-pressed="statusActive('unread') && statusModel !== 'all'"
-            @click="toggleStatus('unread')"
-          >
-            Unread
-          </button>
-          <button
-            type="button"
-            :class="{ active: statusActive('read') && statusModel !== 'all' }"
-            :aria-pressed="statusActive('read') && statusModel !== 'all'"
-            @click="toggleStatus('read')"
-          >
-            Read
-          </button>
-          <button
-            type="button"
-            :class="{ active: statusActive('skipped') && statusModel !== 'all' }"
-            :aria-pressed="statusActive('skipped') && statusModel !== 'all'"
-            @click="toggleStatus('skipped')"
-          >
-            Skipped
-          </button>
-        </div>
-
-        <select
-          v-if="!effectiveServerMode && tagOptions.length"
-          v-model="tag"
-          aria-label="Filter by tag"
-        >
-          <option value="all">All Tags</option>
-          <option v-for="option in tagOptions" :key="option" :value="option.toLowerCase()">
-            {{ option }}
-          </option>
-        </select>
-
-        <select v-model="sortModel" aria-label="Sort issues">
-          <option v-if="showReadingOrderSort" value="readingOrder">Reading Order</option>
-          <option value="series">Series</option>
-          <option value="title">Title</option>
-          <option value="date">Date</option>
-          <option value="publisher">Publisher</option>
-          <option value="read">Read Status</option>
-        </select>
-
-        <select v-model="directionModel" aria-label="Sort direction">
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select>
-
-        <button v-if="hasFilters" class="ghost-button" type="button" @click="clearFilters">
-          Clear
+          Filter &amp; sort
+          <span aria-hidden="true">⌄</span>
         </button>
+
+        <div class="comic-filter-controls" :class="{ open: comicOptionsOpen }">
+          <div
+            class="inline-filter-tabs issue-status-tabs"
+            role="group"
+            aria-label="Issue status filters"
+          >
+            <button
+              type="button"
+              :class="{ active: statusModel === 'all' }"
+              :aria-pressed="statusModel === 'all'"
+              @click="setAllStatuses"
+            >
+              All
+            </button>
+            <button
+              type="button"
+              :class="{ active: statusActive('unread') && statusModel !== 'all' }"
+              :aria-pressed="statusActive('unread') && statusModel !== 'all'"
+              @click="toggleStatus('unread')"
+            >
+              Unread
+            </button>
+            <button
+              type="button"
+              :class="{ active: statusActive('read') && statusModel !== 'all' }"
+              :aria-pressed="statusActive('read') && statusModel !== 'all'"
+              @click="toggleStatus('read')"
+            >
+              Read
+            </button>
+            <button
+              type="button"
+              :class="{ active: statusActive('skipped') && statusModel !== 'all' }"
+              :aria-pressed="statusActive('skipped') && statusModel !== 'all'"
+              @click="toggleStatus('skipped')"
+            >
+              Skipped
+            </button>
+          </div>
+
+          <select
+            v-if="!effectiveServerMode && tagOptions.length"
+            v-model="tag"
+            aria-label="Filter by tag"
+          >
+            <option value="all">All Tags</option>
+            <option v-for="option in tagOptions" :key="option" :value="option.toLowerCase()">
+              {{ option }}
+            </option>
+          </select>
+
+          <select v-model="sortModel" aria-label="Sort issues">
+            <option v-if="showReadingOrderSort" value="readingOrder">Reading Order</option>
+            <option value="series">Series</option>
+            <option value="title">Title</option>
+            <option value="date">Date</option>
+            <option value="publisher">Publisher</option>
+            <option value="read">Read Status</option>
+          </select>
+
+          <select v-model="directionModel" aria-label="Sort direction">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
       </div>
     </div>
 

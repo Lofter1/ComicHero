@@ -2067,7 +2067,7 @@ onUnmounted(() => {
         @open-series="openSeries"
       />
 
-      <div v-else class="browse-view">
+      <div v-else class="browse-view comic-browse-view">
         <ComicListView
           title="Comics"
           :comics="comics"

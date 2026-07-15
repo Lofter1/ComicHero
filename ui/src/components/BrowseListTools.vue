@@ -66,6 +66,7 @@ const searchModel = computed({
       </button>
     </div>
     <select
+      class="list-sort-select"
       :value="sort"
       aria-label="Sort list"
       @change="$emit('update:sort', $event.target.value)"
@@ -75,6 +76,7 @@ const searchModel = computed({
       </option>
     </select>
     <select
+      class="list-direction-select"
       :value="direction"
       aria-label="Sort direction"
       @change="$emit('update:direction', $event.target.value)"
@@ -82,5 +84,46 @@ const searchModel = computed({
       <option value="asc">Ascending</option>
       <option value="desc">Descending</option>
     </select>
+    <details class="mobile-list-options">
+      <summary>Filter &amp; sort</summary>
+      <div>
+        <div
+          class="inline-filter-tabs"
+          :class="{ 'four-filter-tabs': filterOptions.length === 4 }"
+          role="tablist"
+          aria-label="List filter"
+        >
+          <button
+            v-for="option in filterOptions"
+            :key="option.value"
+            type="button"
+            :class="{ active: filter === option.value }"
+            role="tab"
+            :aria-selected="filter === option.value"
+            @click="$emit('update:filter', option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+        <select
+          :value="sort"
+          aria-label="Sort list"
+          @change="$emit('update:sort', $event.target.value)"
+        >
+          <option v-for="option in sortOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <select
+          :value="direction"
+          aria-label="Sort direction"
+          @change="$emit('update:direction', $event.target.value)"
+        >
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+    </details>
+    <slot name="actions"></slot>
   </div>
 </template>
