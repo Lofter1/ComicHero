@@ -18,7 +18,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID: "listReadingOrders",
 		Tags:        []string{tagReadingOrders},
 		Summary:     "List reading orders",
-		Description: "Returns reading orders with computed read progress. Results can be filtered by text, favorite status, current-user started status, or a comic they contain.",
+		Description: "Returns public reading orders plus private reading orders owned by the current user, with computed read progress.",
 		Method:      http.MethodGet,
 		Path:        "/readingOrders",
 		Errors:      errsRead,
@@ -67,7 +67,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID:   "createReadingOrder",
 		Tags:          []string{tagReadingOrders},
 		Summary:       "Create a reading order",
-		Description:   "Creates a reading order with a name, description, and favorite flag.",
+		Description:   "Creates a public or private reading order owned by the current user.",
 		Method:        http.MethodPost,
 		Path:          "/readingOrders",
 		DefaultStatus: 201,
@@ -80,7 +80,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID: "updateReadingOrder",
 		Tags:        []string{tagReadingOrders},
 		Summary:     "Update a reading order",
-		Description: "Updates a reading order's name, description, and favorite flag. It does not change the order's comic entries.",
+		Description: "Updates a reading order's name, description, visibility, and favorite flag. It does not change the order's comic entries.",
 		Method:      http.MethodPut,
 		Path:        "/readingOrders/{id}",
 		Errors:      errsWrite,
@@ -177,6 +177,10 @@ func computeProgress(comics []ReadingOrderComic) float64 {
 	return float64(read) / float64(len(comics))
 }
 
+func readingOrderIsPublic(value *bool) bool {
+	return value == nil || *value
+}
+
 func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderListInput) (*ReadingOrderListOutput, error) {
 	userID, err := currentUserID(ctx)
 	if err != nil {
@@ -214,6 +218,7 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ro.name,
 			ro.description,
 			ro.image,
+			ro.is_public,
 			COALESCE(preference.favorite, 0) AS favorite,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
@@ -245,6 +250,11 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ON preference.reading_order_id = ro.id AND preference.user_id = ?
 	`)
 	query.args = append(query.args, editUserID, editUserID, userID, userID, userID)
+	query.where(`(
+		ro.is_public = 1
+		OR ro.author_user_id = ?
+		OR EXISTS (SELECT 1 FROM users visibility_user WHERE visibility_user.id = ? AND visibility_user.is_admin = 1)
+	)`, editUserID, editUserID)
 
 	if input.Query != "" {
 		search := "%" + input.Query + "%"
@@ -379,6 +389,7 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ro.name,
 			ro.description,
 			ro.image,
+			ro.is_public,
 			COALESCE(preference.favorite, 0) AS favorite,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
@@ -402,8 +413,12 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ON my_rating.reading_order_id = ro.id AND my_rating.user_id = ?
 		LEFT JOIN user_reading_orders preference
 			ON preference.reading_order_id = ro.id AND preference.user_id = ?
-		WHERE ro.id = ?
-	`, editUserID, editUserID, userID, userID, id); err != nil {
+		WHERE ro.id = ? AND (
+			ro.is_public = 1
+			OR ro.author_user_id = ?
+			OR EXISTS (SELECT 1 FROM users visibility_user WHERE visibility_user.id = ? AND visibility_user.is_admin = 1)
+		)
+	`, editUserID, editUserID, userID, userID, id, editUserID, editUserID); err != nil {
 		if err == sql.ErrNoRows {
 			return ReadingOrder{}, huma.Error404NotFound("reading order not found")
 		}
@@ -413,6 +428,9 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 }
 
 func startReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
+	if _, err := getReadingOrderRow(ctx, db, id); err != nil {
+		return nil, err
+	}
 	if err := setContentStarted(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", id, true); err != nil {
 		return nil, err
 	}
@@ -420,6 +438,9 @@ func startReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderD
 }
 
 func stopReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDetailOutput, error) {
+	if _, err := getReadingOrderRow(ctx, db, id); err != nil {
+		return nil, err
+	}
 	if err := setContentStarted(ctx, db, "user_reading_orders", "reading_order_id", "reading_orders", id, false); err != nil {
 		return nil, err
 	}
@@ -478,6 +499,10 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 	if err != nil {
 		return nil, err
 	}
+	visibilityUserID := userID
+	if currentUserIsPublic(ctx) {
+		visibilityUserID = 0
+	}
 	comics := []struct {
 		ReadingOrderComic
 		Position int `db:"position"`
@@ -508,6 +533,7 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 			ro.name,
 			ro.description,
 			ro.image,
+			ro.is_public,
 			COALESCE(preference.favorite, 0) AS favorite,
 			0.0 AS progress,
 			COALESCE(author.name, '') AS author_name,
@@ -523,9 +549,13 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 		LEFT JOIN user_reading_orders preference
 			ON preference.reading_order_id = ro.id AND preference.user_id = ?
 		JOIN reading_order_children roc ON roc.child_reading_order_id = ro.id
-		WHERE roc.parent_reading_order_id = ?
+		WHERE roc.parent_reading_order_id = ? AND (
+			ro.is_public = 1
+			OR ro.author_user_id = ?
+			OR EXISTS (SELECT 1 FROM users visibility_user WHERE visibility_user.id = ? AND visibility_user.is_admin = 1)
+		)
 		ORDER BY roc.position, ro.name
-	`, userID, userID, userID, readingOrderID); err != nil {
+	`, visibilityUserID, visibilityUserID, userID, readingOrderID, visibilityUserID, visibilityUserID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
 	}
 
@@ -600,9 +630,9 @@ func createReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, pa
 		return nil, err
 	}
 	result, err := db.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, author_user_id)
-		VALUES (?, ?, ?, ?)
-	`, payload.Name, payload.Description, image, userID)
+		INSERT INTO reading_orders (name, description, image, is_public, author_user_id)
+		VALUES (?, ?, ?, ?, ?)
+	`, payload.Name, payload.Description, image, readingOrderIsPublic(payload.IsPublic), userID)
 	if err != nil {
 		_ = deleteUnusedCoverImage(ctx, db, covers, image)
 		return nil, huma.Error500InternalServerError("failed to create reading order")
@@ -634,6 +664,10 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 		return nil, err
 	}
 	image := existing.Image
+	isPublic := existing.IsPublic
+	if payload.IsPublic != nil {
+		isPublic = *payload.IsPublic
+	}
 	if strings.TrimSpace(payload.CoverImageData) != "" {
 		image, err = uploadedReadingOrderCover(covers, payload)
 		if err != nil {
@@ -643,9 +677,9 @@ func updateReadingOrder(ctx context.Context, db *sqlx.DB, covers *CoverCache, id
 
 	result, err := db.ExecContext(ctx, `
 		UPDATE reading_orders
-		SET name = ?, description = ?, image = ?
+		SET name = ?, description = ?, image = ?, is_public = ?
 		WHERE id = ?
-	`, payload.Name, payload.Description, image, id)
+	`, payload.Name, payload.Description, image, isPublic, id)
 	if err != nil {
 		if image != existing.Image {
 			_ = deleteUnusedCoverImage(ctx, db, covers, image)
@@ -681,6 +715,9 @@ func rateReadingOrder(ctx context.Context, db *sqlx.DB, id int, rating float64) 
 	}
 	if rating != 0 && (rating < 1 || rating > 5) {
 		return nil, huma.Error400BadRequest("reading order rating must be 0 or between 1 and 5")
+	}
+	if _, err := getReadingOrderRow(ctx, db, id); err != nil {
+		return nil, err
 	}
 
 	var exists int
@@ -738,9 +775,9 @@ func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDe
 	defer tx.Rollback()
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO reading_orders (name, description, image, favorite, author_user_id)
-		VALUES (?, ?, ?, 0, ?)
-	`, copiedReadingOrderName(source.Name), source.Description, source.Image, userID)
+		INSERT INTO reading_orders (name, description, image, favorite, is_public, author_user_id)
+		VALUES (?, ?, ?, 0, ?, ?)
+	`, copiedReadingOrderName(source.Name), source.Description, source.Image, source.IsPublic, userID)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to copy reading order")
 	}
@@ -1085,8 +1122,23 @@ func validateChildReadingOrderIDs(ctx context.Context, db *sqlx.DB, parentID int
 	for childID := range seen {
 		uniqueChildIDs = append(uniqueChildIDs, childID)
 	}
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return err
+	}
+	visibilityUserID := userID
+	if currentUserIsPublic(ctx) {
+		visibilityUserID = 0
+	}
 
-	query, args, err := sqlx.In("SELECT id FROM reading_orders WHERE id IN (?)", uniqueChildIDs)
+	query, args, err := sqlx.In(`
+		SELECT id FROM reading_orders
+		WHERE id IN (?) AND (
+			is_public = 1
+			OR author_user_id = ?
+			OR EXISTS (SELECT 1 FROM users visibility_user WHERE visibility_user.id = ? AND visibility_user.is_admin = 1)
+		)
+	`, uniqueChildIDs, visibilityUserID, visibilityUserID)
 	if err != nil {
 		return huma.Error500InternalServerError("failed to validate child reading orders")
 	}

@@ -179,6 +179,7 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 		);
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			is_public INTEGER NOT NULL DEFAULT 1,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			favorite INTEGER NOT NULL DEFAULT 0,
@@ -388,6 +389,7 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 		);
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			is_public INTEGER NOT NULL DEFAULT 1,
 			metron_reading_list_id INTEGER,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
@@ -607,6 +609,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	if _, err := db.Exec(`
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			is_public INTEGER NOT NULL DEFAULT 1,
 			metron_reading_list_id INTEGER,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
@@ -840,6 +843,49 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	}
 }
 
+func TestPrivateReadingOrderIsOnlyVisibleToCreatorAndAdmin(t *testing.T) {
+	db := setupReadingOrderCBLTestDB(t)
+	ctx := testUserContext()
+	ownerCtx := context.WithValue(ctx, contextUserIDKey{}, 2)
+	otherCtx := context.WithValue(ctx, contextUserIDKey{}, 1)
+	if _, err := db.ExecContext(ctx, `INSERT INTO users (id, name, is_default) VALUES (2, 'Owner', 0)`); err != nil {
+		t.Fatalf("insert owner: %v", err)
+	}
+
+	isPublic := false
+	created, err := createReadingOrder(ownerCtx, db, nil, ReadingOrderPayload{
+		Name:     "Private list",
+		IsPublic: &isPublic,
+	})
+	if err != nil {
+		t.Fatalf("create private reading order: %v", err)
+	}
+	if created.Body.IsPublic {
+		t.Fatal("created reading order is public; want private")
+	}
+	if _, err := getReadingOrder(ownerCtx, db, created.Body.ID); err != nil {
+		t.Fatalf("creator cannot view private reading order: %v", err)
+	}
+	if _, err := getReadingOrder(otherCtx, db, created.Body.ID); err == nil {
+		t.Fatal("non-creator can view private reading order")
+	}
+
+	listed, err := listReadingOrders(otherCtx, db, &ReadingOrderListInput{})
+	if err != nil {
+		t.Fatalf("list reading orders as non-creator: %v", err)
+	}
+	if len(listed.Body) != 0 {
+		t.Fatalf("non-creator list = %#v; want private reading order hidden", listed.Body)
+	}
+
+	if _, err := db.ExecContext(ctx, `UPDATE users SET is_admin = 1 WHERE id = 1`); err != nil {
+		t.Fatalf("promote admin: %v", err)
+	}
+	if _, err := getReadingOrder(otherCtx, db, created.Body.ID); err != nil {
+		t.Fatalf("admin cannot view private reading order: %v", err)
+	}
+}
+
 func TestReadingOrderCoverUploadResizesAndDeletesUnusedOldCover(t *testing.T) {
 	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
@@ -1015,6 +1061,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 	if _, err := db.Exec(`
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			is_public INTEGER NOT NULL DEFAULT 1,
 			metron_reading_list_id INTEGER,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
@@ -2567,6 +2614,7 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 		);
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			is_public INTEGER NOT NULL DEFAULT 1,
 			metron_reading_list_id INTEGER,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',

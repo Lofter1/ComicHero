@@ -2197,6 +2197,34 @@ textarea {
   font-weight: 700;
 }
 
+.visibility-field {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.visibility-field legend {
+  padding: 0 4px;
+  color: var(--label-ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.edit-form .visibility-field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visibility-field .muted {
+  margin: 0;
+  align-self: center;
+}
+
 .reading-order-cover-editor {
   display: flex;
   align-items: center;

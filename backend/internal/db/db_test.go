@@ -115,7 +115,7 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if err := rows.Err(); err != nil {
 		t.Fatalf("reading order columns: %v", err)
 	}
-	for _, name := range []string{"rating", "rating_count"} {
+	for _, name := range []string{"rating", "rating_count", "is_public"} {
 		if !readingOrderColumns[name] {
 			t.Fatalf("reading_orders.%s missing", name)
 		}

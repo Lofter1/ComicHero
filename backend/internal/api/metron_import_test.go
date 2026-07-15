@@ -26,6 +26,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 	if _, err := db.Exec(`
 		CREATE TABLE reading_orders (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			is_public INTEGER NOT NULL DEFAULT 1,
 			name TEXT NOT NULL,
 			description TEXT NOT NULL DEFAULT '',
 			image TEXT NOT NULL DEFAULT '',

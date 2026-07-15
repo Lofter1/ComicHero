@@ -6,6 +6,7 @@ export function emptyReadingOrder() {
     image: '',
     coverImageData: '',
     favorite: false,
+    isPublic: true,
     entries: [],
     comics: [],
     childOrderIds: [],
@@ -48,6 +49,7 @@ export function readingOrderFormFromDetail(detail) {
     image: detail.image || '',
     coverImageData: '',
     favorite: detail.favorite,
+    isPublic: detail.isPublic,
     childOrderIds: (detail.childReadingOrders || []).map((order) => order.id),
     entries: entries.length ? entries : fallbackEntries,
     comics: (detail.comics || []).map((comic) => ({
@@ -64,6 +66,7 @@ export function readingOrderPayload(order) {
     name: order.name,
     description: order.description,
     favorite: order.favorite,
+    isPublic: order.isPublic,
     coverImageData: order.coverImageData || '',
   }
 }
