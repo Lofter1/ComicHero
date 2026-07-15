@@ -3179,7 +3179,7 @@ textarea {
 
 .comic-list-tools {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) auto repeat(3, minmax(120px, 150px)) auto;
+  grid-template-columns: minmax(280px, 1fr) auto repeat(3, minmax(120px, 150px)) auto;
   align-items: center;
   gap: 8px;
 }
@@ -3190,7 +3190,7 @@ textarea {
 
 .comic-list-tools input,
 .comic-list-tools select {
-  min-height: 38px;
+  min-height: 44px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
