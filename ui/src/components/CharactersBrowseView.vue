@@ -117,7 +117,7 @@ function characterProgress(character) {
             <div
               v-for="character in section.characters"
               :key="character.id"
-              class="row character-row"
+              class="row order-row"
               :class="{ selected: selectedCharacterId === character.id }"
             >
               <span class="order-row-content">
@@ -126,7 +126,7 @@ function characterProgress(character) {
                   type="button"
                   @click="$emit('open-character', character)"
                 >
-                  <span v-if="character.image" class="character-list-avatar" aria-hidden="true">
+                  <span v-if="character.image" class="issue-list-cover" aria-hidden="true">
                     <img :src="assetURL(character.image)" alt="" loading="lazy" />
                   </span>
                   <span>
@@ -135,7 +135,14 @@ function characterProgress(character) {
                       character.aliases.join(', ')
                     }}</small>
                     <small v-else>No aliases saved</small>
-                    <span v-if="character.startedAt" class="started-pill">Started</span>
+                    <span class="row-byline">
+                      <span v-if="character.startedAt" class="started-pill">Started</span>
+                      <span class="engagement-stats">
+                        {{ character.appearanceCount }} appearances ·
+                        {{ characterProgress(character) }} · {{ character.favoriteCount }} favorites
+                        · {{ character.startedCount }} reading
+                      </span>
+                    </span>
                   </span>
                 </button>
                 <button
@@ -150,12 +157,6 @@ function characterProgress(character) {
                 >
                   <span aria-hidden="true">{{ character.favorite ? '★' : '☆' }}</span>
                 </button>
-              </span>
-              <span class="row-meta">
-                <span class="status-pill">{{ character.appearanceCount }} appearances</span>
-                <span class="status-pill">{{ characterProgress(character) }}</span>
-                <span class="status-pill">Favorites: {{ character.favoriteCount }}</span>
-                <span class="status-pill">Reading: {{ character.startedCount }}</span>
               </span>
               <span class="row-progress" aria-label="Character read progress">
                 <span :style="{ width: characterProgress(character) }"></span>
