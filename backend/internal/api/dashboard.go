@@ -110,9 +110,13 @@ func dashboardReadingOrders(ctx context.Context, db *sqlx.DB, userID int) ([]Das
 		SELECT ro.id, ro.name, started.started_at
 		FROM user_reading_orders started
 		JOIN reading_orders ro ON ro.id = started.reading_order_id
-		WHERE started.user_id = ? AND started.started_at IS NOT NULL
+		WHERE started.user_id = ? AND started.started_at IS NOT NULL AND (
+			ro.is_public = 1
+			OR ro.author_user_id = ?
+			OR EXISTS (SELECT 1 FROM users visibility_user WHERE visibility_user.id = ? AND visibility_user.is_admin = 1)
+		)
 		ORDER BY started.started_at, ro.name
-	`, userID); err != nil {
+	`, userID, userID, userID); err != nil {
 		return nil, err
 	}
 

@@ -463,6 +463,7 @@ type ReadingOrder struct {
 	Name        string   `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
 	Description string   `json:"description" db:"description" doc:"Reading-order description or notes."`
 	Image       string   `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
+	IsPublic    bool     `json:"isPublic"    db:"is_public"   doc:"Whether users other than the creator may view this reading order." example:"true"`
 	Favorite    bool     `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
 	Rating      float64  `json:"rating"      db:"rating"      doc:"Average user rating from 1 to 5, or 0 when unrated." minimum:"0" maximum:"5" example:"4.5"`
 	RatingCount int      `json:"ratingCount" db:"rating_count" doc:"Number of user ratings represented by this score." example:"23"`
@@ -477,6 +478,7 @@ type ReadingOrderPayload struct {
 	Name           string `json:"name"           minLength:"1" doc:"Reading-order name." example:"Batman: Court of Owls"`
 	Description    string `json:"description"    doc:"Reading-order description or notes."`
 	Favorite       bool   `json:"favorite"       doc:"Whether this reading order is marked as a favorite." example:"true"`
+	IsPublic       *bool  `json:"isPublic,omitempty" doc:"Whether users other than the creator may view this reading order. Defaults to true." example:"true"`
 	CoverImageData string `json:"coverImageData,omitempty" doc:"Optional uploaded cover image as a data URL. The server resizes and stores it in the cover cache."`
 }
 

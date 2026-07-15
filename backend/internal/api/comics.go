@@ -94,6 +94,11 @@ func listComics(ctx context.Context, db *sqlx.DB, input *ComicListInput) (*Comic
 	if err != nil {
 		return nil, err
 	}
+	if input.ReadingOrderID > 0 {
+		if _, err := getReadingOrderRow(ctx, db, input.ReadingOrderID); err != nil {
+			return nil, err
+		}
+	}
 	query, args, err := comicListQuery(input, userID)
 	if err != nil {
 		return nil, err
@@ -284,14 +289,26 @@ func getComic(ctx context.Context, db *sqlx.DB, id int) (*ComicDetailOutput, err
 		return nil, err
 	}
 
+	userID, err := currentUserID(ctx)
+	if err != nil {
+		return nil, err
+	}
+	visibilityUserID := userID
+	if currentUserIsPublic(ctx) {
+		visibilityUserID = 0
+	}
 	orders := []ReadingOrder{}
 	if err := db.SelectContext(ctx, &orders, `
 		SELECT ro.*
 		FROM reading_orders ro
 		JOIN reading_order_comics roc ON roc.reading_order_id = ro.id
-		WHERE roc.comic_id = ?
+		WHERE roc.comic_id = ? AND (
+			ro.is_public = 1
+			OR ro.author_user_id = ?
+			OR EXISTS (SELECT 1 FROM users visibility_user WHERE visibility_user.id = ? AND visibility_user.is_admin = 1)
+		)
 		ORDER BY ro.name
-	`, id); err != nil {
+	`, id, visibilityUserID, visibilityUserID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch reading orders")
 	}
 

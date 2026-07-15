@@ -347,6 +347,30 @@ function endDrag() {
       />
     </label>
 
+    <fieldset class="visibility-field">
+      <legend>Visibility</legend>
+      <label>
+        <input
+          type="radio"
+          name="reading-order-visibility"
+          :checked="form.isPublic"
+          @change="updateForm({ isPublic: true })"
+        />
+        Public
+      </label>
+      <p class="muted">Anyone with access to ComicHero can view this reading order.</p>
+      <label>
+        <input
+          type="radio"
+          name="reading-order-visibility"
+          :checked="!form.isPublic"
+          @change="updateForm({ isPublic: false })"
+        />
+        Private
+      </label>
+      <p class="muted">Only you and administrators can view this reading order.</p>
+    </fieldset>
+
     <label class="cover-image-field">
       Cover image
       <span class="reading-order-cover-editor">
