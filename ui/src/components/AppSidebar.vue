@@ -112,7 +112,7 @@ function toggleAccountMenu() {
         :class="{ active: activeView === 'readingOrders' }"
         @click="closeMenus"
       >
-        <span>Orders</span>
+        <span>Reading Orders</span>
       </router-link>
       <router-link
         :to="{ name: 'arcs' }"
