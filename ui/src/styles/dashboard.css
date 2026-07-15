@@ -1,0 +1,92 @@
+/* Dashboard cards and achievement summaries. */
+
+.dashboard-view {
+  display: grid;
+  gap: 18px;
+}
+
+.dashboard-header,
+.dashboard-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dashboard-achievements,
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.achievement-summary-card,
+.dashboard-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.achievement-summary-card h3,
+.dashboard-card h3 {
+  margin: 4px 0 8px;
+}
+
+.achievement-summary-card p,
+.dashboard-card p {
+  margin: 0;
+}
+
+.dashboard-card {
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-card-header strong {
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.dashboard-comic {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 82px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-strong);
+  color: inherit;
+  padding: 10px;
+  text-align: left;
+}
+
+.dashboard-comic img,
+.dashboard-cover-placeholder {
+  width: 56px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--surface-muted);
+}
+
+.dashboard-comic strong,
+.dashboard-comic small {
+  display: block;
+}
+
+.dashboard-comic strong {
+  overflow-wrap: anywhere;
+}
+
+.dashboard-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dashboard-complete-copy {
+  color: var(--muted);
+}

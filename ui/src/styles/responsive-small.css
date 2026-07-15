@@ -1,0 +1,46 @@
+/* Small-phone spacing and control refinements. */
+
+@media (max-width: 420px) {
+  .content {
+    padding: 10px;
+  }
+
+  .sidebar {
+    padding: 10px;
+  }
+
+  .sidebar-actions {
+    right: 64px;
+  }
+
+  .nav-tabs :where(a, button) {
+    font-size: 0.82rem;
+  }
+
+  .theme-selector button {
+    font-size: 0.76rem;
+    padding-inline: 3px;
+  }
+
+  .inline-filter-tabs button,
+  .filter-tabs button {
+    padding-inline: 6px;
+    font-size: 0.78rem;
+  }
+
+  .issue-list-cover {
+    width: 38px;
+    height: 52px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .progress,
+  .status-pill {
+    justify-self: start;
+    margin-left: 0;
+  }
+}

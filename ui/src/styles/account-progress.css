@@ -1,0 +1,184 @@
+/* Account settings, progress summaries, and achievement cards. */
+
+.split-view {
+  display: grid;
+  grid-template-columns: minmax(300px, 430px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.browse-view {
+  min-width: 0;
+  width: 100%;
+}
+
+.account-view {
+  max-width: 960px;
+}
+
+.progress-view {
+  display: grid;
+  gap: 16px;
+  max-width: 1180px;
+}
+
+.account-settings {
+  display: grid;
+  gap: 14px;
+}
+
+.account-settings-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 16px;
+}
+
+.account-settings-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.account-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progress-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.account-settings-heading h3,
+.progress-section-heading h3 {
+  overflow-wrap: anywhere;
+}
+
+.account-metadata,
+.progress-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.progress-summary-panel,
+.progress-section-panel {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 18px;
+}
+
+.progress-summary-panel {
+  grid-template-columns: 1fr;
+}
+
+.achievement-progress small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.progress-track {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.achievement-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px;
+  color: var(--muted);
+}
+
+.achievement-card.earned {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--ink);
+}
+
+.achievement-card-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.achievement-card-heading strong,
+.achievement-card-heading small {
+  display: block;
+}
+
+.achievement-card-heading small {
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.achievement-badge {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.achievement-card.earned .achievement-badge {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--surface);
+}
+
+.achievement-card p {
+  margin: 0;
+}
+
+.achievement-progress {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.account-save-button {
+  justify-self: start;
+}
+
+.danger-panel {
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+}

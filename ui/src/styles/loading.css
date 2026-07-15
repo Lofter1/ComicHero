@@ -1,0 +1,75 @@
+/* Loading, empty, and screen-reader-only status helpers. */
+
+.loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(420px, 100%);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel-bg);
+  color: var(--label-ink);
+  padding: 16px;
+  font-size: 0.95rem;
+}
+
+.inline-loading-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--spinner-track);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: loading-spin 780ms linear infinite;
+  flex: 0 0 auto;
+}
+
+.loading-spinner.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+.button-spinner {
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  border: 2px solid var(--spinner-track);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: loading-spin 780ms linear infinite;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.load-more-sentinel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 42px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
