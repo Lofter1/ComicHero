@@ -72,7 +72,13 @@ function login() {
 }
 
 function toggleAccountMenu() {
+  menuOpen.value = false
   accountMenuOpen.value = !accountMenuOpen.value
+}
+
+function toggleMobileMenu() {
+  accountMenuOpen.value = false
+  menuOpen.value = !menuOpen.value
 }
 </script>
 
@@ -89,7 +95,7 @@ function toggleAccountMenu() {
         :aria-expanded="menuOpen"
         aria-controls="primary-navigation"
         aria-label="Toggle navigation"
-        @click="menuOpen = !menuOpen"
+        @click="toggleMobileMenu"
       >
         <span class="menu-bars" aria-hidden="true">
           <span></span>

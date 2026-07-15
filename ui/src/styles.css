@@ -94,6 +94,7 @@ body {
   background:
     linear-gradient(180deg, var(--app-bg-start) 0%, var(--app-bg-end) 340px), var(--app-bg-end);
   color: var(--ink);
+  overflow-x: hidden;
 }
 
 button,
@@ -618,6 +619,11 @@ h4 {
   padding: 28px;
   min-width: 0;
   width: 100%;
+}
+
+.content > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .toolbar,
@@ -3147,6 +3153,14 @@ textarea {
   gap: 12px;
 }
 
+.comic-list-header > *,
+.browse-list-tools > *,
+.row-main > *,
+.detail-nav > *,
+.detail-nav-actions > * {
+  min-width: 0;
+}
+
 .browse-header-actions {
   display: flex;
   flex: 0 0 auto;
@@ -3548,6 +3562,23 @@ textarea {
   }
 }
 
+@media (max-width: 1280px) and (min-width: 961px) {
+  .comic-list-header {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .browse-list-tools {
+    grid-template-columns: minmax(240px, 1fr) minmax(320px, 1.5fr);
+    width: 100%;
+  }
+
+  .browse-header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 @media (max-width: 960px) {
   .app-shell,
   .split-view,
@@ -3575,6 +3606,7 @@ textarea {
     padding: 12px 18px;
     gap: 12px;
     box-shadow: 0 6px 18px var(--shadow-soft);
+    overflow: visible;
   }
 
   .mobile-menu-button {
@@ -3596,12 +3628,22 @@ textarea {
 
   .sidebar.menu-open .nav-tabs {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 18px;
+    width: min(360px, calc(100vw - 36px));
+    grid-template-columns: 1fr;
     gap: 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--surface-strong);
+    padding: 10px;
+    box-shadow: 0 18px 40px var(--shadow-panel);
   }
 
   .account-menu-trigger {
     width: 42px;
+    height: 42px;
     min-height: 42px;
     display: inline-flex;
     justify-content: center;
@@ -3647,8 +3689,8 @@ textarea {
   }
 
   .nav-tabs :where(a, button) {
-    justify-content: center;
-    text-align: center;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .content {
@@ -3662,8 +3704,7 @@ textarea {
 
   .toolbar-actions,
   .panel-actions,
-  .editor-actions,
-  .editor-header {
+  .editor-actions {
     align-items: stretch;
     flex-direction: column;
   }
@@ -3754,6 +3795,10 @@ textarea {
     padding: 12px;
   }
 
+  .sidebar-actions {
+    right: 66px;
+  }
+
   .sidebar .eyebrow {
     margin: 0;
   }
@@ -3777,7 +3822,8 @@ textarea {
   }
 
   .sidebar.menu-open .nav-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    right: 12px;
+    width: min(360px, calc(100vw - 24px));
   }
 
   .user-permission-header {
@@ -3848,8 +3894,22 @@ textarea {
   }
 
   .toolbar {
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .toolbar .eyebrow {
+    display: none;
+  }
+
+  .toolbar h2 {
+    font-size: 1.2rem;
+  }
+
+  .toolbar-summary {
+    margin-top: 3px;
+    font-size: 0.82rem;
   }
 
   .toolbar-actions {
@@ -3873,11 +3933,17 @@ textarea {
 
   .detail-nav {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .detail-nav-actions {
-    width: auto;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detail-nav > button {
+    justify-self: start;
   }
 
   input,
@@ -3953,15 +4019,21 @@ textarea {
   }
 
   .comic-list-tools {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .comic-list-tools > input,
   .comic-list-tools .inline-filter-tabs {
+    grid-column: 1 / -1;
     min-width: 0;
   }
 
   .comic-list-tools .issue-status-tabs {
     min-width: 0;
+  }
+
+  .browse-header-actions {
+    justify-content: flex-end;
   }
 
   .metron-modes {
@@ -4077,6 +4149,11 @@ textarea {
 
   .sidebar {
     padding: 10px;
+  }
+
+  .sidebar-actions {
+    top: 10px;
+    right: 64px;
   }
 
   .nav-tabs :where(a, button) {
