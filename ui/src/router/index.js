@@ -50,7 +50,7 @@ export const router = createRouter({
       path: '/reading-orders',
       name: 'readingOrders',
       component: EmptyRouteView,
-      meta: { eyebrow: 'Reading Orders', title: 'Manage reading orders', showCount: true },
+      meta: { eyebrow: 'Reading Orders', title: 'Reading Orders', showCount: true },
     },
     {
       path: '/reading-orders/new',
