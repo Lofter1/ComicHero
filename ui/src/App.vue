@@ -1,158 +1,148 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AccountView from '@/components/AccountView.vue'
-import AppSettingsView from '@/components/AppSettingsView.vue'
-import ArcDetailView from '@/components/ArcDetailView.vue'
-import ArcsBrowseView from '@/components/ArcsBrowseView.vue'
-import AppSidebar from '@/components/AppSidebar.vue'
-import AppToolbar from '@/components/AppToolbar.vue'
-import CharactersBrowseView from '@/components/CharactersBrowseView.vue'
-import CharacterDetailView from '@/components/CharacterDetailView.vue'
-import ComicDetailView from '@/components/ComicDetailView.vue'
-import ComicListView from '@/components/ComicListView.vue'
-import DashboardView from '@/components/DashboardView.vue'
-import MetronImport from '@/components/MetronImport.vue'
-import MetronImportMonitor from '@/components/MetronImportMonitor.vue'
-import ProgressView from '@/components/ProgressView.vue'
-import ReadingOrderDetailView from '@/components/ReadingOrderDetailView.vue'
-import ReadingOrderEditView from '@/components/ReadingOrderEditView.vue'
-import ReadingOrdersBrowseView from '@/components/ReadingOrdersBrowseView.vue'
-import SeriesBrowseView from '@/components/SeriesBrowseView.vue'
-import SeriesDetailView from '@/components/SeriesDetailView.vue'
-import UserManagementView from '@/components/UserManagementView.vue'
-import { useArcs } from '@/composables/useArcs.js'
-import { useCharacters } from '@/composables/useCharacters.js'
-import { useComics } from '@/composables/useComics.js'
-import { useMetronJobs } from '@/composables/useMetronJobs.js'
-import { usePagination } from '@/composables/usePagination.js'
-import { useReadingOrders } from '@/composables/useReadingOrders.js'
-import { useSeries } from '@/composables/useSeries.js'
-import { routeAccessRedirect, setRouteAccessContext } from '@/router/index.js'
+import AccountView from '@/features/account/components/AccountView.vue'
+import AuthenticationView from '@/features/auth/components/AuthenticationView.vue'
+import AppSettingsView from '@/features/settings/components/AppSettingsView.vue'
+import ArcDetailView from '@/features/arcs/components/ArcDetailView.vue'
+import ArcsBrowseView from '@/features/arcs/components/ArcsBrowseView.vue'
+import AppSidebar from '@/app/components/AppSidebar.vue'
+import AppToolbar from '@/app/components/AppToolbar.vue'
+import CharactersBrowseView from '@/features/characters/components/CharactersBrowseView.vue'
+import CharacterDetailView from '@/features/characters/components/CharacterDetailView.vue'
+import ComicDetailView from '@/features/comics/components/ComicDetailView.vue'
+import ComicListView from '@/features/comics/components/ComicListView.vue'
+import DashboardView from '@/features/dashboard/components/DashboardView.vue'
+import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
+import MetronImport from '@/features/metron/components/MetronImport.vue'
+import MetronImportMonitor from '@/features/metron/components/MetronImportMonitor.vue'
+import ProgressView from '@/features/account/components/ProgressView.vue'
+import ReadingOrderDetailView from '@/features/reading-orders/components/ReadingOrderDetailView.vue'
+import ReadingOrderEditView from '@/features/reading-orders/components/ReadingOrderEditView.vue'
+import ReadingOrdersBrowseView from '@/features/reading-orders/components/ReadingOrdersBrowseView.vue'
+import SeriesBrowseView from '@/features/series/components/SeriesBrowseView.vue'
+import SeriesDetailView from '@/features/series/components/SeriesDetailView.vue'
+import UserManagementView from '@/features/users/components/UserManagementView.vue'
+import { useAccount } from '@/features/account/useAccount.js'
+import { useArcs } from '@/features/arcs/useArcs.js'
+import { useAuthSession } from '@/features/auth/useAuthSession.js'
+import { useCharacters } from '@/features/characters/useCharacters.js'
+import { useComics } from '@/features/comics/useComics.js'
+import { useDashboard } from '@/features/dashboard/useDashboard.js'
+import { useListOptions } from '@/shared/composables/useListOptions.js'
+import { useMetronJobs } from '@/features/metron/useMetronJobs.js'
+import { useMetronSettings } from '@/features/settings/useMetronSettings.js'
+import { usePagination } from '@/shared/composables/usePagination.js'
+import { useReadingOrders } from '@/features/reading-orders/useReadingOrders.js'
+import { useSeries } from '@/features/series/useSeries.js'
+import { useTheme } from '@/shared/composables/useTheme.js'
+import { useUserAdministration } from '@/features/users/useUserAdministration.js'
 import {
-  createUserInvite,
-  deleteAccount as deleteAccountRequest,
-  deleteUser as deleteUserRequest,
-  getAccountStatistics,
-  getDashboard,
-  getMetronComicScan,
-  getMetronComicDiscovery,
-  getSystemInfo,
-  getUserStatus,
-  listUsers,
-  listAuditEvents,
-  loginUser,
-  metronComicScanEventsURL,
-  metronComicDiscoveryEventsURL,
-  logoutUser,
-  registerUser,
-  resendEmailVerification,
-  requestPasswordReset,
-  resetPassword,
-  setupUsers,
-  stopMetronComicScan,
-  stopMetronComicDiscovery,
-  triggerMetronComicScan,
-  triggerMetronComicDiscovery,
-  updateAccount,
-  updatePublicAccess,
-  updateMetronComicScan,
-  updateMetronComicDiscovery,
-  updateComicReadStatus,
-  updateRegistrationMode,
-  updateUserAdmin,
-  updateUserMetronPermissions,
-  verifyEmail,
-} from '@/api/client.js'
+  browseRouteLocation,
+  detailRouteLocation,
+  editRouteLocation,
+  routeToAppState,
+} from '@/router/appRouteState.js'
+import { routeAccessRedirect, setRouteAccessContext } from '@/router/index.js'
+import { getSystemInfo } from '@/api/client.js'
 
 const activeView = ref('dashboard')
 const viewMode = ref('browse')
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
-const authLoading = ref(true)
-const authSaving = ref(false)
-const userStatus = ref(null)
 const systemInfo = ref(null)
-const authMode = ref('login')
-const loginRequested = ref(false)
-const setupForm = ref({ mode: 'single', name: '', email: '', password: '' })
-const authForm = ref({
-  name: '',
-  email: '',
-  emailConfirmation: '',
-  password: '',
-  passwordConfirmation: '',
-  inviteToken: '',
-})
-const verificationForm = ref({ token: '', email: '', password: '' })
-const passwordResetForm = ref({
-  email: '',
-  token: '',
-  password: '',
-  passwordConfirmation: '',
-  requested: false,
-  completed: false,
-})
-const userAdminRows = ref([])
-const auditEvents = ref([])
-const generatedInvite = ref(null)
-const accountSaving = ref(false)
-const accountDeleting = ref(false)
-const accountStatistics = ref(null)
-const accountStatisticsLoading = ref(false)
-const accountStatisticsError = ref('')
-const dashboard = ref(null)
-const dashboardLoading = ref(false)
-const savingUserID = ref(null)
-const savingAdminUserID = ref(null)
-const deletingUserID = ref(null)
-const generatingInvite = ref(false)
-const savingRegistrationMode = ref(false)
-const savingPublicAccess = ref(false)
-const metronComicScan = ref(null)
-const savingMetronComicScan = ref(false)
-let metronComicScanEvents = null
-const metronComicDiscovery = ref(null)
-const savingMetronComicDiscovery = ref(false)
-let metronComicDiscoveryEvents = null
 const search = ref('')
-const defaultListOptions = {
-  readingOrders: { filter: 'all', sort: 'name', direction: 'asc' },
-  arcs: { filter: 'all', sort: 'name', direction: 'asc' },
-  comics: { status: 'all', sort: 'series', direction: 'asc' },
-  series: { filter: 'all', sort: 'name', direction: 'asc' },
-  characters: { filter: 'all', sort: 'name', direction: 'asc' },
-}
-const listOptionsStorageKey = 'comichero-list-options-v2'
-const listOptions = ref(getInitialListOptions())
 const loadMoreSentinel = ref(null)
-const themePreference = ref(getInitialThemePreference())
-const systemTheme = ref(getSystemTheme())
 let loadMoreObserver = null
 let searchDebounceTimer = null
-let themeMediaQuery = null
 let routeSyncPaused = false
 const route = useRoute()
 const router = useRouter()
+const { themePreference, setThemePreference } = useTheme()
+const {
+  authLoading,
+  authSaving,
+  userStatus,
+  authMode,
+  setupForm,
+  authForm,
+  verificationForm,
+  passwordResetForm,
+  setupRequired,
+  userMode,
+  registrationMode,
+  publicAccess,
+  currentUser,
+  isAdmin,
+  isReadOnlyGuest,
+  emailVerificationRequired,
+  passwordResetMode,
+  authRequired,
+  appReady,
+  loadUserStatus,
+  submitSetup,
+  submitAuth,
+  submitEmailVerification,
+  resendVerificationEmail,
+  verifyEmailFromRouteToken,
+  showForgotPassword,
+  showLogin,
+  requestLogin,
+  submitForgotPassword,
+  submitPasswordReset,
+  preparePasswordResetFromRouteToken,
+  signOut,
+} = useAuthSession({ route, error, onReady: applyCurrentRoute })
+const {
+  users: userAdminRows,
+  auditEvents,
+  savingPermissionsUserId: savingUserID,
+  savingAdminUserId: savingAdminUserID,
+  deletingUserId: deletingUserID,
+  loadUsers: loadUserAdminRows,
+  savePermissions: saveUserMetronPermissions,
+  saveAdmin: saveUserAdmin,
+  removeUser,
+} = useUserAdministration({ error })
+const {
+  saving: accountSaving,
+  deleting: accountDeleting,
+  statistics: accountStatistics,
+  statisticsLoading: accountStatisticsLoading,
+  statisticsError: accountStatisticsError,
+  saveAccount,
+  deleteCurrentAccount,
+  loadStatistics: loadAccountStatistics,
+} = useAccount({ error, userStatus, currentUser, activeView, viewMode, authMode })
+const {
+  comicScan: metronComicScan,
+  comicDiscovery: metronComicDiscovery,
+  savingComicScan: savingMetronComicScan,
+  savingComicDiscovery: savingMetronComicDiscovery,
+  generatedInvite,
+  generatingInvite,
+  savingRegistrationMode,
+  savingPublicAccess,
+  loadSettings: loadMetronSettings,
+  saveComicScan: saveMetronComicScan,
+  runComicScan: runMetronComicScan,
+  cancelComicScan: cancelMetronComicScan,
+  saveComicDiscovery: saveMetronComicDiscovery,
+  runComicDiscovery: runMetronComicDiscovery,
+  cancelComicDiscovery: cancelMetronComicDiscovery,
+  generateInvite: generateUserInvite,
+  saveRegistration: saveRegistrationMode,
+  savePublic: savePublicAccess,
+} = useMetronSettings({ activeView, error, userStatus, registrationMode, publicAccess })
+const { listOptions, activeListParams, updateListOption } = useListOptions({
+  activeView,
+  onChange: refreshActiveListData,
+})
 
 const searchTerm = computed(() => search.value.trim().toLowerCase())
-const activeListParams = computed(() => {
-  const options = listOptions.value[activeView.value] || {}
-  const params = {}
-  if (options.filter === 'favorites') params.favorite = true
-  if (options.filter === 'other') params.favorite = false
-  if (options.filter === 'started') params.started = true
-  if (options.status && options.status !== 'all') params.status = options.status
-  if (options.sort) params.sort = options.sort
-  if (options.direction) params.direction = options.direction
-  return params
-})
 const isEditing = computed(() => viewMode.value === 'edit')
 const isDetail = computed(() => viewMode.value === 'detail')
-const resolvedTheme = computed(() =>
-  themePreference.value === 'system' ? systemTheme.value : themePreference.value,
-)
 const currentRouteLocation = computed(() => routeLocationForCurrentState())
 
 const { pageState, showInfiniteScrollSentinel, activeListLoadingMore, listTotal, loadPagedList } =
@@ -185,7 +175,6 @@ const {
   startSaving: seriesStartSaving,
   deleting: seriesDeleting,
   visibleSeries,
-  seriesBrowseSections,
   openSeries,
   toggleSeriesFavorite,
   toggleSelectedSeriesStarted,
@@ -209,7 +198,6 @@ const {
   startSaving: characterStartSaving,
   deleting: characterDeleting,
   visibleCharacters,
-  characterBrowseSections,
   openCharacter,
   toggleCharacterFavorite,
   toggleSelectedCharacterStarted,
@@ -233,7 +221,6 @@ const {
   startSaving: arcStartSaving,
   arcForm,
   visibleArcs,
-  arcBrowseSections,
   arcProgress,
   openArc,
   toggleArcFavorite,
@@ -260,7 +247,6 @@ const {
   cblImporting,
   orderForm,
   visibleOrders,
-  readingOrderBrowseSections,
   readingOrderProgress,
   openReadingOrder,
   toggleReadingOrderFavorite,
@@ -320,6 +306,13 @@ const {
   selectedSeries,
   collectionProgress: arcProgress,
 })
+const {
+  dashboard,
+  loading: dashboardLoading,
+  loadDashboard,
+  markComicRead: markDashboardComicRead,
+  markComicSkipped: markDashboardComicSkipped,
+} = useDashboard({ error, quickSavingComicId: quickSavingComicID })
 
 const toolbarResultCount = computed(() => {
   if (activeView.value === 'dashboard') return dashboard.value?.items?.length || 0
@@ -358,570 +351,16 @@ const loadingLabel = computed(() => {
 })
 const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
 const seriesListLoading = computed(() => Boolean(pageState.value.series?.refreshing))
-const setupRequired = computed(() => Boolean(userStatus.value?.setupRequired))
-const userMode = computed(() => userStatus.value?.mode || '')
-const registrationMode = computed(() => userStatus.value?.registrationMode || 'invite_only')
-const publicAccess = computed(() => Boolean(userStatus.value?.publicAccess))
-const currentUser = computed(() => userStatus.value?.user || null)
-const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin))
-const isReadOnlyGuest = computed(
-  () => userMode.value === 'multi' && publicAccess.value && !currentUser.value,
-)
 const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
 const canMetronSearch = computed(() => hasMetronScope('search'))
 const canMetronMonitor = computed(() => hasMetronScope('monitor'))
 const canAccessMetronArea = computed(() => canMetronSearch.value)
-const authRequired = computed(
-  () =>
-    userMode.value === 'multi' &&
-    !currentUser.value &&
-    !emailVerificationRequired.value &&
-    (!publicAccess.value || loginRequested.value),
-)
-const emailVerificationRequired = computed(() =>
-  Boolean(userStatus.value?.emailVerificationRequired),
-)
-const passwordResetMode = computed(() => authMode.value === 'forgot')
-const appReady = computed(
-  () =>
-    Boolean(userStatus.value) &&
-    !authLoading.value &&
-    !setupRequired.value &&
-    !authRequired.value &&
-    !emailVerificationRequired.value &&
-    !passwordResetMode.value,
-)
 
 function hasMetronScope(scope) {
   const permissions = metronPermissions.value
   if (!permissions.allowed) return false
   const scopes = Array.isArray(permissions.scopes) ? permissions.scopes : []
   return scopes.includes('*') || scopes.includes(scope)
-}
-
-function getInitialThemePreference() {
-  if (typeof window === 'undefined') return 'system'
-  const savedTheme = window.localStorage.getItem('comichero-theme')
-  if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'system') return savedTheme
-  return 'system'
-}
-
-function getInitialListOptions() {
-  if (typeof window === 'undefined') return cloneDefaultListOptions()
-  try {
-    return mergeListOptions(JSON.parse(window.localStorage.getItem(listOptionsStorageKey) || '{}'))
-  } catch {
-    return cloneDefaultListOptions()
-  }
-}
-
-function cloneDefaultListOptions() {
-  return mergeListOptions({})
-}
-
-function mergeListOptions(savedOptions) {
-  return Object.fromEntries(
-    Object.entries(defaultListOptions).map(([view, defaults]) => {
-      const saved = savedOptions?.[view]
-      return [view, { ...defaults, ...(saved && typeof saved === 'object' ? saved : {}) }]
-    }),
-  )
-}
-
-function getSystemTheme() {
-  if (typeof window === 'undefined') return 'light'
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-function applyTheme(value) {
-  if (typeof document === 'undefined') return
-  document.documentElement.dataset.theme = value
-  document.documentElement.style.colorScheme = value
-}
-
-function setThemePreference(value) {
-  themePreference.value = value
-}
-
-async function loadUserStatus() {
-  authLoading.value = true
-  error.value = ''
-  try {
-    userStatus.value = await getUserStatus()
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authLoading.value = false
-  }
-}
-
-async function submitSetup() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    const payload = { mode: setupForm.value.mode }
-    if (setupForm.value.mode === 'multi') {
-      payload.name = setupForm.value.name
-      payload.email = setupForm.value.email
-      payload.password = setupForm.value.password
-    }
-    userStatus.value = await setupUsers(payload)
-    if (!authRequired.value) {
-      await applyCurrentRoute({ replace: true, force: true })
-    }
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-async function submitAuth() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    if (authMode.value === 'register') {
-      if (authForm.value.email !== authForm.value.emailConfirmation) {
-        throw new Error('Email confirmation must match email.')
-      }
-      if (authForm.value.password !== authForm.value.passwordConfirmation) {
-        throw new Error('Password confirmation must match password.')
-      }
-    }
-    const payload = { email: authForm.value.email, password: authForm.value.password }
-    if (authMode.value === 'register') {
-      payload.name = authForm.value.name
-      payload.emailConfirmation = authForm.value.emailConfirmation
-      payload.passwordConfirmation = authForm.value.passwordConfirmation
-    }
-    if (authMode.value === 'register' && registrationMode.value === 'invite_only') {
-      payload.inviteToken = authForm.value.inviteToken
-    }
-    userStatus.value =
-      authMode.value === 'register' ? await registerUser(payload) : await loginUser(payload)
-    if (userStatus.value?.emailVerificationRequired) {
-      verificationForm.value.email = userStatus.value.emailVerificationEmail || authForm.value.email
-      verificationForm.value.password = authForm.value.password
-      return
-    }
-    loginRequested.value = false
-    await applyCurrentRoute({ replace: true, force: true })
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-async function submitEmailVerification() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    userStatus.value = await verifyEmail({ token: verificationForm.value.token })
-    verificationForm.value.token = ''
-    loginRequested.value = false
-    await applyCurrentRoute({ replace: true, force: true })
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-async function resendVerificationEmail() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    userStatus.value = await resendEmailVerification({
-      email: verificationForm.value.email || userStatus.value?.emailVerificationEmail,
-      password: verificationForm.value.password,
-    })
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-async function verifyEmailFromRouteToken() {
-  const token = typeof route.query.token === 'string' ? route.query.token.trim() : ''
-  if (!token) return
-  verificationForm.value.token = token
-  await submitEmailVerification()
-}
-
-function showForgotPassword() {
-  authMode.value = 'forgot'
-  passwordResetForm.value.email = authForm.value.email
-  passwordResetForm.value.token = ''
-  passwordResetForm.value.password = ''
-  passwordResetForm.value.passwordConfirmation = ''
-  passwordResetForm.value.requested = false
-  passwordResetForm.value.completed = false
-  error.value = ''
-}
-
-function showLogin() {
-  authMode.value = 'login'
-  loginRequested.value = true
-  error.value = ''
-}
-
-async function submitForgotPassword() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    userStatus.value = await requestPasswordReset({ email: passwordResetForm.value.email })
-    passwordResetForm.value.requested = true
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-async function submitPasswordReset() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    if (passwordResetForm.value.password !== passwordResetForm.value.passwordConfirmation) {
-      throw new Error('Password confirmation must match password.')
-    }
-    userStatus.value = await resetPassword({
-      token: passwordResetForm.value.token,
-      password: passwordResetForm.value.password,
-      passwordConfirmation: passwordResetForm.value.passwordConfirmation,
-    })
-    passwordResetForm.value.completed = true
-    authMode.value = 'login'
-    authForm.value.email = passwordResetForm.value.email
-    authForm.value.password = ''
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-function preparePasswordResetFromRouteToken() {
-  const token = typeof route.query.token === 'string' ? route.query.token.trim() : ''
-  if (!token) return
-  authMode.value = 'forgot'
-  loginRequested.value = true
-  passwordResetForm.value.token = token
-  passwordResetForm.value.requested = true
-  passwordResetForm.value.completed = false
-}
-
-async function loadUserAdminRows() {
-  const [users, events] = await Promise.all([listUsers(), listAuditEvents({ limit: 200 })])
-  userAdminRows.value = users
-  auditEvents.value = events
-}
-
-async function saveMetronComicScan(settings) {
-  savingMetronComicScan.value = true
-  error.value = ''
-  try {
-    metronComicScan.value = await updateMetronComicScan(settings)
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    savingMetronComicScan.value = false
-  }
-}
-
-async function runMetronComicScan() {
-  try {
-    metronComicScan.value = await triggerMetronComicScan()
-  } catch (err) {
-    error.value = err.message
-  }
-}
-
-function connectMetronComicScanEvents() {
-  if (metronComicScanEvents || typeof EventSource === 'undefined') return false
-  metronComicScanEvents = new EventSource(metronComicScanEventsURL(), { withCredentials: true })
-  metronComicScanEvents.addEventListener('scan', (event) => {
-    try {
-      const payload = JSON.parse(event.data)
-      metronComicScan.value = payload.scan || payload
-    } catch (err) {
-      error.value = err.message
-    }
-  })
-  metronComicScanEvents.onerror = () => {
-    if (metronComicScanEvents?.readyState === EventSource.CLOSED) {
-      closeMetronComicScanEvents()
-      getMetronComicScan()
-        .then((status) => {
-          metronComicScan.value = status
-        })
-        .catch((err) => {
-          error.value = err.message
-        })
-    }
-  }
-  return true
-}
-
-function closeMetronComicScanEvents() {
-  metronComicScanEvents?.close()
-  metronComicScanEvents = null
-}
-
-async function cancelMetronComicScan() {
-  try {
-    metronComicScan.value = await stopMetronComicScan()
-  } catch (err) {
-    error.value = err.message
-  }
-}
-
-async function saveMetronComicDiscovery(settings) {
-  savingMetronComicDiscovery.value = true
-  error.value = ''
-  try {
-    metronComicDiscovery.value = await updateMetronComicDiscovery(settings)
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    savingMetronComicDiscovery.value = false
-  }
-}
-
-async function runMetronComicDiscovery() {
-  try {
-    metronComicDiscovery.value = await triggerMetronComicDiscovery()
-  } catch (err) {
-    error.value = err.message
-  }
-}
-
-async function cancelMetronComicDiscovery() {
-  try {
-    metronComicDiscovery.value = await stopMetronComicDiscovery()
-  } catch (err) {
-    error.value = err.message
-  }
-}
-
-function connectMetronComicDiscoveryEvents() {
-  if (metronComicDiscoveryEvents || typeof EventSource === 'undefined') return false
-  metronComicDiscoveryEvents = new EventSource(metronComicDiscoveryEventsURL(), {
-    withCredentials: true,
-  })
-  metronComicDiscoveryEvents.addEventListener('discovery', (event) => {
-    try {
-      const payload = JSON.parse(event.data)
-      metronComicDiscovery.value = payload.discovery || payload
-    } catch (err) {
-      error.value = err.message
-    }
-  })
-  metronComicDiscoveryEvents.onerror = () => {
-    if (metronComicDiscoveryEvents?.readyState === EventSource.CLOSED) {
-      closeMetronComicDiscoveryEvents()
-      getMetronComicDiscovery()
-        .then((status) => {
-          metronComicDiscovery.value = status
-        })
-        .catch((err) => {
-          error.value = err.message
-        })
-    }
-  }
-  return true
-}
-
-function closeMetronComicDiscoveryEvents() {
-  metronComicDiscoveryEvents?.close()
-  metronComicDiscoveryEvents = null
-}
-
-async function generateUserInvite() {
-  generatingInvite.value = true
-  error.value = ''
-  try {
-    generatedInvite.value = await createUserInvite()
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    generatingInvite.value = false
-  }
-}
-
-async function saveRegistrationMode(mode) {
-  if (mode === registrationMode.value) return
-  if (
-    mode === 'open' &&
-    registrationMode.value !== 'open' &&
-    typeof window !== 'undefined' &&
-    !window.confirm(
-      'Anyone who can reach this server will be able to create an account with full read/write access to your shared library. Only enable open registration if you understand the risk.',
-    )
-  ) {
-    return
-  }
-
-  savingRegistrationMode.value = true
-  error.value = ''
-  try {
-    userStatus.value = await updateRegistrationMode({ mode })
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    savingRegistrationMode.value = false
-  }
-}
-
-async function savePublicAccess(enabled) {
-  if (enabled === publicAccess.value) return
-  if (
-    enabled &&
-    typeof window !== 'undefined' &&
-    !window.confirm(
-      'Anonymous visitors will be able to browse your shared library and export reading lists as CBL. They will not be able to edit data.',
-    )
-  ) {
-    return
-  }
-
-  savingPublicAccess.value = true
-  error.value = ''
-  try {
-    userStatus.value = await updatePublicAccess({ enabled })
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    savingPublicAccess.value = false
-  }
-}
-
-async function saveUserMetronPermissions(userID, payload) {
-  savingUserID.value = userID
-  error.value = ''
-  try {
-    const updated = await updateUserMetronPermissions(userID, payload)
-    userAdminRows.value = userAdminRows.value.map((entry) =>
-      entry.user.id === userID ? updated : entry,
-    )
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    savingUserID.value = null
-  }
-}
-
-async function saveUserAdmin(userID, payload) {
-  savingAdminUserID.value = userID
-  error.value = ''
-  try {
-    const updated = await updateUserAdmin(userID, payload)
-    userAdminRows.value = userAdminRows.value.map((entry) =>
-      entry.user.id === userID ? updated : entry,
-    )
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    savingAdminUserID.value = null
-  }
-}
-
-async function removeUser(userID) {
-  if (
-    typeof window !== 'undefined' &&
-    !window.confirm(
-      'Delete this account? Their sessions, read status, Metron permissions, and account data will be removed.',
-    )
-  ) {
-    return
-  }
-
-  deletingUserID.value = userID
-  error.value = ''
-  try {
-    await deleteUserRequest(userID)
-    userAdminRows.value = userAdminRows.value.filter((entry) => entry.user.id !== userID)
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    deletingUserID.value = null
-  }
-}
-
-async function saveAccount(payload, validationMessage = '') {
-  if (validationMessage) {
-    error.value = validationMessage
-    return
-  }
-  if (!payload) return
-
-  accountSaving.value = true
-  error.value = ''
-  try {
-    userStatus.value = await updateAccount(payload)
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    accountSaving.value = false
-  }
-}
-
-async function deleteCurrentAccount(payload) {
-  accountDeleting.value = true
-  error.value = ''
-  try {
-    activeView.value = 'readingOrders'
-    viewMode.value = 'browse'
-    userStatus.value = await deleteAccountRequest(payload)
-    authMode.value = 'login'
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    accountDeleting.value = false
-  }
-}
-
-async function loadAccountStatistics() {
-  if (!currentUser.value) {
-    accountStatistics.value = null
-    accountStatisticsError.value = ''
-    return
-  }
-
-  accountStatisticsLoading.value = true
-  accountStatisticsError.value = ''
-  try {
-    accountStatistics.value = await getAccountStatistics()
-  } catch (err) {
-    accountStatisticsError.value = err.message
-  } finally {
-    accountStatisticsLoading.value = false
-  }
-}
-
-async function signOut() {
-  authSaving.value = true
-  error.value = ''
-  try {
-    await logoutUser()
-    userStatus.value = await getUserStatus()
-    loginRequested.value = false
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    authSaving.value = false
-  }
-}
-
-function requestLogin() {
-  authMode.value = 'login'
-  loginRequested.value = true
-}
-
-function handleSystemThemeChange(event) {
-  systemTheme.value = event.matches ? 'dark' : 'light'
 }
 
 function syncRouteAccessContext() {
@@ -940,78 +379,6 @@ async function enforceCurrentRouteAccess() {
   if (!redirect) return false
   await router.replace(redirect)
   return true
-}
-
-function parseRouteID(value) {
-  const id = Number(value)
-  return Number.isInteger(id) && id > 0 ? id : null
-}
-
-function entityRouteState(routeView, detailMode = 'detail') {
-  const id = parseRouteID(route.params.id)
-  if (!id) return { view: routeView, mode: 'browse', replace: true }
-  return { view: routeView, mode: detailMode, id }
-}
-
-function routeToAppState() {
-  if (route.name === 'dashboard') return { view: 'dashboard', mode: 'browse' }
-  if (route.name === 'readingOrders') return { view: 'readingOrders', mode: 'browse' }
-  if (route.name === 'readingOrdersNew') return { view: 'readingOrders', mode: 'edit', isNew: true }
-  if (route.name === 'readingOrderDetail') return entityRouteState('readingOrders')
-  if (route.name === 'readingOrderEdit') return entityRouteState('readingOrders', 'edit')
-  if (route.name === 'arcs') return { view: 'arcs', mode: 'browse' }
-  if (route.name === 'arcsNew') return { view: 'arcs', mode: 'edit', isNew: true }
-  if (route.name === 'arcDetail') return entityRouteState('arcs')
-  if (route.name === 'arcEdit') return entityRouteState('arcs', 'edit')
-  if (route.name === 'comics') return { view: 'comics', mode: 'browse' }
-  if (route.name === 'comicsNew') return { view: 'comics', mode: 'edit', isNew: true }
-  if (route.name === 'comicDetail') return entityRouteState('comics')
-  if (route.name === 'comicEdit') return entityRouteState('comics', 'edit')
-  if (route.name === 'series') return { view: 'series', mode: 'browse' }
-  if (route.name === 'seriesDetail') return entityRouteState('series')
-  if (route.name === 'characters') return { view: 'characters', mode: 'browse' }
-  if (route.name === 'characterDetail') return entityRouteState('characters')
-  if (route.name === 'metron') return { view: 'metron', mode: 'browse' }
-  if (route.name === 'users') return { view: 'users', mode: 'browse' }
-  if (route.name === 'settings') return { view: 'settings', mode: 'browse' }
-  if (route.name === 'account') return { view: 'account', mode: 'browse' }
-  if (route.name === 'progress') return { view: 'progress', mode: 'browse' }
-  if (route.name === 'notFound') return { view: 'notFound', mode: 'browse' }
-  return { view: 'dashboard', mode: 'browse', replace: true }
-}
-
-function browseRouteLocation(view) {
-  if (view === 'dashboard') return { name: 'dashboard' }
-  if (view === 'readingOrders') return { name: 'readingOrders' }
-  if (view === 'arcs') return { name: 'arcs' }
-  if (view === 'comics') return { name: 'comics' }
-  if (view === 'series') return { name: 'series' }
-  if (view === 'characters') return { name: 'characters' }
-  if (view === 'metron') return { name: 'metron' }
-  if (view === 'users') return { name: 'users' }
-  if (view === 'settings') return { name: 'settings' }
-  if (view === 'account') return { name: 'account' }
-  if (view === 'progress') return { name: 'progress' }
-  return null
-}
-
-function detailRouteLocation(view, id) {
-  if (!id) return null
-  if (view === 'readingOrders') return { name: 'readingOrderDetail', params: { id } }
-  if (view === 'arcs') return { name: 'arcDetail', params: { id } }
-  if (view === 'comics') return { name: 'comicDetail', params: { id } }
-  if (view === 'series') return { name: 'seriesDetail', params: { id } }
-  if (view === 'characters') return { name: 'characterDetail', params: { id } }
-  return null
-}
-
-function editRouteLocation(view, id) {
-  if (view === 'readingOrders') {
-    return id ? { name: 'readingOrderEdit', params: { id } } : { name: 'readingOrdersNew' }
-  }
-  if (view === 'arcs') return id ? { name: 'arcEdit', params: { id } } : { name: 'arcsNew' }
-  if (view === 'comics') return id ? { name: 'comicEdit', params: { id } } : { name: 'comicsNew' }
-  return browseRouteLocation(view)
 }
 
 function routeLocationForCurrentState() {
@@ -1053,7 +420,7 @@ async function syncRouterRoute(location, { replace = false } = {}) {
 }
 
 async function applyCurrentRoute(options = {}) {
-  await applyRoute(routeToAppState(), options)
+  await applyRoute(routeToAppState(route), options)
 }
 
 async function applyRoute(route, { replace = false, force = false } = {}) {
@@ -1204,9 +571,7 @@ async function loadActiveViewData(options = {}) {
     return
   }
   if (activeView.value === 'settings') {
-    if (!connectMetronComicScanEvents()) metronComicScan.value = await getMetronComicScan()
-    if (!connectMetronComicDiscoveryEvents())
-      metronComicDiscovery.value = await getMetronComicDiscovery()
+    await loadMetronSettings()
     return
   }
   if (activeView.value === 'account') {
@@ -1215,37 +580,6 @@ async function loadActiveViewData(options = {}) {
   if (activeView.value === 'progress') {
     await loadAccountStatistics()
     return
-  }
-}
-
-async function loadDashboard() {
-  dashboardLoading.value = true
-  try {
-    dashboard.value = await getDashboard()
-  } finally {
-    dashboardLoading.value = false
-  }
-}
-
-async function markDashboardComicRead(comic) {
-  await setDashboardComicStatus(comic, { read: true })
-}
-
-async function markDashboardComicSkipped(comic) {
-  await setDashboardComicStatus(comic, { skipped: true })
-}
-
-async function setDashboardComicStatus(comic, payload) {
-  if (!comic?.id || quickSavingComicID.value) return
-  quickSavingComicID.value = comic.id
-  error.value = ''
-  try {
-    await updateComicReadStatus(comic.id, payload)
-    await loadDashboard()
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    quickSavingComicID.value = null
   }
 }
 
@@ -1316,17 +650,6 @@ function updateSearch(value) {
   search.value = value
 }
 
-function updateListOption(view, key, value) {
-  listOptions.value = {
-    ...listOptions.value,
-    [view]: {
-      ...(listOptions.value[view] || {}),
-      [key]: value,
-    },
-  }
-  refreshActiveListData()
-}
-
 function setupLoadMoreObserver() {
   if (typeof IntersectionObserver === 'undefined') return
   loadMoreObserver = new IntersectionObserver(
@@ -1350,10 +673,6 @@ function observeLoadMoreSentinel() {
 
 onMounted(async () => {
   setupLoadMoreObserver()
-  if (typeof window !== 'undefined') {
-    themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
-    themeMediaQuery?.addEventListener('change', handleSystemThemeChange)
-  }
   const [, info] = await Promise.all([loadUserStatus(), getSystemInfo().catch(() => null)])
   systemInfo.value = info
   if (route.name === 'verifyEmail') {
@@ -1373,11 +692,7 @@ watch(showInfiniteScrollSentinel, () => {
   nextTick(observeLoadMoreSentinel)
 })
 
-watch(activeView, (view) => {
-  if (view !== 'settings') {
-    closeMetronComicScanEvents()
-    closeMetronComicDiscoveryEvents()
-  }
+watch(activeView, () => {
   nextTick(observeLoadMoreSentinel)
 })
 
@@ -1402,32 +717,6 @@ watch([canAccessMetronArea, isAdmin, currentUser, isReadOnlyGuest], () => {
   }
 })
 
-watch(
-  resolvedTheme,
-  (value) => {
-    applyTheme(value)
-  },
-  { immediate: true },
-)
-
-watch(
-  themePreference,
-  (value) => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem('comichero-theme', value)
-  },
-  { immediate: true },
-)
-
-watch(
-  listOptions,
-  (value) => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(listOptionsStorageKey, JSON.stringify(value))
-  },
-  { deep: true },
-)
-
 watch(search, () => {
   if (searchDebounceTimer) {
     window.clearTimeout(searchDebounceTimer)
@@ -1440,8 +729,6 @@ watch(search, () => {
 })
 
 onUnmounted(() => {
-  closeMetronComicScanEvents()
-  closeMetronComicDiscoveryEvents()
   closeMetronImportEvents()
   if (searchDebounceTimer) {
     window.clearTimeout(searchDebounceTimer)
@@ -1449,294 +736,39 @@ onUnmounted(() => {
   if (loadMoreObserver) {
     loadMoreObserver.disconnect()
   }
-  themeMediaQuery?.removeEventListener('change', handleSystemThemeChange)
 })
 </script>
 
 <template>
-  <main v-if="authLoading" class="auth-shell">
-    <section class="auth-panel" role="status" aria-live="polite">
-      <span class="loading-spinner" aria-hidden="true"></span>
-      <h1>ComicHero</h1>
-      <p>Loading user setup...</p>
-    </section>
-  </main>
+  <AuthenticationView
+    v-if="!appReady"
+    v-model:setup-form="setupForm"
+    v-model:auth-form="authForm"
+    v-model:verification-form="verificationForm"
+    v-model:password-reset-form="passwordResetForm"
+    v-model:auth-mode="authMode"
+    :loading="authLoading"
+    :saving="authSaving"
+    :setup-required="setupRequired"
+    :verification-required="emailVerificationRequired"
+    :password-reset-mode="passwordResetMode"
+    :auth-required="authRequired"
+    :registration-mode="registrationMode"
+    :verification-email="userStatus?.emailVerificationEmail || verificationForm.email"
+    :error="error"
+    @clear-error="clearError"
+    @retry="loadUserStatus"
+    @submit-setup="submitSetup"
+    @submit-auth="submitAuth"
+    @submit-verification="submitEmailVerification"
+    @resend-verification="resendVerificationEmail"
+    @submit-forgot-password="submitForgotPassword"
+    @submit-password-reset="submitPasswordReset"
+    @show-forgot-password="showForgotPassword"
+    @show-login="showLogin"
+  />
 
-  <main v-else-if="setupRequired" class="auth-shell">
-    <form class="auth-panel" @submit.prevent="submitSetup">
-      <div>
-        <p class="eyebrow">First Run</p>
-        <h1>Choose user mode</h1>
-      </div>
-
-      <fieldset class="mode-options">
-        <legend>User environment</legend>
-        <label>
-          <input v-model="setupForm.mode" type="radio" value="single" />
-          <span>
-            <strong>Single user</strong>
-            <small>No login. Existing read status stays with the default user.</small>
-          </span>
-        </label>
-        <label>
-          <input v-model="setupForm.mode" type="radio" value="multi" />
-          <span>
-            <strong>Multi user</strong>
-            <small>Register and log in. Existing read status becomes the first account.</small>
-          </span>
-        </label>
-      </fieldset>
-
-      <div v-if="setupForm.mode === 'multi'" class="auth-fields">
-        <label>
-          <span>Name</span>
-          <input v-model.trim="setupForm.name" type="text" autocomplete="name" required />
-        </label>
-        <label>
-          <span>Email</span>
-          <input v-model.trim="setupForm.email" type="email" autocomplete="email" required />
-        </label>
-        <label>
-          <span>Password</span>
-          <input
-            v-model="setupForm.password"
-            type="password"
-            autocomplete="new-password"
-            minlength="6"
-            required
-          />
-        </label>
-      </div>
-
-      <div v-if="error" class="toast error-toast" role="alert">
-        <span>{{ error }}</span>
-        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
-      </div>
-
-      <button class="primary-action" type="submit" :disabled="authSaving">
-        {{ authSaving ? 'Saving...' : 'Continue' }}
-      </button>
-    </form>
-  </main>
-
-  <main v-else-if="emailVerificationRequired" class="auth-shell">
-    <form class="auth-panel" @submit.prevent="submitEmailVerification">
-      <div>
-        <p class="eyebrow">Verify Email</p>
-        <h1>Check your email</h1>
-        <p>
-          Enter the verification token sent to
-          {{ userStatus.emailVerificationEmail || verificationForm.email }}.
-        </p>
-      </div>
-
-      <div class="auth-fields">
-        <label>
-          <span>Verification token</span>
-          <input
-            v-model.trim="verificationForm.token"
-            type="text"
-            autocomplete="one-time-code"
-            required
-          />
-        </label>
-        <label>
-          <span>Password</span>
-          <input
-            v-model="verificationForm.password"
-            type="password"
-            autocomplete="current-password"
-            minlength="6"
-          />
-        </label>
-      </div>
-
-      <div v-if="error" class="toast error-toast" role="alert">
-        <span>{{ error }}</span>
-        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
-      </div>
-
-      <button class="primary-action" type="submit" :disabled="authSaving">
-        {{ authSaving ? 'Verifying...' : 'Verify email' }}
-      </button>
-      <button
-        class="secondary-action"
-        type="button"
-        :disabled="authSaving"
-        @click="resendVerificationEmail"
-      >
-        Resend email
-      </button>
-    </form>
-  </main>
-
-  <main v-else-if="passwordResetMode" class="auth-shell">
-    <form
-      class="auth-panel"
-      @submit.prevent="passwordResetForm.requested ? submitPasswordReset() : submitForgotPassword()"
-    >
-      <div>
-        <p class="eyebrow">Account</p>
-        <h1>Reset password</h1>
-        <p v-if="!passwordResetForm.requested">
-          Enter your email and we will send a password reset token if the account exists.
-        </p>
-        <p v-else>Enter the token from your email and choose a new password.</p>
-      </div>
-
-      <div class="auth-fields">
-        <label v-if="!passwordResetForm.requested">
-          <span>Email</span>
-          <input
-            v-model.trim="passwordResetForm.email"
-            type="email"
-            autocomplete="email"
-            required
-          />
-        </label>
-        <template v-else>
-          <label>
-            <span>Reset token</span>
-            <input
-              v-model.trim="passwordResetForm.token"
-              type="text"
-              autocomplete="one-time-code"
-              required
-            />
-          </label>
-          <label>
-            <span>New password</span>
-            <input
-              v-model="passwordResetForm.password"
-              type="password"
-              autocomplete="new-password"
-              minlength="6"
-              required
-            />
-          </label>
-          <label>
-            <span>Confirm new password</span>
-            <input
-              v-model="passwordResetForm.passwordConfirmation"
-              type="password"
-              autocomplete="new-password"
-              minlength="6"
-              required
-            />
-          </label>
-        </template>
-      </div>
-
-      <div v-if="error" class="toast error-toast" role="alert">
-        <span>{{ error }}</span>
-        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
-      </div>
-
-      <button class="primary-action" type="submit" :disabled="authSaving">
-        {{
-          authSaving
-            ? 'Working...'
-            : passwordResetForm.requested
-              ? 'Reset password'
-              : 'Send reset email'
-        }}
-      </button>
-      <button class="secondary-action" type="button" :disabled="authSaving" @click="showLogin">
-        Back to login
-      </button>
-    </form>
-  </main>
-
-  <main v-else-if="authRequired" class="auth-shell">
-    <form class="auth-panel" @submit.prevent="submitAuth">
-      <div>
-        <p class="eyebrow">Multi User</p>
-        <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
-      </div>
-
-      <div class="auth-tabs" role="group" aria-label="Authentication mode">
-        <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">
-          Log in
-        </button>
-        <button
-          type="button"
-          :class="{ active: authMode === 'register' }"
-          @click="authMode = 'register'"
-        >
-          Register
-        </button>
-      </div>
-
-      <div class="auth-fields">
-        <label v-if="authMode === 'register'">
-          <span>Name</span>
-          <input v-model.trim="authForm.name" type="text" autocomplete="name" required />
-        </label>
-        <label>
-          <span>Email</span>
-          <input v-model.trim="authForm.email" type="email" autocomplete="email" required />
-        </label>
-        <label v-if="authMode === 'register'">
-          <span>Confirm email</span>
-          <input
-            v-model.trim="authForm.emailConfirmation"
-            type="email"
-            autocomplete="email"
-            required
-          />
-        </label>
-        <label>
-          <span>Password</span>
-          <input
-            v-model="authForm.password"
-            type="password"
-            :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
-            minlength="6"
-            required
-          />
-        </label>
-        <label v-if="authMode === 'register'">
-          <span>Confirm password</span>
-          <input
-            v-model="authForm.passwordConfirmation"
-            type="password"
-            autocomplete="new-password"
-            minlength="6"
-            required
-          />
-        </label>
-        <label v-if="authMode === 'register' && registrationMode === 'invite_only'">
-          <span>Invite token</span>
-          <input
-            v-model.trim="authForm.inviteToken"
-            type="text"
-            autocomplete="one-time-code"
-            required
-          />
-        </label>
-      </div>
-
-      <div v-if="error" class="toast error-toast" role="alert">
-        <span>{{ error }}</span>
-        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
-      </div>
-
-      <button class="primary-action" type="submit" :disabled="authSaving">
-        {{ authSaving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
-      </button>
-      <button
-        v-if="authMode === 'login'"
-        class="secondary-action"
-        type="button"
-        :disabled="authSaving"
-        @click="showForgotPassword"
-      >
-        Forgot password?
-      </button>
-    </form>
-  </main>
-
-  <main v-else-if="appReady" class="app-shell">
+  <main v-else class="app-shell">
     <AppSidebar
       :active-view="activeView"
       :theme-preference="themePreference"
@@ -1760,10 +792,7 @@ onUnmounted(() => {
         :total-count="toolbarTotalCount"
       />
 
-      <div v-if="error" class="toast error-toast" role="alert" aria-live="assertive">
-        <span>{{ error }}</span>
-        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
-      </div>
+      <ErrorToast :message="error" @dismiss="clearError" />
 
       <MetronImportMonitor
         v-model:open="metronImportMonitorOpen"
@@ -1900,7 +929,6 @@ onUnmounted(() => {
       <ReadingOrdersBrowseView
         v-else-if="activeView === 'readingOrders'"
         :orders="visibleOrders"
-        :sections="readingOrderBrowseSections"
         :selected-order-id="selectedOrder?.id"
         :quick-saving-order-id="quickSavingOrderID"
         :cbl-importing="cblImporting"
@@ -1943,7 +971,6 @@ onUnmounted(() => {
       <ArcsBrowseView
         v-else-if="activeView === 'arcs'"
         :arcs="visibleArcs"
-        :sections="arcBrowseSections"
         :selected-arc-id="selectedArc?.id"
         :quick-saving-arc-id="quickSavingArcID"
         :search="search"
@@ -1985,7 +1012,6 @@ onUnmounted(() => {
         v-else-if="activeView === 'series'"
         :loading="seriesListLoading"
         :series="visibleSeries"
-        :sections="seriesBrowseSections"
         :selected-series-id="selectedSeries?.id"
         :search="search"
         :search-term="searchTerm"
@@ -2026,7 +1052,6 @@ onUnmounted(() => {
       <CharactersBrowseView
         v-else-if="activeView === 'characters'"
         :characters="visibleCharacters"
-        :sections="characterBrowseSections"
         :selected-character-id="selectedCharacter?.id"
         :quick-saving-character-id="quickSavingCharacterID"
         :search="search"
@@ -2102,22 +1127,6 @@ onUnmounted(() => {
         <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>
-    </section>
-  </main>
-
-  <main v-else class="auth-shell">
-    <section class="auth-panel">
-      <div>
-        <p class="eyebrow">Setup</p>
-        <h1>Could not load user setup</h1>
-      </div>
-      <div v-if="error" class="toast error-toast" role="alert">
-        <span>{{ error }}</span>
-        <button type="button" aria-label="Dismiss error" @click="clearError">Dismiss</button>
-      </div>
-      <button class="primary-action" type="button" :disabled="authLoading" @click="loadUserStatus">
-        Retry
-      </button>
     </section>
   </main>
 </template>
