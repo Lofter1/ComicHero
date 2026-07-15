@@ -328,6 +328,8 @@ type Character struct {
 	Description       string   `json:"description"                db:"description"         doc:"Character description from Metron."`
 	Image             string   `json:"image"                      db:"image"               doc:"Character image URL from Metron." format:"uri"`
 	Favorite          bool     `json:"favorite"                   db:"favorite"            doc:"Whether this character is marked as a favorite." example:"true"`
+	FavoriteCount     int      `json:"favoriteCount"              db:"favorite_count"      doc:"Number of users who favorited this character." example:"12"`
+	StartedCount      int      `json:"startedCount"               db:"started_count"       doc:"Number of users currently reading this character." example:"8"`
 	StartedAt         *string  `json:"startedAt,omitempty"        db:"started_at"          doc:"When the current user formally started reading this character."`
 	Progress          float64  `json:"progress"                   db:"progress"            doc:"Fraction of appearances marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	Aliases           []string `json:"aliases"                    db:"-"                   doc:"Known character aliases."`
@@ -343,7 +345,7 @@ type CharacterListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across character names and aliases." example:"bat"`
 	Favorite  string `query:"favorite" doc:"Filter characters by favorite status. Use true or false." enum:"true,false" example:"true"`
 	Started   string `query:"started" doc:"Filter characters by current-user started status." enum:"true,false" example:"true"`
-	Sort      string `query:"sort"     doc:"Sort field." enum:"name,appearances,aliases,progress" example:"name"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,appearances,aliases,progress,favoriteCount,startedCount" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
 	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
@@ -369,20 +371,22 @@ type ComicSeries struct {
 	ID             int  `json:"id"                       db:"id"               doc:"Local series identifier." example:"5"`
 	MetronSeriesID *int `json:"metronSeriesId,omitempty" db:"metron_series_id" doc:"Linked Metron series identifier, when known." example:"405"`
 
-	Name        string   `json:"name"        db:"name"        doc:"Series name." example:"Batman"`
-	SeriesYear  int      `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in generated comic titles." minimum:"0" example:"2011"`
-	Favorite    bool     `json:"favorite"    db:"favorite"    doc:"Whether this series is marked as a favorite." example:"true"`
-	StartedAt   *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started reading this series."`
-	Publisher   string   `json:"publisher"   db:"publisher"   doc:"Publisher name from Metron series metadata." example:"DC Comics"`
-	Volume      int      `json:"volume"      db:"volume"      doc:"Metron series volume number." example:"2"`
-	YearEnd     int      `json:"yearEnd"     db:"year_end"    doc:"Final publication year from Metron, when known." example:"2016"`
-	IssueCount  int      `json:"issueCount"  db:"issue_count" doc:"Issue count reported by Metron." example:"52"`
-	Description string   `json:"description" db:"description" doc:"Series description from Metron."`
-	Progress    float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
-	EntryCount  int      `json:"entryCount"  db:"entry_count" doc:"Number of local comic entries in this series." example:"12"`
-	ReadCount   int      `json:"readCount"   db:"read_count"  doc:"Number of local comic entries marked read." example:"6"`
-	CoverImage  string   `json:"coverImage"  db:"cover_image" doc:"First available local or remote cover image for the series." format:"uri"`
-	Publishers  []string `json:"publishers"  db:"-"           doc:"Publishers represented by local entries in this series."`
+	Name          string   `json:"name"        db:"name"        doc:"Series name." example:"Batman"`
+	SeriesYear    int      `json:"seriesYear"  db:"series_year" doc:"Series start year or volume year used in generated comic titles." minimum:"0" example:"2011"`
+	Favorite      bool     `json:"favorite"    db:"favorite"    doc:"Whether this series is marked as a favorite." example:"true"`
+	FavoriteCount int      `json:"favoriteCount" db:"favorite_count" doc:"Number of users who favorited this series." example:"12"`
+	StartedCount  int      `json:"startedCount"  db:"started_count"  doc:"Number of users currently reading this series." example:"8"`
+	StartedAt     *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started reading this series."`
+	Publisher     string   `json:"publisher"   db:"publisher"   doc:"Publisher name from Metron series metadata." example:"DC Comics"`
+	Volume        int      `json:"volume"      db:"volume"      doc:"Metron series volume number." example:"2"`
+	YearEnd       int      `json:"yearEnd"     db:"year_end"    doc:"Final publication year from Metron, when known." example:"2016"`
+	IssueCount    int      `json:"issueCount"  db:"issue_count" doc:"Issue count reported by Metron." example:"52"`
+	Description   string   `json:"description" db:"description" doc:"Series description from Metron."`
+	Progress      float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+	EntryCount    int      `json:"entryCount"  db:"entry_count" doc:"Number of local comic entries in this series." example:"12"`
+	ReadCount     int      `json:"readCount"   db:"read_count"  doc:"Number of local comic entries marked read." example:"6"`
+	CoverImage    string   `json:"coverImage"  db:"cover_image" doc:"First available local or remote cover image for the series." format:"uri"`
+	Publishers    []string `json:"publishers"  db:"-"           doc:"Publishers represented by local entries in this series."`
 }
 
 type ComicSeriesDetail struct {
@@ -394,7 +398,7 @@ type ComicSeriesListInput struct {
 	Query     string `query:"q"        doc:"Case-insensitive text search across series names, publishers, years, and issue numbers." example:"batman"`
 	Favorite  string `query:"favorite" doc:"Filter series by favorite status. Use true or false." enum:"true,false" example:"true"`
 	Started   string `query:"started" doc:"Filter series by current-user started status." enum:"true,false" example:"true"`
-	Sort      string `query:"sort"     doc:"Sort field." enum:"name,year,publisher,entries,progress" example:"name"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,year,publisher,entries,progress,favoriteCount,startedCount" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
 	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
@@ -460,18 +464,20 @@ type ReadingOrder struct {
 	MetronReadingListID *int `json:"metronReadingListId,omitempty"       db:"metron_reading_list_id" doc:"Linked Metron reading-list identifier, when imported." example:"9876"`
 	AuthorUserID        *int `json:"authorUserId,omitempty"              db:"author_user_id"         doc:"User who created or owns this reading order." example:"1"`
 
-	Name        string   `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
-	Description string   `json:"description" db:"description" doc:"Reading-order description or notes."`
-	Image       string   `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
-	IsPublic    bool     `json:"isPublic"    db:"is_public"   doc:"Whether users other than the creator may view this reading order." example:"true"`
-	Favorite    bool     `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
-	Rating      float64  `json:"rating"      db:"rating"      doc:"Average user rating from 1 to 5, or 0 when unrated." minimum:"0" maximum:"5" example:"4.5"`
-	RatingCount int      `json:"ratingCount" db:"rating_count" doc:"Number of user ratings represented by this score." example:"23"`
-	MyRating    *float64 `json:"myRating,omitempty" db:"my_rating" doc:"Current user's rating for this reading order, when rated." minimum:"1" maximum:"5" example:"4"`
-	StartedAt   *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started this reading order." example:"2026-07-10T12:30:00Z"`
-	Progress    float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
-	AuthorName  string   `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
-	CanEdit     bool     `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
+	Name          string   `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
+	Description   string   `json:"description" db:"description" doc:"Reading-order description or notes."`
+	Image         string   `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
+	IsPublic      bool     `json:"isPublic"    db:"is_public"   doc:"Whether users other than the creator may view this reading order." example:"true"`
+	Favorite      bool     `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
+	FavoriteCount int      `json:"favoriteCount" db:"favorite_count" doc:"Number of users who favorited this reading order." example:"12"`
+	StartedCount  int      `json:"startedCount"  db:"started_count"  doc:"Number of users currently reading this reading order." example:"8"`
+	Rating        float64  `json:"rating"      db:"rating"      doc:"Average user rating from 1 to 5, or 0 when unrated." minimum:"0" maximum:"5" example:"4.5"`
+	RatingCount   int      `json:"ratingCount" db:"rating_count" doc:"Number of user ratings represented by this score." example:"23"`
+	MyRating      *float64 `json:"myRating,omitempty" db:"my_rating" doc:"Current user's rating for this reading order, when rated." minimum:"1" maximum:"5" example:"4"`
+	StartedAt     *string  `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started this reading order." example:"2026-07-10T12:30:00Z"`
+	Progress      float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+	AuthorName    string   `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
+	CanEdit       bool     `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
 }
 
 type ReadingOrderPayload struct {
@@ -525,7 +531,7 @@ type ReadingOrderListInput struct {
 	Favorite  string `query:"favorite" doc:"Filter reading orders by favorite status. Use true or false." enum:"true,false" example:"true"`
 	Started   string `query:"started" doc:"Filter reading orders by whether the current user formally started them. Use true or false." enum:"true,false" example:"true"`
 	ComicID   int    `query:"comicId"  doc:"Filter reading orders to those containing a comic." example:"42"`
-	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress,rating" example:"name"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress,rating,favoriteCount,startedCount" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
 	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`
@@ -585,12 +591,14 @@ type Arc struct {
 	ID          int  `json:"id"                    db:"id"            doc:"Local arc identifier." example:"7"`
 	MetronArcID *int `json:"metronArcId,omitempty" db:"metron_arc_id" doc:"Linked Metron story-arc identifier, when imported." example:"9876"`
 
-	Name        string  `json:"name"        db:"name"        doc:"Story arc name." example:"Batman: Zero Year"`
-	Description string  `json:"description" db:"description" doc:"Arc description or notes."`
-	Image       string  `json:"image"       db:"image"       doc:"Story arc image URL from Metron." format:"uri"`
-	Favorite    bool    `json:"favorite"    db:"favorite"    doc:"Whether this arc is marked as a favorite." example:"true"`
-	StartedAt   *string `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started reading this arc."`
-	Progress    float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
+	Name          string  `json:"name"        db:"name"        doc:"Story arc name." example:"Batman: Zero Year"`
+	Description   string  `json:"description" db:"description" doc:"Arc description or notes."`
+	Image         string  `json:"image"       db:"image"       doc:"Story arc image URL from Metron." format:"uri"`
+	Favorite      bool    `json:"favorite"    db:"favorite"    doc:"Whether this arc is marked as a favorite." example:"true"`
+	FavoriteCount int     `json:"favoriteCount" db:"favorite_count" doc:"Number of users who favorited this arc." example:"12"`
+	StartedCount  int     `json:"startedCount"  db:"started_count"  doc:"Number of users currently reading this arc." example:"8"`
+	StartedAt     *string `json:"startedAt,omitempty" db:"started_at" doc:"When the current user formally started reading this arc."`
+	Progress      float64 `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 }
 
 type ArcPayload struct {
@@ -619,7 +627,7 @@ type ArcListInput struct {
 	Favorite  string `query:"favorite" doc:"Filter arcs by favorite status. Use true or false." enum:"true,false" example:"true"`
 	Started   string `query:"started" doc:"Filter arcs by current-user started status." enum:"true,false" example:"true"`
 	ComicID   int    `query:"comicId"  doc:"Filter arcs to those containing a comic." example:"42"`
-	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress" example:"name"`
+	Sort      string `query:"sort"     doc:"Sort field." enum:"name,progress,favoriteCount,startedCount" example:"name"`
 	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc" example:"asc"`
 	Limit     int    `query:"limit"    doc:"Maximum rows to return, from 1 to 100." minimum:"1" maximum:"100" example:"50"`
 	Offset    int    `query:"offset"   doc:"Zero-based row offset for pagination." minimum:"0" example:"0"`

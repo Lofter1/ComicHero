@@ -59,6 +59,8 @@ defineEmits([
 const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'progress', label: 'Progress' },
+  { value: 'favoriteCount', label: 'Favorites' },
+  { value: 'startedCount', label: 'Currently reading' },
 ]
 const filterOptions = [
   { value: 'all', label: 'All' },
@@ -122,6 +124,8 @@ function sectionList(title, arcs) {
                     <strong>{{ arc.name }}</strong>
                     <small>{{ arc.description || 'No description' }}</small>
                     <span v-if="arc.startedAt" class="started-pill">Started</span>
+                    <span class="status-pill">Favorites: {{ arc.favoriteCount }}</span>
+                    <span class="status-pill">Reading: {{ arc.startedCount }}</span>
                   </span>
                 </button>
                 <button

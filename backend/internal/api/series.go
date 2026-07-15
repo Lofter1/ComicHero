@@ -170,6 +170,8 @@ func seriesListQuery(input *ComicSeriesListInput, userID int) (string, []any, er
 			s.series_year,
 			COALESCE(preference.favorite, 0) AS favorite,
 			preference.started_at AS started_at,
+			(SELECT COUNT(*) FROM user_series stats WHERE stats.series_id = s.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_series stats WHERE stats.series_id = s.id AND stats.started_at IS NOT NULL) AS started_count,
 			s.publisher,
 			s.volume,
 			s.year_end,
@@ -254,6 +256,10 @@ func seriesListOrder(sort, direction string) string {
 		return "ORDER BY entry_count " + dir + ", s.name " + dir + ", s.series_year " + dir
 	case "progress":
 		return "ORDER BY progress " + dir + ", s.name " + dir + ", s.series_year " + dir
+	case "favoriteCount":
+		return "ORDER BY favorite_count " + dir + ", s.name " + dir + ", s.series_year " + dir
+	case "startedCount":
+		return "ORDER BY started_count " + dir + ", s.name " + dir + ", s.series_year " + dir
 	default:
 		return "ORDER BY s.name " + dir + ", s.series_year " + dir
 	}
@@ -302,6 +308,8 @@ func getSeriesRow(ctx context.Context, db *sqlx.DB, id int) (ComicSeries, error)
 			s.series_year,
 			COALESCE(preference.favorite, 0) AS favorite,
 			preference.started_at AS started_at,
+			(SELECT COUNT(*) FROM user_series stats WHERE stats.series_id = s.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_series stats WHERE stats.series_id = s.id AND stats.started_at IS NOT NULL) AS started_count,
 			s.publisher,
 			s.volume,
 			s.year_end,

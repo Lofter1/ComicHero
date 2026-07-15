@@ -108,6 +108,14 @@ defineEmits([
             <strong>{{ selectedArc.comics.length }}</strong>
             <small>Comics</small>
           </span>
+          <span>
+            <strong>{{ selectedArc.favoriteCount }}</strong>
+            <small>Favorites</small>
+          </span>
+          <span>
+            <strong>{{ selectedArc.startedCount }}</strong>
+            <small>Currently reading</small>
+          </span>
           <span v-if="selectedArc.startedAt"
             ><strong>Started</strong
             ><small>{{ new Date(selectedArc.startedAt).toLocaleDateString() }}</small></span

@@ -61,6 +61,8 @@ const sortOptions = [
   { value: 'appearances', label: 'Appearances' },
   { value: 'aliases', label: 'Aliases' },
   { value: 'progress', label: 'Progress' },
+  { value: 'favoriteCount', label: 'Favorites' },
+  { value: 'startedCount', label: 'Currently reading' },
 ]
 const filterOptions = [
   { value: 'all', label: 'All' },
@@ -152,6 +154,8 @@ function characterProgress(character) {
               <span class="row-meta">
                 <span class="status-pill">{{ character.appearanceCount }} appearances</span>
                 <span class="status-pill">{{ characterProgress(character) }}</span>
+                <span class="status-pill">Favorites: {{ character.favoriteCount }}</span>
+                <span class="status-pill">Reading: {{ character.startedCount }}</span>
               </span>
               <span class="row-progress" aria-label="Character read progress">
                 <span :style="{ width: characterProgress(character) }"></span>

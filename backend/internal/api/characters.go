@@ -101,6 +101,8 @@ func listCharacters(ctx context.Context, db *sqlx.DB, input *CharacterListInput)
 	query := newSelectQuery(`
 		SELECT ch.id, ch.name, ch.description, ch.image, ch.metron_character_id,
 			COALESCE(preference.favorite, 0) AS favorite, preference.started_at AS started_at,
+			(SELECT COUNT(*) FROM user_characters stats WHERE stats.character_id = ch.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_characters stats WHERE stats.character_id = ch.id AND stats.started_at IS NOT NULL) AS started_count,
 			COUNT(cc.comic_id) AS appearance_count,
 			COALESCE(AVG(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
@@ -163,6 +165,10 @@ func characterListOrder(sort, direction string) string {
 		return "ORDER BY (SELECT COUNT(*) FROM character_aliases ca_count WHERE ca_count.character_id = ch.id) " + dir + ", ch.name " + dir
 	case "progress":
 		return "ORDER BY progress " + dir + ", ch.name " + dir
+	case "favoriteCount":
+		return "ORDER BY favorite_count " + dir + ", ch.name " + dir
+	case "startedCount":
+		return "ORDER BY started_count " + dir + ", ch.name " + dir
 	default:
 		return "ORDER BY ch.name " + dir
 	}
@@ -214,6 +220,8 @@ func getCharacterRow(ctx context.Context, db *sqlx.DB, id int) (Character, error
 	if err := db.GetContext(ctx, &character, `
 		SELECT ch.id, ch.name, ch.description, ch.image, ch.metron_character_id,
 			COALESCE(preference.favorite, 0) AS favorite, preference.started_at AS started_at,
+			(SELECT COUNT(*) FROM user_characters stats WHERE stats.character_id = ch.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_characters stats WHERE stats.character_id = ch.id AND stats.started_at IS NOT NULL) AS started_count,
 			COUNT(cc.comic_id) AS appearance_count,
 			COALESCE(AVG(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1.0 ELSE 0 END), 0) AS progress
 		FROM characters ch
