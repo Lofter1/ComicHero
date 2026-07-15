@@ -63,6 +63,8 @@ const sortOptions = [
   { value: 'publisher', label: 'Publisher' },
   { value: 'entries', label: 'Entries' },
   { value: 'progress', label: 'Progress' },
+  { value: 'favoriteCount', label: 'Favorites' },
+  { value: 'startedCount', label: 'Currently reading' },
 ]
 const filterOptions = [
   { value: 'all', label: 'All' },
@@ -164,6 +166,8 @@ function seriesPublisherLabel(series) {
               <span class="row-meta">
                 <span class="status-pill">{{ item.entryCount }} entries</span>
                 <span class="status-pill">{{ formatProgress(item.progress) }}</span>
+                <span class="status-pill">Favorites: {{ item.favoriteCount }}</span>
+                <span class="status-pill">Reading: {{ item.startedCount }}</span>
               </span>
               <span class="row-progress" aria-label="Series read progress">
                 <span :style="{ width: formatProgress(item.progress) }"></span>

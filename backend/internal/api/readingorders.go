@@ -220,6 +220,8 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ro.image,
 			ro.is_public,
 			COALESCE(preference.favorite, 0) AS favorite,
+			(SELECT COUNT(*) FROM user_reading_orders stats WHERE stats.reading_order_id = ro.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_reading_orders stats WHERE stats.reading_order_id = ro.id AND stats.started_at IS NOT NULL) AS started_count,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
 			my_rating.rating AS my_rating,
@@ -294,6 +296,10 @@ func readingOrderListOrder(sort, direction string) string {
 		return "ORDER BY rating " + dir + ", ro.name " + dir
 	case "progress":
 		return "ORDER BY progress " + dir + ", ro.name " + dir
+	case "favoriteCount":
+		return "ORDER BY favorite_count " + dir + ", ro.name " + dir
+	case "startedCount":
+		return "ORDER BY started_count " + dir + ", ro.name " + dir
 	default:
 		return "ORDER BY ro.name " + dir
 	}
@@ -391,6 +397,8 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 			ro.image,
 			ro.is_public,
 			COALESCE(preference.favorite, 0) AS favorite,
+			(SELECT COUNT(*) FROM user_reading_orders stats WHERE stats.reading_order_id = ro.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_reading_orders stats WHERE stats.reading_order_id = ro.id AND stats.started_at IS NOT NULL) AS started_count,
 			COALESCE(rating_summary.rating, 0) AS rating,
 			COALESCE(rating_summary.rating_count, 0) AS rating_count,
 			my_rating.rating AS my_rating,

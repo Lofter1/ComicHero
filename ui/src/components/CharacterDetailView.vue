@@ -132,6 +132,14 @@ function characterProgress(character) {
             <strong>{{ selectedCharacter.aliases?.length || 0 }}</strong>
             <small>Aliases</small>
           </span>
+          <span>
+            <strong>{{ selectedCharacter.favoriteCount }}</strong>
+            <small>Favorites</small>
+          </span>
+          <span>
+            <strong>{{ selectedCharacter.startedCount }}</strong>
+            <small>Currently reading</small>
+          </span>
           <span v-if="selectedCharacter.startedAt"
             ><strong>Started</strong
             ><small>{{ new Date(selectedCharacter.startedAt).toLocaleDateString() }}</small></span

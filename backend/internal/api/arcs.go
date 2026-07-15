@@ -135,6 +135,8 @@ func arcListQuery(input *ArcListInput, userID int) (string, []any, error) {
 			a.image,
 			COALESCE(preference.favorite, 0) AS favorite,
 			preference.started_at AS started_at,
+			(SELECT COUNT(*) FROM user_arcs stats WHERE stats.arc_id = a.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_arcs stats WHERE stats.arc_id = a.id AND stats.started_at IS NOT NULL) AS started_count,
 			CASE
 				WHEN COUNT(c.id) = 0 THEN 0.0
 				ELSE CAST(SUM(CASE WHEN COALESCE(uc.read, 0) = 1 THEN 1 ELSE 0 END) AS REAL) / COUNT(c.id)
@@ -183,6 +185,10 @@ func arcListOrder(sort, direction string) string {
 	switch sort {
 	case "progress":
 		return "ORDER BY progress " + dir + ", a.name " + dir
+	case "favoriteCount":
+		return "ORDER BY favorite_count " + dir + ", a.name " + dir
+	case "startedCount":
+		return "ORDER BY started_count " + dir + ", a.name " + dir
 	default:
 		return "ORDER BY a.name " + dir
 	}
@@ -196,7 +202,9 @@ func getArc(ctx context.Context, db *sqlx.DB, id int) (*ArcDetailOutput, error) 
 	var arc Arc
 	if err := db.GetContext(ctx, &arc, `
 		SELECT a.id, a.metron_arc_id, a.name, a.description, a.image,
-			COALESCE(preference.favorite, 0) AS favorite, preference.started_at AS started_at
+			COALESCE(preference.favorite, 0) AS favorite, preference.started_at AS started_at,
+			(SELECT COUNT(*) FROM user_arcs stats WHERE stats.arc_id = a.id AND stats.favorite = 1) AS favorite_count,
+			(SELECT COUNT(*) FROM user_arcs stats WHERE stats.arc_id = a.id AND stats.started_at IS NOT NULL) AS started_count
 		FROM arcs a
 		LEFT JOIN user_arcs preference ON preference.arc_id = a.id AND preference.user_id = ?
 		WHERE a.id = ?

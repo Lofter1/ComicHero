@@ -123,6 +123,14 @@ function seriesPublisherLabel(series) {
             <small>Entries</small>
           </span>
           <span>
+            <strong>{{ selectedSeries.favoriteCount }}</strong>
+            <small>Favorites</small>
+          </span>
+          <span>
+            <strong>{{ selectedSeries.startedCount }}</strong>
+            <small>Currently reading</small>
+          </span>
+          <span>
             <strong>{{ seriesPublisherLabel(selectedSeries) }}</strong>
             <small>Publisher</small>
           </span>

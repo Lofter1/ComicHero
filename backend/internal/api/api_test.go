@@ -843,6 +843,71 @@ func TestReadingOrderWritesRequireAuthor(t *testing.T) {
 	}
 }
 
+func TestReadingOrderEngagementCountsAndSort(t *testing.T) {
+	db := setupReadingOrderCBLTestDB(t)
+	ctx := testUserContext()
+	for _, user := range []struct {
+		id   int
+		name string
+	}{{2, "Reader Two"}, {3, "Reader Three"}} {
+		if _, err := db.Exec(`INSERT INTO users (id, name) VALUES (?, ?)`, user.id, user.name); err != nil {
+			t.Fatalf("insert user %d: %v", user.id, err)
+		}
+	}
+
+	popular, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Popular"})
+	if err != nil {
+		t.Fatalf("create popular reading order: %v", err)
+	}
+	quiet, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: "Quiet"})
+	if err != nil {
+		t.Fatalf("create quiet reading order: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO user_reading_orders (reading_order_id, user_id, favorite, started_at)
+		VALUES (?, 2, 1, CURRENT_TIMESTAMP), (?, 3, 1, NULL), (?, 2, 1, NULL)
+	`, popular.Body.ID, popular.Body.ID, quiet.Body.ID); err != nil {
+		t.Fatalf("insert reading order preferences: %v", err)
+	}
+
+	result, err := listReadingOrders(ctx, db, &ReadingOrderListInput{
+		Sort:      "favoriteCount",
+		Direction: "desc",
+	})
+	if err != nil {
+		t.Fatalf("list reading orders by favorites: %v", err)
+	}
+	if len(result.Body) != 2 || result.Body[0].ID != popular.Body.ID {
+		t.Fatalf("favorite sort result = %#v; want popular reading order first", result.Body)
+	}
+	if result.Body[0].FavoriteCount != 2 || result.Body[0].StartedCount != 1 {
+		t.Fatalf("popular counts = %d favorites, %d started; want 2/1", result.Body[0].FavoriteCount, result.Body[0].StartedCount)
+	}
+}
+
+func TestEngagementMetricSortOrders(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"reading order favorites", readingOrderListOrder("favoriteCount", "desc"), "favorite_count"},
+		{"reading order started", readingOrderListOrder("startedCount", "desc"), "started_count"},
+		{"arc favorites", arcListOrder("favoriteCount", "desc"), "favorite_count"},
+		{"arc started", arcListOrder("startedCount", "desc"), "started_count"},
+		{"character favorites", characterListOrder("favoriteCount", "desc"), "favorite_count"},
+		{"character started", characterListOrder("startedCount", "desc"), "started_count"},
+		{"series favorites", seriesListOrder("favoriteCount", "desc"), "favorite_count"},
+		{"series started", seriesListOrder("startedCount", "desc"), "started_count"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if !strings.Contains(test.got, test.want+" DESC") {
+				t.Fatalf("sort order = %q; want descending %s", test.got, test.want)
+			}
+		})
+	}
+}
+
 func TestPrivateReadingOrderIsOnlyVisibleToCreatorAndAdmin(t *testing.T) {
 	db := setupReadingOrderCBLTestDB(t)
 	ctx := testUserContext()

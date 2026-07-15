@@ -171,6 +171,14 @@ const renderedDescription = computed(() => {
             <strong>{{ selectedOrder.authorName }}</strong>
             <small>Author</small>
           </span>
+          <span>
+            <strong>{{ selectedOrder.favoriteCount }}</strong>
+            <small>Favorites</small>
+          </span>
+          <span>
+            <strong>{{ selectedOrder.startedCount }}</strong>
+            <small>Currently reading</small>
+          </span>
           <span v-if="selectedOrder.startedAt">
             <strong>Started</strong>
             <small>{{ new Date(selectedOrder.startedAt).toLocaleDateString() }}</small>

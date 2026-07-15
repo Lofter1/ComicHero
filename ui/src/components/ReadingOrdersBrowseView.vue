@@ -68,6 +68,8 @@ const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'rating', label: 'Rating' },
   { value: 'progress', label: 'Progress' },
+  { value: 'favoriteCount', label: 'Favorites' },
+  { value: 'startedCount', label: 'Currently reading' },
 ]
 const filterOptions = [
   { value: 'all', label: 'All' },
@@ -186,6 +188,8 @@ function handleCBLFile(event) {
                       <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
                     </span>
                     <span v-if="order.startedAt" class="started-pill">Started</span>
+                    <span class="status-pill">Favorites: {{ order.favoriteCount }}</span>
+                    <span class="status-pill">Reading: {{ order.startedCount }}</span>
                   </span>
                 </button>
                 <button
