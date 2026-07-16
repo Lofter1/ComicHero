@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, watch } from 'vue'
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 
 const props = defineProps({
   metronComicScan: { type: Object, default: null },
@@ -415,6 +416,6 @@ function registrationModeLabel(mode) {
         </button>
       </div>
     </section>
-    <div v-else class="empty-panel">Loading app settings...</div>
+    <LoadingState v-else />
   </section>
 </template>

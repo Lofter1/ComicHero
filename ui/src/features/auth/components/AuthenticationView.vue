@@ -1,5 +1,6 @@
 <script setup>
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 
 defineProps({
   loading: Boolean,
@@ -44,11 +45,7 @@ defineEmits([
 
 <template>
   <main v-if="loading" class="auth-shell">
-    <section class="auth-panel" role="status" aria-live="polite">
-      <span class="loading-spinner" aria-hidden="true"></span>
-      <h1>ComicHero</h1>
-      <p>Loading user setup...</p>
-    </section>
+    <LoadingState />
   </main>
 
   <main v-else-if="setupRequired" class="auth-shell">

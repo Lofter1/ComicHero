@@ -12,6 +12,7 @@ import { formatProgress } from '@/features/reading-orders/model.js'
 export function useCharacters({
   activeView,
   viewMode,
+  loading,
   error,
   loadPagedList,
   metronImportJobs,
@@ -25,12 +26,17 @@ export function useCharacters({
 
   const visibleCharacters = computed(() => characters.value)
   async function openCharacter(character) {
-    error.value = ''
-    activeView.value = 'characters'
-    selectedCharacter.value = null
-    viewMode.value = 'detail'
-    const detail = await getCharacter(character.id)
-    selectedCharacter.value = detail
+    loading.value = true
+    try {
+      error.value = ''
+      activeView.value = 'characters'
+      selectedCharacter.value = null
+      viewMode.value = 'detail'
+      const detail = await getCharacter(character.id)
+      selectedCharacter.value = detail
+    } finally {
+      loading.value = false
+    }
   }
 
   async function toggleCharacterFavorite(character) {

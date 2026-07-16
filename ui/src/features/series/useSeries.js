@@ -11,6 +11,7 @@ import {
 export function useSeries({
   activeView,
   viewMode,
+  loading,
   error,
   loadPagedList,
   metronImportJobs,
@@ -25,11 +26,16 @@ export function useSeries({
 
   async function openSeries(item) {
     if (!item?.id) return
-    error.value = ''
-    activeView.value = 'series'
-    selectedSeries.value = null
-    viewMode.value = 'detail'
-    selectedSeries.value = await getSeries(item.id)
+    loading.value = true
+    try {
+      error.value = ''
+      activeView.value = 'series'
+      selectedSeries.value = null
+      viewMode.value = 'detail'
+      selectedSeries.value = await getSeries(item.id)
+    } finally {
+      loading.value = false
+    }
   }
 
   async function toggleSeriesFavorite(item) {

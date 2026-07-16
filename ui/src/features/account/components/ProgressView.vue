@@ -1,4 +1,6 @@
 <script setup>
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+
 defineProps({
   statisticsView: {
     type: Object,
@@ -43,7 +45,7 @@ function achievementTimestampLabel(achievement) {
 
 <template>
   <section class="browse-view progress-view">
-    <div v-if="loading && !statisticsView" class="empty-state">Loading progress...</div>
+    <LoadingState v-if="loading && !statisticsView" />
     <div v-else-if="error" class="empty-state">
       {{ error }}
     </div>

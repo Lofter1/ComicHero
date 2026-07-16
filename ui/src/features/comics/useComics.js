@@ -14,6 +14,7 @@ import { comicPayload, emptyComic } from '@/features/comics/model.js'
 export function useComics({
   activeView,
   viewMode,
+  loading,
   error,
   saving,
   loadPagedList,
@@ -40,14 +41,19 @@ export function useComics({
   }
 
   async function openComic(comic) {
-    error.value = ''
-    activeView.value = 'comics'
-    selectedComic.value = null
-    viewMode.value = 'detail'
-    resetMetronMetadata()
-    const detail = await getComic(comic.id)
-    selectedComic.value = detail
-    comicForm.value = { ...detail }
+    loading.value = true
+    try {
+      error.value = ''
+      activeView.value = 'comics'
+      selectedComic.value = null
+      viewMode.value = 'detail'
+      resetMetronMetadata()
+      const detail = await getComic(comic.id)
+      selectedComic.value = detail
+      comicForm.value = { ...detail }
+    } finally {
+      loading.value = false
+    }
   }
 
   async function openOrderComic(comic) {

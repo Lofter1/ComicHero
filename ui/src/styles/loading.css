@@ -1,25 +1,26 @@
 /* Loading, empty, and screen-reader-only status helpers. */
 
-.loading-panel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: min(420px, 100%);
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: var(--panel-bg);
+.loading-state {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: min(520px, calc(100dvh - 180px));
   color: var(--label-ink);
-  padding: 16px;
-  font-size: 0.95rem;
 }
 
-.inline-loading-panel {
+.loading-state.compact {
+  min-height: 160px;
+}
+
+.loading-state-content {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  min-height: 52px;
-  color: var(--muted);
-  font-size: 0.9rem;
+  gap: 12px;
+}
+
+.loading-state-content strong {
+  font-size: 0.95rem;
 }
 
 .loading-spinner {

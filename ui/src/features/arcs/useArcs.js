@@ -10,7 +10,15 @@ import {
 } from '@/api/client.js'
 import { arcComicsPayload, arcFormFromDetail, arcPayload, emptyArc } from '@/features/arcs/model.js'
 
-export function useArcs({ activeView, viewMode, error, saving, loadComics, loadPagedList }) {
+export function useArcs({
+  activeView,
+  viewMode,
+  loading,
+  error,
+  saving,
+  loadComics,
+  loadPagedList,
+}) {
   const arcs = ref([])
   const selectedArc = ref(null)
   const quickSavingArcID = ref(null)
@@ -27,13 +35,18 @@ export function useArcs({ activeView, viewMode, error, saving, loadComics, loadP
 
   async function openArc(arc) {
     if (!arc?.id) return
-    error.value = ''
-    activeView.value = 'arcs'
-    selectedArc.value = null
-    viewMode.value = 'detail'
-    const detail = await getArc(arc.id)
-    selectedArc.value = detail
-    arcForm.value = arcFormFromDetail(detail)
+    loading.value = true
+    try {
+      error.value = ''
+      activeView.value = 'arcs'
+      selectedArc.value = null
+      viewMode.value = 'detail'
+      const detail = await getArc(arc.id)
+      selectedArc.value = detail
+      arcForm.value = arcFormFromDetail(detail)
+    } finally {
+      loading.value = false
+    }
   }
 
   async function toggleArcFavorite(arc) {

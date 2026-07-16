@@ -4,6 +4,7 @@ import BrowseListTools from '@/shared/components/browse/BrowseListTools.vue'
 import BrowseEntityRow from '@/shared/components/browse/BrowseEntityRow.vue'
 import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
 
@@ -101,15 +102,7 @@ function seriesPublisherLabel(series) {
           @update:direction="$emit('update:direction', $event)"
         />
       </div>
-      <div
-        v-if="loading && !series.length"
-        class="inline-loading-panel"
-        role="status"
-        aria-live="polite"
-      >
-        <span class="loading-spinner small" aria-hidden="true"></span>
-        <strong>Loading series...</strong>
-      </div>
+      <LoadingState v-if="loading && !series.length" />
       <div v-else-if="series.length" class="sectioned-list">
         <BrowseListSection :title="sectionTitle" :items="series">
           <template #item="{ item }">
