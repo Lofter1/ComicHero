@@ -386,6 +386,7 @@
 }
 
 .section-collapse-icon {
+  margin-inline-end: 8px;
   font-size: 1.35rem;
   line-height: 1;
   transition: transform 160ms ease;
