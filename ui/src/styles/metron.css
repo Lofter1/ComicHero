@@ -3,6 +3,7 @@
 .metron-view {
   display: grid;
   gap: 20px;
+  padding-block-start: 16px;
 }
 
 .metron-modes {
