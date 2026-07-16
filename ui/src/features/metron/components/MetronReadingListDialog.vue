@@ -1,5 +1,6 @@
 <script setup>
 import { assetURL } from '@/api/client.js'
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 
 defineProps({
   readingList: {
@@ -63,7 +64,7 @@ function formatDate(value) {
           :alt="readingList.name || 'Reading list image'"
         />
         <div class="metron-detail-copy">
-          <p v-if="loading" class="muted">Loading reading-list details...</p>
+          <LoadingState v-if="loading" compact />
           <p v-else-if="error" class="error-text">{{ error }}</p>
           <p v-else>{{ readingList?.description || 'No description from Metron.' }}</p>
           <dl class="metron-detail-facts">

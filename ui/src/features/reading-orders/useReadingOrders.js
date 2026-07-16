@@ -23,6 +23,7 @@ import {
 export function useReadingOrders({
   activeView,
   viewMode,
+  loading,
   error,
   saving,
   loadComics,
@@ -44,13 +45,18 @@ export function useReadingOrders({
   }
 
   async function openReadingOrder(order) {
-    error.value = ''
-    activeView.value = 'readingOrders'
-    selectedOrder.value = null
-    viewMode.value = 'detail'
-    const detail = await getReadingOrder(order.id)
-    selectedOrder.value = detail
-    orderForm.value = readingOrderFormFromDetail(detail)
+    loading.value = true
+    try {
+      error.value = ''
+      activeView.value = 'readingOrders'
+      selectedOrder.value = null
+      viewMode.value = 'detail'
+      const detail = await getReadingOrder(order.id)
+      selectedOrder.value = detail
+      orderForm.value = readingOrderFormFromDetail(detail)
+    } finally {
+      loading.value = false
+    }
   }
 
   async function refreshSelectedReadingOrderDetail() {

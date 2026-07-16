@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 
 const props = defineProps({
   dashboard: {
@@ -77,10 +78,7 @@ function achievementProgress(achievement) {
       </article>
     </div>
 
-    <div v-if="loading && !dashboard" class="empty-panel">
-      <span class="loading-spinner" aria-hidden="true"></span>
-      <p>Loading dashboard...</p>
-    </div>
+    <LoadingState v-if="loading && !dashboard" />
 
     <div v-else-if="items.length" class="dashboard-grid">
       <article v-for="item in items" :key="`${item.type}:${item.id}`" class="dashboard-card">

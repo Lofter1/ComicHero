@@ -14,6 +14,7 @@ import ComicDetailView from '@/features/comics/components/ComicDetailView.vue'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import DashboardView from '@/features/dashboard/components/DashboardView.vue'
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
+import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import MetronImport from '@/features/metron/components/MetronImport.vue'
 import MetronImportMonitor from '@/features/metron/components/MetronImportMonitor.vue'
 import ProgressView from '@/features/account/components/ProgressView.vue'
@@ -186,6 +187,7 @@ const {
 } = useSeries({
   activeView,
   viewMode,
+  loading,
   error,
   loadPagedList,
   metronImportJobs,
@@ -209,6 +211,7 @@ const {
 } = useCharacters({
   activeView,
   viewMode,
+  loading,
   error,
   loadPagedList,
   metronImportJobs,
@@ -232,6 +235,7 @@ const {
 } = useArcs({
   activeView,
   viewMode,
+  loading,
   error,
   saving,
   loadComics: (...args) => loadComics(...args),
@@ -265,6 +269,7 @@ const {
 } = useReadingOrders({
   activeView,
   viewMode,
+  loading,
   error,
   saving,
   loadComics: (...args) => loadComics(...args),
@@ -295,6 +300,7 @@ const {
 } = useComics({
   activeView,
   viewMode,
+  loading,
   error,
   saving,
   loadPagedList,
@@ -336,20 +342,7 @@ const toolbarTotalCount = computed(() => {
   if (activeView.value === 'account' || activeView.value === 'progress') return 1
   return 0
 })
-const loadingLabel = computed(() => {
-  if (activeView.value === 'dashboard') return 'Loading dashboard...'
-  if (activeView.value === 'readingOrders') return 'Loading orders...'
-  if (activeView.value === 'arcs') return 'Loading arcs...'
-  if (activeView.value === 'comics') return 'Loading comics...'
-  if (activeView.value === 'series') return 'Loading series...'
-  if (activeView.value === 'characters') return 'Loading characters...'
-  if (activeView.value === 'metron') return 'Loading Metron...'
-  if (activeView.value === 'users') return 'Loading users...'
-  if (activeView.value === 'account') return 'Loading account...'
-  if (activeView.value === 'progress') return 'Loading progress...'
-  return 'Loading...'
-})
-const showBlockingLoading = computed(() => loading.value && activeView.value !== 'series')
+const showBlockingLoading = computed(() => loading.value)
 const seriesListLoading = computed(() => Boolean(pageState.value.series?.refreshing))
 const metronPermissions = computed(() => userStatus.value?.metronPermissions || {})
 const canMetronSearch = computed(() => hasMetronScope('search'))
@@ -803,10 +796,7 @@ onUnmounted(() => {
         @dismiss="dismissMetronJob"
       />
 
-      <div v-if="showBlockingLoading" class="loading-panel" role="status" aria-live="polite">
-        <span class="loading-spinner" aria-hidden="true"></span>
-        <strong>{{ loadingLabel }}</strong>
-      </div>
+      <LoadingState v-if="showBlockingLoading" />
 
       <MetronImport
         v-else-if="activeView === 'metron'"
