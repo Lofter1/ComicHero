@@ -473,6 +473,10 @@
     grid-template-columns: 1fr;
   }
 
+  .section-order-entry .entry-edit-panel {
+    grid-template-columns: 1fr;
+  }
+
   .entry-edit-panel {
     grid-column: 1;
     grid-template-columns: 1fr;

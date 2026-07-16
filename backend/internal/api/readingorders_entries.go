@@ -57,6 +57,11 @@ func setReadingOrderComicsWithAuth(ctx context.Context, db *sqlx.DB, input *SetR
 	`, input.ID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to clear child reading orders")
 	}
+	if _, err := tx.ExecContext(ctx, `
+		DELETE FROM reading_order_sections WHERE reading_order_id = ?
+	`, input.ID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to clear sections")
+	}
 
 	for i, entry := range entries {
 		position := i + 1
@@ -74,6 +79,13 @@ func setReadingOrderComicsWithAuth(ctx context.Context, db *sqlx.DB, input *SetR
 				VALUES (?, ?, ?, ?)
 			`, input.ID, entry.ReadingOrderID, position, entry.Comment); err != nil {
 				return nil, huma.Error500InternalServerError("failed to insert child reading order")
+			}
+		case "section":
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO reading_order_sections (reading_order_id, position, title, description)
+				VALUES (?, ?, ?, ?)
+			`, input.ID, position, entry.Title, entry.Description); err != nil {
+				return nil, huma.Error500InternalServerError("failed to insert section")
 			}
 		}
 	}
@@ -146,6 +158,7 @@ func readingOrderEntryItems(input *SetReadingOrderComicsInput) []ReadingOrderEnt
 
 func normalizeReadingOrderEntry(entry ReadingOrderEntryPayload) ReadingOrderEntryPayload {
 	entry.Type = strings.TrimSpace(entry.Type)
+	entry.Title = strings.TrimSpace(entry.Title)
 	if entry.Type == "" {
 		if entry.ReadingOrderID > 0 {
 			entry.Type = "readingOrder"
@@ -167,8 +180,12 @@ func validateReadingOrderEntries(entries []ReadingOrderEntryPayload) error {
 			if entry.ReadingOrderID <= 0 {
 				return huma.Error400BadRequest("reading order entry requires readingOrderId")
 			}
+		case "section":
+			if entry.Title == "" {
+				return huma.Error400BadRequest("section entry requires title")
+			}
 		default:
-			return huma.Error400BadRequest("reading order entry type must be comic or readingOrder")
+			return huma.Error400BadRequest("reading order entry type must be comic, readingOrder, or section")
 		}
 	}
 	return nil

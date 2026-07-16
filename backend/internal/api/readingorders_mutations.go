@@ -197,6 +197,16 @@ func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDe
 			`, copiedID, entry.ReadingOrder.ID, position, entry.Comment); err != nil {
 				return nil, huma.Error500InternalServerError("failed to copy child reading order")
 			}
+		case "section":
+			if entry.Section == nil {
+				continue
+			}
+			if _, err := tx.ExecContext(ctx, `
+				INSERT INTO reading_order_sections (reading_order_id, position, title, description)
+				VALUES (?, ?, ?, ?)
+			`, copiedID, position, entry.Section.Title, entry.Section.Description); err != nil {
+				return nil, huma.Error500InternalServerError("failed to copy reading order section")
+			}
 		}
 	}
 

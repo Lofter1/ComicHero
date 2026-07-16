@@ -103,7 +103,8 @@ func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) 
 	}
 	comics := []ReadingOrderComic{}
 	childOrders := []ReadingOrder{}
-	for _, entry := range entries {
+	for i := range entries {
+		entry := &entries[i]
 		if entry.Type == "comic" && entry.Comic != nil {
 			comics = append(comics, *entry.Comic)
 			continue
@@ -129,6 +130,7 @@ func fetchReadingOrderDetail(ctx context.Context, db *sqlx.DB, ro ReadingOrder) 
 				childComics[i].Comment = source + " - " + childComics[i].Comment
 			}
 		}
+		entry.Comics = childComics
 		comics = append(comics, childComics...)
 	}
 
@@ -207,11 +209,23 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 	`, visibilityUserID, visibilityUserID, userID, readingOrderID, visibilityUserID, visibilityUserID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch child reading orders")
 	}
+	sections := []struct {
+		ReadingOrderSection
+		Position int `db:"position"`
+	}{}
+	if err := db.SelectContext(ctx, &sections, `
+		SELECT title, description, position
+		FROM reading_order_sections
+		WHERE reading_order_id = ?
+		ORDER BY position
+	`, readingOrderID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch reading order sections")
+	}
 
 	positioned := make([]struct {
 		position int
 		entry    ReadingOrderEntry
-	}, 0, len(comics)+len(children))
+	}, 0, len(comics)+len(children)+len(sections))
 	for i := range comics {
 		comic := comics[i].ReadingOrderComic
 		positioned = append(positioned, struct {
@@ -236,6 +250,19 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 				Type:         "readingOrder",
 				ReadingOrder: &child,
 				Comment:      children[i].Comment,
+			},
+		})
+	}
+	for i := range sections {
+		section := sections[i].ReadingOrderSection
+		positioned = append(positioned, struct {
+			position int
+			entry    ReadingOrderEntry
+		}{
+			position: sections[i].Position,
+			entry: ReadingOrderEntry{
+				Type:    "section",
+				Section: &section,
 			},
 		})
 	}

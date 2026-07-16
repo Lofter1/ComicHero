@@ -15,6 +15,14 @@ export function emptyReadingOrder() {
 
 export function readingOrderFormFromDetail(detail) {
   const entries = (detail.entries || []).map((entry) => {
+    if (entry.type === 'section' && entry.section) {
+      return {
+        type: 'section',
+        title: entry.section.title || '',
+        description: entry.section.description || '',
+      }
+    }
+
     if (entry.type === 'readingOrder' && entry.readingOrder) {
       return {
         type: 'readingOrder',
@@ -76,6 +84,14 @@ export function readingOrderComicsPayload(order) {
   return {
     entries: sourceEntries
       .map((entry) => {
+        if (entry.type === 'section') {
+          return {
+            type: 'section',
+            title: String(entry.title || '').trim(),
+            description: entry.description || '',
+          }
+        }
+
         if (entry.type === 'readingOrder') {
           return {
             type: 'readingOrder',
@@ -92,6 +108,7 @@ export function readingOrderComicsPayload(order) {
         }
       })
       .filter((entry) => {
+        if (entry.type === 'section') return Boolean(entry.title)
         return entry.type === 'readingOrder' ? entry.readingOrderId > 0 : entry.comicId > 0
       }),
     readingOrderIds: (sourceEntries.length
@@ -102,7 +119,7 @@ export function readingOrderComicsPayload(order) {
       .map((entry) => Number(entry.readingOrderId))
       .filter((id) => id > 0),
     comics: (sourceEntries.length
-      ? sourceEntries.filter((entry) => entry.type !== 'readingOrder')
+      ? sourceEntries.filter((entry) => entry.type === 'comic')
       : order.comics
     )
       .filter((comic) => Number(comic.comicId) > 0)
@@ -112,6 +129,63 @@ export function readingOrderComicsPayload(order) {
         tags: comic.tags,
       })),
   }
+}
+
+export function readingOrderDisplayComics(order) {
+  const flattened = order?.comics || []
+  const entries = order?.entries || []
+  if (!entries.length) return flattened
+
+  const currentState = new Map(
+    flattened.map((comic) => [comic.id, { read: comic.read, skipped: comic.skipped }]),
+  )
+  const display = []
+  let section = null
+  let sectionIndex = 0
+  let entryIndex = 0
+
+  const appendComics = (comics, group) => {
+    for (const comic of comics) {
+      const state = currentState.get(comic.id)
+      display.push({
+        ...comic,
+        read: state?.read ?? comic.read,
+        skipped: state?.skipped ?? comic.skipped,
+        section: group,
+      })
+    }
+  }
+
+  for (const entry of entries) {
+    entryIndex += 1
+
+    if (entry.type === 'section') {
+      sectionIndex += 1
+      section = {
+        key: `order-${order?.id || 'draft'}-section-${sectionIndex}`,
+        kind: 'section',
+        label: 'Section',
+        title: entry.section?.title || '',
+        description: entry.section?.description || '',
+      }
+      continue
+    }
+
+    if (entry.type === 'readingOrder') {
+      appendComics(entry.comics || [], {
+        key: `order-${order?.id || 'draft'}-nested-${entryIndex}`,
+        kind: 'readingOrder',
+        label: 'Reading order',
+        title: entry.readingOrder?.name || 'Nested reading order',
+        description: entry.comment || entry.readingOrder?.description || '',
+      })
+      continue
+    }
+
+    appendComics(entry.comic ? [entry.comic] : [], section)
+  }
+
+  return display.length === flattened.length ? display : flattened
 }
 
 export function formatProgress(progress) {

@@ -65,6 +65,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  showSections: {
+    type: Boolean,
+    default: false,
+  },
   initialSort: {
     type: String,
     default: 'series',
@@ -117,6 +121,7 @@ const visibleLimit = ref(props.localPageSize)
 const loadMoreSentinel = ref(null)
 const autoLoadSupported = ref(false)
 const comicOptionsOpen = ref(false)
+const collapsedSections = ref(new Set())
 
 let loadMoreObserver = null
 
@@ -306,6 +311,30 @@ const canLoadMoreLocal = computed(
 const showManualLoadMore = computed(
   () => (canLoadMoreLocal.value || canLoadMoreServer.value) && !autoLoadSupported.value,
 )
+const sectionHeadingsVisible = computed(
+  () => props.showSections && sortModel.value === 'readingOrder',
+)
+
+function showSectionBefore(comic, index) {
+  if (!sectionHeadingsVisible.value || !comic.section?.title) return false
+  return index === 0 || visibleComics.value[index - 1]?.section?.key !== comic.section.key
+}
+
+function isSectionCollapsed(comic) {
+  return sectionHeadingsVisible.value && collapsedSections.value.has(comic.section?.key)
+}
+
+function toggleSection(section) {
+  if (!section?.key) return
+
+  const next = new Set(collapsedSections.value)
+  if (next.has(section.key)) {
+    next.delete(section.key)
+  } else {
+    next.add(section.key)
+  }
+  collapsedSections.value = next
+}
 
 function normalizeSort(sort) {
   if (sort === 'readingOrder' && !props.showReadingOrderSort) return 'series'
@@ -580,19 +609,40 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
     <template v-if="visibleComics.length">
       <div class="issue-list">
-        <IssueListItem
-          v-for="(comic, index) in visibleComics"
-          :key="`${comic.id}-${index}`"
-          :comic="comic"
-          :selected="selectedComicId === comic.id"
-          :quick-saving="quickSavingComicId === comic.id"
-          :show-cover="showCover"
-          :show-comment="showComment"
-          :read-only="readOnly"
-          @open="$emit('open-comic', $event)"
-          @toggle-read="$emit('toggle-read', $event)"
-          @toggle-skipped="$emit('toggle-skipped', $event)"
-        />
+        <template v-for="(comic, index) in visibleComics" :key="`${comic.id}-${index}`">
+          <button
+            v-if="showSectionBefore(comic, index)"
+            class="reading-order-section-heading"
+            :class="{
+              'nested-reading-order-heading': comic.section.kind === 'readingOrder',
+            }"
+            type="button"
+            :aria-expanded="!isSectionCollapsed(comic)"
+            :aria-label="`${isSectionCollapsed(comic) ? 'Expand' : 'Collapse'} ${comic.section.label || 'section'} ${comic.section.title}`"
+            @click="toggleSection(comic.section)"
+          >
+            <span class="reading-order-section-heading-content">
+              <span class="eyebrow">{{ comic.section.label || 'Section' }}</span>
+              <strong>{{ comic.section.title }}</strong>
+              <span v-if="comic.section.description" class="section-description">
+                {{ comic.section.description }}
+              </span>
+            </span>
+            <span class="section-collapse-icon" aria-hidden="true">⌄</span>
+          </button>
+          <IssueListItem
+            v-if="!isSectionCollapsed(comic)"
+            :comic="comic"
+            :selected="selectedComicId === comic.id"
+            :quick-saving="quickSavingComicId === comic.id"
+            :show-cover="showCover"
+            :show-comment="showComment"
+            :read-only="readOnly"
+            @open="$emit('open-comic', $event)"
+            @toggle-read="$emit('toggle-read', $event)"
+            @toggle-skipped="$emit('toggle-skipped', $event)"
+          />
+        </template>
       </div>
 
       <div

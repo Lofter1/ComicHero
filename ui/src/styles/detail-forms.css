@@ -139,8 +139,21 @@
 
 .add-entry-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.section-add-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 12px;
+}
+
+.section-add-panel .primary-button {
+  justify-self: start;
 }
 
 .add-entry-tabs button {

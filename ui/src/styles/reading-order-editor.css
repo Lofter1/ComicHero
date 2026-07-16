@@ -71,6 +71,11 @@
   background: color-mix(in srgb, var(--surface-soft) 82%, var(--accent));
 }
 
+.order-entry.section-order-entry .selected-order-comic {
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--line));
+  background: color-mix(in srgb, var(--surface-soft) 78%, var(--primary));
+}
+
 .selected-order-comic {
   display: flex;
   flex-direction: column;
@@ -151,6 +156,10 @@
   grid-template-columns: 1fr;
 }
 
+.section-order-entry .entry-edit-panel {
+  grid-template-columns: minmax(180px, 0.6fr) minmax(0, 1fr);
+}
+
 .entry-type-pill {
   display: inline-grid;
   align-self: flex-start;
@@ -170,6 +179,12 @@
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
   background: color-mix(in srgb, var(--surface-soft) 76%, var(--accent));
   color: var(--accent);
+}
+
+.section-order-entry .entry-type-pill {
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--line));
+  background: var(--primary);
+  color: white;
 }
 
 .selected-order-comic strong,

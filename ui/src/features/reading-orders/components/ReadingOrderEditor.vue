@@ -27,6 +27,8 @@ const comicSearchResults = ref([])
 const comicSearchLoading = ref(false)
 const comicSearchError = ref('')
 const readingOrderSearch = ref('')
+const sectionTitle = ref('')
+const sectionDescription = ref('')
 const activeAddType = ref('comic')
 const expandedEntryKeys = ref(new Set())
 
@@ -168,6 +170,7 @@ function insertEntryAt(entry, index) {
 }
 
 function entryKey(entry, index) {
+  if (entry.type === 'section') return `section:${index}`
   const id = entry.type === 'readingOrder' ? entry.readingOrderId : entry.comicId
   return `${entry.type}:${id}:${index}`
 }
@@ -225,6 +228,19 @@ function newChildOrderEntry(order) {
     description: order.description || '',
     comment: '',
   }
+}
+
+function addSection() {
+  const title = sectionTitle.value.trim()
+  if (!title) return
+
+  addNewEntryToEnd({
+    type: 'section',
+    title,
+    description: sectionDescription.value.trim(),
+  })
+  sectionTitle.value = ''
+  sectionDescription.value = ''
 }
 
 function addNewEntryToEnd(entry) {
@@ -291,12 +307,14 @@ function removeEntry(index) {
 }
 
 function entryLabel(entry) {
+  if (entry.type === 'section') return entry.title || 'Untitled section'
   if (entry.type === 'readingOrder') return entry.title || 'Unknown reading order'
 
   return entry.title || comicLabel(props.comics, entry.comicId)
 }
 
 function entryTypeLabel(entry) {
+  if (entry.type === 'section') return 'Section'
   return entry.type === 'readingOrder' ? 'Reading order' : 'Issue'
 }
 
@@ -403,6 +421,13 @@ function endDrag() {
             >
               Reading Orders
             </button>
+            <button
+              type="button"
+              :class="{ active: activeAddType === 'section' }"
+              @click="activeAddType = 'section'"
+            >
+              Sections
+            </button>
           </div>
 
           <div v-if="activeAddType === 'comic'" class="comic-add-panel">
@@ -497,6 +522,33 @@ function endDrag() {
           <div v-else-if="activeAddType === 'readingOrder'" class="empty-state">
             No reading orders available to include.
           </div>
+
+          <div v-if="activeAddType === 'section'" class="section-add-panel">
+            <label>
+              Section title
+              <input
+                v-model="sectionTitle"
+                placeholder="Main story"
+                @keydown.enter.prevent="addSection"
+              />
+            </label>
+            <label>
+              Description
+              <textarea
+                v-model="sectionDescription"
+                rows="3"
+                placeholder="Optional context for this section"
+              />
+            </label>
+            <button
+              type="button"
+              class="primary-button"
+              :disabled="!sectionTitle.trim()"
+              @click="addSection"
+            >
+              Add Section
+            </button>
+          </div>
         </section>
       </div>
 
@@ -531,6 +583,7 @@ function endDrag() {
               :class="{
                 dragging: draggedIndex === index,
                 'nested-order-entry': entry.type === 'readingOrder',
+                'section-order-entry': entry.type === 'section',
                 expanded: isEntryExpanded(entry, index),
               }"
             >
@@ -592,30 +645,54 @@ function endDrag() {
               </button>
 
               <div v-if="isEntryExpanded(entry, index)" class="entry-edit-panel">
-                <label class="comment-input-label">
-                  Note
-                  <textarea
-                    :value="entry.comment"
-                    rows="3"
-                    aria-label="Entry comment"
-                    :placeholder="
-                      entry.type === 'readingOrder'
-                        ? 'Optional note for this reading order'
-                        : 'Optional note for this spot'
-                    "
-                    @input="updateEntry(index, { comment: $event.target.value })"
-                  />
-                </label>
+                <template v-if="entry.type === 'section'">
+                  <label class="comment-input-label">
+                    Section title
+                    <input
+                      :value="entry.title"
+                      required
+                      aria-label="Section title"
+                      @input="updateEntry(index, { title: $event.target.value })"
+                    />
+                  </label>
+                  <label class="comment-input-label">
+                    Description
+                    <textarea
+                      :value="entry.description"
+                      rows="3"
+                      aria-label="Section description"
+                      placeholder="Optional context for this section"
+                      @input="updateEntry(index, { description: $event.target.value })"
+                    />
+                  </label>
+                </template>
 
-                <label v-if="entry.type !== 'readingOrder'" class="comment-input-label">
-                  Tags
-                  <input
-                    :value="entry.tags"
-                    aria-label="Entry tags"
-                    placeholder="Tags"
-                    @input="updateEntry(index, { tags: $event.target.value })"
-                  />
-                </label>
+                <template v-else>
+                  <label class="comment-input-label">
+                    Note
+                    <textarea
+                      :value="entry.comment"
+                      rows="3"
+                      aria-label="Entry comment"
+                      :placeholder="
+                        entry.type === 'readingOrder'
+                          ? 'Optional note for this reading order'
+                          : 'Optional note for this spot'
+                      "
+                      @input="updateEntry(index, { comment: $event.target.value })"
+                    />
+                  </label>
+
+                  <label v-if="entry.type !== 'readingOrder'" class="comment-input-label">
+                    Tags
+                    <input
+                      :value="entry.tags"
+                      aria-label="Entry tags"
+                      placeholder="Tags"
+                      @input="updateEntry(index, { tags: $event.target.value })"
+                    />
+                  </label>
+                </template>
               </div>
             </div>
           </template>

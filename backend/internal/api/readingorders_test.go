@@ -41,6 +41,20 @@ func TestReadingOrderHelpers(t *testing.T) {
 	if order := readingOrderListOrder("rating", "desc"); order != "ORDER BY rating DESC, ro.name DESC" {
 		t.Fatalf("rating order = %q", order)
 	}
+
+	section := normalizeReadingOrderEntry(ReadingOrderEntryPayload{
+		Type:  "section",
+		Title: "  Main story  ",
+	})
+	if section.Title != "Main story" {
+		t.Fatalf("normalized section title = %q; want Main story", section.Title)
+	}
+	if err := validateReadingOrderEntries([]ReadingOrderEntryPayload{section}); err != nil {
+		t.Fatalf("validate section: %v", err)
+	}
+	if err := validateReadingOrderEntries([]ReadingOrderEntryPayload{{Type: "section"}}); err == nil {
+		t.Fatal("validate untitled section = nil; want an error")
+	}
 }
 
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
@@ -128,6 +142,13 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 			PRIMARY KEY (parent_reading_order_id, child_reading_order_id),
 			CHECK (parent_reading_order_id <> child_reading_order_id)
 		);
+		CREATE TABLE reading_order_sections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT ''
+		);
 		INSERT INTO comics (series, series_year, issue, publisher)
 		VALUES ('Parent', 2026, '1', 'Publisher'),
 			('Child', 2026, '2', 'Publisher'),
@@ -153,8 +174,10 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 
 	parentInput := &SetReadingOrderComicsInput{ID: parent.Body.ID}
 	parentInput.Body.Entries = []ReadingOrderEntryPayload{
+		{Type: "section", Title: "Opening", Description: "Start with the setup."},
 		{Type: "comic", ComicID: 1},
 		{Type: "readingOrder", ReadingOrderID: child.Body.ID, Comment: "Crossover break"},
+		{Type: "section", Title: "Finale"},
 		{Type: "comic", ComicID: 3},
 	}
 	detail, err := setReadingOrderComics(ctx, db, parentInput)
@@ -162,11 +185,17 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 		t.Fatalf("set parent entries: %v", err)
 	}
 
-	if len(detail.Body.Entries) != 3 || detail.Body.Entries[1].Type != "readingOrder" {
-		t.Fatalf("entries = %#v; want nested reading order in the middle", detail.Body.Entries)
+	if len(detail.Body.Entries) != 5 || detail.Body.Entries[0].Type != "section" || detail.Body.Entries[2].Type != "readingOrder" {
+		t.Fatalf("entries = %#v; want sections around ordered comic entries", detail.Body.Entries)
 	}
-	if detail.Body.Entries[1].Comment != "Crossover break" {
-		t.Fatalf("nested order note = %q; want Crossover break", detail.Body.Entries[1].Comment)
+	if detail.Body.Entries[0].Section == nil || detail.Body.Entries[0].Section.Title != "Opening" || detail.Body.Entries[0].Section.Description != "Start with the setup." {
+		t.Fatalf("opening section = %#v", detail.Body.Entries[0].Section)
+	}
+	if detail.Body.Entries[2].Comment != "Crossover break" {
+		t.Fatalf("nested order note = %q; want Crossover break", detail.Body.Entries[2].Comment)
+	}
+	if len(detail.Body.Entries[2].Comics) != 1 || detail.Body.Entries[2].Comics[0].Issue != "2" {
+		t.Fatalf("nested expanded comics = %#v; want issue 2", detail.Body.Entries[2].Comics)
 	}
 	if len(detail.Body.Comics) != 3 {
 		t.Fatalf("expanded comics = %d; want 3", len(detail.Body.Comics))
@@ -196,10 +225,12 @@ func TestCopyReadingOrderCreatesCurrentUserOwnedCopy(t *testing.T) {
 			(11, 'Nested list', 'Nested notes', '', 0, 2);
 		INSERT INTO reading_order_comics (reading_order_id, comic_id, position, note, tags)
 		VALUES
-			(10, 1, 1, 'Start here', 'Main'),
+			(10, 1, 2, 'Start here', 'Main'),
 			(11, 2, 1, 'Nested comic', 'Tie-in');
 		INSERT INTO reading_order_children (parent_reading_order_id, child_reading_order_id, position, note)
-		VALUES (10, 11, 2, 'Then this');
+		VALUES (10, 11, 3, 'Then this');
+		INSERT INTO reading_order_sections (reading_order_id, position, title, description)
+		VALUES (10, 1, 'First phase', 'Read the setup first');
 	`); err != nil {
 		t.Fatalf("seed copy source: %v", err)
 	}
@@ -227,20 +258,23 @@ func TestCopyReadingOrderCreatesCurrentUserOwnedCopy(t *testing.T) {
 	if !copied.Body.CanEdit {
 		t.Fatal("copied canEdit = false; want current user to edit their copy")
 	}
-	if len(copied.Body.Entries) != 2 {
-		t.Fatalf("copied entries = %d; want 2", len(copied.Body.Entries))
+	if len(copied.Body.Entries) != 3 {
+		t.Fatalf("copied entries = %d; want 3", len(copied.Body.Entries))
 	}
-	if copied.Body.Entries[0].Comic == nil || copied.Body.Entries[0].Comic.ID != 1 {
-		t.Fatalf("first copied entry = %#v; want comic 1", copied.Body.Entries[0])
+	if copied.Body.Entries[0].Section == nil || copied.Body.Entries[0].Section.Title != "First phase" || copied.Body.Entries[0].Section.Description != "Read the setup first" {
+		t.Fatalf("first copied entry = %#v; want section", copied.Body.Entries[0])
 	}
-	if copied.Body.Entries[0].Comic.Comment != "Start here" || copied.Body.Entries[0].Comic.Tags != "Main" {
-		t.Fatalf("first copied comic note/tags = %q/%q", copied.Body.Entries[0].Comic.Comment, copied.Body.Entries[0].Comic.Tags)
+	if copied.Body.Entries[1].Comic == nil || copied.Body.Entries[1].Comic.ID != 1 {
+		t.Fatalf("second copied entry = %#v; want comic 1", copied.Body.Entries[1])
 	}
-	if copied.Body.Entries[1].ReadingOrder == nil || copied.Body.Entries[1].ReadingOrder.ID != 11 {
-		t.Fatalf("second copied entry = %#v; want nested order 11", copied.Body.Entries[1])
+	if copied.Body.Entries[1].Comic.Comment != "Start here" || copied.Body.Entries[1].Comic.Tags != "Main" {
+		t.Fatalf("copied comic note/tags = %q/%q", copied.Body.Entries[1].Comic.Comment, copied.Body.Entries[1].Comic.Tags)
 	}
-	if copied.Body.Entries[1].Comment != "Then this" {
-		t.Fatalf("copied nested note = %q; want Then this", copied.Body.Entries[1].Comment)
+	if copied.Body.Entries[2].ReadingOrder == nil || copied.Body.Entries[2].ReadingOrder.ID != 11 {
+		t.Fatalf("third copied entry = %#v; want nested order 11", copied.Body.Entries[2])
+	}
+	if copied.Body.Entries[2].Comment != "Then this" {
+		t.Fatalf("copied nested note = %q; want Then this", copied.Body.Entries[2].Comment)
 	}
 }
 
@@ -643,6 +677,13 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			note TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (parent_reading_order_id, child_reading_order_id),
 			CHECK (parent_reading_order_id <> child_reading_order_id)
+		);
+		CREATE TABLE reading_order_sections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT ''
 		);
 	`); err != nil {
 		t.Fatalf("create schema: %v", err)
