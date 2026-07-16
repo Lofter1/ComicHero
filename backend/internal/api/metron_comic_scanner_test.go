@@ -26,7 +26,7 @@ func newMetronComicScannerTestDB(t *testing.T) *sqlx.DB {
 
 func TestMetronComicScanSettingsRoundTrip(t *testing.T) {
 	db := newMetronComicScannerTestDB(t)
-	settings := MetronComicScanSettings{Enabled: true, ScanComics: true, Schedule: "weekly", Weekdays: []string{"friday", "monday"}, StartTime: "03:15", DailyCallLimit: 12, MinIntervalSeconds: 20}
+	settings := MetronComicScanSettings{Enabled: true, ScanComics: true, Schedule: "weekly", Weekdays: []string{"friday", "monday"}, StartTime: "03:15", DailyCallLimit: 12, MinIntervalSeconds: 20, IncompleteFields: []string{"publisher", "comicVineId"}}
 	if err := validateMetronComicScanSettings(&settings); err != nil {
 		t.Fatal(err)
 	}
@@ -37,8 +37,36 @@ func TestMetronComicScanSettingsRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !got.Enabled || got.DailyCallLimit != 12 || got.MinIntervalSeconds != 20 || len(got.Weekdays) != 2 {
+	if !got.Enabled || got.DailyCallLimit != 12 || got.MinIntervalSeconds != 20 || len(got.Weekdays) != 2 || len(got.IncompleteFields) != 2 {
 		t.Fatalf("unexpected settings: %+v", got)
+	}
+}
+
+func TestMetronComicScanLegacySettingsKeepDefaultIncompleteFields(t *testing.T) {
+	db := newMetronComicScannerTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES (?, ?)`, metronComicScanSettingsKey, `{"enabled":true}`); err != nil {
+		t.Fatal(err)
+	}
+	settings, err := loadMetronComicScanSettings(context.Background(), db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(settings.IncompleteFields) != len(metronComicIncompleteFields) {
+		t.Fatalf("legacy incomplete fields = %v; want defaults %v", settings.IncompleteFields, metronComicIncompleteFields)
+	}
+}
+
+func TestMetronComicScanSettingsRequireKnownIncompleteFields(t *testing.T) {
+	settings := defaultMetronComicScanSettings()
+	settings.IncompleteFields = nil
+	if err := validateMetronComicScanSettings(&settings); err == nil {
+		t.Fatal("empty incomplete fields returned nil error")
+	}
+
+	settings = defaultMetronComicScanSettings()
+	settings.IncompleteFields = append(settings.IncompleteFields, "unknown")
+	if err := validateMetronComicScanSettings(&settings); err == nil {
+		t.Fatal("unknown incomplete field returned nil error")
 	}
 }
 
@@ -124,13 +152,9 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cutoff := now.Add(-30 * 24 * time.Hour).Format(time.RFC3339)
-	var rows []struct {
-		ID       int `db:"id"`
-		MetronID int `db:"metron_issue_id"`
-	}
-	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (comic_vine_id IS NULL OR TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '') AND (metron_synced_at = '' OR metron_synced_at <= ?) ORDER BY id`
-	if err := db.Select(&rows, query, cutoff); err != nil {
+	settings := defaultMetronComicScanSettings()
+	rows, err := selectIncompleteComics(context.Background(), db, settings, now)
+	if err != nil {
 		t.Fatal(err)
 	}
 
@@ -149,6 +173,48 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 	}
 	if !got[4] {
 		t.Fatal("comic missing only a Comic Vine ID should be selected")
+	}
+}
+
+func TestMetronComicScanUsesSelectedIncompleteFields(t *testing.T) {
+	db := newMetronComicScannerTestDB(t)
+	if _, err := db.Exec(`
+		CREATE TABLE comics (
+			id INTEGER PRIMARY KEY,
+			publisher TEXT NOT NULL DEFAULT '',
+			cover_date TEXT NOT NULL DEFAULT '',
+			cover_image TEXT NOT NULL DEFAULT '',
+			description TEXT NOT NULL DEFAULT '',
+			metron_issue_id INTEGER,
+			comic_vine_id INTEGER,
+			metron_synced_at TEXT NOT NULL DEFAULT ''
+		);
+		INSERT INTO comics VALUES
+			(1, '', '2020-01-01', '/one.jpg', 'Complete', 101, 1001, ''),
+			(2, 'Publisher', '2020-01-01', '/two.jpg', 'Complete', 102, NULL, ''),
+			(3, 'Publisher', '2020-01-01', '/three.jpg', '', 103, 1003, '');
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	settings := defaultMetronComicScanSettings()
+	settings.RecheckCooldownDays = 0
+	settings.IncompleteFields = []string{"publisher"}
+	rows, err := selectIncompleteComics(context.Background(), db, settings, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0].MetronID != 101 {
+		t.Fatalf("publisher rows = %+v; want only Metron issue 101", rows)
+	}
+
+	settings.IncompleteFields = []string{"comicVineId", "description"}
+	rows, err = selectIncompleteComics(context.Background(), db, settings, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || rows[0].MetronID != 102 || rows[1].MetronID != 103 {
+		t.Fatalf("selected rows = %+v; want Metron issues 102 and 103", rows)
 	}
 }
 
