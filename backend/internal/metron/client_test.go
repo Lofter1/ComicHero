@@ -127,7 +127,7 @@ func TestListReadingListsFetchesEveryUnfilteredPage(t *testing.T) {
 func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"id":18030,"series":{"name":"The Amazing Spider-Man","year_began":2018},"number":"50.LR","cover_date":"2020-12-01"}`))
+		w.Write([]byte(`{"id":18030,"cv_id":987654,"series":{"name":"The Amazing Spider-Man","year_began":2018},"number":"50.LR","cover_date":"2020-12-01"}`))
 	}))
 	defer server.Close()
 
@@ -138,6 +138,9 @@ func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
 	}
 	if issue.Issue != "50.LR" || issue.Number != "50.LR" {
 		t.Fatalf("issue number = %q/%q, want 50.LR/50.LR", issue.Issue, issue.Number)
+	}
+	if issue.ComicVineID != 987654 {
+		t.Fatalf("Comic Vine ID = %d, want 987654", issue.ComicVineID)
 	}
 }
 

@@ -15,11 +15,12 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 	ctx := testUserContext()
 	db := newMetronImportTestDB(t)
 	issue := metron.Issue{
-		ID:         101,
-		Series:     "Series",
-		SeriesYear: 2026,
-		Issue:      "1",
-		Publisher:  "Publisher",
+		ID:          101,
+		ComicVineID: 9001,
+		Series:      "Series",
+		SeriesYear:  2026,
+		Issue:       "1",
+		Publisher:   "Publisher",
 	}
 
 	first, err := importMetronComic(ctx, db, nil, nil, issue)
@@ -36,6 +37,45 @@ func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 
 	var count int
 	if err := db.GetContext(ctx, &count, `SELECT COUNT(*) FROM comics`); err != nil {
+		t.Fatalf("count comics: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("comic count = %d; want 1", count)
+	}
+	if first.Body.ComicVineID == nil || *first.Body.ComicVineID != 9001 {
+		t.Fatalf("Comic Vine ID = %#v; want 9001", first.Body.ComicVineID)
+	}
+}
+
+func TestImportMetronComicReusesComicVineMatchAndAttachesMetronID(t *testing.T) {
+	ctx := testUserContext()
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, series_year, issue, publisher, comic_vine_id)
+		VALUES ('Older local title', 1999, '7', '', 81234)
+	`); err != nil {
+		t.Fatalf("seed Comic Vine comic: %v", err)
+	}
+
+	comic, err := importMetronComic(ctx, db, nil, nil, metron.Issue{
+		ID:          404,
+		ComicVineID: 81234,
+		Series:      "Canonical title",
+		SeriesYear:  2026,
+		Issue:       "1",
+		Publisher:   "Publisher",
+	})
+	if err != nil {
+		t.Fatalf("import: %v", err)
+	}
+	if comic.Body.ID != 1 {
+		t.Fatalf("comic ID = %d; want existing comic 1", comic.Body.ID)
+	}
+	if comic.Body.MetronIssueID == nil || *comic.Body.MetronIssueID != 404 {
+		t.Fatalf("Metron issue ID = %#v; want 404", comic.Body.MetronIssueID)
+	}
+	var count int
+	if err := db.Get(&count, `SELECT COUNT(*) FROM comics`); err != nil {
 		t.Fatalf("count comics: %v", err)
 	}
 	if count != 1 {

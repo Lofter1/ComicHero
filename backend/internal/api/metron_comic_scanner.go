@@ -249,7 +249,7 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 		ID       int `db:"id"`
 		MetronID int `db:"metron_issue_id"`
 	}
-	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '')`
+	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (comic_vine_id IS NULL OR TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '')`
 	args := []any{}
 	if settings.RecheckCooldownDays > 0 {
 		cutoff := time.Now().Add(-time.Duration(settings.RecheckCooldownDays) * 24 * time.Hour).UTC().Format(time.RFC3339)
@@ -343,7 +343,7 @@ func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *C
 		}
 	}
 	syncedAt := time.Now().UTC().Format(time.RFC3339)
-	_, err := db.ExecContext(ctx, `UPDATE comics SET publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END, metron_synced_at = ? WHERE id = ?`, issue.Publisher, issue.CoverDate, cover, issue.Description, syncedAt, comicID)
+	_, err := db.ExecContext(ctx, `UPDATE comics SET comic_vine_id = COALESCE(comic_vine_id, ?), publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END, metron_synced_at = ? WHERE id = ?`, nullablePositiveID(issue.ComicVineID), issue.Publisher, issue.CoverDate, cover, issue.Description, syncedAt, comicID)
 	if err != nil {
 		return err
 	}

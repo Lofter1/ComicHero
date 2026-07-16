@@ -492,27 +492,11 @@ func importMetronCharacterAppearancesWithProgressOptions(ctx context.Context, db
 
 func importMetronCharacterAppearanceIssueWithOptions(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, issue metron.Issue, options MetronImportOptions) (Comic, error) {
 	options = resolveMetronImportOptions(options)
-	if options.Mode != "full" && !options.Force && issue.ID > 0 {
-		if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
-			return Comic{}, err
-		} else if ok {
-			if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
-				return Comic{}, err
-			}
-			return getComicRow(ctx, db, id)
-		}
-	}
-
 	if options.Mode != "full" && !options.Force {
-		if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
+		if id, ok, err := existingComicIDForMetronIssue(ctx, db, issue); err != nil {
 			return Comic{}, err
 		} else if ok {
-			if issue.ID > 0 {
-				if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
-					return Comic{}, err
-				}
-			}
-			if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+			if err := linkComicToMetronIssueIdentity(ctx, db, id, issue); err != nil {
 				return Comic{}, err
 			}
 			return getComicRow(ctx, db, id)

@@ -7,6 +7,7 @@ import (
 
 type Issue struct {
 	ID           int               `json:"id"          doc:"Metron issue identifier." example:"123456"`
+	ComicVineID  int               `json:"comicVineId" doc:"Comic Vine issue identifier returned by Metron, when known." example:"987654"`
 	Title        string            `json:"title"       doc:"Issue title." example:"The Court of Owls"`
 	StoryNames   []string          `json:"storyNames"  doc:"Story titles returned by Metron."`
 	SeriesID     int               `json:"seriesId"    doc:"Metron series identifier for this issue." example:"405"`

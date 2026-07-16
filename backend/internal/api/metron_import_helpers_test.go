@@ -62,11 +62,16 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			cover_image TEXT NOT NULL DEFAULT '',
 			description TEXT NOT NULL DEFAULT '',
 			read INTEGER NOT NULL DEFAULT 0,
-			metron_issue_id INTEGER
+			metron_issue_id INTEGER,
+			comic_vine_id INTEGER,
+			metron_synced_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE UNIQUE INDEX idx_comics_metron_issue_id
 		ON comics(metron_issue_id)
 		WHERE metron_issue_id IS NOT NULL;
+		CREATE UNIQUE INDEX idx_comics_comic_vine_id
+		ON comics(comic_vine_id)
+		WHERE comic_vine_id IS NOT NULL;
 
 		CREATE TABLE users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

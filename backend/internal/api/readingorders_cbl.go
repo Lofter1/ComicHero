@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"database/sql"
 	"encoding/xml"
 	"fmt"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
 )
+
+const cblNoLocalComicMatch = "no local comic matched"
 
 type cblReadingList struct {
 	XMLName   xml.Name  `xml:"ReadingList"`
@@ -57,6 +60,12 @@ func importReadingOrderCBL(ctx context.Context, db *sqlx.DB, input *ReadingOrder
 		comic, reason, err := matchCBLBook(ctx, db, book)
 		if err != nil {
 			return nil, err
+		}
+		if comic == nil && reason == cblNoLocalComicMatch {
+			comic, err = createComicFromCBLBook(ctx, db, book)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if comic == nil {
 			unmatched = append(unmatched, cblUnmatchedBook(i+1, book, reason))
@@ -106,8 +115,11 @@ func exportReadingOrderCBL(ctx context.Context, db *sqlx.DB, id int) (*ReadingOr
 		if year := comicCBLYear(comic); year != "" {
 			book.Year = year
 		}
+		if comic.ComicVineID != nil && *comic.ComicVineID > 0 {
+			book.Databases = append(book.Databases, cblDatabase{Name: "comicvine", Issue: strconv.Itoa(*comic.ComicVineID)})
+		}
 		if comic.MetronIssueID != nil && *comic.MetronIssueID > 0 {
-			book.Databases = []cblDatabase{{Name: "metron", Issue: strconv.Itoa(*comic.MetronIssueID)}}
+			book.Databases = append(book.Databases, cblDatabase{Name: "metron", Issue: strconv.Itoa(*comic.MetronIssueID)})
 		}
 		books = append(books, book)
 	}
@@ -131,6 +143,17 @@ func exportReadingOrderCBL(ctx context.Context, db *sqlx.DB, id int) (*ReadingOr
 }
 
 func matchCBLBook(ctx context.Context, db *sqlx.DB, book cblBook) (*Comic, string, error) {
+	comicVineID, hasComicVineID := cblComicVineID(book)
+	if hasComicVineID {
+		comic, found, err := fetchCBLComicByComicVineID(ctx, db, comicVineID)
+		if err != nil {
+			return nil, "", err
+		}
+		if found {
+			return comic, "", nil
+		}
+	}
+
 	series := strings.TrimSpace(book.Series)
 	number := strings.TrimSpace(book.Number)
 	if series == "" || number == "" {
@@ -140,16 +163,19 @@ func matchCBLBook(ctx context.Context, db *sqlx.DB, book cblBook) (*Comic, strin
 	volume, hasVolume := parseCBLPositiveInt(book.Volume)
 	year, hasYear := parseCBLPositiveInt(book.Year)
 
+	var comic *Comic
+	var reason string
+	var err error
 	switch {
 	case hasVolume:
-		return fetchCBLComicMatch(ctx, db, `
+		comic, reason, err = fetchCBLComicMatch(ctx, db, `
 			SELECT * FROM comics
 			WHERE LOWER(series) = LOWER(?) AND LOWER(issue) = LOWER(?) AND series_year = ?
 			ORDER BY id
 			LIMIT 2
 		`, series, number, volume)
 	case hasYear:
-		return fetchCBLComicMatch(ctx, db, `
+		comic, reason, err = fetchCBLComicMatch(ctx, db, `
 			SELECT * FROM comics
 			WHERE LOWER(series) = LOWER(?) AND LOWER(issue) = LOWER(?)
 				AND (series_year = ? OR substr(cover_date, 1, 4) = ?)
@@ -157,13 +183,33 @@ func matchCBLBook(ctx context.Context, db *sqlx.DB, book cblBook) (*Comic, strin
 			LIMIT 2
 		`, series, number, year, strconv.Itoa(year))
 	default:
-		return fetchCBLComicMatch(ctx, db, `
+		comic, reason, err = fetchCBLComicMatch(ctx, db, `
 			SELECT * FROM comics
 			WHERE LOWER(series) = LOWER(?) AND LOWER(issue) = LOWER(?)
 			ORDER BY id
 			LIMIT 2
 		`, series, number)
 	}
+	if err != nil || comic == nil || !hasComicVineID {
+		return comic, reason, err
+	}
+	if err := attachComicVineID(ctx, db, comic.ID, comicVineID); err != nil {
+		return nil, "", err
+	}
+	comic.ComicVineID = &comicVineID
+	return comic, "", nil
+}
+
+func fetchCBLComicByComicVineID(ctx context.Context, db *sqlx.DB, comicVineID int) (*Comic, bool, error) {
+	var comic Comic
+	if err := db.GetContext(ctx, &comic, `SELECT * FROM comics WHERE comic_vine_id = ?`, comicVineID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, false, nil
+		}
+		return nil, false, huma.Error500InternalServerError("failed to match CBL Comic Vine ID")
+	}
+	hydrateComicTitle(&comic)
+	return &comic, true, nil
 }
 
 func fetchCBLComicMatch(ctx context.Context, db *sqlx.DB, query string, args ...any) (*Comic, string, error) {
@@ -172,7 +218,7 @@ func fetchCBLComicMatch(ctx context.Context, db *sqlx.DB, query string, args ...
 		return nil, "", huma.Error500InternalServerError("failed to match CBL book")
 	}
 	if len(matches) == 0 {
-		return nil, "no local comic matched", nil
+		return nil, cblNoLocalComicMatch, nil
 	}
 	if len(matches) > 1 {
 		return nil, "multiple local comics matched", nil
@@ -181,9 +227,76 @@ func fetchCBLComicMatch(ctx context.Context, db *sqlx.DB, query string, args ...
 	return &matches[0], "", nil
 }
 
+func createComicFromCBLBook(ctx context.Context, db *sqlx.DB, book cblBook) (*Comic, error) {
+	series := strings.TrimSpace(book.Series)
+	number := strings.TrimSpace(book.Number)
+	if series == "" || number == "" {
+		return nil, nil
+	}
+
+	seriesYear, _ := parseCBLPositiveInt(book.Volume)
+	if seriesYear == 0 {
+		seriesYear, _ = parseCBLPositiveInt(book.Year)
+	}
+	seriesID, err := ensureSeriesRow(ctx, db, series, seriesYear)
+	if err != nil {
+		return nil, err
+	}
+	comicVineID, _ := cblComicVineID(book)
+	result, err := db.ExecContext(ctx, `
+		INSERT INTO comics (series_id, series, series_year, issue, publisher, cover_date, cover_image, description, comic_vine_id)
+		VALUES (?, ?, ?, ?, '', '', '', '', ?)
+	`, nullableSeriesID(seriesID), series, seriesYear, number, nullablePositiveID(comicVineID))
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to create comic from CBL")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to get CBL comic id")
+	}
+	comic := Comic{
+		ID:          int(id),
+		SeriesID:    intPointerOrNil(seriesID),
+		Series:      series,
+		SeriesYear:  seriesYear,
+		Issue:       number,
+		ComicVineID: intPointerOrNil(comicVineID),
+	}
+	hydrateComicTitle(&comic)
+	return &comic, nil
+}
+
+func cblComicVineID(book cblBook) (int, bool) {
+	for _, database := range book.Databases {
+		name := strings.Map(func(r rune) rune {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				return unicode.ToLower(r)
+			}
+			return -1
+		}, database.Name)
+		if name != "cv" && name != "cvdb" && name != "comicvine" && name != "comicvinedb" && name != "comicvinedatabase" {
+			continue
+		}
+		parts := strings.FieldsFunc(database.Issue, func(r rune) bool { return !unicode.IsDigit(r) })
+		for i := len(parts) - 1; i >= 0; i-- {
+			if id, ok := parseCBLPositiveInt(parts[i]); ok {
+				return id, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func intPointerOrNil(value int) *int {
+	if value <= 0 {
+		return nil
+	}
+	return &value
+}
+
 func cblUnmatchedBook(position int, book cblBook, reason string) ReadingOrderCBLUnmatchedBook {
 	if reason == "" {
-		reason = "no local comic matched"
+		reason = cblNoLocalComicMatch
 	}
 	return ReadingOrderCBLUnmatchedBook{
 		Position: position,

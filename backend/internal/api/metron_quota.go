@@ -70,6 +70,10 @@ func withMetronRateLimit[T interface {
 }
 
 func nullableMetronID(id int) any {
+	return nullablePositiveID(id)
+}
+
+func nullablePositiveID(id int) any {
 	if id <= 0 {
 		return nil
 	}

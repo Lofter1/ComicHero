@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Lofter1/ComicHero/backend/internal/metron"
 	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
@@ -91,6 +92,7 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 		description TEXT NOT NULL DEFAULT '',
 		read INTEGER NOT NULL DEFAULT 0,
 		metron_issue_id INTEGER,
+		comic_vine_id INTEGER,
 		metron_synced_at TEXT NOT NULL DEFAULT ''
 	)`); err != nil {
 		t.Fatal(err)
@@ -102,18 +104,23 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 
 	// Row A: publisher filled, description permanently blank (Metron has none),
 	// synced an hour ago -> still "incomplete" but should be skipped by the cooldown.
-	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, metron_synced_at)
-		VALUES ('A', 'Marvel', '1964-01-01', '/covers/a.jpg', '', 1, ?)`, recentlySynced); err != nil {
+	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, comic_vine_id, metron_synced_at)
+		VALUES ('A', 'Marvel', '1964-01-01', '/covers/a.jpg', '', 1, 101, ?)`, recentlySynced); err != nil {
 		t.Fatal(err)
 	}
 	// Row B: never synced -> should always be selected.
-	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, metron_synced_at)
-		VALUES ('B', '', '', '', '', 2, '')`); err != nil {
+	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, comic_vine_id, metron_synced_at)
+		VALUES ('B', '', '', '', '', 2, NULL, '')`); err != nil {
 		t.Fatal(err)
 	}
 	// Row C: synced 40 days ago, past the 30-day cooldown -> should be selected again.
-	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, metron_synced_at)
-		VALUES ('C', 'DC', '1980-01-01', '/covers/c.jpg', '', 3, ?)`, longAgoSynced); err != nil {
+	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, comic_vine_id, metron_synced_at)
+		VALUES ('C', 'DC', '1980-01-01', '/covers/c.jpg', '', 3, 103, ?)`, longAgoSynced); err != nil {
+		t.Fatal(err)
+	}
+	// Row D: all legacy metadata is complete, but the Comic Vine ID is missing.
+	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, comic_vine_id, metron_synced_at)
+		VALUES ('D', 'Image', '2020-01-01', '/covers/d.jpg', 'Complete', 4, NULL, '')`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -122,7 +129,7 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 		ID       int `db:"id"`
 		MetronID int `db:"metron_issue_id"`
 	}
-	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '') AND (metron_synced_at = '' OR metron_synced_at <= ?) ORDER BY id`
+	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (comic_vine_id IS NULL OR TRIM(publisher) = '' OR TRIM(cover_image) = '' OR TRIM(cover_date) = '' OR TRIM(description) = '') AND (metron_synced_at = '' OR metron_synced_at <= ?) ORDER BY id`
 	if err := db.Select(&rows, query, cutoff); err != nil {
 		t.Fatal(err)
 	}
@@ -139,6 +146,37 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 	}
 	if !got[3] {
 		t.Fatal("comic synced past the cooldown window should be selected again")
+	}
+	if !got[4] {
+		t.Fatal("comic missing only a Comic Vine ID should be selected")
+	}
+}
+
+func TestEnrichIncompleteComicStoresComicVineID(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, series_year, issue, publisher, metron_issue_id)
+		VALUES ('Series', 2026, '1', 'Publisher', 77)
+	`); err != nil {
+		t.Fatalf("seed comic: %v", err)
+	}
+	if err := enrichIncompleteComicFromMetron(ctx, db, nil, 1, metron.Issue{
+		ID:          77,
+		ComicVineID: 9988,
+		Series:      "Series",
+		SeriesYear:  2026,
+		Issue:       "1",
+		Publisher:   "Publisher",
+	}); err != nil {
+		t.Fatalf("enrich comic: %v", err)
+	}
+	var comicVineID int
+	if err := db.Get(&comicVineID, `SELECT comic_vine_id FROM comics WHERE id = 1`); err != nil {
+		t.Fatalf("read Comic Vine ID: %v", err)
+	}
+	if comicVineID != 9988 {
+		t.Fatalf("Comic Vine ID = %d; want 9988", comicVineID)
 	}
 }
 
