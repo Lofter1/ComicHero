@@ -3,6 +3,7 @@
 .dashboard-view {
   display: grid;
   gap: 18px;
+  padding-top: 18px;
 }
 
 .dashboard-header,

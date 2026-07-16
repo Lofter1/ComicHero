@@ -46,7 +46,6 @@ function achievementProgress(achievement) {
   <section class="dashboard-view">
     <header class="dashboard-header">
       <div>
-        <p class="eyebrow">Dashboard</p>
         <h2>Continue reading</h2>
       </div>
       <button class="secondary-button" type="button" :disabled="loading" @click="$emit('refresh')">
