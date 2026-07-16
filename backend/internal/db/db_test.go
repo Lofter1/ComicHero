@@ -46,6 +46,9 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if !columns["series_id"] {
 		t.Fatal("comics table missing series_id column")
 	}
+	if !columns["comic_vine_id"] {
+		t.Fatal("comics table missing comic_vine_id column")
+	}
 	var busyTimeout int
 	if err := database.QueryRow(`PRAGMA busy_timeout`).Scan(&busyTimeout); err != nil {
 		t.Fatalf("busy timeout: %v", err)
@@ -88,6 +91,7 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 		"idx_comics_series_id_issue",
 		"idx_comics_series_year_publisher",
 		"idx_comics_series_year_cover",
+		"idx_comics_comic_vine_id",
 	} {
 		if !indexes[name] {
 			t.Fatalf("comics table missing index %s", name)

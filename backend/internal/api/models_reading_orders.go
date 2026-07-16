@@ -109,14 +109,14 @@ type ReadingOrderCBLUnmatchedBook struct {
 	Number   string `json:"number"   doc:"CBL book number attribute." example:"6"`
 	Volume   string `json:"volume"   doc:"CBL book volume attribute." example:"2011"`
 	Year     string `json:"year"     doc:"CBL book year attribute." example:"2012"`
-	Reason   string `json:"reason"   doc:"Reason this CBL book could not be matched to a local comic." example:"no local comic matched"`
+	Reason   string `json:"reason"   doc:"Reason this malformed or ambiguous CBL book could not be matched or created." example:"multiple local comics matched"`
 }
 
 type ReadingOrderCBLImportResult struct {
 	ReadingOrder   ReadingOrderDetail             `json:"readingOrder"   doc:"Created reading order with matched local comics."`
-	MatchedCount   int                            `json:"matchedCount"   doc:"Number of CBL books matched to local comics." example:"12"`
-	UnmatchedCount int                            `json:"unmatchedCount" doc:"Number of CBL books that could not be matched." example:"2"`
-	Unmatched      []ReadingOrderCBLUnmatchedBook `json:"unmatched"      doc:"CBL books that were left out because no local comic matched."`
+	MatchedCount   int                            `json:"matchedCount"   doc:"Number of CBL books matched to or created as local comics." example:"12"`
+	UnmatchedCount int                            `json:"unmatchedCount" doc:"Number of malformed or ambiguous CBL books that could not be imported." example:"2"`
+	Unmatched      []ReadingOrderCBLUnmatchedBook `json:"unmatched"      doc:"Malformed or ambiguous CBL books that could not be matched or created."`
 }
 
 type ReadingOrderCBLImportOutput struct {

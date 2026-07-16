@@ -25,7 +25,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID:   "importReadingOrderCBL",
 		Tags:          []string{tagReadingOrders},
 		Summary:       "Import a CBL reading order",
-		Description:   "Creates a reading order from CBL XML by matching CBL book entries to local comics by series, issue number, and volume or year.",
+		Description:   "Creates a reading order from CBL XML. Books are matched by Comic Vine issue ID first, then by series, issue number, and volume or year; valid books without a local match are created.",
 		Method:        http.MethodPost,
 		Path:          "/readingOrders/cbl/import",
 		DefaultStatus: 201,

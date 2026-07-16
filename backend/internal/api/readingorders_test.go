@@ -470,14 +470,14 @@ func TestReadingOrderCoverUploadResizesAndDeletesUnusedOldCover(t *testing.T) {
 	assertCoverMaxDimension(t, coverPath(t, covers, updated.Body.Image), 450)
 }
 
-func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T) {
+func TestReadingOrderCBLImportPrefersComicVineThenFallsBackAndCreatesMissingComics(t *testing.T) {
 	ctx := testUserContext()
 	db := setupReadingOrderCBLTestDB(t)
 
 	if _, err := db.Exec(`
-		INSERT INTO comics (series, series_year, issue, publisher, cover_date)
-		VALUES ('Frank Miller''s RoboCop', 2003, '1', 'Avatar Press', '2003-07-01'),
-			('Frank Miller''s RoboCop', 2003, '2', 'Avatar Press', '2003-08-01');
+		INSERT INTO comics (series, series_year, issue, publisher, cover_date, comic_vine_id)
+		VALUES ('Frank Miller''s RoboCop', 2003, '1', 'Avatar Press', '2003-07-01', 111),
+			('Frank Miller''s RoboCop', 2003, '2', 'Avatar Press', '2003-08-01', NULL);
 	`); err != nil {
 		t.Fatalf("seed comics: %v", err)
 	}
@@ -487,11 +487,13 @@ func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T
 	input.Body.Content = `<?xml version="1.0" encoding="utf-8"?>
 <ReadingList>
 	<Name>RoboCop Publication Order</Name>
-	<NumIssues>3</NumIssues>
+	<NumIssues>5</NumIssues>
 	<Books>
-		<Book Series="Frank Miller&apos;s RoboCop" Number="1" Volume="2003" Year="2003" />
-		<Book Series="Frank Miller&apos;s RoboCop" Number="2" Volume="2003" Year="2003" />
-		<Book Series="Missing Series" Number="1" Volume="2003" Year="2003" />
+		<Book Series="Wrong metadata" Number="99" Volume="1999"><Database Name="cv" Issue="4000-111" /></Book>
+		<Book Series="Frank Miller&apos;s RoboCop" Number="2" Volume="2003" Year="2003"><Database Name="Comic Vine" Issue="222" /></Book>
+		<Book Series="Missing Series" Number="1" Volume="2003" Year="2003"><Database Name="comicvine" Issue="333" /></Book>
+		<Book Series="No CV Series" Number="5" Volume="2024" Year="2024" />
+		<Book Number="4" Volume="2003" Year="2003" />
 	</Books>
 	<Matchers />
 </ReadingList>`
@@ -504,17 +506,24 @@ func TestReadingOrderCBLImportMatchesLocalComicsAndReportsUnmatched(t *testing.T
 	if result.Body.ReadingOrder.Name != "RoboCop Publication Order" {
 		t.Fatalf("name = %q; want CBL name", result.Body.ReadingOrder.Name)
 	}
-	if result.Body.MatchedCount != 2 || result.Body.UnmatchedCount != 1 {
-		t.Fatalf("matched/unmatched = %d/%d; want 2/1", result.Body.MatchedCount, result.Body.UnmatchedCount)
+	if result.Body.MatchedCount != 4 || result.Body.UnmatchedCount != 1 {
+		t.Fatalf("matched/unmatched = %d/%d; want 4/1", result.Body.MatchedCount, result.Body.UnmatchedCount)
 	}
-	if len(result.Body.ReadingOrder.Comics) != 2 {
-		t.Fatalf("imported comics = %d; want 2", len(result.Body.ReadingOrder.Comics))
+	if len(result.Body.ReadingOrder.Comics) != 4 {
+		t.Fatalf("imported comics = %d; want 4", len(result.Body.ReadingOrder.Comics))
 	}
-	if result.Body.ReadingOrder.Comics[0].Issue != "1" || result.Body.ReadingOrder.Comics[1].Issue != "2" {
-		t.Fatalf("imported issue order = %#v; want 1 then 2", result.Body.ReadingOrder.Comics)
+	if result.Body.ReadingOrder.Comics[0].ID != 1 || result.Body.ReadingOrder.Comics[1].ID != 2 || result.Body.ReadingOrder.Comics[2].ID != 3 || result.Body.ReadingOrder.Comics[3].ID != 4 {
+		t.Fatalf("imported comic IDs = %#v; want existing 1, existing 2, then new 3 and 4", result.Body.ReadingOrder.Comics)
 	}
-	if len(result.Body.Unmatched) != 1 || result.Body.Unmatched[0].Series != "Missing Series" {
-		t.Fatalf("unmatched = %#v; want Missing Series", result.Body.Unmatched)
+	if len(result.Body.Unmatched) != 1 || result.Body.Unmatched[0].Reason != "missing series or issue number" {
+		t.Fatalf("unmatched = %#v; want malformed book", result.Body.Unmatched)
+	}
+	var comicVineIDs []int
+	if err := db.Select(&comicVineIDs, `SELECT COALESCE(comic_vine_id, 0) FROM comics ORDER BY id`); err != nil {
+		t.Fatalf("read Comic Vine IDs: %v", err)
+	}
+	if len(comicVineIDs) != 4 || comicVineIDs[0] != 111 || comicVineIDs[1] != 222 || comicVineIDs[2] != 333 || comicVineIDs[3] != 0 {
+		t.Fatalf("Comic Vine IDs = %#v; want 111, 222, 333, 0", comicVineIDs)
 	}
 }
 
@@ -552,11 +561,12 @@ func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
 	db := setupReadingOrderCBLTestDB(t)
 
 	metronID := 98765
+	comicVineID := 54321
 	if _, err := db.Exec(`
-		INSERT INTO comics (series, series_year, issue, publisher, cover_date, metron_issue_id)
-		VALUES ('Batman & Robin', 2011, '1', 'DC Comics', '2011-09-01', ?),
-			('Batman & Robin', 2011, '2', 'DC Comics', '2011-10-01', NULL);
-	`, metronID); err != nil {
+		INSERT INTO comics (series, series_year, issue, publisher, cover_date, metron_issue_id, comic_vine_id)
+		VALUES ('Batman & Robin', 2011, '1', 'DC Comics', '2011-09-01', ?, ?),
+			('Batman & Robin', 2011, '2', 'DC Comics', '2011-10-01', NULL, NULL);
+	`, metronID, comicVineID); err != nil {
 		t.Fatalf("seed comics: %v", err)
 	}
 
@@ -583,6 +593,7 @@ func TestReadingOrderCBLExportBuildsFlatCBLXML(t *testing.T) {
 		`<Name>Batman &amp; Robin</Name>`,
 		`<NumIssues>2</NumIssues>`,
 		`Series="Batman &amp; Robin" Number="1" Volume="2011" Year="2011"`,
+		`<Database Name="comicvine" Issue="54321"></Database>`,
 		`<Database Name="metron" Issue="98765"></Database>`,
 	} {
 		if !strings.Contains(result.Body.Content, fragment) {
@@ -632,6 +643,12 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY (reading_order_id, user_id)
 		);
+		CREATE TABLE series (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			series_year INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE UNIQUE INDEX idx_series_name_year ON series(name, series_year);
 		CREATE TABLE comics (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			series_id INTEGER REFERENCES series(id) ON DELETE SET NULL,
@@ -643,8 +660,12 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 			cover_image TEXT NOT NULL DEFAULT '',
 			description TEXT NOT NULL DEFAULT '',
 			read INTEGER NOT NULL DEFAULT 0,
-			metron_issue_id INTEGER
+			metron_issue_id INTEGER,
+			comic_vine_id INTEGER
 		);
+		CREATE UNIQUE INDEX idx_comics_comic_vine_id
+		ON comics(comic_vine_id)
+		WHERE comic_vine_id IS NOT NULL;
 			CREATE TABLE users (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 					name TEXT NOT NULL UNIQUE,

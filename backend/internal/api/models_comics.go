@@ -1,9 +1,10 @@
 package api
 
 type Comic struct {
-	ID            int  `json:"id"                      db:"id"              doc:"Local comic identifier." example:"42"`
-	MetronIssueID *int `json:"metronIssueId,omitempty" db:"metron_issue_id" doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
-	SeriesID      *int `json:"seriesId,omitempty"      db:"series_id"       doc:"Local series identifier for this comic's series, when available." example:"5"`
+	ID            int  `json:"id"                       db:"id"               doc:"Local comic identifier." example:"42"`
+	MetronIssueID *int `json:"metronIssueId,omitempty"  db:"metron_issue_id"  doc:"Linked Metron issue identifier, when this comic was imported or matched." example:"123456"`
+	ComicVineID   *int `json:"comicVineId,omitempty"    db:"comic_vine_id"    doc:"Linked Comic Vine issue identifier, when known." example:"987654"`
+	SeriesID      *int `json:"seriesId,omitempty"       db:"series_id"        doc:"Local series identifier for this comic's series, when available." example:"5"`
 
 	Title          string `json:"title"       db:"-"           doc:"Generated display title built from series, seriesYear, and issue." example:"Batman (2011) #6"`
 	Series         string `json:"series"      db:"series"      doc:"Series name." example:"Batman"`

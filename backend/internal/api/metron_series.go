@@ -69,33 +69,11 @@ func importMetronSeriesWithProgressOptions(ctx context.Context, db *sqlx.DB, cli
 			return nil, err
 		}
 
-		if options.Mode != "full" && !options.Force && issue.ID > 0 {
-			if id, ok, err := existingComicIDByMetronIssueID(ctx, db, issue.ID); err != nil {
-				return nil, err
-			} else if ok {
-				if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
-					return nil, err
-				}
-				comic, err := getComicRow(ctx, db, id)
-				if err != nil {
-					return nil, err
-				}
-				comics = append(comics, comic)
-				progress(i+1, total, "Importing series issues...")
-				continue
-			}
-		}
-
 		if options.Mode != "full" && !options.Force {
-			if id, ok, err := existingComicIDByMetronIssueMatch(ctx, db, issue); err != nil {
+			if id, ok, err := existingComicIDForMetronIssue(ctx, db, issue); err != nil {
 				return nil, err
 			} else if ok {
-				if issue.ID > 0 {
-					if err := attachMetronIssueID(ctx, db, id, issue.ID); err != nil {
-						return nil, err
-					}
-				}
-				if err := linkComicToMetronIssueSeries(ctx, db, id, issue); err != nil {
+				if err := linkComicToMetronIssueIdentity(ctx, db, id, issue); err != nil {
 					return nil, err
 				}
 				comic, err := getComicRow(ctx, db, id)

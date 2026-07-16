@@ -17,6 +17,7 @@ func issueFromMap(raw map[string]any) Issue {
 
 	return Issue{
 		ID:           intValue(raw, "id"),
+		ComicVineID:  intValue(raw, "cv_id", "comic_vine_id", "comicVineId"),
 		Title:        firstString(raw, "title", "name"),
 		StoryNames:   stringList(raw, "name", "story_names", "storyNames"),
 		SeriesID:     firstInt(intValue(raw, "series_id"), intValue(series, "id")),
