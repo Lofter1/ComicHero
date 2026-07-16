@@ -178,10 +178,6 @@ function seriesLabel(comic) {
             <strong>{{ selectedComic.coverDate || 'Unknown' }}</strong>
             <small>Cover Date</small>
           </span>
-          <span v-if="selectedComic.comicVineId">
-            <strong>{{ selectedComic.comicVineId }}</strong>
-            <small>Comic Vine ID</small>
-          </span>
         </div>
 
         <div
