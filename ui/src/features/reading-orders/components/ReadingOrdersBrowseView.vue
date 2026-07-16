@@ -91,8 +91,8 @@ function createReadingOrder() {
 }
 
 function handleCBLFile(event) {
-  const file = event.target.files?.[0]
-  if (file) emit('import-cbl', file)
+  const files = Array.from(event.target.files || [])
+  if (files.length) emit('import-cbl', files)
   event.target.value = ''
 }
 </script>
@@ -131,6 +131,7 @@ function handleCBLFile(event) {
                   ref="cblFileInput"
                   hidden
                   type="file"
+                  multiple
                   accept=".cbl,application/xml,text/xml"
                   @change="handleCBLFile"
                 />
