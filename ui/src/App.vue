@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AccountView from '@/features/account/components/AccountView.vue'
 import AuthenticationView from '@/features/auth/components/AuthenticationView.vue'
@@ -52,7 +52,14 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const systemInfo = ref(null)
-const search = ref('')
+const searchByView = reactive({
+  readingOrders: '',
+  arcs: '',
+  comics: '',
+  series: '',
+  characters: '',
+})
+const search = computed(() => searchByView[activeView.value] || '')
 const loadMoreSentinel = ref(null)
 let loadMoreObserver = null
 let searchDebounceTimer = null
@@ -647,7 +654,22 @@ async function handleMetronImported() {
 }
 
 function updateSearch(value) {
-  search.value = value
+  const view = activeView.value
+  if (!(view in searchByView)) return
+
+  searchByView[view] = value
+  if (pageState.value[view]) {
+    pageState.value[view].initialized = false
+  }
+
+  if (searchDebounceTimer) {
+    window.clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = window.setTimeout(() => {
+    if (activeView.value === view && !isEditing.value && !isDetail.value) {
+      refreshActiveListData()
+    }
+  }, 250)
 }
 
 function setupLoadMoreObserver() {
@@ -715,17 +737,6 @@ watch([canAccessMetronArea, isAdmin, currentUser, isReadOnlyGuest], () => {
     enforceCurrentRouteAccess()
     ensureMetronImportMonitor()
   }
-})
-
-watch(search, () => {
-  if (searchDebounceTimer) {
-    window.clearTimeout(searchDebounceTimer)
-  }
-  searchDebounceTimer = window.setTimeout(() => {
-    if (!isEditing.value && !isDetail.value && activeView.value !== 'metron') {
-      refreshActiveListData()
-    }
-  }, 250)
 })
 
 onUnmounted(() => {
