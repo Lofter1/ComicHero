@@ -295,6 +295,13 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 			position INTEGER NOT NULL DEFAULT 0,
 			note TEXT NOT NULL DEFAULT ''
 		);
+		CREATE TABLE reading_order_sections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			reading_order_id INTEGER NOT NULL,
+			position INTEGER NOT NULL DEFAULT 0,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT ''
+		);
 		CREATE TABLE arcs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,

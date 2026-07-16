@@ -340,6 +340,62 @@
   -webkit-box-orient: vertical;
 }
 
+.reading-order-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  border-bottom: 2px solid color-mix(in srgb, var(--primary) 52%, var(--line));
+  border-top: 0;
+  border-right: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  padding: 18px 4px 10px;
+  cursor: pointer;
+}
+
+.reading-order-section-heading:first-child {
+  padding-top: 4px;
+}
+
+.reading-order-section-heading:hover {
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.reading-order-section-heading.nested-reading-order-heading {
+  border-bottom-color: color-mix(in srgb, var(--accent) 52%, var(--line));
+}
+
+.reading-order-section-heading-content {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reading-order-section-heading-content strong {
+  font-size: 1.08rem;
+}
+
+.reading-order-section-heading .section-description {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.section-collapse-icon {
+  margin-inline-end: 8px;
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.reading-order-section-heading[aria-expanded='false'] .section-collapse-icon {
+  transform: rotate(-90deg);
+}
+
 .comic-add-result strong {
   line-clamp: 2;
   -webkit-line-clamp: 2;

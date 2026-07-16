@@ -4,7 +4,11 @@ import MarkdownIt from 'markdown-it'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
-import { formatProgress, formatRating } from '@/features/reading-orders/model.js'
+import {
+  formatProgress,
+  formatRating,
+  readingOrderDisplayComics,
+} from '@/features/reading-orders/model.js'
 
 const props = defineProps({
   selectedOrder: {
@@ -66,6 +70,8 @@ const renderedDescription = computed(() => {
   const description = props.selectedOrder?.description?.trim()
   return description ? markdown.render(description) : '<p>No description</p>'
 })
+
+const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrder))
 </script>
 
 <template>
@@ -216,11 +222,12 @@ const renderedDescription = computed(() => {
         <ComicListView
           class="preview-list"
           title="Comics"
-          :comics="selectedOrder.comics"
+          :comics="displayComics"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
           initial-sort="readingOrder"
           show-reading-order-sort
+          show-sections
           show-comment
           show-cover
           :read-only="readOnly"

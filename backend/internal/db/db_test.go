@@ -142,6 +142,24 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if userRatingTableCount != 1 {
 		t.Fatalf("reading_order_ratings table count = %d; want 1", userRatingTableCount)
 	}
+
+	sectionsExist, err := tableExists(database, "reading_order_sections")
+	if err != nil {
+		t.Fatalf("check reading order sections table: %v", err)
+	}
+	if !sectionsExist {
+		t.Fatal("reading_order_sections table missing")
+	}
+	var sectionIndexCount int
+	if err := database.Get(&sectionIndexCount, `
+		SELECT COUNT(*) FROM sqlite_master
+		WHERE type = 'index' AND name = 'idx_reading_order_sections_order_position'
+	`); err != nil {
+		t.Fatalf("check reading order sections index: %v", err)
+	}
+	if sectionIndexCount != 1 {
+		t.Fatalf("reading order sections index count = %d; want 1", sectionIndexCount)
+	}
 }
 
 func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {

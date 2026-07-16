@@ -86,6 +86,13 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			note TEXT NOT NULL DEFAULT '',
 			PRIMARY KEY (parent_reading_order_id, child_reading_order_id, position)
 		);
+		CREATE TABLE reading_order_sections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			position INTEGER NOT NULL DEFAULT 0,
+			title TEXT NOT NULL,
+			description TEXT NOT NULL DEFAULT ''
+		);
 		CREATE TABLE user_sessions (
 			token TEXT PRIMARY KEY,
 			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

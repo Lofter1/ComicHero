@@ -149,7 +149,7 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 		OperationID: "setReadingOrderComics",
 		Tags:        []string{tagReadingOrders},
 		Summary:     "Set reading order comics",
-		Description: "Replaces every comic entry in a reading order. Entry order is the submitted array order, duplicate comic IDs are allowed, and the comics form supports per-entry comments.",
+		Description: "Replaces every entry in a reading order. Entry order is the submitted array order and may contain comics, nested reading orders, and named sections.",
 		Method:      http.MethodPut,
 		Path:        "/readingOrders/{id}/comics",
 		Errors:      errsWrite,
