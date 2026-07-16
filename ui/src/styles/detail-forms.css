@@ -9,6 +9,29 @@
   box-shadow: 0 12px 34px var(--shadow-panel);
 }
 
+.comic-merge-dialog {
+  width: min(680px, calc(100% - 28px));
+  max-height: min(720px, calc(100dvh - 28px));
+  overflow: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  padding: 20px;
+  box-shadow: 0 24px 64px var(--shadow-panel);
+}
+
+.comic-merge-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.comic-merge-results {
+  display: grid;
+  gap: 8px;
+}
+
 .panel-header {
   justify-content: space-between;
   margin-bottom: 18px;

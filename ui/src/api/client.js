@@ -379,6 +379,10 @@ export function deleteComic(id) {
   return request(`/comics/${id}`, { method: 'DELETE' })
 }
 
+export function mergeComic(id, sourceId) {
+  return send(`/comics/${id}/merge`, 'POST', { sourceId })
+}
+
 export async function listReadingOrders(params = {}) {
   const { data, pagination } = await requestWithMeta(`/readingOrders${queryString(params)}`)
   return pagedListResult(data, pagination)
