@@ -29,10 +29,22 @@ const emit = defineEmits([
 const draft = reactive({})
 const discoveryDraft = reactive({})
 const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+const incompleteFieldOptions = [
+  { value: 'comicVineId', label: 'Comic Vine ID' },
+  { value: 'publisher', label: 'Publisher' },
+  { value: 'coverImage', label: 'Cover image' },
+  { value: 'coverDate', label: 'Cover date' },
+  { value: 'description', label: 'Description' },
+]
 
 watch(
   () => props.metronComicScan?.settings,
-  (settings) => Object.assign(draft, settings || {}),
+  (settings) => {
+    Object.assign(draft, settings || {})
+    if (!Array.isArray(draft.incompleteFields)) {
+      draft.incompleteFields = incompleteFieldOptions.map((option) => option.value)
+    }
+  },
   { immediate: true },
 )
 
@@ -49,6 +61,13 @@ function toggleWeekday(day, checked) {
   draft.weekdays = [...selected]
 }
 
+function toggleIncompleteField(field, checked) {
+  const selected = new Set(draft.incompleteFields || [])
+  if (checked) selected.add(field)
+  else selected.delete(field)
+  draft.incompleteFields = [...selected]
+}
+
 function save() {
   emit('save', {
     enabled: Boolean(draft.enabled),
@@ -59,6 +78,7 @@ function save() {
     dailyCallLimit: Number(draft.dailyCallLimit) || 1,
     minIntervalSeconds: Math.max(0, Number(draft.minIntervalSeconds) || 0),
     recheckCooldownDays: Math.max(0, Number(draft.recheckCooldownDays) || 0),
+    incompleteFields: draft.incompleteFields || [],
   })
 }
 
@@ -323,8 +343,8 @@ function registrationModeLabel(mode) {
           <p class="eyebrow">Metron maintenance</p>
           <h3>Incomplete comic data</h3>
           <p class="muted">
-            Fill missing publisher, cover, cover date, and description fields. Issue responses also
-            create missing arc and character links without extra detail calls.
+            Choose which missing fields make a comic incomplete. Issue responses also create missing
+            arc and character links without extra detail calls.
           </p>
         </div>
         <label class="compact-toggle metron-scan-toggle">
@@ -332,6 +352,21 @@ function registrationModeLabel(mode) {
           <span>{{ draft.enabled ? 'Enabled' : 'Disabled' }}</span>
         </label>
       </header>
+
+      <fieldset class="permission-scopes metron-incomplete-fields">
+        <legend>Consider a comic incomplete when it has no</legend>
+        <label v-for="option in incompleteFieldOptions" :key="option.value">
+          <input
+            type="checkbox"
+            :checked="(draft.incompleteFields || []).includes(option.value)"
+            @change="toggleIncompleteField(option.value, $event.target.checked)"
+          />
+          <span>{{ option.label }}</span>
+        </label>
+      </fieldset>
+      <p v-if="!(draft.incompleteFields || []).length" class="access-note">
+        Select at least one field before saving or running this scan.
+      </p>
 
       <div class="metron-scan-fields">
         <label class="metron-scan-field">
@@ -399,14 +434,19 @@ function registrationModeLabel(mode) {
       </div>
 
       <div class="metron-scan-actions">
-        <button type="button" class="primary-button" :disabled="saving" @click="save">
+        <button
+          type="button"
+          class="primary-button"
+          :disabled="saving || !(draft.incompleteFields || []).length"
+          @click="save"
+        >
           {{ saving ? 'Saving...' : 'Save settings' }}
         </button>
         <button
           v-if="!metronComicScan.running"
           type="button"
           class="secondary-action"
-          :disabled="!draft.enabled"
+          :disabled="!draft.enabled || !(draft.incompleteFields || []).length"
           @click="$emit('trigger')"
         >
           Scan now
