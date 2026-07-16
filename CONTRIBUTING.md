@@ -31,6 +31,7 @@ Thanks for considering a contribution to ComicHero.
 ## Code Style
 
 - Follow existing Go and Vue patterns in the repository.
+- Read [the backend architecture guide](backend/ARCHITECTURE.md) before adding Go packages, routes, or database migrations.
 - VS Code users get frontend ESLint validation, Prettier formatting, and ESLint fixes on save from the shared workspace settings.
 - Prefer small, direct UI improvements over broad redesigns.
 - Keep self-hosted data private by default.
