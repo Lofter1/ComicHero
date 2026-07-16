@@ -1,5 +1,6 @@
 <script setup>
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
+import ComicMergeDialog from '@/features/comics/components/ComicMergeDialog.vue'
 import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 
@@ -38,6 +39,10 @@ const props = defineProps({
   },
   canDelete: { type: Boolean, default: false },
   deleting: { type: Boolean, default: false },
+  mergeOpen: { type: Boolean, default: false },
+  mergeCandidates: { type: Array, default: () => [] },
+  mergeSearching: { type: Boolean, default: false },
+  mergeSaving: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -50,6 +55,10 @@ const emit = defineEmits([
   'open-character',
   'open-series',
   'delete',
+  'open-merge',
+  'close-merge',
+  'search-merge',
+  'merge',
 ])
 
 const metronActionDisabled = computed(
@@ -77,6 +86,15 @@ function seriesLabel(comic) {
 <template>
   <div class="detail-view">
     <DetailNavigation @back="$emit('back')">
+      <button
+        v-if="selectedComic && canDelete"
+        class="secondary-button"
+        type="button"
+        :disabled="deleting || mergeSaving"
+        @click="$emit('open-merge')"
+      >
+        Merge duplicate
+      </button>
       <button
         v-if="selectedComic && canDelete"
         class="danger-button"
@@ -239,5 +257,16 @@ function seriesLabel(comic) {
       </div>
       <p v-else class="empty-state">Select a comic to view it.</p>
     </article>
+
+    <ComicMergeDialog
+      v-if="mergeOpen && selectedComic"
+      :target="selectedComic"
+      :candidates="mergeCandidates"
+      :searching="mergeSearching"
+      :saving="mergeSaving"
+      @close="$emit('close-merge')"
+      @search="$emit('search-merge', $event)"
+      @merge="$emit('merge', $event)"
+    />
   </div>
 </template>

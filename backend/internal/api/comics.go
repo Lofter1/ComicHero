@@ -87,6 +87,18 @@ func RegisterComicRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 	}, func(ctx context.Context, input *ComicInput) (*struct{}, error) {
 		return deleteComic(ctx, db, input.ID)
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "mergeComic",
+		Tags:        []string{tagComics},
+		Summary:     "Merge a duplicate comic",
+		Description: "Moves user state and all reading-order, arc, and character links from a duplicate comic into the retained comic, fills blank retained metadata, and deletes the duplicate. Admin access is required.",
+		Method:      http.MethodPost,
+		Path:        "/comics/{id}/merge",
+		Errors:      []int{400, 401, 403, 404, 422, 500},
+	}, func(ctx context.Context, input *MergeComicInput) (*ComicDetailOutput, error) {
+		return mergeComic(ctx, db, input.ID, input.Body.SourceID)
+	})
 }
 
 func listComics(ctx context.Context, db *sqlx.DB, input *ComicListInput) (*ComicListOutput, error) {

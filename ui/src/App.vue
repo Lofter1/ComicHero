@@ -293,12 +293,20 @@ const {
   metronMetadataApplyingID,
   metronMetadataStatus,
   metronMetadataResults,
+  mergeOpen: comicMergeOpen,
+  mergeCandidates: comicMergeCandidates,
+  mergeSearching: comicMergeSearching,
+  mergeSaving: comicMergeSaving,
   loadComics,
   openComic,
   openOrderComic,
   newComic,
   editComic,
   deleteComic,
+  openComicMerge,
+  closeComicMerge,
+  searchComicMerge,
+  mergeSelectedComic,
   toggleComicRead,
   toggleComicSkipped,
   resetMetronMetadata,
@@ -959,6 +967,10 @@ onUnmounted(() => {
         :read-only="isReadOnlyGuest"
         :can-delete="isAdmin"
         :deleting="saving"
+        :merge-open="comicMergeOpen"
+        :merge-candidates="comicMergeCandidates"
+        :merge-searching="comicMergeSearching"
+        :merge-saving="comicMergeSaving"
         @back="backToPreviousPage"
         @edit="editArc"
         @delete="deleteArc"
@@ -1089,6 +1101,10 @@ onUnmounted(() => {
         @toggle-skipped="toggleComicSkipped"
         @edit="editComic"
         @delete="deleteComic"
+        @open-merge="openComicMerge"
+        @close-merge="closeComicMerge"
+        @search-merge="searchComicMerge"
+        @merge="mergeSelectedComic"
         @open-character="openCharacter"
         @open-series="openSeries"
       />

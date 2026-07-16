@@ -87,6 +87,13 @@ type UpdateComicReadInput struct {
 	}
 }
 
+type MergeComicInput struct {
+	ID   int `path:"id" doc:"Local identifier of the comic that should remain." example:"42"`
+	Body struct {
+		SourceID int `json:"sourceId" minimum:"1" doc:"Local identifier of the duplicate comic to merge into the retained comic." example:"84"`
+	}
+}
+
 type UpdateComicFromMetronInput struct {
 	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
 	Body struct {

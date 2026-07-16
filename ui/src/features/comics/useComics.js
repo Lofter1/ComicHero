@@ -4,6 +4,7 @@ import {
   deleteComic as removeComic,
   getComic,
   listComics,
+  mergeComic as mergeComicRequest,
   searchMetronComics,
   updateComic,
   updateComicFromMetron,
@@ -35,6 +36,10 @@ export function useComics({
   const metronMetadataApplyingID = ref(null)
   const metronMetadataStatus = ref('')
   const metronMetadataResults = ref([])
+  const mergeOpen = ref(false)
+  const mergeCandidates = ref([])
+  const mergeSearching = ref(false)
+  const mergeSaving = ref(false)
 
   async function loadComics(options = {}) {
     await loadPagedList('comics', comics, listComics, options)
@@ -113,6 +118,54 @@ export function useComics({
       error.value = err.message
     } finally {
       saving.value = false
+    }
+  }
+
+  function openComicMerge() {
+    if (!selectedComic.value) return
+    mergeCandidates.value = []
+    mergeOpen.value = true
+  }
+
+  function closeComicMerge() {
+    if (mergeSaving.value) return
+    mergeOpen.value = false
+    mergeCandidates.value = []
+  }
+
+  async function searchComicMerge(query) {
+    if (!selectedComic.value || mergeSearching.value) return
+    mergeSearching.value = true
+    error.value = ''
+    try {
+      const page = await listComics({ q: String(query || '').trim(), limit: 50 })
+      mergeCandidates.value = page.items.filter((comic) => comic.id !== selectedComic.value.id)
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      mergeSearching.value = false
+    }
+  }
+
+  async function mergeSelectedComic(source) {
+    const target = selectedComic.value
+    if (!target?.id || !source?.id || mergeSaving.value) return
+    if (!confirm(`Merge ${source.title} into ${target.title}? The duplicate will be deleted.`))
+      return
+
+    mergeSaving.value = true
+    error.value = ''
+    try {
+      const detail = await mergeComicRequest(target.id, source.id)
+      selectedComic.value = detail
+      comicForm.value = { ...detail }
+      await loadComics({ force: true })
+      mergeOpen.value = false
+      mergeCandidates.value = []
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      mergeSaving.value = false
     }
   }
 
@@ -330,6 +383,10 @@ export function useComics({
     metronMetadataApplyingID,
     metronMetadataStatus,
     metronMetadataResults,
+    mergeOpen,
+    mergeCandidates,
+    mergeSearching,
+    mergeSaving,
     loadComics,
     openComic,
     openOrderComic,
@@ -337,6 +394,10 @@ export function useComics({
     editComic,
     saveComic,
     deleteComic,
+    openComicMerge,
+    closeComicMerge,
+    searchComicMerge,
+    mergeSelectedComic,
     toggleComicRead,
     toggleComicSkipped,
     resetMetronMetadata,
