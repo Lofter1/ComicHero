@@ -280,18 +280,22 @@ export function useReadingOrders({
     }
   }
 
-  async function importReadingOrderCBLFile(file) {
-    if (!file) return null
+  async function importReadingOrderCBLFile(selectedFiles) {
+    const files = Array.isArray(selectedFiles) ? selectedFiles : [selectedFiles].filter(Boolean)
+    if (!files.length) return null
 
     cblImporting.value = true
     saving.value = true
     error.value = ''
 
     try {
-      const result = await importReadingOrderCBL({
-        filename: file.name || '',
-        content: await file.text(),
-      })
+      const parts = await Promise.all(
+        files.map(async (file) => ({
+          filename: file.name || '',
+          content: await file.text(),
+        })),
+      )
+      const result = await importReadingOrderCBL(parts.length === 1 ? parts[0] : { parts })
       selectedOrder.value = result.readingOrder
       orderForm.value = readingOrderFormFromDetail(result.readingOrder)
       await loadReadingOrders({ force: true })

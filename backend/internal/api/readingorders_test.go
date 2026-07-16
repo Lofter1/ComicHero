@@ -527,6 +527,104 @@ func TestReadingOrderCBLImportPrefersComicVineThenFallsBackAndCreatesMissingComi
 	}
 }
 
+func TestReadingOrderCBLImportGroupsMultipartFilesInPartOrder(t *testing.T) {
+	ctx := testUserContext()
+	db := setupReadingOrderCBLTestDB(t)
+
+	input := &ReadingOrderCBLImportInput{}
+	input.Body.Parts = []ReadingOrderCBLImportPart{
+		{
+			Filename: "[Marvel] CMRO Core Reading Order-Part 02.cbl",
+			Content: `<ReadingList>
+	<Name>[Marvel] CMRO Core Reading Order-Part 02</Name>
+	<Books>
+		<Book Series="Fantastic Four" Number="2" Volume="1961" Year="1962"><Database Name="cv" Issue="5712" /></Book>
+		<Book Number="3" Volume="1961" Year="1962" />
+	</Books>
+</ReadingList>`,
+		},
+		{
+			Filename: "[Marvel] CMRO Core Reading Order-Part 01.cbl",
+			Content: `<ReadingList>
+	<Name>[Marvel] CMRO Core Reading Order-Part 01</Name>
+	<Books>
+		<Book Series="Fantastic Four" Number="1" Volume="1961" Year="1961"><Database Name="cv" Issue="5558" /></Book>
+	</Books>
+</ReadingList>`,
+		},
+	}
+
+	result, err := importReadingOrderCBL(ctx, db, input)
+	if err != nil {
+		t.Fatalf("importReadingOrderCBL: %v", err)
+	}
+
+	if result.Body.ReadingOrder.Name != "[Marvel] CMRO Core Reading Order" {
+		t.Fatalf("parent name = %q; want suffix-free multipart name", result.Body.ReadingOrder.Name)
+	}
+	if result.Body.MatchedCount != 2 || result.Body.UnmatchedCount != 1 {
+		t.Fatalf("matched/unmatched = %d/%d; want 2/1", result.Body.MatchedCount, result.Body.UnmatchedCount)
+	}
+	if len(result.Body.Unmatched) != 1 || result.Body.Unmatched[0].Part != "[Marvel] CMRO Core Reading Order-Part 02" {
+		t.Fatalf("unmatched = %#v; want source part on malformed book", result.Body.Unmatched)
+	}
+
+	order := result.Body.ReadingOrder
+	if len(order.ChildReadingOrders) != 2 || len(order.Entries) != 2 || len(order.Comics) != 2 {
+		t.Fatalf("parent children/entries/comics = %d/%d/%d; want 2/2/2", len(order.ChildReadingOrders), len(order.Entries), len(order.Comics))
+	}
+	wantPartNames := []string{
+		"[Marvel] CMRO Core Reading Order-Part 01",
+		"[Marvel] CMRO Core Reading Order-Part 02",
+	}
+	for i, want := range wantPartNames {
+		if order.ChildReadingOrders[i].Name != want {
+			t.Fatalf("child %d name = %q; want %q", i, order.ChildReadingOrders[i].Name, want)
+		}
+		if order.Entries[i].ReadingOrder == nil || order.Entries[i].ReadingOrder.Name != want {
+			t.Fatalf("entry %d = %#v; want child %q", i, order.Entries[i], want)
+		}
+		if len(order.Entries[i].Comics) != 1 {
+			t.Fatalf("entry %d comics = %d; want 1", i, len(order.Entries[i].Comics))
+		}
+	}
+	if order.Comics[0].Issue != "1" || order.Comics[1].Issue != "2" {
+		t.Fatalf("flattened issues = %q, %q; want part order 1, 2", order.Comics[0].Issue, order.Comics[1].Issue)
+	}
+	if !strings.Contains(order.Comics[0].Comment, "Part 01") || !strings.Contains(order.Comics[1].Comment, "Part 02") {
+		t.Fatalf("flattened source comments = %q, %q; want originating part", order.Comics[0].Comment, order.Comics[1].Comment)
+	}
+
+	var readingOrderCount int
+	if err := db.Get(&readingOrderCount, `SELECT COUNT(*) FROM reading_orders`); err != nil {
+		t.Fatalf("count reading orders: %v", err)
+	}
+	if readingOrderCount != 3 {
+		t.Fatalf("reading order count = %d; want parent plus two parts", readingOrderCount)
+	}
+}
+
+func TestMultipartCBLImportRejectsUnrelatedReadingLists(t *testing.T) {
+	ctx := testUserContext()
+	db := setupReadingOrderCBLTestDB(t)
+	input := &ReadingOrderCBLImportInput{}
+	input.Body.Parts = []ReadingOrderCBLImportPart{
+		{Filename: "First-Part 01.cbl", Content: `<ReadingList><Name>First-Part 01</Name></ReadingList>`},
+		{Filename: "Second-Part 02.cbl", Content: `<ReadingList><Name>Second-Part 02</Name></ReadingList>`},
+	}
+
+	if _, err := importReadingOrderCBL(ctx, db, input); err == nil {
+		t.Fatal("importReadingOrderCBL succeeded; want unrelated multipart names rejected")
+	}
+	var readingOrderCount int
+	if err := db.Get(&readingOrderCount, `SELECT COUNT(*) FROM reading_orders`); err != nil {
+		t.Fatalf("count reading orders: %v", err)
+	}
+	if readingOrderCount != 0 {
+		t.Fatalf("reading order count = %d; want validation before creating data", readingOrderCount)
+	}
+}
+
 func imageDataURL(mime string, data []byte) string {
 	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data)
 }

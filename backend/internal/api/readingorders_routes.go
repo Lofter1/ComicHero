@@ -24,8 +24,8 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 	huma.Register(api, huma.Operation{
 		OperationID:   "importReadingOrderCBL",
 		Tags:          []string{tagReadingOrders},
-		Summary:       "Import a CBL reading order",
-		Description:   "Creates a reading order from CBL XML. Books are matched by Comic Vine issue ID first, then by series, issue number, and volume or year; valid books without a local match are created.",
+		Summary:       "Import one or more CBL reading-order parts",
+		Description:   "Creates a reading order from one CBL file, or groups multipart files named Part NN beneath a parent reading order. Books are matched by Comic Vine issue ID first, then by series, issue number, and volume or year; valid books without a local match are created.",
 		Method:        http.MethodPost,
 		Path:          "/readingOrders/cbl/import",
 		DefaultStatus: 201,
