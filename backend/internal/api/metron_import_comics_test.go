@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +11,32 @@ import (
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
 )
+
+func TestSearchMetronIssuesPrefersComicVineID(t *testing.T) {
+	var requestURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestURL = r.URL.String()
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"results":[{"id":77,"cv_id":9001}]}`))
+	}))
+	defer server.Close()
+
+	issues, err := searchMetronIssues(context.Background(), metron.New(metron.Config{BaseURL: server.URL}), &MetronIssueListInput{
+		Query:       "ignored title",
+		Series:      "ignored series",
+		Issue:       "1",
+		ComicVineID: 9001,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestURL != "/issue/?cv_id=9001" {
+		t.Fatalf("request URL = %q; want exact Comic Vine lookup", requestURL)
+	}
+	if len(issues) != 1 || issues[0].ID != 77 {
+		t.Fatalf("issues = %+v; want Metron issue 77", issues)
+	}
+}
 
 func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 	ctx := testUserContext()

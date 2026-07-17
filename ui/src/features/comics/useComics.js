@@ -336,12 +336,26 @@ export function useComics({
     error.value = ''
 
     try {
-      const { data } = await searchMetronComics({
+      const searchParams = {
         q: selectedComic.value.title,
         series: selectedComic.value.series,
         issue: selectedComic.value.issue,
+      }
+      const comicVineId = Number(selectedComic.value.comicVineId) || 0
+      let { data } = await searchMetronComics({
+        ...searchParams,
+        comic_vine_id: comicVineId || undefined,
       })
-      metronMetadataResults.value = Array.isArray(data) ? data : []
+      let results = Array.isArray(data) ? data : []
+      if (comicVineId && results.length === 1) {
+        await applyMetronMetadata(results[0].id)
+        return
+      }
+      if (comicVineId && results.length === 0) {
+        const fallback = await searchMetronComics(searchParams)
+        results = Array.isArray(fallback.data) ? fallback.data : []
+      }
+      metronMetadataResults.value = results
       metronMetadataStatus.value = metronMetadataResults.value.length
         ? 'Choose the Metron issue that matches this comic.'
         : 'No Metron matches found.'
