@@ -216,6 +216,36 @@
   margin-top: 4px;
 }
 
+.comic-source-links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.comic-source-links > span {
+  font-weight: 700;
+}
+
+.comic-source-links a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.comic-source-links a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.comic-source-links a:focus-visible {
+  border-radius: 3px;
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .reading-order-rating-panel {
   display: flex;
   align-items: center;

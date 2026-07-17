@@ -67,6 +67,14 @@ const metronActionDisabled = computed(
 const metronActionLabel = computed(() =>
   props.selectedComic?.metronIssueId ? 'Refresh Metron' : 'Get Metron metadata',
 )
+const metronIssueURL = computed(() => {
+  const id = Number(props.selectedComic?.metronIssueId)
+  return Number.isInteger(id) && id > 0 ? `https://metron.cloud/issue/${id}/` : ''
+})
+const comicVineIssueURL = computed(() => {
+  const id = Number(props.selectedComic?.comicVineId)
+  return Number.isInteger(id) && id > 0 ? `https://comicvine.gamespot.com/wd/4000-${id}/` : ''
+})
 
 function runMetronAction() {
   if (!props.selectedComic) return
@@ -179,6 +187,27 @@ function seriesLabel(comic) {
             <small>Cover Date</small>
           </span>
         </div>
+
+        <nav
+          v-if="metronIssueURL || comicVineIssueURL"
+          class="comic-source-links"
+          aria-label="External comic sources"
+        >
+          <span>Sources</span>
+          <a v-if="metronIssueURL" :href="metronIssueURL" target="_blank" rel="noreferrer noopener">
+            Metron <span aria-hidden="true">↗</span>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+          <a
+            v-if="comicVineIssueURL"
+            :href="comicVineIssueURL"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Comic Vine <span aria-hidden="true">↗</span>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+        </nav>
 
         <div
           v-if="!readOnly && (metronMetadataOpen || metronMetadataStatus)"
