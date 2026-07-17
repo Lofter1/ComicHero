@@ -54,7 +54,7 @@ type MetronComicScanSettings struct {
 	StartTime           string   `json:"startTime" doc:"Server-local scan start time in HH:MM format." example:"02:00"`
 	DailyCallLimit      int      `json:"dailyCallLimit" minimum:"1" doc:"Maximum Metron issue calls shared by all scans during one server-local calendar day." example:"100"`
 	MinIntervalSeconds  int      `json:"minIntervalSeconds" minimum:"0" doc:"Minimum seconds between Metron issue calls made by this incomplete-comic scan." example:"20"`
-	RecheckCooldownDays int      `json:"recheckCooldownDays" minimum:"0" doc:"Days to wait before re-checking a comic that was already synced but is still missing a field Metron may not provide (e.g. no synopsis on record). 0 disables the cooldown and rechecks every run." example:"30"`
+	RecheckCooldownDays int      `json:"recheckCooldownDays" minimum:"0" doc:"Days to wait before re-checking a comic after a Metron lookup, including Comic Vine IDs with no match and fields Metron may not provide. 0 disables the cooldown and rechecks every run." example:"30"`
 	IncompleteFields    []string `json:"incompleteFields" doc:"Comic fields whose absence makes a comic eligible for enrichment."`
 }
 
@@ -291,15 +291,22 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 		s.setScanned(len(rows))
 		var nextRequest time.Time
 		interval := time.Duration(settings.MinIntervalSeconds) * time.Second
+		claimRequest := func() (bool, error) {
+			if waitErr := waitForComicScanInterval(ctx, &nextRequest, interval); waitErr != nil {
+				return false, waitErr
+			}
+			return claimMetronComicScanCall(ctx, s.db, settings.DailyCallLimit, time.Now())
+		}
+	scanRows:
 		for _, row := range rows {
 			if ctx.Err() != nil {
 				break
 			}
-			if waitErr := waitForComicScanInterval(ctx, &nextRequest, interval); waitErr != nil {
-				break
-			}
-			claimed, claimErr := claimMetronComicScanCall(ctx, s.db, settings.DailyCallLimit, time.Now())
+			claimed, claimErr := claimRequest()
 			if claimErr != nil {
+				if ctx.Err() != nil {
+					break
+				}
 				err = claimErr
 				break
 			}
@@ -307,7 +314,37 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 				s.setStopReason("daily quota used")
 				break
 			}
-			issue, fetchErr := s.client.GetIssue(ctx, row.MetronID)
+
+			var issue *metron.Issue
+			var fetchErr error
+			if row.MetronID.Valid {
+				issue, fetchErr = s.client.GetIssue(ctx, int(row.MetronID.Int64))
+			} else {
+				matches, searchErr := s.client.SearchIssuesByComicVineID(ctx, int(row.ComicVineID.Int64))
+				if searchErr != nil {
+					fetchErr = searchErr
+				} else if len(matches) == 0 {
+					if markIncompleteComicChecked(ctx, s.db, row.ID, time.Now()) != nil {
+						s.incrementFailed()
+					}
+					continue
+				} else if len(matches) > 1 {
+					fetchErr = fmt.Errorf("Comic Vine ID %d returned %d Metron issues", row.ComicVineID.Int64, len(matches))
+				} else {
+					claimed, claimErr = claimRequest()
+					if claimErr != nil {
+						if ctx.Err() == nil {
+							err = claimErr
+						}
+						break scanRows
+					}
+					if !claimed {
+						s.setStopReason("daily quota used")
+						break scanRows
+					}
+					issue, fetchErr = s.client.GetIssue(ctx, matches[0].ID)
+				}
+			}
 			if fetchErr != nil {
 				if ctx.Err() != nil {
 					break
@@ -338,8 +375,9 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 }
 
 type incompleteComicRow struct {
-	ID       int `db:"id"`
-	MetronID int `db:"metron_issue_id"`
+	ID          int           `db:"id"`
+	MetronID    sql.NullInt64 `db:"metron_issue_id"`
+	ComicVineID sql.NullInt64 `db:"comic_vine_id"`
 }
 
 func selectIncompleteComics(ctx context.Context, db *sqlx.DB, settings MetronComicScanSettings, now time.Time) ([]incompleteComicRow, error) {
@@ -353,7 +391,7 @@ func selectIncompleteComics(ctx context.Context, db *sqlx.DB, settings MetronCom
 		return []incompleteComicRow{}, nil
 	}
 
-	query := `SELECT id, metron_issue_id FROM comics WHERE metron_issue_id IS NOT NULL AND (` + strings.Join(conditions, " OR ") + `)`
+	query := `SELECT id, metron_issue_id, comic_vine_id FROM comics WHERE (metron_issue_id IS NOT NULL OR comic_vine_id IS NOT NULL) AND (` + strings.Join(conditions, " OR ") + `)`
 	args := []any{}
 	if settings.RecheckCooldownDays > 0 {
 		cutoff := now.Add(-time.Duration(settings.RecheckCooldownDays) * 24 * time.Hour).UTC().Format(time.RFC3339)
@@ -404,7 +442,7 @@ func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *C
 		}
 	}
 	syncedAt := time.Now().UTC().Format(time.RFC3339)
-	_, err := db.ExecContext(ctx, `UPDATE comics SET comic_vine_id = COALESCE(comic_vine_id, ?), publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END, metron_synced_at = ? WHERE id = ?`, nullablePositiveID(issue.ComicVineID), issue.Publisher, issue.CoverDate, cover, issue.Description, syncedAt, comicID)
+	_, err := db.ExecContext(ctx, `UPDATE comics SET metron_issue_id = COALESCE(metron_issue_id, ?), comic_vine_id = COALESCE(comic_vine_id, ?), publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END, metron_synced_at = ? WHERE id = ?`, nullablePositiveID(issue.ID), nullablePositiveID(issue.ComicVineID), issue.Publisher, issue.CoverDate, cover, issue.Description, syncedAt, comicID)
 	if err != nil {
 		return err
 	}
@@ -415,6 +453,11 @@ func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *C
 		return err
 	}
 	return syncMetronIssueCharactersWithOptions(ctx, db, nil, covers, comicID, issue, options)
+}
+
+func markIncompleteComicChecked(ctx context.Context, db *sqlx.DB, comicID int, checkedAt time.Time) error {
+	_, err := db.ExecContext(ctx, `UPDATE comics SET metron_synced_at = ? WHERE id = ?`, checkedAt.UTC().Format(time.RFC3339), comicID)
+	return err
 }
 
 func claimMetronComicScanCall(ctx context.Context, db *sqlx.DB, limit int, now time.Time) (bool, error) {

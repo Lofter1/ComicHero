@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -151,6 +153,16 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 		VALUES ('D', 'Image', '2020-01-01', '/covers/d.jpg', 'Complete', 4, NULL, '')`); err != nil {
 		t.Fatal(err)
 	}
+	// Row E: no Metron ID yet, but its Comic Vine ID can be used to find one.
+	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, comic_vine_id, metron_synced_at)
+		VALUES ('E', '', '', '', '', NULL, 105, '')`); err != nil {
+		t.Fatal(err)
+	}
+	// Row F: a recent unsuccessful Comic Vine lookup should respect the cooldown.
+	if _, err := db.Exec(`INSERT INTO comics (series, publisher, cover_date, cover_image, description, metron_issue_id, comic_vine_id, metron_synced_at)
+		VALUES ('F', '', '', '', '', NULL, 106, ?)`, recentlySynced); err != nil {
+		t.Fatal(err)
+	}
 
 	settings := defaultMetronComicScanSettings()
 	rows, err := selectIncompleteComics(context.Background(), db, settings, now)
@@ -160,7 +172,7 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 
 	got := map[int]bool{}
 	for _, r := range rows {
-		got[r.MetronID] = true
+		got[r.ID] = true
 	}
 	if got[1] {
 		t.Fatal("recently-synced comic with a permanently-blank field should be skipped during cooldown")
@@ -173,6 +185,12 @@ func TestMetronComicScanCooldownExcludesRecentlySyncedComics(t *testing.T) {
 	}
 	if !got[4] {
 		t.Fatal("comic missing only a Comic Vine ID should be selected")
+	}
+	if !got[5] {
+		t.Fatal("comic with only a Comic Vine ID should be selected")
+	}
+	if got[6] {
+		t.Fatal("recently checked comic with only a Comic Vine ID should be skipped during cooldown")
 	}
 }
 
@@ -204,7 +222,7 @@ func TestMetronComicScanUsesSelectedIncompleteFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 1 || rows[0].MetronID != 101 {
+	if len(rows) != 1 || rows[0].MetronID.Int64 != 101 {
 		t.Fatalf("publisher rows = %+v; want only Metron issue 101", rows)
 	}
 
@@ -213,8 +231,85 @@ func TestMetronComicScanUsesSelectedIncompleteFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 2 || rows[0].MetronID != 102 || rows[1].MetronID != 103 {
+	if len(rows) != 2 || rows[0].MetronID.Int64 != 102 || rows[1].MetronID.Int64 != 103 {
 		t.Fatalf("selected rows = %+v; want Metron issues 102 and 103", rows)
+	}
+}
+
+func TestMetronComicScanFindsAndCoolsDownComicVineOnlyComics(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, issue, publisher, comic_vine_id) VALUES
+			('Found', '1', '', 9001),
+			('Not found', '2', '', 9002)
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.String() {
+		case "/issue/?cv_id=9001":
+			_, _ = w.Write([]byte(`{"results":[{"id":77,"cv_id":9001}]}`))
+		case "/issue/77/":
+			_, _ = w.Write([]byte(`{"id":77,"cv_id":9001,"number":"1","series":{"name":"Found","year_began":2026,"publisher":{"name":"Publisher"}}}`))
+		case "/issue/?cv_id=9002":
+			_, _ = w.Write([]byte(`{"results":[]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.DailyCallLimit = 10
+	settings.MinIntervalSeconds = 0
+	settings.RecheckCooldownDays = 30
+	settings.IncompleteFields = []string{"publisher"}
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	var found struct {
+		MetronID  int    `db:"metron_issue_id"`
+		Publisher string `db:"publisher"`
+	}
+	if err := db.Get(&found, `SELECT metron_issue_id, publisher FROM comics WHERE comic_vine_id = 9001`); err != nil {
+		t.Fatal(err)
+	}
+	if found.MetronID != 77 || found.Publisher != "Publisher" {
+		t.Fatalf("found comic = %+v; want Metron ID 77 and enriched publisher", found)
+	}
+
+	var checkedAt string
+	if err := db.Get(&checkedAt, `SELECT metron_synced_at FROM comics WHERE comic_vine_id = 9002`); err != nil {
+		t.Fatal(err)
+	}
+	if checkedAt == "" {
+		t.Fatal("unmatched Comic Vine comic was not marked as checked")
+	}
+
+	now := time.Now()
+	rows, err := selectIncompleteComics(context.Background(), db, settings, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 0 {
+		t.Fatalf("rows during cooldown = %+v; want none", rows)
+	}
+	rows, err = selectIncompleteComics(context.Background(), db, settings, now.Add(31*24*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 1 || rows[0].ComicVineID.Int64 != 9002 {
+		t.Fatalf("rows after cooldown = %+v; want Comic Vine ID 9002", rows)
+	}
+
+	usage := currentMetronComicScanUsage(context.Background(), db, time.Now())
+	if usage.Calls != 3 {
+		t.Fatalf("Metron calls = %d; want two searches and one detail request", usage.Calls)
 	}
 }
 
