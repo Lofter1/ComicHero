@@ -38,6 +38,32 @@ func TestSearchMetronIssuesPrefersComicVineID(t *testing.T) {
 	}
 }
 
+func TestUpdateComicFromMetronReportsExistingIssueLink(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, series_year, issue, publisher, comic_vine_id)
+		VALUES ('Target', 2026, '1', '', 9001);
+		INSERT INTO comics (series, series_year, issue, publisher, metron_issue_id)
+		VALUES ('Already linked', 2020, '7', '', 77);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := updateComicFromMetron(ctx, db, nil, nil, 1, metron.Issue{ID: 77, ComicVineID: 9001})
+	if err == nil {
+		t.Fatal("expected Metron issue link conflict")
+	}
+	statusErr, ok := err.(interface{ GetStatus() int })
+	if !ok || statusErr.GetStatus() != http.StatusConflict {
+		t.Fatalf("error = %T %v; want HTTP 409 conflict", err, err)
+	}
+	want := "Metron issue 77 is already linked to Already linked (2020) #7 (comic 2). Merge the duplicate comics or choose another Metron issue."
+	if err.Error() != want {
+		t.Fatalf("error = %q; want %q", err, want)
+	}
+}
+
 func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {
 	ctx := testUserContext()
 	db := newMetronImportTestDB(t)

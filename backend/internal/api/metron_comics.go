@@ -3,6 +3,8 @@ package api
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
@@ -450,15 +452,20 @@ func createMetronComicWithOptions(ctx context.Context, db *sqlx.DB, client *metr
 }
 
 func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Client, covers *CoverCache, comicID int, issue metron.Issue) (*ComicDetailOutput, error) {
+	if err := rejectMetronIssueLinkedToAnotherComic(ctx, db, comicID, issue.ID); err != nil {
+		return nil, err
+	}
 	payload := comicPayloadFromMetronIssue(issue)
 	var err error
 	payload.CoverImage, err = localCoverURL(ctx, covers, payload.CoverImage)
 	if err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=cover: %v", comicID, issue.ID, err)
 		return nil, err
 	}
 
 	seriesID, err := ensureMetronIssueSeriesRow(ctx, db, issue)
 	if err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=series: %v", comicID, issue.ID, err)
 		return nil, err
 	}
 
@@ -479,18 +486,52 @@ func updateComicFromMetron(ctx context.Context, db *sqlx.DB, client *metron.Clie
 		comicID,
 	)
 	if err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=metadata: %v", comicID, issue.ID, err)
 		return nil, huma.Error500InternalServerError("failed to update comic from Metron")
 	}
 	if err := requireRowsAffected(result, "comic not found"); err != nil {
 		return nil, err
 	}
 	if err := syncMetronIssueArcsWithOptions(ctx, db, client, comicID, issue, MetronImportOptions{Mode: "full"}); err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=arcs: %v", comicID, issue.ID, err)
 		return nil, err
 	}
 	if err := syncMetronIssueCharacters(ctx, db, covers, comicID, issue); err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=characters: %v", comicID, issue.ID, err)
 		return nil, err
 	}
-	return getComic(ctx, db, comicID)
+	output, err := getComic(ctx, db, comicID)
+	if err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=response: %v", comicID, issue.ID, err)
+		return nil, err
+	}
+	return output, nil
+}
+
+func rejectMetronIssueLinkedToAnotherComic(ctx context.Context, db *sqlx.DB, comicID, metronIssueID int) error {
+	if metronIssueID <= 0 {
+		return nil
+	}
+	var linked Comic
+	err := db.GetContext(ctx, &linked, `
+		SELECT id, series, series_year, issue
+		FROM comics
+		WHERE metron_issue_id = ? AND id <> ?
+	`, metronIssueID, comicID)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		log.Printf("Metron comic update failed: comic_id=%d metron_issue_id=%d stage=conflict-check: %v", comicID, metronIssueID, err)
+		return huma.Error500InternalServerError("failed to check whether the Metron issue is already linked")
+	}
+	log.Printf("Metron comic update rejected: comic_id=%d metron_issue_id=%d already_linked_comic_id=%d", comicID, metronIssueID, linked.ID)
+	return huma.Error409Conflict(fmt.Sprintf(
+		"Metron issue %d is already linked to %s (comic %d). Merge the duplicate comics or choose another Metron issue.",
+		metronIssueID,
+		comicTitle(linked),
+		linked.ID,
+	))
 }
 
 func ensureMetronIssueSeriesRow(ctx context.Context, db *sqlx.DB, issue metron.Issue) (int, error) {
