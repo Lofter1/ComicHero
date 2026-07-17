@@ -97,7 +97,7 @@
 .editor-view {
   display: grid;
   gap: 18px;
-  max-width: 960px;
+  width: 100%;
 }
 
 .editor-header {
