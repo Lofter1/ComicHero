@@ -29,6 +29,10 @@ test('maps valid entity routes and rejects invalid IDs', () => {
 
 test('builds browse, detail, and edit route locations', () => {
   assert.deepEqual(browseRouteLocation('readingOrders'), { name: 'readingOrders' })
+  assert.deepEqual(browseRouteLocation('settings', { tab: 'metron' }), {
+    name: 'settings',
+    query: { tab: 'metron' },
+  })
   assert.equal(browseRouteLocation('metron'), null)
   assert.deepEqual(detailRouteLocation('characters', 7), {
     name: 'characterDetail',

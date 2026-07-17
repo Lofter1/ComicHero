@@ -399,7 +399,10 @@ async function enforceCurrentRouteAccess() {
 
 function routeLocationForCurrentState() {
   if (activeView.value === 'notFound') return route.fullPath
-  if (viewMode.value === 'browse') return browseRouteLocation(activeView.value)
+  if (viewMode.value === 'browse') {
+    const query = activeView.value === 'settings' && route.name === 'settings' ? route.query : null
+    return browseRouteLocation(activeView.value, query)
+  }
   if (viewMode.value === 'detail') {
     if (activeView.value === 'readingOrders')
       return detailRouteLocation(activeView.value, selectedOrder.value?.id)
