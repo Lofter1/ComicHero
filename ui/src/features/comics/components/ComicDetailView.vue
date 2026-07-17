@@ -241,15 +241,6 @@ function seriesLabel(comic) {
             </button>
           </div>
         </div>
-
-        <div v-if="selectedComic.readingOrders?.length" class="preview-list">
-          <p class="eyebrow">Reading Orders</p>
-          <ul>
-            <li v-for="order in selectedComic.readingOrders" :key="order.id">
-              {{ order.name }}
-            </li>
-          </ul>
-        </div>
       </div>
       <p v-else class="empty-state">Select a comic to view it.</p>
     </article>
