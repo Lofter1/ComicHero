@@ -270,6 +270,7 @@
 .user-permission-list {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .user-permission-row {
@@ -278,6 +279,8 @@
   background: var(--surface-soft);
   padding: 0;
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -320,6 +323,11 @@
 
 .user-summary {
   min-width: 0;
+}
+
+.user-summary h3,
+.user-summary p {
+  overflow-wrap: anywhere;
 }
 
 .user-permission-header h3 {
@@ -370,12 +378,14 @@
   grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
   gap: 0;
   align-items: stretch;
+  min-width: 0;
 }
 
 .user-card-section {
   display: grid;
   align-content: start;
   gap: 12px;
+  min-width: 0;
   padding: 16px 18px;
 }
 
@@ -442,11 +452,13 @@
   grid-template-columns: minmax(180px, 240px) 1fr;
   gap: 12px;
   align-items: start;
+  min-width: 0;
 }
 
 .metron-control-column {
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .permission-scopes {
@@ -481,6 +493,8 @@
 }
 
 .hourly-limit-field input {
+  width: 100%;
+  min-width: 0;
   min-height: 38px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
