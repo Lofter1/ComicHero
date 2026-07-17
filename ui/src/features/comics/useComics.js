@@ -382,6 +382,7 @@ export function useComics({
       metronMetadataResults.value = []
     } catch (err) {
       error.value = err.message
+      metronMetadataStatus.value = err.message
     } finally {
       metronMetadataApplyingID.value = null
     }

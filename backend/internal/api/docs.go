@@ -19,7 +19,7 @@ var (
 	errsRead       = []int{400, 404, 500}
 	errsWrite      = []int{400, 404, 422, 500}
 	errsMetronRead = []int{400, 403, 429, 502}
-	errsMetronSync = []int{400, 403, 404, 429, 502, 500}
+	errsMetronSync = []int{400, 403, 404, 409, 429, 502, 500}
 )
 
 func DocsConfig() huma.Config {
