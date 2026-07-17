@@ -279,7 +279,6 @@ const {
   loading,
   error,
   saving,
-  loadComics: (...args) => loadComics(...args),
   loadPagedList,
 })
 

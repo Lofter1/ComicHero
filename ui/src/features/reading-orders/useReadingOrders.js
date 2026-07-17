@@ -20,15 +20,7 @@ import {
   readingOrderPayload,
 } from '@/features/reading-orders/model.js'
 
-export function useReadingOrders({
-  activeView,
-  viewMode,
-  loading,
-  error,
-  saving,
-  loadComics,
-  loadPagedList,
-}) {
+export function useReadingOrders({ activeView, viewMode, loading, error, saving, loadPagedList }) {
   const readingOrders = ref([])
   const selectedOrder = ref(null)
   const quickSavingOrderID = ref(null)
@@ -206,7 +198,7 @@ export function useReadingOrders({
   }
 
   async function loadReadingOrderEditorOptions() {
-    await Promise.all([loadComics(), loadReadingOrders()])
+    await loadReadingOrders()
   }
 
   async function saveReadingOrder() {

@@ -504,6 +504,25 @@
     background: var(--surface);
   }
 
+  .reading-order-entry-pages {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reading-order-entry-pages > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reading-order-entry-pages strong {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .reading-order-entry-pages .secondary-button {
+    width: 100%;
+  }
+
   .icon-button {
     align-self: stretch;
     width: 100%;
