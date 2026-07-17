@@ -49,7 +49,7 @@ export function useMetronJobs({ activeView, error, handleImported }) {
     metronImportMonitorOpen.value = true
     upsertMetronImportJob(job)
     connectMetronImportEvents()
-    if (activeView.value === 'metron') {
+    if (activeView.value === 'settings') {
       loadMetronQuota().catch(() => {})
     }
   }
@@ -116,14 +116,14 @@ export function useMetronJobs({ activeView, error, handleImported }) {
       }
       if (job.status === 'succeeded' && previous && previous.status !== 'succeeded') {
         await handleImported(job)
-        if (activeView.value === 'metron') {
+        if (activeView.value === 'settings') {
           loadMetronQuota().catch(() => {})
         }
         return
       }
       if (job.status === 'failed' && previous && previous.status !== 'failed') {
         error.value = job.message || 'Metron import failed.'
-        if (activeView.value === 'metron') {
+        if (activeView.value === 'settings') {
           loadMetronQuota().catch(() => {})
         }
         return

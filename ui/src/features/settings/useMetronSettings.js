@@ -1,16 +1,23 @@
 import { onUnmounted, ref, watch } from 'vue'
 import {
+  cblRepositorySyncEventsURL,
   createUserInvite,
+  getCBLRepositorySync,
+  listCBLRepositoryFiles,
   getMetronComicDiscovery,
   getMetronComicScan,
   metronComicDiscoveryEventsURL,
   metronComicScanEventsURL,
+  resolveCBLRepositoryMetronIssue,
   stopMetronComicDiscovery,
   stopMetronComicScan,
+  stopCBLRepositorySync,
+  triggerCBLRepositorySync,
   triggerMetronComicDiscovery,
   triggerMetronComicScan,
   updateMetronComicDiscovery,
   updateMetronComicScan,
+  updateCBLRepositorySync,
   updatePublicAccess,
   updateRegistrationMode,
 } from '@/api/client.js'
@@ -24,18 +31,28 @@ export function useMetronSettings({
 }) {
   const comicScan = ref(null)
   const comicDiscovery = ref(null)
+  const cblRepositorySync = ref(null)
+  const cblRepositoryFiles = ref([])
   const savingComicScan = ref(false)
   const savingComicDiscovery = ref(false)
+  const savingCBLRepositorySync = ref(false)
+  const loadingCBLRepositoryFiles = ref(false)
   const generatedInvite = ref(null)
   const generatingInvite = ref(false)
   const savingRegistrationMode = ref(false)
   const savingPublicAccess = ref(false)
   let comicScanEvents = null
   let comicDiscoveryEvents = null
+  let cblRepositorySyncEvents = null
+  let cblRepositorySyncRefreshTimer = null
+  let refreshingCBLRepositorySync = false
 
   async function loadSettings() {
     if (!connectComicScanEvents()) comicScan.value = await getMetronComicScan()
     if (!connectComicDiscoveryEvents()) comicDiscovery.value = await getMetronComicDiscovery()
+    connectCBLRepositorySyncEvents()
+    cblRepositorySync.value = await getCBLRepositorySync()
+    scheduleCBLRepositorySyncRefresh()
   }
 
   async function saveComicScan(settings) {
@@ -44,10 +61,13 @@ export function useMetronSettings({
     })
   }
 
-  async function runComicScan() {
+  async function runComicScan(settings) {
+    savingComicScan.value = true
     await run(async () => {
+      comicScan.value = await updateMetronComicScan(settings)
       comicScan.value = await triggerMetronComicScan()
     })
+    savingComicScan.value = false
   }
 
   async function cancelComicScan() {
@@ -62,15 +82,63 @@ export function useMetronSettings({
     })
   }
 
-  async function runComicDiscovery() {
+  async function runComicDiscovery(settings) {
+    savingComicDiscovery.value = true
     await run(async () => {
+      comicDiscovery.value = await updateMetronComicDiscovery(settings)
       comicDiscovery.value = await triggerMetronComicDiscovery()
     })
+    savingComicDiscovery.value = false
   }
 
   async function cancelComicDiscovery() {
     await run(async () => {
       comicDiscovery.value = await stopMetronComicDiscovery()
+    })
+  }
+
+  async function saveCBLRepositorySync(settings) {
+    await withSaving(savingCBLRepositorySync, async () => {
+      cblRepositorySync.value = await updateCBLRepositorySync(settings)
+    })
+  }
+
+  async function loadCBLRepositoryFiles(settings) {
+    loadingCBLRepositoryFiles.value = true
+    cblRepositoryFiles.value = []
+    await run(async () => {
+      cblRepositorySync.value = await updateCBLRepositorySync(settings)
+      const files = await listCBLRepositoryFiles()
+      cblRepositoryFiles.value = Array.isArray(files) ? files : []
+    })
+    loadingCBLRepositoryFiles.value = false
+  }
+
+  async function runCBLRepositorySync(request) {
+    const settings = request?.settings || request
+    const files = Array.isArray(request?.files) ? request.files : []
+    const resolveMissingOnMetron = Boolean(request?.resolveMissingOnMetron)
+    savingCBLRepositorySync.value = true
+    await run(async () => {
+      cblRepositorySync.value = await updateCBLRepositorySync(settings)
+      cblRepositorySync.value = await triggerCBLRepositorySync({
+        files,
+        resolveMissingOnMetron,
+      })
+      scheduleCBLRepositorySyncRefresh(0)
+    })
+    savingCBLRepositorySync.value = false
+  }
+
+  async function cancelCBLRepositorySync() {
+    await run(async () => {
+      cblRepositorySync.value = await stopCBLRepositorySync()
+    })
+  }
+
+  async function resolveCBLMetronIssue(selection) {
+    await run(async () => {
+      cblRepositorySync.value = await resolveCBLRepositoryMetronIssue(selection)
     })
   }
 
@@ -141,12 +209,27 @@ export function useMetronSettings({
     return true
   }
 
-  function connectEvents({ url, eventName, payloadKey, target, close, fallback }) {
+  function connectCBLRepositorySyncEvents() {
+    if (cblRepositorySyncEvents || typeof EventSource === 'undefined') return false
+    cblRepositorySyncEvents = connectEvents({
+      url: cblRepositorySyncEventsURL(),
+      eventName: 'sync',
+      payloadKey: 'sync',
+      target: cblRepositorySync,
+      close: closeCBLRepositorySyncEvents,
+      fallback: getCBLRepositorySync,
+      onUpdate: scheduleCBLRepositorySyncRefresh,
+    })
+    return true
+  }
+
+  function connectEvents({ url, eventName, payloadKey, target, close, fallback, onUpdate }) {
     const source = new EventSource(url, { withCredentials: true })
     source.addEventListener(eventName, (event) => {
       try {
         const payload = JSON.parse(event.data)
         target.value = payload[payloadKey] || payload
+        onUpdate?.()
       } catch (err) {
         error.value = err.message
       }
@@ -175,6 +258,47 @@ export function useMetronSettings({
     comicDiscoveryEvents = null
   }
 
+  function closeCBLRepositorySyncEvents() {
+    cblRepositorySyncEvents?.close()
+    cblRepositorySyncEvents = null
+  }
+
+  function scheduleCBLRepositorySyncRefresh(delay) {
+    clearTimeout(cblRepositorySyncRefreshTimer)
+    if (activeView.value !== 'settings') return
+    const refreshDelay = delay ?? (cblRepositorySync.value?.running ? 750 : 5000)
+    cblRepositorySyncRefreshTimer = setTimeout(refreshCBLRepositorySyncStatus, refreshDelay)
+  }
+
+  async function refreshCBLRepositorySyncStatus() {
+    if (activeView.value !== 'settings' || refreshingCBLRepositorySync) return
+    refreshingCBLRepositorySync = true
+    try {
+      const status = await getCBLRepositorySync()
+      // Do not let a request started before a manual trigger briefly replace the
+      // new running state with the preceding idle snapshot.
+      if (!(
+        cblRepositorySync.value?.running &&
+        !status.running &&
+        !status.finishedAt &&
+        cblRepositorySync.value?.startedAt
+      )) {
+        cblRepositorySync.value = status
+      }
+    } catch {
+      // The SSE connection remains the primary live update path. A failed
+      // fallback refresh should not replace a more useful settings-page error.
+    } finally {
+      refreshingCBLRepositorySync = false
+      scheduleCBLRepositorySyncRefresh()
+    }
+  }
+
+  function stopCBLRepositorySyncRefresh() {
+    clearTimeout(cblRepositorySyncRefreshTimer)
+    cblRepositorySyncRefreshTimer = null
+  }
+
   async function withSaving(savingRef, action) {
     savingRef.value = true
     await run(action)
@@ -191,21 +315,32 @@ export function useMetronSettings({
   }
 
   watch(activeView, (view) => {
-    if (view === 'settings') return
+    if (view === 'settings') {
+      scheduleCBLRepositorySyncRefresh(0)
+      return
+    }
     closeComicScanEvents()
     closeComicDiscoveryEvents()
+    closeCBLRepositorySyncEvents()
+    stopCBLRepositorySyncRefresh()
   })
 
   onUnmounted(() => {
     closeComicScanEvents()
     closeComicDiscoveryEvents()
+    closeCBLRepositorySyncEvents()
+    stopCBLRepositorySyncRefresh()
   })
 
   return {
     comicScan,
     comicDiscovery,
+    cblRepositorySync,
+    cblRepositoryFiles,
     savingComicScan,
     savingComicDiscovery,
+    savingCBLRepositorySync,
+    loadingCBLRepositoryFiles,
     generatedInvite,
     generatingInvite,
     savingRegistrationMode,
@@ -217,6 +352,11 @@ export function useMetronSettings({
     saveComicDiscovery,
     runComicDiscovery,
     cancelComicDiscovery,
+    saveCBLRepositorySync,
+    loadCBLRepositoryFiles,
+    runCBLRepositorySync,
+    cancelCBLRepositorySync,
+    resolveCBLMetronIssue,
     generateInvite,
     saveRegistration,
     savePublic,

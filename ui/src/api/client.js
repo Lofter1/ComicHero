@@ -359,6 +359,34 @@ export function stopMetronComicDiscovery() {
   return send('/metron/discovery/comics/stop', 'POST', {})
 }
 
+export function getCBLRepositorySync() {
+  return request('/readingOrders/repository-sync')
+}
+
+export function cblRepositorySyncEventsURL() {
+  return `${API_BASE}/readingOrders/repository-sync/events`
+}
+
+export function updateCBLRepositorySync(payload) {
+  return send('/readingOrders/repository-sync', 'PUT', payload)
+}
+
+export function listCBLRepositoryFiles() {
+  return request('/readingOrders/repository-sync/files')
+}
+
+export function triggerCBLRepositorySync(payload = {}) {
+  return send('/readingOrders/repository-sync/trigger', 'POST', payload)
+}
+
+export function resolveCBLRepositoryMetronIssue(payload) {
+  return send('/readingOrders/repository-sync/resolve', 'POST', payload)
+}
+
+export function stopCBLRepositorySync() {
+  return send('/readingOrders/repository-sync/stop', 'POST', {})
+}
+
 export function updateUserMetronPermissions(id, payload) {
   return send(`/users/${id}/metron-permissions`, 'PUT', payload)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 )
 
 func (c *Client) SearchIssues(ctx context.Context, query, series, issue string) ([]Issue, error) {
@@ -16,6 +17,21 @@ func (c *Client) SearchIssues(ctx context.Context, query, series, issue string) 
 	if issue != "" {
 		values.Set("number", issue)
 	}
+
+	results, err := c.getList(ctx, "/issue/", values)
+	if err != nil {
+		return nil, err
+	}
+	issues := make([]Issue, 0, len(results))
+	for _, raw := range results {
+		issues = append(issues, issueFromMap(raw))
+	}
+	return issues, nil
+}
+
+func (c *Client) SearchIssuesByComicVineID(ctx context.Context, comicVineID int) ([]Issue, error) {
+	values := url.Values{}
+	values.Set("cv_id", strconv.Itoa(comicVineID))
 
 	results, err := c.getList(ctx, "/issue/", values)
 	if err != nil {

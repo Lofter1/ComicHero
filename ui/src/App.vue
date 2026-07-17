@@ -126,8 +126,12 @@ const {
 const {
   comicScan: metronComicScan,
   comicDiscovery: metronComicDiscovery,
+  cblRepositorySync,
+  cblRepositoryFiles,
   savingComicScan: savingMetronComicScan,
   savingComicDiscovery: savingMetronComicDiscovery,
+  savingCBLRepositorySync,
+  loadingCBLRepositoryFiles,
   generatedInvite,
   generatingInvite,
   savingRegistrationMode,
@@ -139,6 +143,11 @@ const {
   saveComicDiscovery: saveMetronComicDiscovery,
   runComicDiscovery: runMetronComicDiscovery,
   cancelComicDiscovery: cancelMetronComicDiscovery,
+  saveCBLRepositorySync,
+  loadCBLRepositoryFiles,
+  runCBLRepositorySync,
+  cancelCBLRepositorySync,
+  resolveCBLMetronIssue,
   generateInvite: generateUserInvite,
   saveRegistration: saveRegistrationMode,
   savePublic: savePublicAccess,
@@ -567,18 +576,15 @@ async function loadActiveViewData(options = {}) {
     await loadCharacters(options)
     return
   }
-  if (activeView.value === 'metron') {
-    if (canMetronMonitor.value) {
-      await loadMetronQuota()
-    }
-    return
-  }
   if (activeView.value === 'users') {
     await loadUserAdminRows()
     return
   }
   if (activeView.value === 'settings') {
-    await loadMetronSettings()
+    await Promise.all([
+      loadMetronSettings(),
+      canMetronMonitor.value ? loadMetronQuota() : Promise.resolve(),
+    ])
     return
   }
   if (activeView.value === 'account') {
@@ -591,12 +597,10 @@ async function loadActiveViewData(options = {}) {
 }
 
 async function refreshActiveLibraryData() {
-  if (activeView.value === 'metron') return
   await loadActiveViewData({ force: true })
 }
 
 async function refreshActiveListData() {
-  if (activeView.value === 'metron') return
   error.value = ''
   try {
     await loadActiveViewData({ force: true })
@@ -788,7 +792,6 @@ onUnmounted(() => {
       :is-admin="isAdmin"
       :public-access="publicAccess"
       :read-only-guest="isReadOnlyGuest"
-      :show-metron="canAccessMetronArea && !isReadOnlyGuest"
       :auth-saving="authSaving"
       :version="systemInfo?.version || ''"
       @set-theme="setThemePreference"
@@ -815,16 +818,6 @@ onUnmounted(() => {
       />
 
       <LoadingState v-if="showBlockingLoading" />
-
-      <MetronImport
-        v-else-if="activeView === 'metron'"
-        :import-jobs="metronImportJobs"
-        :metron-quota="metronQuota"
-        @imported="handleMetronImported"
-        @error="showError"
-        @job-started="trackMetronImportJob"
-        @quota-updated="updateMetronQuota"
-      />
 
       <DashboardView
         v-else-if="activeView === 'dashboard'"
@@ -855,8 +848,12 @@ onUnmounted(() => {
         v-else-if="activeView === 'settings'"
         :metron-comic-scan="metronComicScan"
         :metron-comic-discovery="metronComicDiscovery"
+        :cbl-repository-sync="cblRepositorySync"
+        :cbl-repository-files="cblRepositoryFiles"
         :saving="savingMetronComicScan"
         :saving-discovery="savingMetronComicDiscovery"
+        :saving-cbl-repository-sync="savingCBLRepositorySync"
+        :loading-cbl-repository-files="loadingCBLRepositoryFiles"
         :registration-mode="registrationMode"
         :saving-registration-mode="savingRegistrationMode"
         :public-access="publicAccess"
@@ -869,10 +866,26 @@ onUnmounted(() => {
         @save-discovery="saveMetronComicDiscovery"
         @trigger-discovery="runMetronComicDiscovery"
         @stop-discovery="cancelMetronComicDiscovery"
+        @save-cbl-repository-sync="saveCBLRepositorySync"
+        @load-cbl-repository-files="loadCBLRepositoryFiles"
+        @trigger-cbl-repository-sync="runCBLRepositorySync"
+        @stop-cbl-repository-sync="cancelCBLRepositorySync"
+        @resolve-cbl-metron-issue="resolveCBLMetronIssue"
         @update-registration-mode="saveRegistrationMode"
         @update-public-access="savePublicAccess"
         @generate-invite="generateUserInvite"
-      />
+      >
+        <template #metron-import>
+          <MetronImport
+            :import-jobs="metronImportJobs"
+            :metron-quota="metronQuota"
+            @imported="handleMetronImported"
+            @error="showError"
+            @job-started="trackMetronImportJob"
+            @quota-updated="updateMetronQuota"
+          />
+        </template>
+      </AppSettingsView>
 
       <AccountView
         v-else-if="activeView === 'account'"

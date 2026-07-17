@@ -38,7 +38,6 @@ const BROWSE_ROUTE_NAMES = {
   comics: 'comics',
   series: 'series',
   characters: 'characters',
-  metron: 'metron',
   users: 'users',
   settings: 'settings',
   account: 'account',

@@ -30,10 +30,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  showMetron: {
-    type: Boolean,
-    default: true,
-  },
   authSaving: {
     type: Boolean,
     default: false,
@@ -147,14 +143,6 @@ function toggleMobileMenu() {
         @click="closeMenus"
       >
         <span>Characters</span>
-      </router-link>
-      <router-link
-        v-if="showMetron"
-        :to="{ name: 'metron' }"
-        :class="{ active: activeView === 'metron' }"
-        @click="closeMenus"
-      >
-        <span>Metron</span>
       </router-link>
     </nav>
 
