@@ -118,8 +118,9 @@
   }
 
   .content {
+    --content-padding: 14px;
     --sticky-toolbar-inline-offset: 14px;
-    padding: 14px;
+    padding: var(--content-padding);
   }
 
   .sticky-toolbar,
@@ -136,6 +137,10 @@
 
   .toolbar.sticky-toolbar {
     margin-top: 0;
+  }
+
+  .detail-nav.sticky-toolbar {
+    margin-top: calc(var(--content-padding) * -1);
   }
 
   .toolbar {

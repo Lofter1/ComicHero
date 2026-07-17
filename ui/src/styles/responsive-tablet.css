@@ -119,12 +119,12 @@
   }
 
   .content {
+    --content-padding: 22px;
     max-width: none;
-    padding: 22px;
+    padding: var(--content-padding);
   }
 
   .toolbar.sticky-toolbar {
-    margin-top: -22px;
     margin-bottom: 0;
   }
 

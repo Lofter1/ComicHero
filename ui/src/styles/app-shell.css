@@ -494,10 +494,11 @@ h4 {
 }
 
 .content {
+  --content-padding: 28px;
   --sticky-toolbar-top: 0px;
   --sticky-toolbar-inline-offset: 28px;
-  --comic-list-sticky-top: 96px;
-  padding: 28px;
+  --comic-list-sticky-top: 82px;
+  padding: var(--content-padding);
   min-width: 0;
   width: 100%;
 }
@@ -543,7 +544,11 @@ h4 {
 }
 
 .toolbar.sticky-toolbar {
-  margin-top: calc(var(--sticky-toolbar-inline-offset) * -1);
+  margin-top: calc(var(--content-padding) * -1);
+}
+
+.detail-nav.sticky-toolbar {
+  margin-top: calc(var(--content-padding) * -1);
 }
 
 .sticky-toolbar,
