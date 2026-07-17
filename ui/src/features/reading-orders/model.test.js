@@ -3,11 +3,24 @@ import test from 'node:test'
 
 import {
   readingOrderComicsPayload,
+  readingOrderCover,
   readingOrderDisplayComics,
   readingOrderEditorPage,
   readingOrderFormFromDetail,
   reorderReadingOrderEntry,
 } from './model.js'
+
+test('uses the computed comic cover only when no explicit reading-order cover exists', () => {
+  assert.equal(
+    readingOrderCover({ image: '/covers/custom.jpg', displayImage: '/covers/custom.jpg' }),
+    '/covers/custom.jpg',
+  )
+  assert.equal(
+    readingOrderCover({ image: '', displayImage: '/covers/first-comic.jpg' }),
+    '/covers/first-comic.jpg',
+  )
+  assert.equal(readingOrderCover({ image: '', displayImage: '' }), '')
+})
 
 test('maps section entries between API detail and editor payloads', () => {
   const form = readingOrderFormFromDetail({

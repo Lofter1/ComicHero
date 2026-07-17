@@ -64,6 +64,15 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ro.name,
 			ro.description,
 			ro.image,
+			COALESCE(NULLIF(TRIM(ro.image), ''), (
+				SELECT cover_comic.cover_image
+				FROM reading_order_comics cover_entry
+				JOIN comics cover_comic ON cover_comic.id = cover_entry.comic_id
+				WHERE cover_entry.reading_order_id = ro.id
+					AND TRIM(cover_comic.cover_image) <> ''
+				ORDER BY cover_entry.position, cover_entry.rowid
+				LIMIT 1
+			), '') AS display_image,
 			ro.is_public,
 			COALESCE(preference.favorite, 0) AS favorite,
 			(SELECT COUNT(*) FROM user_reading_orders stats WHERE stats.reading_order_id = ro.id AND stats.favorite = 1) AS favorite_count,

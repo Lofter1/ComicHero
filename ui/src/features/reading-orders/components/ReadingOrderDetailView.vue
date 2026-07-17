@@ -7,6 +7,7 @@ import ComicListView from '@/features/comics/components/ComicListView.vue'
 import {
   formatProgress,
   formatRating,
+  readingOrderCover,
   readingOrderDisplayComics,
 } from '@/features/reading-orders/model.js'
 
@@ -137,9 +138,9 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
         </header>
 
         <div class="reading-order-summary">
-          <div v-if="selectedOrder.image" class="reading-order-thumbnail">
+          <div v-if="readingOrderCover(selectedOrder)" class="reading-order-thumbnail">
             <img
-              :src="assetURL(selectedOrder.image)"
+              :src="assetURL(readingOrderCover(selectedOrder))"
               :alt="`${selectedOrder.name} thumbnail`"
               loading="lazy"
             />
