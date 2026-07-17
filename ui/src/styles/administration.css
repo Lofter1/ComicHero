@@ -10,6 +10,7 @@
   display: grid;
   gap: 20px;
   max-width: 1160px;
+  padding-top: 18px;
 }
 
 .settings-tabs {
