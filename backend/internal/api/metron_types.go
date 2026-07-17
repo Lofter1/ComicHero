@@ -3,9 +3,10 @@ package api
 import "github.com/Lofter1/ComicHero/backend/internal/metron"
 
 type MetronIssueListInput struct {
-	Query  string `query:"q"      doc:"Search text for Metron issues. Used as series-name search when series is empty." example:"Batman"`
-	Series string `query:"series" doc:"Metron series-name filter." example:"Batman"`
-	Issue  string `query:"issue"  doc:"Issue-number filter." example:"6.LR"`
+	Query       string `query:"q"             doc:"Search text for Metron issues. Used as series-name search when series is empty." example:"Batman"`
+	Series      string `query:"series"        doc:"Metron series-name filter." example:"Batman"`
+	Issue       string `query:"issue"         doc:"Issue-number filter." example:"6.LR"`
+	ComicVineID int    `query:"comic_vine_id" doc:"Exact Comic Vine issue identifier. When set, the text and series filters are ignored." minimum:"1" example:"987654"`
 }
 
 type MetronIDInput struct {

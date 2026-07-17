@@ -15,7 +15,7 @@ func registerMetronComicRoutes(api huma.API, db *sqlx.DB, client *metron.Client,
 		OperationID: "searchMetronComics",
 		Tags:        []string{tagMetron},
 		Summary:     "Search Metron comics",
-		Description: "Searches Metron for comic issue metadata. When series is omitted, q is sent as the Metron series-name search.",
+		Description: "Searches Metron for comic issue metadata. An exact Comic Vine ID takes precedence; when series is omitted, q is sent as the Metron series-name search.",
 		Method:      http.MethodGet,
 		Path:        "/metron/comics",
 		Errors:      errsMetronRead,
@@ -23,7 +23,7 @@ func registerMetronComicRoutes(api huma.API, db *sqlx.DB, client *metron.Client,
 		if err := authorizeMetron(ctx, db, metronScopeSearch, "GET /metron/comics"); err != nil {
 			return nil, err
 		}
-		issues, err := client.SearchIssues(ctx, input.Query, input.Series, input.Issue)
+		issues, err := searchMetronIssues(ctx, client, input)
 		if err != nil {
 			return nil, metronAPIError(err)
 		}
@@ -101,6 +101,13 @@ func registerMetronComicRoutes(api huma.API, db *sqlx.DB, client *metron.Client,
 		}
 		return withMetronRateLimit(output, client.CurrentRateLimit()), nil
 	})
+}
+
+func searchMetronIssues(ctx context.Context, client *metron.Client, input *MetronIssueListInput) ([]metron.Issue, error) {
+	if input.ComicVineID > 0 {
+		return client.SearchIssuesByComicVineID(ctx, input.ComicVineID)
+	}
+	return client.SearchIssues(ctx, input.Query, input.Series, input.Issue)
 }
 
 func comicPayloadFromMetronIssue(issue metron.Issue) ComicPayload {
