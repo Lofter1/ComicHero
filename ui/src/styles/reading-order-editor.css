@@ -5,6 +5,48 @@
   gap: 6px;
 }
 
+.reading-order-list-edit .section-title > span,
+.reading-order-entry-pages > span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.reading-order-entry-pages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft-bg);
+  padding: 10px 12px;
+}
+
+.reading-order-entry-pages > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.reading-order-entry-pages .secondary-button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
+.reading-order-entry-pages strong {
+  min-width: 104px;
+  color: var(--ink);
+  text-align: center;
+}
+
+.reading-order-entry-pages-bottom {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
 .entry-drop-zone {
   min-height: 12px;
   border: 1px dashed transparent;

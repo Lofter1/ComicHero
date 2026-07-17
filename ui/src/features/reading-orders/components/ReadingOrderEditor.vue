@@ -3,6 +3,10 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { assetURL, listComics } from '@/api/client.js'
 import { comicLabel } from '@/features/comics/model.js'
+import {
+  readingOrderEditorPage,
+  readingOrderEditorPageSize,
+} from '@/features/reading-orders/model.js'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -31,11 +35,13 @@ const sectionTitle = ref('')
 const sectionDescription = ref('')
 const activeAddType = ref('comic')
 const expandedEntryKeys = ref(new Set())
+const entryPage = ref(0)
 
 let comicSearchTimer = null
 let comicSearchRequestId = 0
 
 const orderEntries = computed(() => props.form.entries || props.form.comics || [])
+const entryPageState = computed(() => readingOrderEditorPage(orderEntries.value, entryPage.value))
 const coverPreview = computed(() => {
   if (props.form.coverImageData) return props.form.coverImageData
   if (props.form.image) return assetURL(props.form.image)
@@ -46,6 +52,14 @@ watch(
   () => props.form.id,
   () => {
     expandedEntryKeys.value = new Set()
+    entryPage.value = 0
+  },
+)
+
+watch(
+  () => orderEntries.value.length,
+  () => {
+    entryPage.value = entryPageState.value.page
   },
 )
 
@@ -244,7 +258,14 @@ function addSection() {
 }
 
 function addNewEntryToEnd(entry) {
-  insertEntryAt(entry, orderEntries.value.length)
+  const index = orderEntries.value.length
+  insertEntryAt(entry, index)
+  entryPage.value = Math.floor(index / readingOrderEditorPageSize)
+}
+
+function goToEntryPage(page) {
+  endDrag()
+  entryPage.value = Math.min(Math.max(0, page), entryPageState.value.pageCount - 1)
 }
 
 function dropAt(event, index) {
@@ -555,7 +576,54 @@ function endDrag() {
       <section class="entry-section reading-order-list-edit">
         <div class="section-title">
           <h4>List Order</h4>
+          <span>{{ orderEntries.length }} entries</span>
         </div>
+
+        <nav
+          v-if="entryPageState.pageCount > 1"
+          class="reading-order-entry-pages"
+          aria-label="Reading order entry pages"
+        >
+          <span>
+            Entries {{ entryPageState.start + 1 }}–{{ entryPageState.end }} of
+            {{ orderEntries.length }}
+          </span>
+          <div>
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="entryPageState.page === 0"
+              @click="goToEntryPage(0)"
+            >
+              First
+            </button>
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="entryPageState.page === 0"
+              @click="goToEntryPage(entryPageState.page - 1)"
+            >
+              Previous
+            </button>
+            <strong>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</strong>
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="entryPageState.page === entryPageState.pageCount - 1"
+              @click="goToEntryPage(entryPageState.page + 1)"
+            >
+              Next
+            </button>
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="entryPageState.page === entryPageState.pageCount - 1"
+              @click="goToEntryPage(entryPageState.pageCount - 1)"
+            >
+              Last
+            </button>
+          </div>
+        </nav>
 
         <div
           v-if="orderEntries.length === 0"
@@ -569,7 +637,10 @@ function endDrag() {
         </div>
 
         <div v-else class="order-entry-list">
-          <template v-for="(entry, index) in orderEntries" :key="index">
+          <template
+            v-for="{ entry, index } in entryPageState.entries"
+            :key="entryKey(entry, index)"
+          >
             <div
               class="entry-drop-zone"
               :class="{ active: dragOverIndex === index }"
@@ -699,12 +770,38 @@ function endDrag() {
 
           <div
             class="entry-drop-zone end-zone"
-            :class="{ active: dragOverIndex === orderEntries.length }"
-            @dragover="overDropZone($event, orderEntries.length)"
+            :class="{ active: dragOverIndex === entryPageState.end }"
+            @dragover="overDropZone($event, entryPageState.end)"
             @dragleave="dragOverIndex = null"
-            @drop="dropAt($event, orderEntries.length)"
+            @drop="dropAt($event, entryPageState.end)"
           />
         </div>
+
+        <nav
+          v-if="entryPageState.pageCount > 1"
+          class="reading-order-entry-pages reading-order-entry-pages-bottom"
+          aria-label="Reading order entry pages"
+        >
+          <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>
+          <div>
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="entryPageState.page === 0"
+              @click="goToEntryPage(entryPageState.page - 1)"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              class="secondary-button"
+              :disabled="entryPageState.page === entryPageState.pageCount - 1"
+              @click="goToEntryPage(entryPageState.page + 1)"
+            >
+              Next
+            </button>
+          </div>
+        </nav>
       </section>
     </div>
   </form>

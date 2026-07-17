@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   readingOrderComicsPayload,
   readingOrderDisplayComics,
+  readingOrderEditorPage,
   readingOrderFormFromDetail,
 } from './model.js'
 
@@ -74,4 +75,22 @@ test('groups nested reading-order issues separately and then resumes the parent 
   assert.equal(display[2].section.title, 'Setup')
   assert.equal(display[0].read, true)
   assert.equal(display[1].skipped, true)
+})
+
+test('pages large reading orders without dropping or renumbering entries', () => {
+  const entries = Array.from({ length: 251 }, (_, index) => ({ comicId: index + 1 }))
+
+  const first = readingOrderEditorPage(entries, 0)
+  assert.equal(first.pageCount, 3)
+  assert.equal(first.entries.length, 100)
+  assert.equal(first.entries[0].index, 0)
+  assert.equal(first.entries[99].index, 99)
+
+  const last = readingOrderEditorPage(entries, 99)
+  assert.equal(last.page, 2)
+  assert.equal(last.start, 200)
+  assert.equal(last.end, 251)
+  assert.equal(last.entries.length, 51)
+  assert.equal(last.entries[0].entry.comicId, 201)
+  assert.equal(last.entries[50].index, 250)
 })

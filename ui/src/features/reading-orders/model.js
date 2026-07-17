@@ -13,6 +13,32 @@ export function emptyReadingOrder() {
   }
 }
 
+export const readingOrderEditorPageSize = 100
+
+export function readingOrderEditorPage(
+  entries,
+  requestedPage,
+  pageSize = readingOrderEditorPageSize,
+) {
+  const source = Array.isArray(entries) ? entries : []
+  const size = Math.max(1, Number(pageSize) || readingOrderEditorPageSize)
+  const pageCount = Math.max(1, Math.ceil(source.length / size))
+  const page = Math.min(Math.max(0, Number(requestedPage) || 0), pageCount - 1)
+  const start = page * size
+  const end = Math.min(start + size, source.length)
+
+  return {
+    page,
+    pageCount,
+    start,
+    end,
+    entries: source.slice(start, end).map((entry, offset) => ({
+      entry,
+      index: start + offset,
+    })),
+  }
+}
+
 export function readingOrderFormFromDetail(detail) {
   const entries = (detail.entries || []).map((entry) => {
     if (entry.type === 'section' && entry.section) {
