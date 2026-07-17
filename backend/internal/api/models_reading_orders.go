@@ -5,9 +5,10 @@ type ReadingOrder struct {
 	MetronReadingListID *int `json:"metronReadingListId,omitempty"       db:"metron_reading_list_id" doc:"Linked Metron reading-list identifier, when imported." example:"9876"`
 	AuthorUserID        *int `json:"authorUserId,omitempty"              db:"author_user_id"         doc:"User who created or owns this reading order." example:"1"`
 
-	Name          string   `json:"name"        db:"name"        doc:"Reading-order name." example:"Batman: Court of Owls"`
-	Description   string   `json:"description" db:"description" doc:"Reading-order description or notes."`
-	Image         string   `json:"image"       db:"image"       doc:"Reading-list thumbnail image URL from Metron, when imported." format:"uri"`
+	Name          string   `json:"name"         db:"name"          doc:"Reading-order name." example:"Batman: Court of Owls"`
+	Description   string   `json:"description"  db:"description"   doc:"Reading-order description or notes."`
+	Image         string   `json:"image"        db:"image"         doc:"Explicit reading-order thumbnail image URL, when set." format:"uri"`
+	DisplayImage  string   `json:"displayImage" db:"display_image" doc:"Image shown in the UI: the explicit reading-order image, or the first available comic cover in reading order." format:"uri"`
 	IsPublic      bool     `json:"isPublic"    db:"is_public"   doc:"Whether users other than the creator may view this reading order." example:"true"`
 	Favorite      bool     `json:"favorite"    db:"favorite"    doc:"Whether this reading order is marked as a favorite." example:"true"`
 	FavoriteCount int      `json:"favoriteCount" db:"favorite_count" doc:"Number of users who favorited this reading order." example:"12"`

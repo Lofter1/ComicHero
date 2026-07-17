@@ -15,6 +15,10 @@ export function emptyReadingOrder() {
 
 export const readingOrderEditorPageSize = 100
 
+export function readingOrderCover(order) {
+  return order?.image || order?.displayImage || ''
+}
+
 export function reorderReadingOrderEntry(entries, fromIndex, toIndex) {
   const source = Array.isArray(entries) ? entries : []
   if (

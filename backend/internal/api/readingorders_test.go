@@ -57,6 +57,49 @@ func TestReadingOrderHelpers(t *testing.T) {
 	}
 }
 
+func TestReadingOrderDisplayImageFallsBackToFirstComicCover(t *testing.T) {
+	db := setupReadingOrderCBLTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.ExecContext(ctx, `
+		INSERT INTO comics (id, series, series_year, issue, publisher, cover_image) VALUES
+			(1, 'Fallback', 2026, '1', 'Publisher', ''),
+			(2, 'Fallback', 2026, '2', 'Publisher', '/covers/second.jpg'),
+			(3, 'Explicit', 2026, '1', 'Publisher', '/covers/comic.jpg');
+		INSERT INTO reading_orders (id, name, image, author_user_id) VALUES
+			(10, 'Fallback order', '', 1),
+			(11, 'Explicit order', '/covers/custom.jpg', 1);
+		INSERT INTO reading_order_comics (reading_order_id, comic_id, position) VALUES
+			(10, 2, 2),
+			(10, 1, 1),
+			(11, 3, 1);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	listed, err := listReadingOrders(ctx, db, &ReadingOrderListInput{Limit: 50})
+	if err != nil {
+		t.Fatal(err)
+	}
+	byID := map[int]ReadingOrder{}
+	for _, order := range listed.Body {
+		byID[order.ID] = order
+	}
+	if byID[10].Image != "" || byID[10].DisplayImage != "/covers/second.jpg" {
+		t.Fatalf("fallback list image = image %q display %q", byID[10].Image, byID[10].DisplayImage)
+	}
+	if byID[11].DisplayImage != "/covers/custom.jpg" {
+		t.Fatalf("explicit list display image = %q; want custom cover", byID[11].DisplayImage)
+	}
+
+	detail, err := getReadingOrder(ctx, db, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.Body.Image != "" || detail.Body.DisplayImage != "/covers/second.jpg" {
+		t.Fatalf("fallback detail image = image %q display %q", detail.Body.Image, detail.Body.DisplayImage)
+	}
+}
+
 func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 	ctx := testUserContext()
 	db, err := sqlx.Open("sqlite", ":memory:")

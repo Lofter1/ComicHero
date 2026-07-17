@@ -5,7 +5,7 @@ import BrowseEntityRow from '@/shared/components/browse/BrowseEntityRow.vue'
 import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
-import { formatProgress, formatRating } from '@/features/reading-orders/model.js'
+import { formatProgress, formatRating, readingOrderCover } from '@/features/reading-orders/model.js'
 
 const props = defineProps({
   orders: {
@@ -172,7 +172,7 @@ function handleCBLFile(event) {
             <BrowseEntityRow
               :title="order.name"
               :subtitle="order.description || 'No description'"
-              :image="order.image"
+              :image="readingOrderCover(order)"
               main-class="arc-row-main"
               :selected="selectedOrderId === order.id"
               :favorite="order.favorite"
