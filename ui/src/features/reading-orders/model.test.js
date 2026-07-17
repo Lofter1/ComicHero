@@ -6,6 +6,7 @@ import {
   readingOrderDisplayComics,
   readingOrderEditorPage,
   readingOrderFormFromDetail,
+  reorderReadingOrderEntry,
 } from './model.js'
 
 test('maps section entries between API detail and editor payloads', () => {
@@ -43,6 +44,17 @@ test('drops untitled sections from the save payload', () => {
   })
 
   assert.deepEqual(payload.entries, [{ type: 'comic', comicId: 2, comment: '', tags: '' }])
+})
+
+test('moves reading-order entries across editor page boundaries', () => {
+  const entries = Array.from({ length: 101 }, (_, index) => ({ comicId: index + 1 }))
+
+  const movedForward = reorderReadingOrderEntry(entries, 99, 100)
+  assert.equal(movedForward[99].comicId, 101)
+  assert.equal(movedForward[100].comicId, 100)
+
+  const movedBack = reorderReadingOrderEntry(movedForward, 100, 99)
+  assert.deepEqual(movedBack, entries)
 })
 
 test('groups nested reading-order issues separately and then resumes the parent section', () => {

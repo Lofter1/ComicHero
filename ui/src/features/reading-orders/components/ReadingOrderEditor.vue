@@ -6,6 +6,7 @@ import { comicLabel } from '@/features/comics/model.js'
 import {
   readingOrderEditorPage,
   readingOrderEditorPageSize,
+  reorderReadingOrderEntry,
 } from '@/features/reading-orders/model.js'
 
 const props = defineProps({
@@ -344,15 +345,15 @@ function moveEntry(index, offset) {
 }
 
 function reorderEntry(fromIndex, toIndex) {
-  if (fromIndex === toIndex) return
-  if (fromIndex < 0 || toIndex < 0) return
-  if (fromIndex >= orderEntries.value.length || toIndex >= orderEntries.value.length) return
-
-  const entries = [...orderEntries.value]
-  const [entry] = entries.splice(fromIndex, 1)
-
-  entries.splice(toIndex, 0, entry)
+  const entries = reorderReadingOrderEntry(orderEntries.value, fromIndex, toIndex)
+  if (entries === orderEntries.value) return
   updateForm({ entries })
+}
+
+function moveEntryAcrossPage(index, direction) {
+  const targetPage = entryPageState.value.page + direction
+  reorderEntry(index, index + direction)
+  entryPage.value = targetPage
 }
 
 function startDrag(event, index) {
@@ -714,6 +715,35 @@ function endDrag() {
               >
                 <span aria-hidden="true">×</span>
               </button>
+
+              <div
+                v-if="
+                  (index === entryPageState.start && entryPageState.page > 0) ||
+                  (index === entryPageState.end - 1 &&
+                    entryPageState.page < entryPageState.pageCount - 1)
+                "
+                class="entry-page-move"
+              >
+                <button
+                  v-if="index === entryPageState.start && entryPageState.page > 0"
+                  type="button"
+                  class="secondary-button"
+                  @click="moveEntryAcrossPage(index, -1)"
+                >
+                  Move to previous page
+                </button>
+                <button
+                  v-if="
+                    index === entryPageState.end - 1 &&
+                    entryPageState.page < entryPageState.pageCount - 1
+                  "
+                  type="button"
+                  class="secondary-button"
+                  @click="moveEntryAcrossPage(index, 1)"
+                >
+                  Move to next page
+                </button>
+              </div>
 
               <div v-if="isEntryExpanded(entry, index)" class="entry-edit-panel">
                 <template v-if="entry.type === 'section'">

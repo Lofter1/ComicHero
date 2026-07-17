@@ -15,6 +15,26 @@ export function emptyReadingOrder() {
 
 export const readingOrderEditorPageSize = 100
 
+export function reorderReadingOrderEntry(entries, fromIndex, toIndex) {
+  const source = Array.isArray(entries) ? entries : []
+  if (
+    !Number.isInteger(fromIndex) ||
+    !Number.isInteger(toIndex) ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= source.length ||
+    toIndex >= source.length ||
+    fromIndex === toIndex
+  ) {
+    return source
+  }
+
+  const reordered = [...source]
+  const [entry] = reordered.splice(fromIndex, 1)
+  reordered.splice(toIndex, 0, entry)
+  return reordered
+}
+
 export function readingOrderEditorPage(
   entries,
   requestedPage,
