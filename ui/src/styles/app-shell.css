@@ -547,7 +547,8 @@ h4 {
   margin-top: calc(var(--content-padding) * -1);
 }
 
-.detail-nav.sticky-toolbar {
+.detail-nav.sticky-toolbar,
+.editor-header.sticky-toolbar {
   margin-top: calc(var(--content-padding) * -1);
 }
 
