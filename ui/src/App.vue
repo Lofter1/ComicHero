@@ -39,6 +39,7 @@ import { useSeries } from '@/features/series/useSeries.js'
 import { useTheme } from '@/shared/composables/useTheme.js'
 import { useUserAdministration } from '@/features/users/useUserAdministration.js'
 import {
+  backFallbackRouteLocation,
   browseRouteLocation,
   detailRouteLocation,
   editRouteLocation,
@@ -525,11 +526,15 @@ async function activateRoute(route) {
 
 async function backToPreviousPage() {
   error.value = ''
+  await popHistoryOrReplace(backFallbackRouteLocation(activeView.value))
+}
+
+async function popHistoryOrReplace(fallback) {
   if (window.history.state?.back) {
     router.back()
     return
   }
-  await router.push(browseRouteLocation(activeView.value) || { name: 'readingOrders' })
+  await router.replace(fallback)
 }
 
 async function loadData(force = false) {
@@ -618,21 +623,19 @@ async function loadMoreActiveViewData() {
   }
 }
 
-function cancelEdit() {
+async function cancelEdit() {
   error.value = ''
+  let selectedID = null
   if (activeView.value === 'readingOrders' && selectedOrder.value) {
-    viewMode.value = 'detail'
-    return
+    selectedID = selectedOrder.value.id
   }
   if (activeView.value === 'arcs' && selectedArc.value) {
-    viewMode.value = 'detail'
-    return
+    selectedID = selectedArc.value.id
   }
   if (activeView.value === 'comics' && selectedComic.value) {
-    viewMode.value = 'detail'
-    return
+    selectedID = selectedComic.value.id
   }
-  viewMode.value = 'browse'
+  await popHistoryOrReplace(backFallbackRouteLocation(activeView.value, selectedID))
 }
 
 function showError(message) {

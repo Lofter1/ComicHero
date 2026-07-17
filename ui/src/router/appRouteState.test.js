@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  backFallbackRouteLocation,
   browseRouteLocation,
   detailRouteLocation,
   editRouteLocation,
@@ -36,6 +37,15 @@ test('builds browse, detail, and edit route locations', () => {
   })
   assert.deepEqual(editRouteLocation('arcs'), { name: 'arcsNew' })
   assert.deepEqual(editRouteLocation('arcs', 9), { name: 'arcEdit', params: { id: 9 } })
+})
+
+test('builds detail-aware Back fallbacks without creating a second navigation model', () => {
+  assert.deepEqual(backFallbackRouteLocation('comics', 42), {
+    name: 'comicDetail',
+    params: { id: 42 },
+  })
+  assert.deepEqual(backFallbackRouteLocation('comics'), { name: 'comics' })
+  assert.deepEqual(backFallbackRouteLocation('unknown'), { name: 'readingOrders' })
 })
 
 test('falls back to the dashboard for unknown routes', () => {

@@ -25,6 +25,10 @@ export function detailRouteLocation(view, id) {
   return name && id ? { name, params: { id } } : null
 }
 
+export function backFallbackRouteLocation(view, id) {
+  return detailRouteLocation(view, id) || browseRouteLocation(view) || { name: 'readingOrders' }
+}
+
 export function editRouteLocation(view, id) {
   const routes = EDIT_ROUTE_NAMES[view]
   if (!routes) return browseRouteLocation(view)
