@@ -570,37 +570,28 @@ func TestReadingOrderCBLImportGroupsMultipartFilesInPartOrder(t *testing.T) {
 	}
 
 	order := result.Body.ReadingOrder
-	if len(order.ChildReadingOrders) != 2 || len(order.Entries) != 2 || len(order.Comics) != 2 {
-		t.Fatalf("parent children/entries/comics = %d/%d/%d; want 2/2/2", len(order.ChildReadingOrders), len(order.Entries), len(order.Comics))
+	if len(order.ChildReadingOrders) != 0 || len(order.Entries) != 4 || len(order.Comics) != 2 {
+		t.Fatalf("multipart children/entries/comics = %d/%d/%d; want 0/4/2", len(order.ChildReadingOrders), len(order.Entries), len(order.Comics))
 	}
 	wantPartNames := []string{
 		"[Marvel] CMRO Core Reading Order-Part 01",
 		"[Marvel] CMRO Core Reading Order-Part 02",
 	}
 	for i, want := range wantPartNames {
-		if order.ChildReadingOrders[i].Name != want {
-			t.Fatalf("child %d name = %q; want %q", i, order.ChildReadingOrders[i].Name, want)
-		}
-		if order.Entries[i].ReadingOrder == nil || order.Entries[i].ReadingOrder.Name != want {
-			t.Fatalf("entry %d = %#v; want child %q", i, order.Entries[i], want)
-		}
-		if len(order.Entries[i].Comics) != 1 {
-			t.Fatalf("entry %d comics = %d; want 1", i, len(order.Entries[i].Comics))
+		entry := order.Entries[i*2]
+		if entry.Type != "section" || entry.Section == nil || entry.Section.Title != want {
+			t.Fatalf("part section %d = %#v; want %q", i, entry, want)
 		}
 	}
 	if order.Comics[0].Issue != "1" || order.Comics[1].Issue != "2" {
 		t.Fatalf("flattened issues = %q, %q; want part order 1, 2", order.Comics[0].Issue, order.Comics[1].Issue)
 	}
-	if !strings.Contains(order.Comics[0].Comment, "Part 01") || !strings.Contains(order.Comics[1].Comment, "Part 02") {
-		t.Fatalf("flattened source comments = %q, %q; want originating part", order.Comics[0].Comment, order.Comics[1].Comment)
-	}
-
 	var readingOrderCount int
 	if err := db.Get(&readingOrderCount, `SELECT COUNT(*) FROM reading_orders`); err != nil {
 		t.Fatalf("count reading orders: %v", err)
 	}
-	if readingOrderCount != 3 {
-		t.Fatalf("reading order count = %d; want parent plus two parts", readingOrderCount)
+	if readingOrderCount != 1 {
+		t.Fatalf("reading order count = %d; want one combined multipart order", readingOrderCount)
 	}
 }
 

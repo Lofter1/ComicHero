@@ -32,6 +32,36 @@
     width: 100%;
   }
 
+  .cbl-file-picker-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .cbl-file-picker-tools input {
+    grid-column: auto;
+  }
+
+  .cbl-file-picker-list > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cbl-select-parts-button {
+    align-self: flex-start;
+  }
+
+  .cbl-file-picker-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cbl-file-picker-actions span {
+    margin-right: 0;
+  }
+
+  .cbl-metron-candidate {
+    align-items: flex-start;
+  }
+
   .sidebar {
     padding: 12px;
   }

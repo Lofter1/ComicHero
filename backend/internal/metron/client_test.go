@@ -124,6 +124,27 @@ func TestListReadingListsFetchesEveryUnfilteredPage(t *testing.T) {
 	}
 }
 
+func TestSearchIssuesByComicVineIDUsesDocumentedFilter(t *testing.T) {
+	var requestURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestURL = r.URL.String()
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"results":[{"id":12,"cv_id":987654,"series":{"name":"Batman"},"number":"6"}]}`))
+	}))
+	defer server.Close()
+
+	issues, err := New(Config{BaseURL: server.URL}).SearchIssuesByComicVineID(context.Background(), 987654)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestURL != "/issue/?cv_id=987654" {
+		t.Fatalf("request URL = %q; want Comic Vine filter", requestURL)
+	}
+	if len(issues) != 1 || issues[0].ID != 12 || issues[0].ComicVineID != 987654 {
+		t.Fatalf("issues = %#v; want matching Metron issue", issues)
+	}
+}
+
 func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

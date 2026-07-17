@@ -12,6 +12,41 @@
   max-width: 1160px;
 }
 
+.settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-soft-bg);
+  padding: 6px;
+}
+
+.settings-tabs button {
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--label-ink);
+  padding: 9px 12px;
+  font-weight: 800;
+}
+
+.settings-tabs button.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.settings-tab-panel {
+  min-width: 0;
+}
+
+.settings-metron-panel {
+  display: grid;
+  gap: 20px;
+}
+
 .metron-scan-panel {
   gap: 22px;
   border-radius: 12px;
@@ -55,12 +90,232 @@
 }
 
 .metron-scan-field input,
-.metron-scan-field select {
+.metron-scan-field select,
+.metron-scan-field textarea {
   width: 100%;
+}
+
+.metron-scan-field input,
+.metron-scan-field select {
   height: 44px;
   min-height: 44px;
   padding-block: 0;
   line-height: 1.2;
+}
+
+.cbl-repository-list-field {
+  max-width: 760px;
+}
+
+.cbl-repository-list-field textarea {
+  min-height: 104px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 650;
+}
+
+.cbl-auto-sync-toggle {
+  justify-self: start;
+}
+
+.cbl-manual-metron-option {
+  display: grid;
+  justify-items: start;
+  gap: 5px;
+  border-left: 3px solid var(--line-strong);
+  padding-left: 12px;
+}
+
+.cbl-manual-metron-option small {
+  max-width: 720px;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.cbl-file-picker {
+  width: min(920px, 100%);
+  max-height: min(820px, calc(100vh - 36px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  box-shadow: 0 22px 56px var(--shadow-panel);
+  overflow: hidden;
+}
+
+.cbl-file-picker-header,
+.cbl-file-picker-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.cbl-file-picker-header {
+  border-bottom: 1px solid var(--line);
+}
+
+.cbl-file-picker-header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cbl-file-picker-header small,
+.cbl-file-picker-actions span,
+.cbl-file-picker-path small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.cbl-file-picker-tools {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 16px;
+}
+
+.cbl-file-picker-tools input {
+  width: 100%;
+  min-height: 42px;
+}
+
+.cbl-file-picker-list {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  padding: 6px 16px;
+}
+
+.cbl-file-picker-list > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 2px;
+}
+
+.cbl-file-picker-list > div > label {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.cbl-file-picker-list > div:last-of-type {
+  border-bottom: 0;
+}
+
+.cbl-file-picker-list input {
+  margin-top: 3px;
+}
+
+.cbl-file-picker-path {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cbl-file-picker-path strong {
+  overflow-wrap: anywhere;
+}
+
+.cbl-file-picker-more {
+  justify-self: center;
+  display: grid;
+  gap: 2px;
+  min-width: min(280px, 100%);
+  margin: 12px 0 8px;
+}
+
+.cbl-file-picker-more small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.cbl-select-parts-button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.cbl-select-parts-button:disabled {
+  color: var(--muted);
+}
+
+.cbl-file-picker-actions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+}
+
+.cbl-file-picker-actions span {
+  margin-right: auto;
+}
+
+.cbl-metron-issue-picker {
+  width: min(760px, 100%);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.cbl-metron-candidate-list {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 16px;
+}
+
+.cbl-metron-candidate {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
+  color: inherit;
+  text-align: left;
+}
+
+.cbl-metron-candidate:hover,
+.cbl-metron-candidate:focus-visible {
+  border-color: var(--accent);
+}
+
+.cbl-metron-candidate img {
+  width: 58px;
+  height: 82px;
+  flex: 0 0 auto;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.cbl-metron-candidate-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cbl-metron-candidate-copy strong {
+  overflow-wrap: anywhere;
+}
+
+.cbl-metron-candidate-copy small {
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .metron-scan-status {
@@ -98,6 +353,7 @@
 .metron-scan-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

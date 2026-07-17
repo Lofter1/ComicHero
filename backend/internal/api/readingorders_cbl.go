@@ -18,7 +18,7 @@ import (
 
 const cblNoLocalComicMatch = "no local comic matched"
 
-var cblPartSuffixPattern = regexp.MustCompile(`(?i)(?:\s*[-_]\s*|\s+)part\s*[-_]?\s*(\d+)\s*$`)
+var cblPartPattern = regexp.MustCompile(`(?i)(?:^|[\s._-])(?:part|pt)\s*[._-]?\s*0*(\d+)(?:[\s._-]|$)`)
 
 type cblReadingList struct {
 	XMLName   xml.Name  `xml:"ReadingList"`
@@ -56,6 +56,8 @@ type cblImportResult struct {
 	unmatchedCount int
 	unmatched      []ReadingOrderCBLUnmatchedBook
 }
+
+type cblMissingComicResolver func(context.Context, cblBook) (*Comic, error)
 
 func importReadingOrderCBL(ctx context.Context, db *sqlx.DB, input *ReadingOrderCBLImportInput) (*ReadingOrderCBLImportOutput, error) {
 	documents, err := parseCBLImportDocuments(input)
@@ -119,88 +121,78 @@ func parseCBLImportDocuments(input *ReadingOrderCBLImportInput) ([]cblImportDocu
 }
 
 func importMultipartReadingOrderCBL(ctx context.Context, db *sqlx.DB, documents []cblImportDocument) (*ReadingOrderCBLImportOutput, error) {
-	parentName, err := prepareMultipartCBLDocuments(documents)
+	name, err := prepareMultipartCBLDocuments(documents)
 	if err != nil {
 		return nil, err
 	}
+	result, err := importCombinedCBLDocuments(ctx, db, 0, name, documents)
+	if err != nil {
+		return nil, err
+	}
+	return cblImportOutput(result), nil
+}
 
-	createdOrderIDs := make([]int, 0, len(documents)+1)
-	complete := false
-	defer func() {
-		if !complete {
-			cleanupCBLReadingOrders(ctx, db, createdOrderIDs)
-		}
-	}()
+func importCombinedCBLDocuments(ctx context.Context, db *sqlx.DB, readingOrderID int, name string, documents []cblImportDocument) (cblImportResult, error) {
+	return importCombinedCBLDocumentsWithResolver(ctx, db, readingOrderID, name, documents, nil)
+}
 
-	entries := make([]ReadingOrderEntryPayload, 0, len(documents))
+func importCombinedCBLDocumentsWithResolver(ctx context.Context, db *sqlx.DB, readingOrderID int, name string, documents []cblImportDocument, resolveMissing cblMissingComicResolver) (cblImportResult, error) {
+	entries := make([]ReadingOrderEntryPayload, 0)
 	unmatched := make([]ReadingOrderCBLUnmatchedBook, 0)
 	matchedCount := 0
 	for _, document := range documents {
-		partResult, err := importCBLDocument(ctx, db, document)
+		entries = append(entries, ReadingOrderEntryPayload{Type: "section", Title: document.name})
+		partEntries, partUnmatched, err := cblDocumentEntriesWithResolver(ctx, db, document.list, resolveMissing)
 		if err != nil {
-			return nil, err
+			return cblImportResult{}, err
 		}
-		createdOrderIDs = append(createdOrderIDs, partResult.readingOrder.ID)
-		entries = append(entries, ReadingOrderEntryPayload{
-			Type:           "readingOrder",
-			ReadingOrderID: partResult.readingOrder.ID,
-		})
-		matchedCount += partResult.matchedCount
-		for _, book := range partResult.unmatched {
+		entries = append(entries, partEntries...)
+		matchedCount += len(partEntries)
+		for _, book := range partUnmatched {
 			book.Part = document.name
 			unmatched = append(unmatched, book)
 		}
 	}
 
-	parent, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: parentName})
-	if err != nil {
-		return nil, err
-	}
-	createdOrderIDs = append(createdOrderIDs, parent.Body.ID)
-	setInput := &SetReadingOrderComicsInput{ID: parent.Body.ID}
-	setInput.Body.Entries = entries
-	detail, err := setReadingOrderComics(ctx, db, setInput)
-	if err != nil {
-		return nil, err
-	}
-
-	complete = true
-	return &ReadingOrderCBLImportOutput{Body: ReadingOrderCBLImportResult{
-		ReadingOrder:   detail.Body,
-		MatchedCount:   matchedCount,
-		UnmatchedCount: len(unmatched),
-		Unmatched:      unmatched,
-	}}, nil
-}
-
-func importCBLDocument(ctx context.Context, db *sqlx.DB, document cblImportDocument) (cblImportResult, error) {
-	cbl := document.list
-	name := document.name
-
-	entries := make([]ReadingOrderEntryPayload, 0, len(cbl.Books))
-	unmatched := make([]ReadingOrderCBLUnmatchedBook, 0)
-	for i, book := range cbl.Books {
-		comic, reason, err := matchCBLBook(ctx, db, book)
+	createdReadingOrder := readingOrderID == 0
+	if createdReadingOrder {
+		created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: name})
 		if err != nil {
 			return cblImportResult{}, err
 		}
-		if comic == nil && reason == cblNoLocalComicMatch {
-			comic, err = createComicFromCBLBook(ctx, db, book)
-			if err != nil {
-				return cblImportResult{}, err
-			}
-		}
-		if comic == nil {
-			unmatched = append(unmatched, cblUnmatchedBook(i+1, book, reason))
-			continue
-		}
-		entries = append(entries, ReadingOrderEntryPayload{
-			Type:    "comic",
-			ComicID: comic.ID,
-		})
+		readingOrderID = created.Body.ID
+	} else if _, err := db.ExecContext(ctx, `UPDATE reading_orders SET name = ? WHERE id = ?`, name, readingOrderID); err != nil {
+		return cblImportResult{}, huma.Error500InternalServerError("failed to update multipart CBL reading order")
 	}
 
-	created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: name})
+	setInput := &SetReadingOrderComicsInput{ID: readingOrderID}
+	setInput.Body.Entries = entries
+	detail, err := setReadingOrderComicsInternal(ctx, db, setInput)
+	if err != nil {
+		if createdReadingOrder {
+			cleanupCBLReadingOrders(ctx, db, []int{readingOrderID})
+		}
+		return cblImportResult{}, err
+	}
+	return cblImportResult{
+		readingOrder:   detail.Body,
+		matchedCount:   matchedCount,
+		unmatchedCount: len(unmatched),
+		unmatched:      unmatched,
+	}, nil
+}
+
+func importCBLDocument(ctx context.Context, db *sqlx.DB, document cblImportDocument) (cblImportResult, error) {
+	return importCBLDocumentWithResolver(ctx, db, document, nil)
+}
+
+func importCBLDocumentWithResolver(ctx context.Context, db *sqlx.DB, document cblImportDocument, resolveMissing cblMissingComicResolver) (cblImportResult, error) {
+	entries, unmatched, err := cblDocumentEntriesWithResolver(ctx, db, document.list, resolveMissing)
+	if err != nil {
+		return cblImportResult{}, err
+	}
+
+	created, err := createReadingOrder(ctx, db, nil, ReadingOrderPayload{Name: document.name})
 	if err != nil {
 		return cblImportResult{}, err
 	}
@@ -218,6 +210,70 @@ func importCBLDocument(ctx context.Context, db *sqlx.DB, document cblImportDocum
 		unmatchedCount: len(unmatched),
 		unmatched:      unmatched,
 	}, nil
+}
+
+func updateCBLDocument(ctx context.Context, db *sqlx.DB, readingOrderID int, document cblImportDocument) (cblImportResult, error) {
+	return updateCBLDocumentWithResolver(ctx, db, readingOrderID, document, nil)
+}
+
+func updateCBLDocumentWithResolver(ctx context.Context, db *sqlx.DB, readingOrderID int, document cblImportDocument, resolveMissing cblMissingComicResolver) (cblImportResult, error) {
+	entries, unmatched, err := cblDocumentEntriesWithResolver(ctx, db, document.list, resolveMissing)
+	if err != nil {
+		return cblImportResult{}, err
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE reading_orders SET name = ? WHERE id = ?`, document.name, readingOrderID); err != nil {
+		return cblImportResult{}, huma.Error500InternalServerError("failed to update CBL reading order")
+	}
+	setInput := &SetReadingOrderComicsInput{ID: readingOrderID}
+	setInput.Body.Entries = entries
+	detail, err := setReadingOrderComicsInternal(ctx, db, setInput)
+	if err != nil {
+		return cblImportResult{}, err
+	}
+	return cblImportResult{
+		readingOrder:   detail.Body,
+		matchedCount:   len(entries),
+		unmatchedCount: len(unmatched),
+		unmatched:      unmatched,
+	}, nil
+}
+
+func cblDocumentEntries(ctx context.Context, db *sqlx.DB, cbl cblReadingList) ([]ReadingOrderEntryPayload, []ReadingOrderCBLUnmatchedBook, error) {
+	return cblDocumentEntriesWithResolver(ctx, db, cbl, nil)
+}
+
+func cblDocumentEntriesWithResolver(ctx context.Context, db *sqlx.DB, cbl cblReadingList, resolveMissing cblMissingComicResolver) ([]ReadingOrderEntryPayload, []ReadingOrderCBLUnmatchedBook, error) {
+	entries := make([]ReadingOrderEntryPayload, 0, len(cbl.Books))
+	unmatched := make([]ReadingOrderCBLUnmatchedBook, 0)
+	for i, book := range cbl.Books {
+		comic, reason, err := matchCBLBook(ctx, db, book)
+		if err != nil {
+			return nil, nil, err
+		}
+		if comic == nil && reason == cblNoLocalComicMatch {
+			if resolveMissing != nil {
+				comic, err = resolveMissing(ctx, book)
+				if err != nil {
+					return nil, nil, err
+				}
+			}
+		}
+		if comic == nil && reason == cblNoLocalComicMatch {
+			comic, err = createComicFromCBLBook(ctx, db, book)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		if comic == nil {
+			unmatched = append(unmatched, cblUnmatchedBook(i+1, book, reason))
+			continue
+		}
+		entries = append(entries, ReadingOrderEntryPayload{
+			Type:    "comic",
+			ComicID: comic.ID,
+		})
+	}
+	return entries, unmatched, nil
 }
 
 func cblImportOutput(result cblImportResult) *ReadingOrderCBLImportOutput {
@@ -264,12 +320,12 @@ func prepareMultipartCBLDocuments(documents []cblImportDocument) (string, error)
 
 func cblMultipartPartName(name string) (string, int, bool) {
 	name = strings.TrimSpace(name)
-	matches := cblPartSuffixPattern.FindStringSubmatchIndex(name)
+	matches := cblPartPattern.FindStringSubmatchIndex(name)
 	if len(matches) < 4 {
 		return "", 0, false
 	}
 	part, ok := parseCBLPositiveInt(name[matches[2]:matches[3]])
-	base := strings.TrimSpace(name[:matches[0]])
+	base := strings.Trim(strings.TrimSpace(name[:matches[0]]), "-_. ")
 	return base, part, ok && base != ""
 }
 

@@ -100,7 +100,7 @@ type ReadingOrderCBLImportInput struct {
 	Body struct {
 		Filename string                      `json:"filename,omitempty" doc:"Original CBL filename, used as a fallback reading-order name for a single-file import." example:"Infinity Gauntlet.cbl"`
 		Content  string                      `json:"content,omitempty"  doc:"CBL XML document content for a single-file import."`
-		Parts    []ReadingOrderCBLImportPart `json:"parts,omitempty"    doc:"Two or more CBL part files that share a name ending in Part NN. Each part becomes a child of one grouped reading order."`
+		Parts    []ReadingOrderCBLImportPart `json:"parts,omitempty"    doc:"Two or more CBL part files that share a numbered Part or pt marker. All parts are combined into one reading order with a section per part."`
 	}
 }
 

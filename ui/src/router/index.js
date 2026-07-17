@@ -144,9 +144,7 @@ export const router = createRouter({
     },
     {
       path: '/metron',
-      name: 'metron',
-      component: EmptyRouteView,
-      meta: { eyebrow: 'Metron', title: 'Import from Metron', requiresMetron: true },
+      redirect: { name: 'settings', query: { tab: 'metron' } },
     },
     {
       path: '/users',
