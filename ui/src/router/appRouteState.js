@@ -15,9 +15,10 @@ export function routeToAppState(route) {
   return { view: 'dashboard', mode: 'browse', replace: true }
 }
 
-export function browseRouteLocation(view) {
+export function browseRouteLocation(view, query) {
   const name = BROWSE_ROUTE_NAMES[view]
-  return name ? { name } : null
+  if (!name) return null
+  return query && Object.keys(query).length ? { name, query } : { name }
 }
 
 export function detailRouteLocation(view, id) {
