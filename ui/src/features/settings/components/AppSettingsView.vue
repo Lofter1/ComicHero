@@ -51,6 +51,10 @@ const draft = reactive({})
 const discoveryDraft = reactive({})
 const cblDraft = reactive({})
 const repositoryText = ref('')
+const cblFolderPickerOpen = ref(false)
+const cblFolderSearch = ref('')
+const selectedCBLFolderKeys = reactive(new Set())
+const visibleCBLFolderLimit = ref(100)
 const cblFilePickerOpen = ref(false)
 const cblFileSearch = ref('')
 const selectedCBLFileKeys = reactive(new Set())
@@ -72,6 +76,59 @@ const indexedCBLRepositoryFiles = computed(() =>
     searchText: `${file.repositoryUrl} ${file.path} ${file.multipartGroup || ''}`.toLowerCase(),
   })),
 )
+const indexedCBLRepositoryFolders = computed(() => {
+  const folders = new Map()
+  for (const file of props.cblRepositoryFiles) {
+    const parts = String(file.path || '').split('/')
+    parts.pop()
+    for (let index = 1; index <= parts.length; index += 1) {
+      const folder = {
+        repositoryUrl: file.repositoryUrl,
+        path: parts.slice(0, index).join('/'),
+      }
+      const key = cblFolderKey(folder)
+      const existing = folders.get(key)
+      if (existing) existing.fileCount += 1
+      else folders.set(key, { ...folder, fileCount: 1 })
+    }
+  }
+  return [...folders.entries()]
+    .map(([key, folder]) => ({
+      folder,
+      key,
+      searchText: `${folder.repositoryUrl} ${folder.path}`.toLowerCase(),
+    }))
+    .sort((left, right) => left.searchText.localeCompare(right.searchText))
+})
+const cblRepositoryFoldersByKey = computed(
+  () => new Map(indexedCBLRepositoryFolders.value.map(({ key, folder }) => [key, folder])),
+)
+const filteredCBLRepositoryFolders = computed(() => {
+  const query = cblFolderSearch.value.trim().toLowerCase()
+  const rows = query
+    ? indexedCBLRepositoryFolders.value.filter(({ searchText }) => searchText.includes(query))
+    : indexedCBLRepositoryFolders.value
+  return rows.map(({ folder }) => folder)
+})
+const visibleCBLRepositoryFolders = computed(() =>
+  filteredCBLRepositoryFolders.value.slice(0, visibleCBLFolderLimit.value),
+)
+const remainingCBLRepositoryFolderCount = computed(() =>
+  Math.max(0, filteredCBLRepositoryFolders.value.length - visibleCBLRepositoryFolders.value.length),
+)
+const selectedCBLRepositoryFolders = computed(() => {
+  const folders = []
+  for (const key of selectedCBLFolderKeys) {
+    const folder = cblRepositoryFoldersByKey.value.get(key)
+    if (folder) folders.push(folder)
+  }
+  return folders
+})
+const cblFolderScopeLabel = computed(() => {
+  const count = Array.isArray(cblDraft.folders) ? cblDraft.folders.length : 0
+  if (!count) return 'All repository folders'
+  return `${count} selected ${count === 1 ? 'folder' : 'folders'}`
+})
 const cblRepositoryFilesByKey = computed(
   () => new Map(indexedCBLRepositoryFiles.value.map(({ key, file }) => [key, file])),
 )
@@ -129,6 +186,9 @@ watch(
   () => props.cblRepositorySync?.settings,
   (settings) => {
     Object.assign(cblDraft, settings || {})
+    cblDraft.folders = Array.isArray(settings?.folders)
+      ? settings.folders.map((folder) => ({ ...folder }))
+      : []
     repositoryText.value = (settings?.repositories || []).join('\n')
   },
   { immediate: true },
@@ -144,6 +204,10 @@ watch(
 
 watch(cblFileSearch, () => {
   visibleCBLFileLimit.value = cblFileBatchSize
+})
+
+watch(cblFolderSearch, () => {
+  visibleCBLFolderLimit.value = cblFileBatchSize
 })
 
 watch(
@@ -226,17 +290,61 @@ function toggleCBLWeekday(day, checked) {
 }
 
 function cblRepositorySyncPayload() {
+  const repositories = repositoryText.value
+    .split('\n')
+    .map((value) => value.trim())
+    .filter(Boolean)
+  const repositoryKeys = new Set(repositories.map(normalizedRepositoryKey))
   return {
     enabled: Boolean(cblDraft.enabled),
-    repositories: repositoryText.value
-      .split('\n')
-      .map((value) => value.trim())
-      .filter(Boolean),
+    repositories,
+    folders: (cblDraft.folders || [])
+      .filter((folder) => repositoryKeys.has(normalizedRepositoryKey(folder.repositoryUrl)))
+      .map((folder) => ({ repositoryUrl: folder.repositoryUrl, path: folder.path })),
     autoSync: Boolean(cblDraft.autoSync),
     schedule: cblDraft.schedule || 'daily',
     weekdays: cblDraft.schedule === 'weekly' ? cblDraft.weekdays || [] : [],
     startTime: cblDraft.startTime || '04:00',
   }
+}
+
+function openCBLFolderPicker() {
+  cblFolderPickerOpen.value = true
+  cblFolderSearch.value = ''
+  selectedCBLFolderKeys.clear()
+  for (const folder of cblDraft.folders || []) selectedCBLFolderKeys.add(cblFolderKey(folder))
+  visibleCBLFolderLimit.value = cblFileBatchSize
+  emit('load-cbl-repository-files', cblRepositorySyncPayload())
+}
+
+function closeCBLFolderPicker() {
+  cblFolderPickerOpen.value = false
+}
+
+function cblFolderKey(folder) {
+  return `${folder.repositoryUrl}\n${folder.path}`
+}
+
+function toggleCBLFolder(folder, checked) {
+  const key = cblFolderKey(folder)
+  if (checked) selectedCBLFolderKeys.add(key)
+  else selectedCBLFolderKeys.delete(key)
+}
+
+function clearSelectedCBLFolders() {
+  selectedCBLFolderKeys.clear()
+}
+
+function showMoreCBLRepositoryFolders() {
+  visibleCBLFolderLimit.value += cblFileBatchSize
+}
+
+function applySelectedCBLRepositoryFolders() {
+  cblDraft.folders = selectedCBLRepositoryFolders.value.map((folder) => ({
+    repositoryUrl: folder.repositoryUrl,
+    path: folder.path,
+  }))
+  closeCBLFolderPicker()
 }
 
 function saveCBLRepositorySync() {
@@ -322,6 +430,14 @@ function chooseCBLMetronIssue(metronIssueId) {
 
 function repositoryLabel(value) {
   return String(value || '').replace(/^https:\/\/github\.com\//i, '')
+}
+
+function normalizedRepositoryKey(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\.git\/?$/i, '')
+    .replace(/\/$/, '')
+    .toLowerCase()
 }
 
 function fileSizeLabel(bytes) {
@@ -500,6 +616,25 @@ function selectSettingsTab(tab) {
         ></textarea>
       </label>
 
+      <div class="cbl-folder-scope">
+        <div>
+          <strong>Repository scope</strong>
+          <span>{{ cblFolderScopeLabel }}</span>
+          <small>
+            Applies to regular checks and Import now. Only selected folders and their nested folders
+            are downloaded.
+          </small>
+        </div>
+        <button
+          type="button"
+          class="secondary-action"
+          :disabled="loadingCblRepositoryFiles || !repositoryText.trim()"
+          @click="openCBLFolderPicker"
+        >
+          {{ loadingCblRepositoryFiles ? 'Loading folders...' : 'Choose folders' }}
+        </button>
+      </div>
+
       <label class="compact-toggle cbl-auto-sync-toggle">
         <input v-model="cblDraft.autoSync" type="checkbox" />
         <span>Regularly check repositories for new and updated files</span>
@@ -626,6 +761,101 @@ function selectSettingsTab(tab) {
         >
           Stop import
         </button>
+      </div>
+
+      <div v-if="cblFolderPickerOpen" class="modal-backdrop" @click.self="closeCBLFolderPicker">
+        <section
+          class="cbl-file-picker"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cbl-folder-picker-title"
+        >
+          <header class="cbl-file-picker-header">
+            <div>
+              <strong id="cbl-folder-picker-title">Choose repository folders</strong>
+              <small>
+                Choose one or more folders. Clear the selection to use the entire repository.
+              </small>
+            </div>
+            <button
+              class="icon-button"
+              type="button"
+              aria-label="Close CBL folder picker"
+              @click="closeCBLFolderPicker"
+            >
+              ×
+            </button>
+          </header>
+
+          <div class="cbl-file-picker-tools">
+            <input v-model="cblFolderSearch" type="search" placeholder="Search folders..." />
+            <button
+              type="button"
+              class="secondary-action"
+              :disabled="!selectedCBLFolderKeys.size"
+              @click="clearSelectedCBLFolders"
+            >
+              Use all folders
+            </button>
+          </div>
+
+          <LoadingState v-if="loadingCblRepositoryFiles" compact />
+          <p v-else-if="!filteredCBLRepositoryFolders.length" class="muted cbl-picker-empty">
+            No folders containing CBL files match this search.
+          </p>
+          <div v-else class="cbl-file-picker-list">
+            <div
+              v-for="folder in visibleCBLRepositoryFolders"
+              :key="cblFolderKey(folder)"
+              v-memo="[selectedCBLFolderKeys.has(cblFolderKey(folder))]"
+            >
+              <label>
+                <input
+                  type="checkbox"
+                  :checked="selectedCBLFolderKeys.has(cblFolderKey(folder))"
+                  @change="toggleCBLFolder(folder, $event.target.checked)"
+                />
+                <span class="cbl-file-picker-path">
+                  <strong>{{ folder.path }}</strong>
+                  <small>
+                    {{ repositoryLabel(folder.repositoryUrl) }} · {{ folder.fileCount }}
+                    {{ folder.fileCount === 1 ? 'CBL file' : 'CBL files' }}
+                  </small>
+                </span>
+              </label>
+            </div>
+            <button
+              v-if="remainingCBLRepositoryFolderCount"
+              type="button"
+              class="secondary-button cbl-file-picker-more"
+              @click="showMoreCBLRepositoryFolders"
+            >
+              Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFolderCount) }} more
+              <small>{{ remainingCBLRepositoryFolderCount }} matches not shown</small>
+            </button>
+          </div>
+
+          <footer class="cbl-file-picker-actions">
+            <span>
+              {{
+                selectedCBLRepositoryFolders.length
+                  ? `${selectedCBLRepositoryFolders.length} folders selected`
+                  : 'Entire repositories selected'
+              }}
+            </span>
+            <button type="button" class="secondary-button" @click="closeCBLFolderPicker">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="primary-button"
+              :disabled="loadingCblRepositoryFiles"
+              @click="applySelectedCBLRepositoryFolders"
+            >
+              Apply scope
+            </button>
+          </footer>
+        </section>
       </div>
 
       <div v-if="cblFilePickerOpen" class="modal-backdrop" @click.self="closeCBLFilePicker">

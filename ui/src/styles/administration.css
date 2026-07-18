@@ -119,6 +119,38 @@
   justify-self: start;
 }
 
+.cbl-folder-scope {
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 12px 14px;
+}
+
+.cbl-folder-scope > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cbl-folder-scope span {
+  font-weight: 800;
+}
+
+.cbl-folder-scope small,
+.cbl-picker-empty {
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.cbl-picker-empty {
+  padding: 16px;
+}
+
 .cbl-manual-metron-option {
   display: grid;
   justify-items: start;
