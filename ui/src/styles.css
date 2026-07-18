@@ -645,7 +645,7 @@
   }
 
   .loading-spinner {
-    @apply w-4.5 h-4.5 [border:3px_solid_var(--spinner-track)] [border-top-color:var(--primary)] rounded-full [animation:loading-spin_780ms_linear_infinite] [flex:0_0_auto];
+    @apply w-4.5 h-4.5 [border:3px_solid_var(--spinner-track)] [border-top-color:var(--primary)] rounded-full animate-loading-spin [flex:0_0_auto];
   }
 
   .loading-spinner.small {
@@ -656,11 +656,7 @@
     @apply absolute [width:1px] [height:1px] overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap;
   }
 
-  @keyframes loading-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  } /* Shared browse and detail page structure. */
+  /* Shared browse and detail page structure. */
 
   .detail-view {
     @apply grid gap-4 w-full;
@@ -1163,16 +1159,7 @@
   }
 
   .job-progress.indeterminate span {
-    @apply ![width:42%] [min-width:42%] [animation:job-progress-sweep_1.1s_ease-in-out_infinite];
-  }
-
-  @keyframes job-progress-sweep {
-    0% {
-      transform: translateX(-110%);
-    }
-    100% {
-      transform: translateX(260%);
-    }
+    @apply ![width:42%] [min-width:42%] animate-job-progress-sweep;
   }
 
   .metron-results.single {
@@ -1690,7 +1677,6 @@
   .collection-create-controls input:focus,
   .collection-search-form input:focus,
   .collection-dialog .collection-create-form input:focus {
-    /* border-color: var(--primary); */
     @apply [outline:3px_solid_var(--focus-ring)];
   }
 
@@ -1832,10 +1818,6 @@
   .collection-dialog-list .row {
     @apply items-center rounded-lg [padding:11px_12px];
   }
-
-  /* .collection-dialog-list .row:hover:not(:disabled) {
-  border-color: var(--primary);
-} */
 
   .collection-dialog-list .row strong,
   .collection-dialog-list .row small {

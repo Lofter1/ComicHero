@@ -89,6 +89,19 @@ export default {
       transitionDuration: {
         140: '140ms',
       },
+      keyframes: {
+        'loading-spin': {
+          to: { transform: 'rotate(360deg)' },
+        },
+        'job-progress-sweep': {
+          '0%': { transform: 'translateX(-110%)' },
+          '100%': { transform: 'translateX(260%)' },
+        },
+      },
+      animation: {
+        'loading-spin': 'loading-spin 780ms linear infinite',
+        'job-progress-sweep': 'job-progress-sweep 1.1s ease-in-out infinite',
+      },
       zIndex: {
         40: '40',
         60: '60',
