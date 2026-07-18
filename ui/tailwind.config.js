@@ -58,6 +58,15 @@ export default {
         22: '5.5rem',
         30: '7.5rem',
       },
+      screens: {
+        'down-phone': { max: '420px' },
+        'down-compact': { max: '620px' },
+        'down-narrow': { max: '760px' },
+        'down-mobile': { max: '720px' },
+        'down-tablet': { max: '960px' },
+        'down-laptop': { max: '1180px' },
+        'desktop-compact': { min: '961px', max: '1440px' },
+      },
       borderRadius: {
         xs: '3px',
         sm: '5px',

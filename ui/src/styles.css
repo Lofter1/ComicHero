@@ -2195,7 +2195,7 @@
     @apply [margin:16px_0];
   }
 
-  @media (max-width: 760px) {
+  @screen down-narrow {
     .collection-page-intro {
       @apply [align-items:flex-start];
     }
@@ -2217,7 +2217,7 @@
     }
   }
 
-  @media (max-width: 620px) {
+  @screen down-compact {
     .collections-view {
       @apply pt-1.5;
     }
@@ -2267,7 +2267,7 @@
     }
   } /* Wide and intermediate desktop refinements. */
 
-  @media (max-width: 1180px) {
+  @screen down-laptop {
     .reading-order-editor-layout {
       @apply [grid-template-columns:1fr];
     }
@@ -2277,13 +2277,13 @@
     }
   }
 
-  @media (max-width: 1440px) and (min-width: 961px) {
+  @screen desktop-compact {
     .comic-list-header {
       @apply [align-items:stretch] flex-wrap;
     }
   } /* Tablet layout and compact application navigation. */
 
-  @media (max-width: 960px) {
+  @screen down-tablet {
     .app-shell,
     .split-view,
     .form-grid,
@@ -2411,7 +2411,7 @@
     }
   } /* Mobile layout, menus, filter popovers, and stacked content. */
 
-  @media (max-width: 720px) {
+  @screen down-mobile {
     .metron-scan-panel {
       @apply p-4.5;
     }
@@ -2878,7 +2878,7 @@
     }
   } /* Small-phone spacing and control refinements. */
 
-  @media (max-width: 420px) {
+  @screen down-phone {
     .content {
       @apply p-2.5;
     }
