@@ -44,18 +44,21 @@ defineEmits([
 </script>
 
 <template>
-  <main v-if="loading" class="auth-shell">
+  <main v-if="loading" class="auth-shell min-h-screen grid place-items-center p-6">
     <LoadingState />
   </main>
 
-  <main v-else-if="setupRequired" class="auth-shell">
-    <form class="auth-panel" @submit.prevent="$emit('submit-setup')">
+  <main v-else-if="setupRequired" class="auth-shell min-h-screen grid place-items-center p-6">
+    <form
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      @submit.prevent="$emit('submit-setup')"
+    >
       <div>
         <p class="eyebrow">First Run</p>
         <h1>Choose user mode</h1>
       </div>
 
-      <fieldset class="mode-options">
+      <fieldset class="mode-options border-0 [padding:0] [margin:0] grid gap-2.5">
         <legend>User environment</legend>
         <label>
           <input v-model="setupForm.mode" type="radio" value="single" />
@@ -102,8 +105,14 @@ defineEmits([
     </form>
   </main>
 
-  <main v-else-if="verificationRequired" class="auth-shell">
-    <form class="auth-panel" @submit.prevent="$emit('submit-verification')">
+  <main
+    v-else-if="verificationRequired"
+    class="auth-shell min-h-screen grid place-items-center p-6"
+  >
+    <form
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      @submit.prevent="$emit('submit-verification')"
+    >
       <div>
         <p class="eyebrow">Verify Email</p>
         <h1>Check your email</h1>
@@ -147,9 +156,9 @@ defineEmits([
     </form>
   </main>
 
-  <main v-else-if="passwordResetMode" class="auth-shell">
+  <main v-else-if="passwordResetMode" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel"
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
       @submit.prevent="
         passwordResetForm.requested
           ? $emit('submit-password-reset')
@@ -230,14 +239,21 @@ defineEmits([
     </form>
   </main>
 
-  <main v-else-if="authRequired" class="auth-shell">
-    <form class="auth-panel" @submit.prevent="$emit('submit-auth')">
+  <main v-else-if="authRequired" class="auth-shell min-h-screen grid place-items-center p-6">
+    <form
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      @submit.prevent="$emit('submit-auth')"
+    >
       <div>
         <p class="eyebrow">Multi User</p>
         <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
       </div>
 
-      <div class="auth-tabs" role="group" aria-label="Authentication mode">
+      <div
+        class="auth-tabs grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] gap-2"
+        role="group"
+        aria-label="Authentication mode"
+      >
         <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">
           Log in
         </button>
@@ -316,8 +332,10 @@ defineEmits([
     </form>
   </main>
 
-  <main v-else class="auth-shell">
-    <section class="auth-panel">
+  <main v-else class="auth-shell min-h-screen grid place-items-center p-6">
+    <section
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+    >
       <div>
         <p class="eyebrow">Setup</p>
         <h1>Could not load user setup</h1>

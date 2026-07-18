@@ -19,7 +19,7 @@ function search() {
 <template>
   <div class="modal-backdrop" @click.self="$emit('close')">
     <section
-      class="comic-merge-dialog"
+      class="comic-merge-dialog [width:min(680px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-lg [background:var(--panel-bg)] p-5 shadow-elevated"
       role="dialog"
       aria-modal="true"
       aria-labelledby="merge-title"
@@ -44,14 +44,17 @@ function search() {
         characters, and missing metadata are moved to this comic.
       </p>
 
-      <form class="comic-merge-search" @submit.prevent="search">
+      <form
+        class="comic-merge-search grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 [margin:18px_0]"
+        @submit.prevent="search"
+      >
         <input v-model="query" type="search" placeholder="Search duplicate comics" autofocus />
         <button class="primary-button" type="submit" :disabled="searching || saving">
           {{ searching ? 'Searching...' : 'Search' }}
         </button>
       </form>
 
-      <div v-if="candidates.length" class="comic-merge-results">
+      <div v-if="candidates.length" class="comic-merge-results grid gap-2">
         <button
           v-for="comic in candidates"
           :key="comic.id"

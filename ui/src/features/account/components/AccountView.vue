@@ -68,12 +68,12 @@ function deleteAccount() {
 </script>
 
 <template>
-  <section class="browse-view account-view">
+  <section class="browse-view account-view [max-width:960px]">
     <div v-if="!user" class="empty-panel">No active account.</div>
 
-    <form v-else class="account-settings" @submit.prevent="save">
+    <form v-else class="account-settings grid gap-3.5" @submit.prevent="save">
       <article class="account-settings-panel">
-        <div class="account-settings-heading">
+        <div class="account-settings-heading flex items-center gap-3.5 min-w-0">
           <span class="account-avatar large" aria-hidden="true">{{
             (user.name || '?').slice(0, 1).toUpperCase()
           }}</span>
@@ -137,11 +137,18 @@ function deleteAccount() {
         </div>
       </article>
 
-      <button class="primary-button account-save-button" type="submit" :disabled="saving">
+      <button
+        class="primary-button account-save-button [justify-self:start]"
+        type="submit"
+        :disabled="saving"
+      >
         {{ saving ? 'Saving...' : 'Save account' }}
       </button>
 
-      <article v-if="userMode === 'multi'" class="account-settings-panel danger-panel">
+      <article
+        v-if="userMode === 'multi'"
+        class="account-settings-panel danger-panel border-danger-border bg-danger-soft"
+      >
         <div>
           <p class="eyebrow">Danger Zone</p>
           <h3>Delete account</h3>
@@ -164,7 +171,7 @@ function deleteAccount() {
         </div>
 
         <button
-          class="danger-button account-save-button"
+          class="danger-button account-save-button [justify-self:start]"
           type="button"
           :disabled="deleting"
           @click="deleteAccount"

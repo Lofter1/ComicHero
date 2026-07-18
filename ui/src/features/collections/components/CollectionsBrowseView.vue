@@ -58,14 +58,14 @@ function countLabel(count, singular) {
     </header>
 
     <form v-if="createOpen" class="collection-create-panel" @submit.prevent="create">
-      <div class="collection-create-heading">
+      <div class="collection-create-heading flex [align-items:flex-start] justify-between gap-3">
         <div>
           <strong>Create a collection</strong>
           <small>Give this character group a memorable name.</small>
         </div>
         <button
           v-if="collections.length"
-          class="icon-button collection-create-close"
+          class="icon-button collection-create-close [width:34px] [min-width:34px] [min-height:34px] [padding:0]"
           type="button"
           aria-label="Cancel creating collection"
           @click="closeCreate"
@@ -84,10 +84,10 @@ function countLabel(count, singular) {
 
     <section
       v-if="collections.length"
-      class="collection-library"
+      class="collection-library grid gap-3.5"
       aria-labelledby="collection-list-title"
     >
-      <header class="collection-library-heading">
+      <header class="collection-library-heading flex items-end justify-between gap-3.5">
         <div>
           <h3 id="collection-list-title">Your collections</h3>
           <p>{{ countLabel(collections.length, 'collection') }}</p>
@@ -104,17 +104,29 @@ function countLabel(count, singular) {
           <span class="collection-card-monogram" aria-hidden="true">
             {{ collectionMonogram(collection) }}
           </span>
-          <span class="collection-card-body">
+          <span class="collection-card-body grid content-start min-w-0">
             <span class="collection-card-title-row">
               <strong>{{ collection.name }}</strong>
-              <span class="collection-card-chevron" aria-hidden="true">›</span>
+              <span
+                class="collection-card-chevron text-muted [font-size:1.6rem] [font-weight:400] [line-height:0.8] [transition:transform_140ms_ease]"
+                aria-hidden="true"
+                >›</span
+              >
             </span>
-            <span class="collection-card-meta">
+            <span
+              class="collection-card-meta flex flex-wrap [gap:4px_12px] mt-1.5 text-muted [font-size:0.8rem] font-bold"
+            >
               <span>{{ countLabel(collection.characterCount, 'character') }}</span>
               <span>{{ countLabel(collection.appearanceCount, 'appearance') }}</span>
             </span>
-            <span class="collection-card-progress-copy">
-              <span v-if="collection.startedAt" class="collection-card-status">Reading</span>
+            <span
+              class="collection-card-progress-copy mt-4.5 text-muted [font-size:0.75rem] font-bold"
+            >
+              <span
+                v-if="collection.startedAt"
+                class="collection-card-status inline-flex items-center [width:fit-content] border border-line rounded-full bg-surface text-primary-strong [padding:3px_7px] [font-size:0.68rem] font-black [letter-spacing:0.04em] leading-none uppercase"
+                >Reading</span
+              >
               <span v-else>Not started</span>
               <strong>{{ formatProgress(collection.progress) }}</strong>
             </span>
@@ -125,8 +137,15 @@ function countLabel(count, singular) {
         </button>
       </div>
     </section>
-    <section v-else class="collection-empty-state">
-      <span class="collection-empty-icon" aria-hidden="true">◇</span>
+    <section
+      v-else
+      class="collection-empty-state grid [justify-items:center] [max-width:560px] [border:1px_dashed_var(--line-strong)] rounded-xl bg-surface-soft [padding:34px_24px] text-center"
+    >
+      <span
+        class="collection-empty-icon grid place-items-center w-13 h-13 mb-3 border border-line-strong rounded-2xl bg-surface text-primary-strong [font-size:1.8rem]"
+        aria-hidden="true"
+        >◇</span
+      >
       <h3>Build your first character collection</h3>
       <p>Characters you add will become one combined, release-date reading queue.</p>
     </section>

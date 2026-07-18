@@ -34,7 +34,7 @@ const formModel = computed({
 </script>
 
 <template>
-  <div class="editor-view">
+  <div class="editor-view grid gap-4.5 w-full">
     <header class="editor-header sticky-toolbar">
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div>

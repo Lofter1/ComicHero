@@ -14,5 +14,8 @@ const visibleItems = computed(() =>
 </script>
 
 <template>
-  <span class="engagement-stats">{{ visibleItems.join(' · ') }}</span>
+  <span
+    class="engagement-stats inline-flex items-center text-muted [font-size:0.78rem] font-bold whitespace-nowrap"
+    >{{ visibleItems.join(' · ') }}</span
+  >
 </template>

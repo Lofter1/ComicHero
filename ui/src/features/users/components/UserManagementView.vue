@@ -137,7 +137,7 @@ function formatTimestamp(value) {
 </script>
 
 <template>
-  <section class="browse-view user-management-view">
+  <section class="browse-view user-management-view grid gap-5 [max-width:1160px]">
     <div v-if="users.length === 0" class="empty-panel">No users yet.</div>
 
     <template v-else>
@@ -173,10 +173,14 @@ function formatTimestamp(value) {
         No users match the current filters.
       </div>
 
-      <div v-else class="user-permission-list">
-        <details v-for="entry in filteredUsers" :key="entry.user.id" class="user-permission-row">
+      <div v-else class="user-permission-list grid gap-2 min-w-0">
+        <details
+          v-for="entry in filteredUsers"
+          :key="entry.user.id"
+          class="user-permission-row border border-line rounded bg-surface-soft [padding:0] grid min-w-0 [max-width:100%] overflow-hidden"
+        >
           <summary class="user-permission-header">
-            <div class="user-summary">
+            <div class="user-summary min-w-0">
               <h3>{{ entry.user.name }}</h3>
               <p>{{ entry.user.email || 'No email address' }}</p>
               <p class="user-account-dates">
@@ -197,7 +201,9 @@ function formatTimestamp(value) {
           </summary>
 
           <div class="user-card-sections">
-            <section class="user-card-section account-section">
+            <section
+              class="user-card-section account-section grid content-start gap-3 min-w-0 [padding:16px_18px]"
+            >
               <div class="section-heading">
                 <p class="eyebrow">Account</p>
                 <h4>Role and access</h4>
@@ -230,19 +236,21 @@ function formatTimestamp(value) {
               </div>
             </section>
 
-            <section class="user-card-section metron-permission-editor">
+            <section
+              class="user-card-section metron-permission-editor grid content-start gap-3 min-w-0 [padding:16px_18px] min-w-0"
+            >
               <div class="section-heading">
                 <p class="eyebrow">Metron</p>
                 <h4>API permissions</h4>
               </div>
 
               <div class="metron-settings-grid">
-                <div class="metron-control-column">
+                <div class="metron-control-column grid gap-2.5 min-w-0">
                   <label class="compact-toggle">
                     <input v-model="draftFor(entry.user.id).allowed" type="checkbox" />
                     <span>{{ draftFor(entry.user.id).allowed ? 'Enabled' : 'Disabled' }}</span>
                   </label>
-                  <label class="hourly-limit-field">
+                  <label class="hourly-limit-field grid [gap:5px] w-full text-label font-extrabold">
                     <span>Hourly endpoint limit</span>
                     <input
                       v-model.number="draftFor(entry.user.id).hourlyLimit"

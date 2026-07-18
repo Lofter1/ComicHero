@@ -37,12 +37,12 @@ function formatDate(value) {
 <template>
   <div class="modal-backdrop" @click.self="$emit('close')">
     <section
-      class="metron-detail-dialog"
+      class="metron-detail-dialog [width:min(760px,_100%)] [max-height:min(760px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_minmax(0,_1fr)_auto] border border-line-strong rounded [background:var(--panel-bg)] [box-shadow:0_22px_56px_var(--shadow-panel)] overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reading-list-detail-title"
     >
-      <header class="metron-detail-header">
+      <header class="metron-detail-header [border-bottom:1px_solid_var(--line)]">
         <span>
           <strong id="reading-list-detail-title">{{ readingList?.name || 'Reading list' }}</strong>
           <small>{{ summary }}</small>
@@ -63,7 +63,7 @@ function formatDate(value) {
           :src="assetURL(readingList.image)"
           :alt="readingList.name || 'Reading list image'"
         />
-        <div class="metron-detail-copy">
+        <div class="metron-detail-copy min-w-0 text-body">
           <LoadingState v-if="loading" compact />
           <p v-else-if="error" class="error-text">{{ error }}</p>
           <p v-else>{{ readingList?.description || 'No description from Metron.' }}</p>
@@ -95,7 +95,7 @@ function formatDate(value) {
           </dl>
         </div>
       </div>
-      <footer class="metron-detail-actions">
+      <footer class="metron-detail-actions justify-end [border-top:1px_solid_var(--line)]">
         <button class="secondary-button" type="button" @click="$emit('close')">Close</button>
         <button
           class="primary-button"

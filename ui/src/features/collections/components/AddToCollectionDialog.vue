@@ -55,7 +55,7 @@ function monogram(name) {
           @click="emit('add', collection)"
         >
           <span class="collection-dialog-item-main">
-            <span class="collection-dialog-monogram" aria-hidden="true">
+            <span class="collection-dialog-monogram bg-primary-soft" aria-hidden="true">
               {{ monogram(collection.name) }}
             </span>
             <span>

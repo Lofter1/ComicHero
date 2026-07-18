@@ -88,7 +88,7 @@ function jobMessage(job) {
   <div v-if="jobs.length" class="import-monitor" :class="{ collapsed: !open }" aria-live="polite">
     <header>
       <button
-        class="import-monitor-toggle"
+        class="import-monitor-toggle flex [align-items:baseline] gap-2.5 [min-height:0] border-0 bg-transparent [color:inherit] [padding:0] text-left"
         type="button"
         :aria-expanded="open"
         @click="updateOpen(!open)"
@@ -98,14 +98,17 @@ function jobMessage(job) {
       </button>
       <small v-if="inProgress && open">Running in background</small>
     </header>
-    <div v-if="open" class="metron-jobs">
+    <div
+      v-if="open"
+      class="metron-jobs grid gap-2 [max-height:min(54vh,_420px)] overflow-auto pr-0.5"
+    >
       <div v-for="job in jobs" :key="job.id" class="metron-job" :class="job.status">
         <span>
           <strong>{{ jobTitle(job) }}</strong>
           <small>{{ jobMessage(job) }}</small>
           <small>{{ progressLabel(job) }}</small>
           <span
-            class="job-progress"
+            class="job-progress block [width:min(260px,_100%)] h-2 rounded-full [background:var(--read-progress-bg)] overflow-hidden mt-2"
             :class="{ indeterminate: progressIndeterminate(job) }"
             aria-hidden="true"
           >
@@ -116,7 +119,7 @@ function jobMessage(job) {
           <span class="status-pill">{{ job.status }}</span>
           <button
             v-if="job.status === 'failed'"
-            class="icon-button compact-icon-button"
+            class="icon-button compact-icon-button [align-self:center] [width:34px] [min-width:34px] [min-height:34px] [padding:0]"
             type="button"
             aria-label="Retry import"
             title="Retry import"
@@ -142,7 +145,7 @@ function jobMessage(job) {
           </button>
           <button
             v-if="canDismiss(job)"
-            class="icon-button compact-icon-button"
+            class="icon-button compact-icon-button [align-self:center] [width:34px] [min-width:34px] [min-height:34px] [padding:0]"
             type="button"
             aria-label="Dismiss import"
             title="Dismiss import"

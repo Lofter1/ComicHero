@@ -1223,7 +1223,7 @@ onUnmounted(() => {
       <div
         v-if="showInfiniteScrollSentinel"
         ref="loadMoreSentinel"
-        class="load-more-sentinel"
+        class="load-more-sentinel flex items-center gap-2 w-full [min-height:42px] text-muted [font-size:0.9rem] font-bold"
         aria-live="polite"
       >
         <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>

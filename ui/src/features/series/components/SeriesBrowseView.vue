@@ -110,7 +110,7 @@ function seriesPublisherLabel(series) {
               :title="`${item.name}${seriesYearLabel(item)}`"
               :subtitle="seriesPublisherLabel(item)"
               :image="item.coverImage"
-              main-class="series-row-main"
+              main-class="series-row-main flex items-center gap-2.5"
               :selected="selectedSeriesId === item.id"
               :favorite="item.favorite"
               :can-favorite="!readOnly"

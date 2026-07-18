@@ -40,17 +40,20 @@ function entryTags() {
 
 <template>
   <div
-    class="issue-list-item read-accent"
+    class="issue-list-item read-accent [border-bottom-width:4px] [border-bottom-style:solid]"
     :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
   >
     <button class="issue-list-main" type="button" @click="$emit('open', comic)">
       <span v-if="showCover && comic.coverImage" class="issue-list-cover" aria-hidden="true">
         <img :src="assetURL(comic.coverImage)" alt="" loading="lazy" />
       </span>
-      <span class="issue-list-copy">
+      <span class="issue-list-copy min-w-0">
         <strong>{{ comic.title }}</strong>
         <small v-if="showComment && comic.comment">{{ comic.comment }}</small>
-        <span v-if="showComment && entryTags().length" class="entry-tags">
+        <span
+          v-if="showComment && entryTags().length"
+          class="entry-tags flex flex-wrap [gap:5px] [margin-top:5px]"
+        >
           <span v-for="tag in entryTags()" :key="tag">{{ tag }}</span>
         </span>
         <small v-if="!showComment || (!comic.comment && !comic.tags)"
@@ -61,10 +64,17 @@ function entryTags() {
     </button>
 
     <span class="read-state-actions">
-      <span class="read-state-pill" :class="{ read: comic.read, unread: !comic.read }">
+      <span
+        class="read-state-pill inline-flex items-center justify-center min-h-7 rounded-full [padding:4px_10px] [font-size:0.78rem] font-extrabold leading-none whitespace-nowrap"
+        :class="{ read: comic.read, unread: !comic.read }"
+      >
         {{ comic.read ? 'Read' : 'Unread' }}
       </span>
-      <span v-if="comic.skipped" class="read-state-pill skipped">Skipped</span>
+      <span
+        v-if="comic.skipped"
+        class="read-state-pill skipped inline-flex items-center justify-center min-h-7 rounded-full [padding:4px_10px] [font-size:0.78rem] font-extrabold leading-none whitespace-nowrap"
+        >Skipped</span
+      >
       <button
         v-if="!readOnly"
         type="button"

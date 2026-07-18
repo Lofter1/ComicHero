@@ -54,7 +54,7 @@ function monogram(name) {
           <span class="collection-detail-monogram" aria-hidden="true">
             {{ monogram(collection.name) }}
           </span>
-          <div class="collection-detail-copy">
+          <div class="collection-detail-copy min-w-0">
             <p class="eyebrow">Private character collection</p>
             <h3>{{ collection.name }}</h3>
             <p>One release-date queue across every character in this collection.</p>
@@ -81,7 +81,9 @@ function monogram(name) {
           <span :style="{ width: formatProgress(collection.progress) }"></span>
         </div>
 
-        <section class="collection-members">
+        <section
+          class="collection-members grid gap-3 mt-2.5 pt-5 [border-top:1px_solid_var(--line)]"
+        >
           <header class="collection-members-header">
             <div>
               <p class="eyebrow">Members</p>
@@ -101,10 +103,13 @@ function monogram(name) {
             <div v-for="character in collection.characters" :key="character.id" class="row">
               <button
                 type="button"
-                class="row-main collection-member-main"
+                class="row-main collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5"
                 @click="$emit('open-character', character)"
               >
-                <span class="collection-member-avatar" aria-hidden="true">
+                <span
+                  class="collection-member-avatar grid place-items-center [width:42px] [height:42px] overflow-hidden border border-line-strong rounded-lg bg-surface-muted text-muted font-black"
+                  aria-hidden="true"
+                >
                   <img
                     v-if="character.image"
                     :src="assetURL(character.image)"
@@ -119,7 +124,7 @@ function monogram(name) {
                 </span>
               </button>
               <button
-                class="danger-text-button collection-member-remove"
+                class="danger-text-button collection-member-remove [flex:0_0_auto]"
                 type="button"
                 :disabled="saving"
                 @click="$emit('remove-character', character)"

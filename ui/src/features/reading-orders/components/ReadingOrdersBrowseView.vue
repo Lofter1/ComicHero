@@ -120,16 +120,24 @@ function handleCBLFile(event) {
             @update:direction="$emit('update:direction', $event)"
           >
             <template #actions>
-              <div v-if="!readOnly" ref="orderActions" class="browse-header-actions order-actions">
+              <div
+                v-if="!readOnly"
+                ref="orderActions"
+                class="browse-header-actions order-actions relative [margin-left:auto]"
+              >
                 <button
-                  class="secondary-button icon-text-button mobile-order-actions-trigger"
+                  class="secondary-button icon-text-button mobile-order-actions-trigger inline-flex [width:44px] [min-width:44px] [height:44px] [padding:0]"
                   type="button"
                   :aria-expanded="orderActionsOpen"
                   aria-label="Actions"
                   title="Actions"
                   @click="orderActionsOpen = !orderActionsOpen"
                 >
-                  <span aria-hidden="true" class="vertical-ellipsis">⋮</span>
+                  <span
+                    aria-hidden="true"
+                    class="vertical-ellipsis [font-size:1.5rem] font-extrabold leading-none"
+                    >⋮</span
+                  >
                 </button>
                 <input
                   ref="cblFileInput"
@@ -139,7 +147,10 @@ function handleCBLFile(event) {
                   accept=".cbl,application/xml,text/xml"
                   @change="handleCBLFile"
                 />
-                <div class="order-actions-panel" :class="{ open: orderActionsOpen }">
+                <div
+                  class="order-actions-panel absolute [z-index:26] [top:calc(100%_+_8px)] right-0 hidden [align-items:stretch] gap-2 [width:max-content] [min-width:210px] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)]"
+                  :class="{ open: orderActionsOpen }"
+                >
                   <button
                     class="secondary-button icon-text-button cbl-import-button"
                     :class="{ loading: cblImporting }"
@@ -150,7 +161,11 @@ function handleCBLFile(event) {
                     title="Import CBL"
                     @click="chooseCBLFile"
                   >
-                    <span v-if="cblImporting" class="button-spinner" aria-hidden="true"></span>
+                    <span
+                      v-if="cblImporting"
+                      class="button-spinner w-3.5 min-w-3.5 h-3.5 [border:2px_solid_var(--spinner-track)] [border-top-color:currentColor] rounded-full [animation:loading-spin_780ms_linear_infinite]"
+                      aria-hidden="true"
+                    ></span>
                     {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
                   </button>
                   <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
@@ -162,7 +177,7 @@ function handleCBLFile(event) {
                     @click="createReadingOrder"
                   >
                     <span aria-hidden="true" class="button-icon">+</span>
-                    <span class="order-action-label">New reading order</span>
+                    <span class="order-action-label [display:inline]">New reading order</span>
                   </button>
                 </div>
               </div>
@@ -188,10 +203,16 @@ function handleCBLFile(event) {
               @toggle-favorite="$emit('toggle-favorite', order)"
             >
               <template #byline>
-                <span v-if="order.authorName" class="author-pill">
+                <span
+                  v-if="order.authorName"
+                  class="author-pill inline-flex items-center [width:fit-content] [max-width:100%] mt-2 border border-line-strong rounded-full bg-surface-muted text-label [padding:4px_9px] [font-size:0.78rem] font-extrabold leading-tight"
+                >
                   Author: {{ order.authorName }}
                 </span>
-                <span v-if="order.rating" class="author-pill">
+                <span
+                  v-if="order.rating"
+                  class="author-pill inline-flex items-center [width:fit-content] [max-width:100%] mt-2 border border-line-strong rounded-full bg-surface-muted text-label [padding:4px_9px] [font-size:0.78rem] font-extrabold leading-tight"
+                >
                   Rating: {{ formatRating(order.rating) }}
                   <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
                 </span>

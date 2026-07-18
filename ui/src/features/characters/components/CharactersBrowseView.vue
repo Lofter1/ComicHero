@@ -107,7 +107,7 @@ function characterProgress(character) {
                 character.aliases?.length ? character.aliases.join(', ') : 'No aliases saved'
               "
               :image="character.image"
-              main-class="character-row-main"
+              main-class="character-row-main flex items-center gap-2"
               :selected="selectedCharacterId === character.id"
               :favorite="character.favorite"
               :can-favorite="!readOnly"
@@ -130,7 +130,7 @@ function characterProgress(character) {
               </template>
               <template v-if="!readOnly" #actions>
                 <button
-                  class="secondary-action collection-row-action"
+                  class="secondary-action collection-row-action [min-height:34px] [padding:6px_10px] [font-size:0.78rem] whitespace-nowrap"
                   type="button"
                   @click="$emit('add-to-collection', character)"
                 >

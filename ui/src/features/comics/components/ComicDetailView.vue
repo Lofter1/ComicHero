@@ -151,7 +151,10 @@ function seriesLabel(comic) {
           </div>
         </header>
 
-        <div v-if="selectedComic.coverImage" class="cover-preview">
+        <div
+          v-if="selectedComic.coverImage"
+          class="cover-preview overflow-hidden border border-line rounded bg-surface-muted [max-width:220px]"
+        >
           <img
             :src="assetURL(selectedComic.coverImage)"
             :alt="`${selectedComic.title} cover`"
@@ -169,7 +172,7 @@ function seriesLabel(comic) {
           <span>
             <button
               v-if="selectedComic.seriesId"
-              class="metadata-link-button"
+              class="metadata-link-button block w-full border-0 bg-transparent text-accent [padding:0] [font:inherit] font-extrabold text-left [overflow-wrap:anywhere] cursor-pointer"
               type="button"
               @click="$emit('open-series', { id: selectedComic.seriesId })"
             >
@@ -190,7 +193,7 @@ function seriesLabel(comic) {
 
         <nav
           v-if="metronIssueURL || comicVineIssueURL"
-          class="comic-source-links"
+          class="comic-source-links flex items-center flex-wrap [gap:6px_12px] mt-2.5 text-muted [font-size:0.78rem]"
           aria-label="External comic sources"
         >
           <span>Sources</span>
@@ -211,7 +214,7 @@ function seriesLabel(comic) {
 
         <div
           v-if="!readOnly && (metronMetadataOpen || metronMetadataStatus)"
-          class="metron-metadata-panel"
+          class="metron-metadata-panel grid gap-3 [border-top:1px_solid_var(--line)] pt-3.5"
         >
           <header class="section-title">
             <div>

@@ -517,7 +517,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 </script>
 
 <template>
-  <section class="comic-list-view">
+  <section class="comic-list-view grid gap-3">
     <div class="comic-list-sticky">
       <header class="comic-list-header">
         <div>
@@ -622,11 +622,11 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
     </div>
 
     <template v-if="visibleComics.length">
-      <div class="issue-list">
+      <div class="issue-list grid gap-2.5">
         <template v-for="(comic, index) in visibleComics" :key="`${comic.id}-${index}`">
           <button
             v-if="showSectionBefore(comic, index)"
-            class="reading-order-section-heading"
+            class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] [border-top:0] [border-right:0] [border-left:0] [border-radius:0] bg-transparent [color:inherit] text-left [padding:18px_4px_10px] cursor-pointer"
             :class="{
               'nested-reading-order-heading': comic.section.kind === 'readingOrder',
             }"
@@ -635,14 +635,18 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             :aria-label="`${isSectionCollapsed(comic) ? 'Expand' : 'Collapse'} ${comic.section.label || 'section'} ${comic.section.title}`"
             @click="toggleSection(comic.section)"
           >
-            <span class="reading-order-section-heading-content">
+            <span class="reading-order-section-heading-content grid gap-1 min-w-0">
               <span class="eyebrow">{{ comic.section.label || 'Section' }}</span>
               <strong>{{ comic.section.title }}</strong>
               <span v-if="comic.section.description" class="section-description">
                 {{ comic.section.description }}
               </span>
             </span>
-            <span class="section-collapse-icon" aria-hidden="true">⌄</span>
+            <span
+              class="section-collapse-icon [margin-inline-end:8px] [font-size:1.35rem] leading-none [transition:transform_160ms_ease]"
+              aria-hidden="true"
+              >⌄</span
+            >
           </button>
           <IssueListItem
             v-if="!isSectionCollapsed(comic)"
@@ -662,7 +666,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       <div
         v-if="canLoadMoreLocal || canLoadMoreServer"
         ref="loadMoreSentinel"
-        class="issue-list-sentinel"
+        class="issue-list-sentinel w-full [height:1px]"
         aria-hidden="true"
       ></div>
 

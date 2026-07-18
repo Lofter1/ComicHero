@@ -44,20 +44,20 @@ function achievementTimestampLabel(achievement) {
 </script>
 
 <template>
-  <section class="browse-view progress-view">
+  <section class="browse-view progress-view grid gap-4 [max-width:1180px]">
     <LoadingState v-if="loading && !statisticsView" />
     <div v-else-if="error" class="empty-state">
       {{ error }}
     </div>
     <template v-else-if="statisticsView">
       <article class="progress-summary-panel">
-        <div class="progress-section-heading">
+        <div class="progress-section-heading flex items-center justify-between gap-3 min-w-0">
           <div>
             <p class="eyebrow">Progress</p>
             <h3>Reading progress</h3>
           </div>
           <button
-            class="secondary-button compact-button"
+            class="secondary-button compact-button min-h-9 [padding:7px_10px]"
             type="button"
             :disabled="loading"
             @click="emit('refresh')"
@@ -132,34 +132,44 @@ function achievementTimestampLabel(achievement) {
       </article>
 
       <article class="progress-section-panel">
-        <div class="progress-section-heading">
+        <div class="progress-section-heading flex items-center justify-between gap-3 min-w-0">
           <p class="eyebrow">Achievements</p>
           <h3>Milestones</h3>
         </div>
 
-        <div v-if="statisticsView.achievements?.length" class="achievement-grid">
+        <div
+          v-if="statisticsView.achievements?.length"
+          class="achievement-grid grid [grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))] gap-2.5"
+        >
           <article
             v-for="achievement in statisticsView.achievements"
             :key="achievement.id"
-            class="achievement-card"
+            class="achievement-card grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted"
             :class="{ earned: achievement.earned }"
           >
-            <div class="achievement-card-heading">
-              <span class="achievement-badge" aria-hidden="true">{{
-                achievement.earned ? 'OK' : '--'
-              }}</span>
+            <div
+              class="achievement-card-heading grid [grid-template-columns:auto_minmax(0,_1fr)] gap-2.5 items-center"
+            >
+              <span
+                class="achievement-badge grid place-items-center [width:34px] [height:34px] border border-line rounded-full bg-surface-soft text-muted [font-size:0.75rem] font-black"
+                aria-hidden="true"
+                >{{ achievement.earned ? 'OK' : '--' }}</span
+              >
               <div>
                 <strong>{{ achievement.name }}</strong>
                 <small>{{ achievement.category }}</small>
               </div>
             </div>
             <p>{{ achievement.description }}</p>
-            <div class="achievement-progress">
+            <div class="achievement-progress grid gap-1.5 [font-size:0.82rem] font-extrabold">
               <span
                 >{{ Math.min(achievement.progress, achievement.target) }} /
                 {{ achievement.target }}</span
               >
-              <div class="progress-track" aria-hidden="true">
+              <div
+                class="progress-track overflow-hidden h-2 rounded-full bg-surface-muted"
+                aria-hidden="true"
+              >
                 <span :style="{ width: percentLabel(achievement.percent) }"></span>
               </div>
               <small>{{ achievementTimestampLabel(achievement) }}</small>

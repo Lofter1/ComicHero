@@ -87,10 +87,14 @@ function toggleMobileMenu() {
 
 <template>
   <aside class="sidebar" :class="{ 'menu-open': menuOpen }">
-    <div class="sidebar-header">
-      <div class="sidebar-branding">
+    <div class="sidebar-header flex items-center justify-between gap-3">
+      <div class="sidebar-branding grid justify-items-start gap-1.5">
         <h1>ComicHero</h1>
-        <span v-if="version" class="version-tag">{{ version }}</span>
+        <span
+          v-if="version"
+          class="version-tag inline-flex border border-line-strong rounded-full bg-surface text-muted [padding:2px_8px] [font-size:0.7rem] font-bold leading-tight"
+          >{{ version }}</span
+        >
       </div>
       <button
         ref="mobileMenuButton"
@@ -101,7 +105,7 @@ function toggleMobileMenu() {
         aria-label="Toggle navigation"
         @click="toggleMobileMenu"
       >
-        <span class="menu-bars" aria-hidden="true">
+        <span class="menu-bars grid gap-1 w-4.5" aria-hidden="true">
           <span></span>
           <span></span>
           <span></span>
@@ -155,7 +159,12 @@ function toggleMobileMenu() {
     </nav>
 
     <div class="sidebar-actions">
-      <div v-if="user" ref="accountMenu" class="account-menu" :class="{ open: accountMenuOpen }">
+      <div
+        v-if="user"
+        ref="accountMenu"
+        class="account-menu relative min-w-0"
+        :class="{ open: accountMenuOpen }"
+      >
         <button
           type="button"
           class="account-menu-trigger"
@@ -171,19 +180,27 @@ function toggleMobileMenu() {
         </button>
 
         <div v-if="accountMenuOpen" id="account-menu-panel" class="account-menu-panel">
-          <div class="account-menu-profile">
+          <div
+            class="account-menu-profile grid [grid-template-columns:auto_minmax(0,_1fr)] gap-3 items-center p-2"
+          >
             <span class="account-avatar large" aria-hidden="true">{{ userInitial }}</span>
             <span>
               <strong>{{ user.name }}</strong>
             </span>
           </div>
 
-          <div class="account-menu-section">
-            <div class="account-menu-label">
+          <div
+            class="account-menu-section grid gap-2 [border-top:1px_solid_var(--line)] [border-bottom:1px_solid_var(--line)] [padding:10px_0]"
+          >
+            <div class="account-menu-label flex items-center gap-2.5 text-label [padding:0_8px]">
               <span aria-hidden="true">◐</span>
               <strong>Display Mode</strong>
             </div>
-            <div class="theme-selector account-theme-selector" role="group" aria-label="Theme">
+            <div
+              class="theme-selector account-theme-selector [margin:0_8px]"
+              role="group"
+              aria-label="Theme"
+            >
               <button
                 type="button"
                 :class="{ active: themePreference === 'light' }"
@@ -211,22 +228,34 @@ function toggleMobileMenu() {
             </div>
           </div>
 
-          <router-link :to="{ name: 'account' }" class="account-menu-item" @click="closeMenus">
+          <router-link
+            :to="{ name: 'account' }"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
+            @click="closeMenus"
+          >
             <span aria-hidden="true">@</span>
             <span>Account settings</span>
           </router-link>
-          <router-link :to="{ name: 'progress' }" class="account-menu-item" @click="closeMenus">
+          <router-link
+            :to="{ name: 'progress' }"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
+            @click="closeMenus"
+          >
             <span aria-hidden="true">%</span>
             <span>Progress</span>
           </router-link>
-          <router-link :to="{ name: 'collections' }" class="account-menu-item" @click="closeMenus">
+          <router-link
+            :to="{ name: 'collections' }"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
+            @click="closeMenus"
+          >
             <span aria-hidden="true">◆</span>
             <span>My collections</span>
           </router-link>
           <router-link
             v-if="isAdmin"
             :to="{ name: 'settings' }"
-            class="account-menu-item"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
             @click="closeMenus"
           >
             <span aria-hidden="true">⚙</span>
@@ -235,14 +264,14 @@ function toggleMobileMenu() {
           <router-link
             v-if="isAdmin"
             :to="{ name: 'users' }"
-            class="account-menu-item"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
             @click="closeMenus"
           >
             <span aria-hidden="true">#</span>
             <span>Manage users</span>
           </router-link>
           <a
-            class="account-menu-item"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
             href="https://discord.gg/GebUwAVP"
             target="_blank"
             rel="noreferrer"
@@ -252,7 +281,7 @@ function toggleMobileMenu() {
             <span>Join the community</span>
           </a>
           <a
-            class="account-menu-item"
+            class="account-menu-item [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
             href="https://github.com/Lofter1/ComicHero/issues/new"
             target="_blank"
             rel="noreferrer"
@@ -264,7 +293,7 @@ function toggleMobileMenu() {
           <button
             v-if="userMode === 'multi'"
             type="button"
-            class="account-menu-item danger"
+            class="account-menu-item danger [min-height:42px] w-full flex items-center gap-2.5 border-0 rounded bg-transparent text-control [padding:10px_8px] font-extrabold text-left"
             :disabled="authSaving"
             @click="logout"
           >

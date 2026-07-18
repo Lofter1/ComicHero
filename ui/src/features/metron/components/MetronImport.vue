@@ -532,7 +532,10 @@ function formatDate(value) {
       </button>
     </form>
 
-    <div v-if="importStatus" class="metron-status">
+    <div
+      v-if="importStatus"
+      class="metron-status flex items-center flex-wrap [gap:8px_12px] border border-line-strong rounded bg-surface-soft text-label [padding:10px_12px] [font-size:0.92rem] font-bold"
+    >
       <span>{{ importStatus }}</span>
     </div>
 

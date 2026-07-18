@@ -147,7 +147,10 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           </div>
 
           <!-- eslint-disable-next-line vue/no-v-html -- markdown-it renders with raw HTML disabled. -->
-          <div class="detail-description markdown-content" v-html="renderedDescription"></div>
+          <div
+            class="detail-description markdown-content grid gap-2.5"
+            v-html="renderedDescription"
+          ></div>
         </div>
 
         <div class="progress-meter" aria-label="Reading order progress">
@@ -189,19 +192,26 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           </span>
         </div>
 
-        <section v-if="!readOnly" class="reading-order-rating-panel">
+        <section
+          v-if="!readOnly"
+          class="reading-order-rating-panel flex items-center justify-between gap-3 border border-line rounded bg-surface-soft p-3"
+        >
           <div>
             <p class="eyebrow">Your rating</p>
             <strong>{{
               selectedOrder.myRating ? `${selectedOrder.myRating.toFixed(1)} / 5` : 'Not rated'
             }}</strong>
           </div>
-          <div class="rating-button-group" role="group" aria-label="Rate reading order">
+          <div
+            class="rating-button-group flex items-center flex-wrap justify-end gap-2"
+            role="group"
+            aria-label="Rate reading order"
+          >
             <button
               v-for="value in ratingValues"
               :key="value"
               type="button"
-              class="rating-button"
+              class="rating-button inline-flex items-center justify-center [width:38px] [height:38px] border border-line-strong rounded bg-surface [color:var(--text)] font-extrabold cursor-pointer"
               :class="{ active: selectedOrder.myRating === value }"
               :aria-pressed="selectedOrder.myRating === value"
               :disabled="ratingSaving"
@@ -211,7 +221,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             </button>
             <button
               type="button"
-              class="secondary-button compact-rating-clear"
+              class="secondary-button compact-rating-clear [width:auto] [min-height:38px] [padding-block:8px]"
               :disabled="ratingSaving || !selectedOrder.myRating"
               @click="emit('rate', 0)"
             >

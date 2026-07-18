@@ -35,8 +35,15 @@ const DATA_OPTIONS = [
         {{ mode === 'quick' ? 'Quick' : 'Full' }}
       </button>
     </div>
-    <fieldset v-if="importMode === 'full'" class="metron-data-options">
-      <label v-for="option in DATA_OPTIONS" :key="option.value" class="inline-toggle">
+    <fieldset
+      v-if="importMode === 'full'"
+      class="metron-data-options inline-flex items-center gap-2.5 flex-wrap min-w-0 [margin:0] [padding:0] border-0"
+    >
+      <label
+        v-for="option in DATA_OPTIONS"
+        :key="option.value"
+        class="inline-toggle inline-flex items-center [gap:7px] text-label [font-size:0.86rem] font-bold whitespace-nowrap"
+      >
         <input
           type="checkbox"
           :checked="selectedData.includes(option.value)"

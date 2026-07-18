@@ -12,8 +12,8 @@ defineProps({
 </script>
 
 <template>
-  <section class="list-section">
-    <div class="list-section-header">
+  <section class="list-section grid gap-2">
+    <div class="list-section-header flex items-center justify-between gap-2.5 [padding:0_2px]">
       <p class="eyebrow">{{ title }}</p>
       <small>{{ items.length }}</small>
     </div>

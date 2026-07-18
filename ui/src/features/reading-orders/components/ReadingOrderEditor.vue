@@ -372,7 +372,7 @@ function endDrag() {
 </script>
 
 <template>
-  <form :id="formId" class="edit-form" @submit.prevent="$emit('save')">
+  <form :id="formId" class="edit-form grid gap-3.5" @submit.prevent="$emit('save')">
     <label>
       Name
       <input :value="form.name" required @input="updateForm({ name: $event.target.value })" />
@@ -387,7 +387,9 @@ function endDrag() {
       />
     </label>
 
-    <fieldset class="visibility-field">
+    <fieldset
+      class="visibility-field grid [grid-template-columns:max-content_1fr] [gap:6px_12px] [margin:0] p-3 border border-line rounded"
+    >
       <legend>Visibility</legend>
       <label>
         <input
@@ -413,8 +415,12 @@ function endDrag() {
 
     <label class="cover-image-field">
       Cover image
-      <span class="reading-order-cover-editor">
-        <span v-if="coverPreview" class="reading-order-cover-preview" aria-hidden="true">
+      <span class="reading-order-cover-editor flex items-center gap-3 min-w-0">
+        <span
+          v-if="coverPreview"
+          class="reading-order-cover-preview [width:76px] [min-width:76px] [height:76px] overflow-hidden border border-line rounded bg-surface-muted"
+          aria-hidden="true"
+        >
           <img :src="coverPreview" alt="" />
         </span>
         <input type="file" accept="image/*" @change="chooseCoverImage" />
@@ -423,12 +429,16 @@ function endDrag() {
 
     <div class="reading-order-editor-layout">
       <div class="reading-order-search-column">
-        <section class="entry-section add-entry-panel">
+        <section class="entry-section add-entry-panel grid gap-2.5">
           <div class="section-title">
             <h4>Add Entries</h4>
           </div>
 
-          <div class="add-entry-tabs" role="tablist" aria-label="Entry source">
+          <div
+            class="add-entry-tabs grid [grid-template-columns:repeat(3,_minmax(0,_1fr))] gap-2"
+            role="tablist"
+            aria-label="Entry source"
+          >
             <button
               type="button"
               :class="{ active: activeAddType === 'comic' }"
@@ -452,8 +462,13 @@ function endDrag() {
             </button>
           </div>
 
-          <div v-if="activeAddType === 'comic'" class="comic-add-panel">
-            <div class="comic-add-search">
+          <div
+            v-if="activeAddType === 'comic'"
+            class="comic-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5"
+          >
+            <div
+              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface [padding:4px_6px_4px_0]"
+            >
               <input
                 v-model="comicSearch"
                 type="search"
@@ -473,18 +488,24 @@ function endDrag() {
             <p v-if="comicSearchLoading" class="muted">Searching comics...</p>
             <p v-else-if="comicSearchError" class="muted">{{ comicSearchError }}</p>
 
-            <div v-else-if="comicSearchResults.length" class="comic-add-results">
+            <div
+              v-else-if="comicSearchResults.length"
+              class="comic-add-results grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] gap-2"
+            >
               <button
                 v-for="comic in comicSearchResults"
                 :key="comic.id"
                 type="button"
-                class="comic-add-result"
+                class="comic-add-result flex [align-items:flex-start] justify-between gap-3 [min-height:82px] border border-line rounded bg-surface text-ink [padding:10px_12px] text-left"
                 draggable="true"
                 @click="addNewEntryToEnd(newComicEntry(comic))"
                 @dragstart="startAddDrag($event, newComicEntry(comic))"
               >
                 <span>
-                  <span class="entry-type-pill">Issue</span>
+                  <span
+                    class="entry-type-pill [display:inline-grid] [align-self:flex-start] [margin-bottom:5px] [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow [padding:2px_7px] [font-size:0.68rem] font-black leading-tight uppercase"
+                    >Issue</span
+                  >
                   <strong>{{ comic.title }}</strong>
                   <small>{{ comicSeriesLine(comic) }}</small>
                   <small>{{ comicMetaLine(comic) }}</small>
@@ -499,9 +520,11 @@ function endDrag() {
 
           <div
             v-if="activeAddType === 'readingOrder' && readingOrders.length"
-            class="comic-add-panel"
+            class="comic-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5"
           >
-            <div class="comic-add-search">
+            <div
+              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface [padding:4px_6px_4px_0]"
+            >
               <input
                 v-model="readingOrderSearch"
                 type="search"
@@ -518,18 +541,24 @@ function endDrag() {
               </button>
             </div>
 
-            <div v-if="childOrderChoices.length" class="comic-add-results">
+            <div
+              v-if="childOrderChoices.length"
+              class="comic-add-results grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] gap-2"
+            >
               <button
                 v-for="order in childOrderChoices"
                 :key="order.id"
                 type="button"
-                class="comic-add-result reading-order-add-result"
+                class="comic-add-result reading-order-add-result flex [align-items:flex-start] justify-between gap-3 [min-height:82px] border border-line rounded bg-surface text-ink [padding:10px_12px] text-left"
                 draggable="true"
                 @click="addNewEntryToEnd(newChildOrderEntry(order))"
                 @dragstart="startAddDrag($event, newChildOrderEntry(order))"
               >
                 <span>
-                  <span class="entry-type-pill">Reading order</span>
+                  <span
+                    class="entry-type-pill [display:inline-grid] [align-self:flex-start] [margin-bottom:5px] [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow [padding:2px_7px] [font-size:0.68rem] font-black leading-tight uppercase"
+                    >Reading order</span
+                  >
                   <strong>{{ order.name }}</strong>
                   <small>{{ order.description || 'No description' }}</small>
                 </span>
@@ -545,7 +574,10 @@ function endDrag() {
             No reading orders available to include.
           </div>
 
-          <div v-if="activeAddType === 'section'" class="section-add-panel">
+          <div
+            v-if="activeAddType === 'section'"
+            class="section-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-3"
+          >
             <label>
               Section title
               <input
@@ -574,7 +606,7 @@ function endDrag() {
         </section>
       </div>
 
-      <section class="entry-section reading-order-list-edit">
+      <section class="entry-section reading-order-list-edit min-w-0">
         <div class="section-title">
           <h4>List Order</h4>
           <span>{{ orderEntries.length }} entries</span>
@@ -628,7 +660,7 @@ function endDrag() {
 
         <div
           v-if="orderEntries.length === 0"
-          class="empty-state empty-entry-drop-zone"
+          class="empty-state empty-entry-drop-zone [transition:background-color_120ms_ease,_border-color_120ms_ease,_color_120ms_ease]"
           :class="{ active: dragOverIndex === 0 }"
           @dragover="overDropZone($event, 0)"
           @dragleave="dragOverIndex = null"
@@ -637,13 +669,13 @@ function endDrag() {
           {{ emptyEntryMessage }}
         </div>
 
-        <div v-else class="order-entry-list">
+        <div v-else class="order-entry-list grid gap-1.5">
           <template
             v-for="{ entry, index } in entryPageState.entries"
             :key="entryKey(entry, index)"
           >
             <div
-              class="entry-drop-zone"
+              class="entry-drop-zone min-h-3 [border:1px_dashed_transparent] rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease]"
               :class="{ active: dragOverIndex === index }"
               @dragover="overDropZone($event, index)"
               @dragleave="dragOverIndex = null"
@@ -661,10 +693,10 @@ function endDrag() {
             >
               <button
                 type="button"
-                class="selected-order-comic entry-summary-button"
+                class="selected-order-comic entry-summary-button flex flex-col justify-center [align-items:flex-start] min-w-0 border border-line rounded bg-surface-soft [padding:8px_12px]"
                 @click="toggleEntry(entry, index)"
               >
-                <span class="entry-drag-cell">
+                <span class="entry-drag-cell grid place-items-center [align-self:stretch]">
                   <span
                     class="drag-handle"
                     draggable="true"
@@ -675,18 +707,25 @@ function endDrag() {
                     @dragstart="startDrag($event, index)"
                     @dragend="endDrag"
                   >
-                    <span aria-hidden="true" class="drag-icon">⋮⋮</span>
+                    <span
+                      aria-hidden="true"
+                      class="drag-icon [letter-spacing:-4px] [transform:rotate(90deg)]"
+                      >⋮⋮</span
+                    >
                   </span>
                 </span>
 
-                <span class="entry-summary-copy">
-                  <span class="entry-type-pill">{{ entryTypeLabel(entry) }}</span>
+                <span class="entry-summary-copy grid min-w-0 justify-items-start">
+                  <span
+                    class="entry-type-pill [display:inline-grid] [align-self:flex-start] [margin-bottom:5px] [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow [padding:2px_7px] [font-size:0.68rem] font-black leading-tight uppercase"
+                    >{{ entryTypeLabel(entry) }}</span
+                  >
                   <strong>{{ entryLabel(entry) }}</strong>
                 </span>
 
                 <span
                   aria-hidden="true"
-                  class="button-icon entry-expand-icon"
+                  class="button-icon entry-expand-icon grid place-items-center [justify-self:end] [width:30px] [height:30px] rounded-full text-control [font-size:1.15rem] [transition:background-color_120ms_ease,_color_120ms_ease]"
                   :title="isEntryExpanded(entry, index) ? 'Collapse' : 'Expand'"
                 >
                   {{ isEntryExpanded(entry, index) ? '▴' : '▾' }}
@@ -708,7 +747,7 @@ function endDrag() {
 
               <button
                 type="button"
-                class="remove-entry-button"
+                class="remove-entry-button grid place-items-center [align-self:stretch] w-10 h-full [min-height:0] border border-danger-border rounded bg-danger-soft text-danger [padding:0] [font-size:1.45rem] font-extrabold leading-none"
                 :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`"
                 title="Remove"
                 @click="removeEntry(index)"
@@ -722,7 +761,7 @@ function endDrag() {
                   (index === entryPageState.end - 1 &&
                     entryPageState.page < entryPageState.pageCount - 1)
                 "
-                class="entry-page-move"
+                class="entry-page-move flex [grid-column:1_/_-1] justify-end gap-2"
               >
                 <button
                   v-if="index === entryPageState.start && entryPageState.page > 0"
@@ -747,7 +786,7 @@ function endDrag() {
 
               <div v-if="isEntryExpanded(entry, index)" class="entry-edit-panel">
                 <template v-if="entry.type === 'section'">
-                  <label class="comment-input-label">
+                  <label class="comment-input-label [align-self:stretch]">
                     Section title
                     <input
                       :value="entry.title"
@@ -756,7 +795,7 @@ function endDrag() {
                       @input="updateEntry(index, { title: $event.target.value })"
                     />
                   </label>
-                  <label class="comment-input-label">
+                  <label class="comment-input-label [align-self:stretch]">
                     Description
                     <textarea
                       :value="entry.description"
@@ -769,7 +808,7 @@ function endDrag() {
                 </template>
 
                 <template v-else>
-                  <label class="comment-input-label">
+                  <label class="comment-input-label [align-self:stretch]">
                     Note
                     <textarea
                       :value="entry.comment"
@@ -784,7 +823,10 @@ function endDrag() {
                     />
                   </label>
 
-                  <label v-if="entry.type !== 'readingOrder'" class="comment-input-label">
+                  <label
+                    v-if="entry.type !== 'readingOrder'"
+                    class="comment-input-label [align-self:stretch]"
+                  >
                     Tags
                     <input
                       :value="entry.tags"
@@ -799,7 +841,7 @@ function endDrag() {
           </template>
 
           <div
-            class="entry-drop-zone end-zone"
+            class="entry-drop-zone end-zone min-h-3 [border:1px_dashed_transparent] rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease]"
             :class="{ active: dragOverIndex === entryPageState.end }"
             @dragover="overDropZone($event, entryPageState.end)"
             @dragleave="dragOverIndex = null"
@@ -809,7 +851,7 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages reading-order-entry-pages-bottom"
+          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 [margin-bottom:0]"
           aria-label="Reading order entry pages"
         >
           <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>

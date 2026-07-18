@@ -49,8 +49,10 @@ defineEmits(['open', 'toggle-favorite'])
 </script>
 
 <template>
-  <div class="row order-row" :class="{ selected }">
-    <span class="order-row-content">
+  <div class="row order-row flex-col" :class="{ selected }">
+    <span
+      class="order-row-content flex [align-items:flex-start] justify-between gap-3 w-full min-w-0"
+    >
       <button class="row-main" :class="mainClass" type="button" @click="$emit('open')">
         <span v-if="image" class="issue-list-cover" aria-hidden="true">
           <img :src="assetURL(image)" alt="" loading="lazy" />
@@ -58,7 +60,10 @@ defineEmits(['open', 'toggle-favorite'])
         <span>
           <strong>{{ title }}</strong>
           <small>{{ subtitle }}</small>
-          <span v-if="$slots.byline" class="row-byline">
+          <span
+            v-if="$slots.byline"
+            class="row-byline flex items-center flex-wrap [gap:6px_10px] mt-2"
+          >
             <slot name="byline" />
           </span>
         </span>
