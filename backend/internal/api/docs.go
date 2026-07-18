@@ -7,6 +7,7 @@ const (
 	tagDashboard     = "Dashboard"
 	tagSeries        = "Series"
 	tagCharacters    = "Characters"
+	tagCollections   = "Collections"
 	tagArcs          = "Arcs"
 	tagReadingOrders = "Reading Orders"
 	tagMetron        = "Metron"
@@ -33,6 +34,7 @@ func DocsConfig() huma.Config {
 		{Name: tagDashboard, Description: "Summarize active reading queues and achievement highlights."},
 		{Name: tagSeries, Description: "Browse local comic series, their read progress, and favorite state."},
 		{Name: tagCharacters, Description: "Browse characters imported from Metron and their local comic appearances."},
+		{Name: tagCollections, Description: "Manage private, user-owned character collections and their combined reading queues."},
 		{Name: tagArcs, Description: "Manage story arcs and their ordered comic entries."},
 		{Name: tagReadingOrders, Description: "Manage reading orders and their ordered comic entries."},
 		{Name: tagMetron, Description: "Search, inspect, and import metadata from Metron."},

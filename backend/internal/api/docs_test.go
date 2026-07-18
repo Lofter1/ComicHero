@@ -19,6 +19,7 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	RegisterComicRoutes(api, nil, nil)
 	RegisterSeriesRoutes(api, nil, metron.New(metron.Config{}), nil, newMetronImportJobStore())
 	RegisterCharacterRoutes(api, nil)
+	RegisterCharacterCollectionRoutes(api, nil)
 	RegisterReadingOrderRoutes(api, nil, nil)
 	RegisterArcRoutes(api, nil)
 	RegisterDashboardRoutes(api, nil)
@@ -30,8 +31,8 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 10 {
-		t.Fatalf("len(tags) = %d; want 10", len(openAPI.Tags))
+	if len(openAPI.Tags) != 11 {
+		t.Fatalf("len(tags) = %d; want 11", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get
@@ -55,6 +56,11 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	listCharacters := openAPI.Paths["/characters"].Get
 	if len(listCharacters.Tags) != 1 || listCharacters.Tags[0] != tagCharacters {
 		t.Fatalf("list characters tags = %#v; want Characters tag", listCharacters.Tags)
+	}
+
+	listCollections := openAPI.Paths["/collections"].Get
+	if len(listCollections.Tags) != 1 || listCollections.Tags[0] != tagCollections {
+		t.Fatalf("list collections tags = %#v; want Collections tag", listCollections.Tags)
 	}
 
 	listSeries := openAPI.Paths["/series"].Get

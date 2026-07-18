@@ -69,6 +69,7 @@ defineEmits(['open', 'toggle-favorite'])
         :disabled="favoriteSaving"
         @toggle="$emit('toggle-favorite')"
       />
+      <slot name="actions" />
     </span>
     <span class="row-progress" :aria-label="progressLabel">
       <span :style="{ width: progress }"></span>

@@ -219,6 +219,10 @@ function toggleMobileMenu() {
             <span aria-hidden="true">%</span>
             <span>Progress</span>
           </router-link>
+          <router-link :to="{ name: 'collections' }" class="account-menu-item" @click="closeMenus">
+            <span aria-hidden="true">◆</span>
+            <span>My collections</span>
+          </router-link>
           <router-link
             v-if="isAdmin"
             :to="{ name: 'settings' }"

@@ -342,6 +342,18 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 			character_id INTEGER NOT NULL,
 			PRIMARY KEY (comic_id, character_id)
 		);
+		CREATE TABLE character_collections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			name TEXT NOT NULL,
+			created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			started_at TEXT
+		);
+		CREATE TABLE character_collection_members (
+			collection_id INTEGER NOT NULL,
+			character_id INTEGER NOT NULL,
+			PRIMARY KEY (collection_id, character_id)
+		);
 		CREATE TABLE user_series (
 			series_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,

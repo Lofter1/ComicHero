@@ -164,6 +164,16 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if sectionIndexCount != 1 {
 		t.Fatalf("reading order sections index count = %d; want 1", sectionIndexCount)
 	}
+
+	for _, table := range []string{"character_collections", "character_collection_members"} {
+		exists, err := tableExists(database, table)
+		if err != nil {
+			t.Fatalf("check %s table: %v", table, err)
+		}
+		if !exists {
+			t.Fatalf("%s table missing", table)
+		}
+	}
 }
 
 func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {

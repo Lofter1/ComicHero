@@ -143,6 +143,18 @@ export const router = createRouter({
       meta: { eyebrow: 'Characters', title: 'Character' },
     },
     {
+      path: '/collections',
+      name: 'collections',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'My collections', title: 'My collections', requiresUser: true },
+    },
+    {
+      path: '/collections/:id',
+      name: 'collectionDetail',
+      component: EmptyRouteView,
+      meta: { eyebrow: 'My collections', title: 'Collection', requiresUser: true },
+    },
+    {
       path: '/metron',
       redirect: { name: 'settings', query: { tab: 'metron' } },
     },

@@ -29,6 +29,7 @@ func registerRoutes(cfg config.Config, humaAPI huma.API, database *sqlx.DB, metr
 	api.RegisterComicRoutes(humaAPI, database, covers)
 	api.RegisterSeriesRoutes(humaAPI, database, metronClient, covers, importJobs)
 	api.RegisterCharacterRoutes(humaAPI, database)
+	api.RegisterCharacterCollectionRoutes(humaAPI, database)
 	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, importJobs, comicScanner)
 	api.RegisterMetronComicDiscoveryRoutes(humaAPI, database, comicDiscovery)
 

@@ -227,6 +227,34 @@ export function setCharacterStarted(id, started) {
   return request(`/characters/${id}/start`, { method: started ? 'POST' : 'DELETE' })
 }
 
+export function listCharacterCollections(params = {}) {
+  return request(`/collections${queryString(params)}`)
+}
+
+export function getCharacterCollection(id) {
+  return request(`/collections/${id}`)
+}
+
+export function createCharacterCollection(payload) {
+  return send('/collections', 'POST', payload)
+}
+
+export function deleteCharacterCollection(id) {
+  return request(`/collections/${id}`, { method: 'DELETE' })
+}
+
+export function setCharacterCollectionStarted(id, started) {
+  return request(`/collections/${id}/start`, { method: started ? 'POST' : 'DELETE' })
+}
+
+export function addCharacterToCollection(id, characterId) {
+  return send(`/collections/${id}/characters`, 'POST', { characterId })
+}
+
+export function removeCharacterFromCollection(id, characterId) {
+  return request(`/collections/${id}/characters/${characterId}`, { method: 'DELETE' })
+}
+
 export function searchMetronCharacters(params) {
   return requestWithMeta(`/metron/characters${queryString(params)}`)
 }
