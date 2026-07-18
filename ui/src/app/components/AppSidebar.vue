@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { useClickOutside } from '@/shared/composables/useClickOutside.js'
 
 const props = defineProps({
   activeView: {
@@ -43,6 +44,12 @@ const props = defineProps({
 const emit = defineEmits(['set-theme', 'login', 'logout'])
 const menuOpen = ref(false)
 const accountMenuOpen = ref(false)
+const mobileMenuButton = ref(null)
+const primaryNavigation = ref(null)
+const accountMenu = ref(null)
+
+useClickOutside([mobileMenuButton, primaryNavigation], () => (menuOpen.value = false), menuOpen)
+useClickOutside(accountMenu, () => (accountMenuOpen.value = false), accountMenuOpen)
 
 const userInitial = computed(
   () => (props.user?.name || '?').trim().slice(0, 1).toUpperCase() || '?',
@@ -86,6 +93,7 @@ function toggleMobileMenu() {
         <span v-if="version" class="version-tag">{{ version }}</span>
       </div>
       <button
+        ref="mobileMenuButton"
         type="button"
         class="mobile-menu-button"
         :aria-expanded="menuOpen"
@@ -101,7 +109,7 @@ function toggleMobileMenu() {
       </button>
     </div>
 
-    <nav id="primary-navigation" class="nav-tabs" aria-label="Primary">
+    <nav id="primary-navigation" ref="primaryNavigation" class="nav-tabs" aria-label="Primary">
       <router-link
         :to="{ name: 'dashboard' }"
         :class="{ active: activeView === 'dashboard' }"
@@ -147,7 +155,7 @@ function toggleMobileMenu() {
     </nav>
 
     <div class="sidebar-actions">
-      <div v-if="user" class="account-menu" :class="{ open: accountMenuOpen }">
+      <div v-if="user" ref="accountMenu" class="account-menu" :class="{ open: accountMenuOpen }">
         <button
           type="button"
           class="account-menu-trigger"
