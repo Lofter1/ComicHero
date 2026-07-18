@@ -483,7 +483,7 @@ function selectSettingsTab(tab) {
     <section
       v-show="activeSettingsTab === 'general'"
       id="settings-panel-general"
-      class="user-access-panel settings-tab-panel min-w-0"
+      class="user-access-panel settings-tab-panel min-w-0 grid [grid-template-columns:repeat(3,_minmax(0,_1fr))] gap-4 [align-items:stretch]"
       role="tabpanel"
       aria-labelledby="settings-tab-general"
     >
@@ -607,11 +607,11 @@ function selectSettingsTab(tab) {
       v-if="cblRepositorySync"
       v-show="activeSettingsTab === 'cbl-repositories'"
       id="settings-panel-cbl-repositories"
-      class="account-settings-panel metron-scan-panel settings-tab-panel min-w-0"
+      class="account-settings-panel metron-scan-panel settings-tab-panel min-w-0 [gap:22px] rounded-xl p-6 down-mobile:p-4.5"
       role="tabpanel"
       aria-labelledby="settings-tab-cbl-repositories"
     >
-      <header class="metron-scan-heading">
+      <header class="metron-scan-heading flex [align-items:flex-start] justify-between gap-6">
         <div class="metron-scan-heading-copy grid gap-1.5 [max-width:760px]">
           <p class="eyebrow">CBL repositories</p>
           <h3>Automatic reading-list imports</h3>
@@ -621,7 +621,9 @@ function selectSettingsTab(tab) {
             each part.
           </p>
         </div>
-        <label class="compact-toggle metron-scan-toggle">
+        <label
+          class="compact-toggle metron-scan-toggle [flex:0_0_auto] [min-width:150px] justify-center border border-line rounded bg-surface [padding:11px_14px] down-mobile:[align-self:flex-start]"
+        >
           <input v-model="cblDraft.enabled" type="checkbox" />
           <span>{{ cblDraft.enabled ? 'Enabled' : 'Disabled' }}</span>
         </label>
@@ -639,7 +641,9 @@ function selectSettingsTab(tab) {
         ></textarea>
       </label>
 
-      <div class="cbl-folder-scope">
+      <div
+        class="cbl-folder-scope [max-width:760px] flex items-center justify-between gap-4 border border-line rounded bg-surface [padding:12px_14px] down-mobile:[align-items:stretch] down-mobile:flex-col"
+      >
         <div>
           <strong>Repository scope</strong>
           <span>{{ cblFolderScopeLabel }}</span>
@@ -663,7 +667,9 @@ function selectSettingsTab(tab) {
         <span>Regularly check repositories for new and updated files</span>
       </label>
 
-      <div class="metron-scan-fields">
+      <div
+        class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] [gap:16px_24px] down-mobile:[grid-template-columns:1fr]"
+      >
         <label class="metron-scan-field grid [gap:7px] text-label font-extrabold">
           <span>Schedule</span>
           <select v-model="cblDraft.schedule" :disabled="!cblDraft.autoSync">
@@ -709,7 +715,10 @@ function selectSettingsTab(tab) {
         </small>
       </div>
 
-      <div class="metron-scan-status" aria-live="polite">
+      <div
+        class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface [padding:12px_14px] text-muted"
+        aria-live="polite"
+      >
         <div>
           <strong>{{ cblRepositorySync.filesFound }}</strong>
           <span>CBL files found</span>
@@ -749,7 +758,9 @@ function selectSettingsTab(tab) {
         </p>
       </div>
 
-      <div class="metron-scan-actions">
+      <div
+        class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:[align-items:stretch] down-mobile:flex-col"
+      >
         <button
           type="button"
           class="primary-button"
@@ -815,7 +826,9 @@ function selectSettingsTab(tab) {
             </button>
           </header>
 
-          <div class="cbl-file-picker-tools">
+          <div
+            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 [border-bottom:1px_solid_var(--line)] [padding:12px_16px] down-mobile:[grid-template-columns:1fr]"
+          >
             <input v-model="cblFolderSearch" type="search" placeholder="Search folders..." />
             <button
               type="button"
@@ -831,7 +844,10 @@ function selectSettingsTab(tab) {
           <p v-else-if="!filteredCBLRepositoryFolders.length" class="muted cbl-picker-empty p-4">
             No folders containing CBL files match this search.
           </p>
-          <div v-else class="cbl-file-picker-list">
+          <div
+            v-else
+            class="cbl-file-picker-list [min-height:0] overflow-auto grid content-start [padding:6px_16px]"
+          >
             <div
               v-for="folder in visibleCBLRepositoryFolders"
               :key="cblFolderKey(folder)"
@@ -863,7 +879,9 @@ function selectSettingsTab(tab) {
             </button>
           </div>
 
-          <footer class="cbl-file-picker-actions">
+          <footer
+            class="cbl-file-picker-actions justify-end [border-top:1px_solid_var(--line)] down-mobile:[align-items:stretch] down-mobile:flex-col"
+          >
             <span>
               {{
                 selectedCBLRepositoryFolders.length
@@ -910,7 +928,9 @@ function selectSettingsTab(tab) {
             </button>
           </header>
 
-          <div class="cbl-file-picker-tools">
+          <div
+            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 [border-bottom:1px_solid_var(--line)] [padding:12px_16px] down-mobile:[grid-template-columns:1fr]"
+          >
             <input v-model="cblFileSearch" type="search" placeholder="Search paths..." />
             <button
               type="button"
@@ -926,7 +946,10 @@ function selectSettingsTab(tab) {
           <p v-else-if="!filteredCBLRepositoryFiles.length" class="muted">
             No CBL files match this search.
           </p>
-          <div v-else class="cbl-file-picker-list">
+          <div
+            v-else
+            class="cbl-file-picker-list [min-height:0] overflow-auto grid content-start [padding:6px_16px]"
+          >
             <div
               v-for="file in visibleCBLRepositoryFiles"
               :key="cblFileKey(file)"
@@ -954,7 +977,7 @@ function selectSettingsTab(tab) {
               <button
                 v-if="file.multipartGroup"
                 type="button"
-                class="cbl-select-parts-button"
+                class="cbl-select-parts-button [flex:0_0_auto] border-0 bg-transparent text-accent [padding:6px_8px] [font-size:0.78rem] [font-weight:850] down-mobile:[align-self:flex-start]"
                 :disabled="allMultipartPartsSelected(file)"
                 @click="selectAllCBLParts(file)"
               >
@@ -976,7 +999,9 @@ function selectSettingsTab(tab) {
             </button>
           </div>
 
-          <footer class="cbl-file-picker-actions">
+          <footer
+            class="cbl-file-picker-actions justify-end [border-top:1px_solid_var(--line)] down-mobile:[align-items:stretch] down-mobile:flex-col"
+          >
             <span>{{ selectedCBLRepositoryFiles.length }} files selected</span>
             <button type="button" class="secondary-button" @click="closeCBLFilePicker">
               Cancel
@@ -1023,7 +1048,7 @@ function selectSettingsTab(tab) {
               v-for="candidate in cblRepositorySync.pendingResolution.candidates"
               :key="candidate.id"
               type="button"
-              class="cbl-metron-candidate"
+              class="cbl-metron-candidate w-full flex items-center gap-3.5 border border-line rounded bg-surface p-2.5 [color:inherit] text-left down-mobile:[align-items:flex-start]"
               @click="chooseCBLMetronIssue(candidate.id)"
             >
               <img v-if="candidate.coverImage" :src="candidate.coverImage" alt="" />
@@ -1047,7 +1072,9 @@ function selectSettingsTab(tab) {
             </button>
           </div>
 
-          <footer class="cbl-file-picker-actions">
+          <footer
+            class="cbl-file-picker-actions justify-end [border-top:1px_solid_var(--line)] down-mobile:[align-items:stretch] down-mobile:flex-col"
+          >
             <span>Select the issue that should be added to this reading order.</span>
             <button type="button" class="secondary-button" @click="chooseCBLMetronIssue(0)">
               Use CBL data only
@@ -1066,8 +1093,11 @@ function selectSettingsTab(tab) {
     >
       <slot name="metron-import"></slot>
 
-      <section v-if="metronComicDiscovery" class="account-settings-panel metron-scan-panel">
-        <header class="metron-scan-heading">
+      <section
+        v-if="metronComicDiscovery"
+        class="account-settings-panel metron-scan-panel [gap:22px] rounded-xl p-6 down-mobile:p-4.5"
+      >
+        <header class="metron-scan-heading flex [align-items:flex-start] justify-between gap-6">
           <div class="metron-scan-heading-copy grid gap-1.5 [max-width:760px]">
             <p class="eyebrow">Metron discovery</p>
             <h3>Automatic new Metron data</h3>
@@ -1075,7 +1105,9 @@ function selectSettingsTab(tab) {
               Import recently modified comics, reading lists, or both from Metron on one schedule.
             </p>
           </div>
-          <label class="compact-toggle metron-scan-toggle">
+          <label
+            class="compact-toggle metron-scan-toggle [flex:0_0_auto] [min-width:150px] justify-center border border-line rounded bg-surface [padding:11px_14px] down-mobile:[align-self:flex-start]"
+          >
             <input v-model="discoveryDraft.enabled" type="checkbox" />
             <span>{{ discoveryDraft.enabled ? 'Enabled' : 'Disabled' }}</span>
           </label>
@@ -1093,7 +1125,9 @@ function selectSettingsTab(tab) {
           </label>
         </fieldset>
 
-        <div class="metron-scan-fields">
+        <div
+          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] [gap:16px_24px] down-mobile:[grid-template-columns:1fr]"
+        >
           <label class="metron-scan-field grid [gap:7px] text-label font-extrabold">
             <span>Schedule</span>
             <select v-model="discoveryDraft.schedule">
@@ -1145,7 +1179,10 @@ function selectSettingsTab(tab) {
           </label>
         </fieldset>
 
-        <div class="metron-scan-status" aria-live="polite">
+        <div
+          class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface [padding:12px_14px] text-muted"
+          aria-live="polite"
+        >
           <div>
             <strong>{{ metronComicDiscovery.found }}</strong>
             <span>list results found</span>
@@ -1167,7 +1204,9 @@ function selectSettingsTab(tab) {
           </p>
         </div>
 
-        <div class="metron-scan-actions">
+        <div
+          class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:[align-items:stretch] down-mobile:flex-col"
+        >
           <button
             type="button"
             class="primary-button"
@@ -1197,8 +1236,11 @@ function selectSettingsTab(tab) {
         </div>
       </section>
 
-      <section v-if="metronComicScan" class="account-settings-panel metron-scan-panel">
-        <header class="metron-scan-heading">
+      <section
+        v-if="metronComicScan"
+        class="account-settings-panel metron-scan-panel [gap:22px] rounded-xl p-6 down-mobile:p-4.5"
+      >
+        <header class="metron-scan-heading flex [align-items:flex-start] justify-between gap-6">
           <div class="metron-scan-heading-copy grid gap-1.5 [max-width:760px]">
             <p class="eyebrow">Metron maintenance</p>
             <h3>Incomplete comic data</h3>
@@ -1207,7 +1249,9 @@ function selectSettingsTab(tab) {
               missing arc and character links without extra detail calls.
             </p>
           </div>
-          <label class="compact-toggle metron-scan-toggle">
+          <label
+            class="compact-toggle metron-scan-toggle [flex:0_0_auto] [min-width:150px] justify-center border border-line rounded bg-surface [padding:11px_14px] down-mobile:[align-self:flex-start]"
+          >
             <input v-model="draft.enabled" type="checkbox" />
             <span>{{ draft.enabled ? 'Enabled' : 'Disabled' }}</span>
           </label>
@@ -1231,7 +1275,9 @@ function selectSettingsTab(tab) {
           Select at least one field before saving or running this scan.
         </p>
 
-        <div class="metron-scan-fields">
+        <div
+          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] [gap:16px_24px] down-mobile:[grid-template-columns:1fr]"
+        >
           <label class="metron-scan-field grid [gap:7px] text-label font-extrabold">
             <span>Schedule</span>
             <select v-model="draft.schedule">
@@ -1275,7 +1321,10 @@ function selectSettingsTab(tab) {
           </label>
         </fieldset>
 
-        <div class="metron-scan-status" aria-live="polite">
+        <div
+          class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface [padding:12px_14px] text-muted"
+          aria-live="polite"
+        >
           <div>
             <strong>{{ metronComicScan.callsUsedToday }} / {{ draft.dailyCallLimit }}</strong>
             <span>calls used today</span>
@@ -1296,7 +1345,9 @@ function selectSettingsTab(tab) {
           </p>
         </div>
 
-        <div class="metron-scan-actions">
+        <div
+          class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:[align-items:stretch] down-mobile:flex-col"
+        >
           <button
             type="button"
             class="primary-button"

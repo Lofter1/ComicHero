@@ -86,7 +86,10 @@ function toggleMobileMenu() {
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ 'menu-open': menuOpen }">
+  <aside
+    class="sidebar sticky top-0 z-30 h-screen [border-right:1px_solid_var(--line)] [background:var(--sidebar-bg)] p-7 flex flex-col gap-7 [backdrop-filter:blur(12px)] down-tablet:sticky down-tablet:top-0 down-tablet:z-30 down-tablet:[height:auto] down-tablet:[border-right:0] down-tablet:[border-bottom:1px_solid_var(--line)] down-tablet:[padding:12px_18px] down-tablet:gap-3 down-tablet:[box-shadow:0_6px_18px_var(--shadow-soft)] down-tablet:[overflow:visible] down-mobile:p-3 down-phone:p-2.5"
+    :class="{ 'menu-open': menuOpen }"
+  >
     <div class="sidebar-header flex items-center justify-between gap-3">
       <div class="sidebar-branding grid justify-items-start gap-1.5">
         <h1>ComicHero</h1>
@@ -99,7 +102,7 @@ function toggleMobileMenu() {
       <button
         ref="mobileMenuButton"
         type="button"
-        class="mobile-menu-button"
+        class="mobile-menu-button hidden place-items-center [width:42px] [min-width:42px] [min-height:42px] border border-line-strong rounded bg-surface text-control [padding:0] down-tablet:grid"
         :aria-expanded="menuOpen"
         aria-controls="primary-navigation"
         aria-label="Toggle navigation"
@@ -113,7 +116,12 @@ function toggleMobileMenu() {
       </button>
     </div>
 
-    <nav id="primary-navigation" ref="primaryNavigation" class="nav-tabs" aria-label="Primary">
+    <nav
+      id="primary-navigation"
+      ref="primaryNavigation"
+      class="nav-tabs grid gap-2"
+      aria-label="Primary"
+    >
       <router-link
         :to="{ name: 'dashboard' }"
         :class="{ active: activeView === 'dashboard' }"
@@ -158,7 +166,9 @@ function toggleMobileMenu() {
       </router-link>
     </nav>
 
-    <div class="sidebar-actions">
+    <div
+      class="sidebar-actions grid gap-2.5 [margin-top:auto] down-tablet:absolute down-tablet:[top:50%] down-tablet:[right:72px] down-tablet:block down-tablet:[margin-top:0] down-tablet:[width:auto] down-tablet:[transform:translateY(-50%)] down-mobile:[right:66px] down-phone:[right:64px]"
+    >
       <div
         v-if="user"
         ref="accountMenu"
@@ -167,7 +177,7 @@ function toggleMobileMenu() {
       >
         <button
           type="button"
-          class="account-menu-trigger"
+          class="account-menu-trigger w-full [min-height:58px] grid [grid-template-columns:auto_minmax(0,_1fr)_auto] items-center gap-2.5 border border-line rounded bg-surface-soft text-control [padding:9px_10px] text-left down-tablet:[width:42px] down-tablet:[height:42px] down-tablet:[min-height:42px] down-tablet:inline-flex down-tablet:justify-center down-tablet:[padding:0]"
           :aria-expanded="accountMenuOpen"
           aria-controls="account-menu-panel"
           @click="toggleAccountMenu"
@@ -176,10 +186,14 @@ function toggleMobileMenu() {
           <span class="account-trigger-copy">
             <strong>{{ user.name }}</strong>
           </span>
-          <span class="account-menu-caret" aria-hidden="true">▾</span>
+          <span class="account-menu-caret text-muted [font-size:0.9rem]" aria-hidden="true">▾</span>
         </button>
 
-        <div v-if="accountMenuOpen" id="account-menu-panel" class="account-menu-panel">
+        <div
+          v-if="accountMenuOpen"
+          id="account-menu-panel"
+          class="account-menu-panel absolute left-0 [bottom:calc(100%_+_10px)] z-40 [width:min(320px,_calc(100vw_-_36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:[top:calc(100%_+_8px)] down-tablet:right-0 down-tablet:[bottom:auto] down-tablet:[left:auto] down-tablet:[width:min(320px,_calc(100vw_-_36px))]"
+        >
           <div
             class="account-menu-profile grid [grid-template-columns:auto_minmax(0,_1fr)] gap-3 items-center p-2"
           >
@@ -197,7 +211,7 @@ function toggleMobileMenu() {
               <strong>Display Mode</strong>
             </div>
             <div
-              class="theme-selector account-theme-selector [margin:0_8px]"
+              class="theme-selector account-theme-selector [margin:0_8px] grid [grid-template-columns:repeat(3,_minmax(0,_1fr))] gap-1 border border-line-strong rounded [background:var(--panel-soft-bg)] p-1"
               role="group"
               aria-label="Theme"
             >
@@ -302,7 +316,10 @@ function toggleMobileMenu() {
           </button>
         </div>
       </div>
-      <div v-else-if="readOnlyGuest" class="public-session-card">
+      <div
+        v-else-if="readOnlyGuest"
+        class="public-session-card grid gap-1 border border-line rounded bg-surface-soft p-3 down-tablet:block down-tablet:border-0 down-tablet:bg-transparent down-tablet:[padding:0]"
+      >
         <strong>Public access</strong>
         <span>Read-only access</span>
         <button type="button" class="secondary-action" @click="login">Log in</button>

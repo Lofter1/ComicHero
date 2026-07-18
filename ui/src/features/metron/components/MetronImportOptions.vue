@@ -21,7 +21,9 @@ const DATA_OPTIONS = [
 </script>
 
 <template>
-  <div class="metron-import-options">
+  <div
+    class="metron-import-options inline-flex items-center gap-3 [justify-self:start] [width:fit-content] [max-width:100%] flex-wrap border border-line-strong rounded bg-surface-soft [padding:10px_12px]"
+  >
     <div class="metron-modes compact" role="tablist" aria-label="Metron import depth">
       <button
         v-for="mode in ['quick', 'full']"

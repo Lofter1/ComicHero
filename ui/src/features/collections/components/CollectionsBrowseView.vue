@@ -39,8 +39,10 @@ function countLabel(count, singular) {
 </script>
 
 <template>
-  <section class="collections-view">
-    <header class="collection-page-intro">
+  <section class="collections-view grid [gap:22px] pt-4.5 down-compact:pt-1.5">
+    <header
+      class="collection-page-intro flex items-center justify-between gap-6 pb-4.5 [border-bottom:1px_solid_var(--line)] down-narrow:[align-items:flex-start] down-compact:[align-items:stretch] down-compact:flex-col down-compact:gap-3.5"
+    >
       <div>
         <p>
           Group related characters and follow all of their appearances in one release-date order.
@@ -57,7 +59,11 @@ function countLabel(count, singular) {
       </button>
     </header>
 
-    <form v-if="createOpen" class="collection-create-panel" @submit.prevent="create">
+    <form
+      v-if="createOpen"
+      class="collection-create-panel grid [grid-template-columns:minmax(190px,_0.55fr)_minmax(300px,_1fr)] items-end gap-4.5 [border:1px_solid_color-mix(in_srgb,_var(--primary)_35%,_var(--line))] rounded-xl [background:var(--primary-soft),_var(--panel-bg)] p-4 [box-shadow:0_10px_26px_var(--shadow-soft)] down-narrow:[grid-template-columns:1fr]"
+      @submit.prevent="create"
+    >
       <div class="collection-create-heading flex [align-items:flex-start] justify-between gap-3">
         <div>
           <strong>Create a collection</strong>
@@ -93,15 +99,20 @@ function countLabel(count, singular) {
           <p>{{ countLabel(collections.length, 'collection') }}</p>
         </div>
       </header>
-      <div class="collection-grid">
+      <div
+        class="collection-grid grid [grid-template-columns:repeat(auto-fill,_minmax(min(100%,_330px),_410px))] gap-3.5 [align-items:stretch] down-compact:[grid-template-columns:1fr]"
+      >
         <button
           v-for="collection in collections"
           :key="collection.id"
-          class="collection-card"
+          class="collection-card relative grid [grid-template-columns:50px_minmax(0,_1fr)] gap-3.5 w-full [min-height:146px] overflow-hidden border border-line rounded-xl bg-surface text-control p-4 text-left shadow-soft down-compact:[grid-template-columns:44px_minmax(0,_1fr)] down-compact:[min-height:138px] down-compact:p-3.5"
           type="button"
           @click="emit('open', collection)"
         >
-          <span class="collection-card-monogram" aria-hidden="true">
+          <span
+            class="collection-card-monogram [width:50px] [height:50px] [font-size:1.25rem] down-compact:[width:44px] down-compact:[height:44px]"
+            aria-hidden="true"
+          >
             {{ collectionMonogram(collection) }}
           </span>
           <span class="collection-card-body grid content-start min-w-0">

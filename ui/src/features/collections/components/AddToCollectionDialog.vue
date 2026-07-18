@@ -70,7 +70,10 @@ function monogram(name) {
       </div>
       <p v-else-if="!loading" class="muted">You do not have any collections yet.</p>
 
-      <form class="collection-create-form" @submit.prevent="createCollection">
+      <form
+        class="collection-create-form grid gap-2 mt-4.5 pt-4.5 [border-top:1px_solid_var(--line)]"
+        @submit.prevent="createCollection"
+      >
         <label for="new-character-collection">Create a new collection</label>
         <div>
           <input id="new-character-collection" v-model="newName" maxlength="120" />

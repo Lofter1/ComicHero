@@ -518,7 +518,9 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
 <template>
   <section class="comic-list-view grid gap-3">
-    <div class="comic-list-sticky">
+    <div
+      class="comic-list-sticky grid gap-2.5 pb-3 [border-bottom:1px_solid_var(--sticky-border)] [background:var(--sticky-bg)] [margin-top:2rem]"
+    >
       <header class="comic-list-header">
         <div>
           <p class="eyebrow">{{ title }}</p>
@@ -540,7 +542,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <button
           ref="comicOptionsTrigger"
-          class="mobile-comic-options-trigger"
+          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:[flex:0_0_auto] down-mobile:[min-width:190px] down-mobile:pr-3"
           type="button"
           :aria-expanded="comicOptionsOpen"
           @click="comicOptionsOpen = !comicOptionsOpen"
@@ -551,7 +553,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <div
           ref="comicFilterControls"
-          class="comic-filter-controls"
+          class="comic-filter-controls [display:contents] down-mobile:hidden down-mobile:[width:min(360px,_calc(100vw_-_28px))]"
           :class="{ open: comicOptionsOpen }"
         >
           <div

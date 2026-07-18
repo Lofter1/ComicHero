@@ -40,10 +40,14 @@ function entryTags() {
 
 <template>
   <div
-    class="issue-list-item read-accent [border-bottom-width:4px] [border-bottom-style:solid]"
+    class="issue-list-item read-accent [border-bottom-width:4px] [border-bottom-style:solid] flex [align-items:flex-start] justify-between gap-3 border border-line rounded bg-surface-soft [padding:10px_12px] down-mobile:flex-wrap"
     :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
   >
-    <button class="issue-list-main" type="button" @click="$emit('open', comic)">
+    <button
+      class="issue-list-main flex items-center gap-2.5 [flex:1_1_auto] border-0 bg-transparent [color:inherit] [padding:0] text-left"
+      type="button"
+      @click="$emit('open', comic)"
+    >
       <span v-if="showCover && comic.coverImage" class="issue-list-cover" aria-hidden="true">
         <img :src="assetURL(comic.coverImage)" alt="" loading="lazy" />
       </span>
@@ -63,7 +67,7 @@ function entryTags() {
       </span>
     </button>
 
-    <span class="read-state-actions">
+    <span class="read-state-actions flex items-center justify-end [flex:0_0_auto] flex-wrap gap-2">
       <span
         class="read-state-pill inline-flex items-center justify-center min-h-7 rounded-full [padding:4px_10px] [font-size:0.78rem] font-extrabold leading-none whitespace-nowrap"
         :class="{ read: comic.read, unread: !comic.read }"

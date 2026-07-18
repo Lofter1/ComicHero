@@ -123,7 +123,7 @@ function handleCBLFile(event) {
               <div
                 v-if="!readOnly"
                 ref="orderActions"
-                class="browse-header-actions order-actions relative [margin-left:auto]"
+                class="browse-header-actions order-actions relative [margin-left:auto] flex [flex:0_0_auto] items-center flex-wrap gap-2 down-tablet:[justify-content:flex-start] down-tablet:w-full down-mobile:justify-end"
               >
                 <button
                   class="secondary-button icon-text-button mobile-order-actions-trigger inline-flex [width:44px] [min-width:44px] [height:44px] [padding:0]"

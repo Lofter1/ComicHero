@@ -141,13 +141,17 @@ function formatTimestamp(value) {
     <div v-if="users.length === 0" class="empty-panel">No users yet.</div>
 
     <template v-else>
-      <header class="user-directory-toolbar">
+      <header
+        class="user-directory-toolbar flex items-end justify-between gap-4 [border-bottom:1px_solid_var(--line)] [padding:4px_0_12px] down-mobile:[align-items:stretch] down-mobile:flex-col"
+      >
         <div>
           <p class="eyebrow">Accounts</p>
           <h3>{{ users.length }} {{ users.length === 1 ? 'user' : 'users' }}</h3>
         </div>
-        <div class="user-directory-filters">
-          <label class="user-search-field">
+        <div
+          class="user-directory-filters grid [grid-template-columns:minmax(220px,_1fr)_auto_auto] gap-2 [width:min(680px,_100%)] down-mobile:[grid-template-columns:1fr_1fr] down-mobile:w-full"
+        >
+          <label class="user-search-field [width:min(360px,_100%)] down-mobile:w-full">
             <span class="sr-only">Search users</span>
             <input v-model="userQuery" type="search" placeholder="Search by name or email" />
           </label>
@@ -179,7 +183,9 @@ function formatTimestamp(value) {
           :key="entry.user.id"
           class="user-permission-row border border-line rounded bg-surface-soft [padding:0] grid min-w-0 [max-width:100%] overflow-hidden"
         >
-          <summary class="user-permission-header">
+          <summary
+            class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap [padding:13px_48px_13px_18px] cursor-pointer [list-style:none] relative down-mobile:[align-items:stretch] down-mobile:flex-col"
+          >
             <div class="user-summary min-w-0">
               <h3>{{ entry.user.name }}</h3>
               <p>{{ entry.user.email || 'No email address' }}</p>
@@ -192,7 +198,10 @@ function formatTimestamp(value) {
                 <span>Last login {{ formatTimestamp(entry.user.lastLoginAt) }}</span>
               </p>
             </div>
-            <div class="user-summary-badges" aria-hidden="true">
+            <div
+              class="user-summary-badges flex items-center justify-end gap-2 text-muted [font-size:0.78rem] font-extrabold down-mobile:[justify-content:flex-start] down-mobile:flex-wrap"
+              aria-hidden="true"
+            >
               <span v-if="entry.user.isAdmin" class="user-role-badge">Admin</span>
               <span>{{
                 entry.metronPermissions?.allowed ? 'Metron enabled' : 'Metron disabled'
@@ -200,15 +209,19 @@ function formatTimestamp(value) {
             </div>
           </summary>
 
-          <div class="user-card-sections">
+          <div
+            class="user-card-sections grid [grid-template-columns:minmax(220px,_0.7fr)_minmax(420px,_1.3fr)] [gap:0] [align-items:stretch] min-w-0"
+          >
             <section
-              class="user-card-section account-section grid content-start gap-3 min-w-0 [padding:16px_18px]"
+              class="user-card-section account-section grid content-start gap-3 min-w-0 [padding:16px_18px] [border-right:1px_solid_var(--line)] down-mobile:[border-right:0] down-mobile:[border-bottom:1px_solid_var(--line)]"
             >
               <div class="section-heading">
                 <p class="eyebrow">Account</p>
                 <h4>Role and access</h4>
               </div>
-              <div class="account-control-grid">
+              <div
+                class="account-control-grid grid [grid-template-columns:1fr] gap-2 [max-width:260px] down-mobile:[max-width:none]"
+              >
                 <label class="compact-toggle">
                   <input
                     v-model="draftFor(entry.user.id).isAdmin"
@@ -244,7 +257,9 @@ function formatTimestamp(value) {
                 <h4>API permissions</h4>
               </div>
 
-              <div class="metron-settings-grid">
+              <div
+                class="metron-settings-grid grid [grid-template-columns:minmax(180px,_240px)_1fr] gap-3 items-start min-w-0"
+              >
                 <div class="metron-control-column grid gap-2.5 min-w-0">
                   <label class="compact-toggle">
                     <input v-model="draftFor(entry.user.id).allowed" type="checkbox" />

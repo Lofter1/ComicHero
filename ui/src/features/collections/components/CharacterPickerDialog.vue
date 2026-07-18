@@ -58,7 +58,7 @@ function monogram(name) {
           ×
         </button>
       </header>
-      <form class="collection-search-form" @submit.prevent="search">
+      <form class="collection-search-form [margin:16px_0]" @submit.prevent="search">
         <input v-model="query" type="search" placeholder="Search characters or aliases" autofocus />
         <button class="primary-button" type="submit" :disabled="searching || !query.trim()">
           {{ searching ? 'Searching...' : 'Search' }}

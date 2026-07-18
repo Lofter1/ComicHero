@@ -45,7 +45,9 @@ const searchModel = computed({
 </script>
 
 <template>
-  <div class="comic-list-tools browse-list-tools">
+  <div
+    class="comic-list-tools browse-list-tools flex [flex:1_1_auto] flex-wrap items-center gap-2 w-full"
+  >
     <input v-model="searchModel" type="search" :placeholder="searchPlaceholder" />
     <div
       class="inline-filter-tabs"
@@ -84,7 +86,9 @@ const searchModel = computed({
       <option value="asc">Ascending</option>
       <option value="desc">Descending</option>
     </select>
-    <details class="mobile-list-options">
+    <details
+      class="mobile-list-options down-mobile:relative down-mobile:block down-mobile:[flex:1_1_auto] down-mobile:[min-width:150px]"
+    >
       <summary>Filter &amp; sort</summary>
       <div>
         <div

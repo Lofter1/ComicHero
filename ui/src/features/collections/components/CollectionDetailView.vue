@@ -50,8 +50,13 @@ function monogram(name) {
 
     <article class="detail-panel">
       <div v-if="collection" class="read-only-detail">
-        <header class="collection-detail-hero">
-          <span class="collection-detail-monogram" aria-hidden="true">
+        <header
+          class="collection-detail-hero grid [grid-template-columns:72px_minmax(0,_1fr)_auto] items-center gap-4 border border-line rounded-xl [background:var(--primary-soft),_var(--surface-soft)] p-4.5 down-narrow:[grid-template-columns:58px_minmax(0,_1fr)]"
+        >
+          <span
+            class="collection-detail-monogram w-18 h-18 [font-size:1.8rem] down-narrow:[width:58px] down-narrow:[height:58px] down-narrow:[font-size:1.4rem]"
+            aria-hidden="true"
+          >
             {{ monogram(collection.name) }}
           </span>
           <div class="collection-detail-copy min-w-0">
@@ -59,11 +64,16 @@ function monogram(name) {
             <h3>{{ collection.name }}</h3>
             <p>One release-date queue across every character in this collection.</p>
           </div>
-          <span class="collection-detail-status" :class="{ active: collection.startedAt }">
+          <span
+            class="collection-detail-status [align-self:start] border border-line-strong rounded-full bg-surface text-muted [padding:5px_10px] [font-size:0.76rem] font-extrabold down-narrow:[grid-column:1_/_-1] down-narrow:[justify-self:start]"
+            :class="{ active: collection.startedAt }"
+          >
             {{ collection.startedAt ? 'Currently reading' : 'Not started' }}
           </span>
         </header>
-        <div class="collection-detail-summary">
+        <div
+          class="collection-detail-summary grid [grid-template-columns:repeat(3,_minmax(0,_1fr))] gap-2.5 down-compact:[grid-template-columns:1fr]"
+        >
           <span
             ><strong>{{ formatProgress(collection.progress) }}</strong
             ><small>Read</small></span
@@ -84,7 +94,7 @@ function monogram(name) {
         <section
           class="collection-members grid gap-3 mt-2.5 pt-5 [border-top:1px_solid_var(--line)]"
         >
-          <header class="collection-members-header">
+          <header class="collection-members-header flex items-center justify-between gap-3.5">
             <div>
               <p class="eyebrow">Members</p>
               <h3>Characters</h3>
@@ -99,7 +109,10 @@ function monogram(name) {
               Add character
             </button>
           </header>
-          <div v-if="collection.characters?.length" class="collection-member-list">
+          <div
+            v-if="collection.characters?.length"
+            class="collection-member-list grid [grid-template-columns:minmax(0,_1fr)] gap-2 down-compact:[grid-template-columns:1fr]"
+          >
             <div v-for="character in collection.characters" :key="character.id" class="row">
               <button
                 type="button"
@@ -133,7 +146,10 @@ function monogram(name) {
               </button>
             </div>
           </div>
-          <div v-else class="collection-members-empty">
+          <div
+            v-else
+            class="collection-members-empty flex items-center justify-between gap-4 [border:1px_dashed_var(--line-strong)] rounded-lg bg-surface-soft p-4"
+          >
             <span>
               <strong>No characters yet</strong>
               <small>Search your library to start building this collection.</small>

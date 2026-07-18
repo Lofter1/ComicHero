@@ -85,7 +85,12 @@ function jobMessage(job) {
 </script>
 
 <template>
-  <div v-if="jobs.length" class="import-monitor" :class="{ collapsed: !open }" aria-live="polite">
+  <div
+    v-if="jobs.length"
+    class="import-monitor fixed [right:24px] [bottom:24px] [z-index:45] grid gap-2.5 [width:min(440px,_calc(100vw_-_32px))] border border-line-strong rounded [background:var(--panel-bg)] [box-shadow:0_18px_42px_var(--shadow-panel)] p-3 down-tablet:[right:16px] down-tablet:[bottom:16px] down-mobile:[right:10px] down-mobile:[bottom:10px] down-mobile:[width:calc(100vw_-_20px)] down-mobile:[max-height:42vh] down-mobile:overflow-auto"
+    :class="{ collapsed: !open }"
+    aria-live="polite"
+  >
     <header>
       <button
         class="import-monitor-toggle flex [align-items:baseline] gap-2.5 [min-height:0] border-0 bg-transparent [color:inherit] [padding:0] text-left"
@@ -102,7 +107,12 @@ function jobMessage(job) {
       v-if="open"
       class="metron-jobs grid gap-2 [max-height:min(54vh,_420px)] overflow-auto pr-0.5"
     >
-      <div v-for="job in jobs" :key="job.id" class="metron-job" :class="job.status">
+      <div
+        v-for="job in jobs"
+        :key="job.id"
+        class="metron-job flex [align-items:flex-start] justify-between gap-3 border border-line-strong rounded bg-surface-soft [padding:10px_12px]"
+        :class="job.status"
+      >
         <span>
           <strong>{{ jobTitle(job) }}</strong>
           <small>{{ jobMessage(job) }}</small>
@@ -115,7 +125,7 @@ function jobMessage(job) {
             <span :style="{ width: `${progressPercent(job)}%` }"></span>
           </span>
         </span>
-        <span class="job-actions">
+        <span class="job-actions flex items-center gap-2 [flex:0_0_auto]">
           <span class="status-pill">{{ job.status }}</span>
           <button
             v-if="job.status === 'failed'"

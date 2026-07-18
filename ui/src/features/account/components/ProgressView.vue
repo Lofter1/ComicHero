@@ -50,7 +50,7 @@ function achievementTimestampLabel(achievement) {
       {{ error }}
     </div>
     <template v-else-if="statisticsView">
-      <article class="progress-summary-panel">
+      <article class="progress-summary-panel [grid-template-columns:1fr]">
         <div class="progress-section-heading flex items-center justify-between gap-3 min-w-0">
           <div>
             <p class="eyebrow">Progress</p>

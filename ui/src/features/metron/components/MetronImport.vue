@@ -432,7 +432,7 @@ function formatDate(value) {
 </script>
 
 <template>
-  <div class="metron-view">
+  <div class="metron-view grid gap-5 [padding-block-start:16px]">
     <div class="metron-modes" role="tablist" aria-label="Metron search type">
       <button
         type="button"
@@ -481,7 +481,9 @@ function formatDate(value) {
       </button>
     </div>
 
-    <div class="metron-quota-strip">
+    <div
+      class="metron-quota-strip flex [align-items:baseline] justify-between gap-3 border border-line-strong rounded bg-surface-soft text-label [padding:10px_12px] [font-size:0.92rem] font-bold"
+    >
       <span>
         <strong>Metron quota</strong>
         <small>{{ quotaSummary }}</small>
@@ -496,7 +498,10 @@ function formatDate(value) {
       @toggle-data="toggleFullImportData"
     />
 
-    <form class="metron-search" @submit.prevent="search">
+    <form
+      class="metron-search grid [grid-template-columns:repeat(auto-fit,_minmax(160px,_1fr))] gap-3.5 items-end"
+      @submit.prevent="search"
+    >
       <label>
         {{
           activeSearch === 'comics'
@@ -539,7 +544,9 @@ function formatDate(value) {
       <span>{{ importStatus }}</span>
     </div>
 
-    <section class="metron-results single">
+    <section
+      class="metron-results single grid [grid-template-columns:repeat(3,_minmax(0,_1fr))] gap-5 items-start"
+    >
       <article class="detail-panel">
         <template v-if="activeSearch === 'comics'">
           <h3>Comics</h3>

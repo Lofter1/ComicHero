@@ -427,8 +427,12 @@ function endDrag() {
       </span>
     </label>
 
-    <div class="reading-order-editor-layout">
-      <div class="reading-order-search-column">
+    <div
+      class="reading-order-editor-layout grid [grid-template-columns:minmax(320px,_420px)_minmax(620px,_1fr)] items-start gap-4.5 [border-top:1px_solid_var(--line)] pt-3.5 down-laptop:[grid-template-columns:1fr]"
+    >
+      <div
+        class="reading-order-search-column grid [align-self:start] gap-4.5 min-w-0 sticky [top:calc(var(--sticky-toolbar-top,_0px)_+_14px)] down-laptop:[position:static]"
+      >
         <section class="entry-section add-entry-panel grid gap-2.5">
           <div class="section-title">
             <h4>Add Entries</h4>
@@ -614,7 +618,7 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages"
+          class="reading-order-entry-pages flex items-center justify-between gap-3 mb-2.5 border border-line rounded [background:var(--panel-soft-bg)] [padding:10px_12px] down-mobile:[align-items:stretch] down-mobile:flex-col"
           aria-label="Reading order entry pages"
         >
           <span>
@@ -683,7 +687,7 @@ function endDrag() {
             />
 
             <div
-              class="order-entry"
+              class="order-entry grid [grid-template-columns:minmax(280px,_1fr)_44px] [align-items:stretch] gap-3 rounded [padding:0] [transition:background-color_120ms_ease,_box-shadow_120ms_ease,_opacity_120ms_ease] down-mobile:[grid-template-columns:1fr] down-mobile:border down-mobile:border-line down-mobile:bg-surface-soft down-mobile:p-2.5"
               :class="{
                 dragging: draggedIndex === index,
                 'nested-order-entry': entry.type === 'readingOrder',
@@ -693,7 +697,7 @@ function endDrag() {
             >
               <button
                 type="button"
-                class="selected-order-comic entry-summary-button flex flex-col justify-center [align-items:flex-start] min-w-0 border border-line rounded bg-surface-soft [padding:8px_12px]"
+                class="selected-order-comic entry-summary-button flex flex-col justify-center [align-items:flex-start] min-w-0 border border-line rounded bg-surface-soft [padding:8px_12px] grid [grid-template-columns:34px_minmax(0,_1fr)_34px] items-center gap-3 w-full [min-height:74px] [height:74px] text-ink text-left down-mobile:[grid-template-columns:30px_minmax(0,_1fr)_30px] down-mobile:[height:auto] down-mobile:[min-height:74px] down-mobile:[padding:8px_10px]"
                 @click="toggleEntry(entry, index)"
               >
                 <span class="entry-drag-cell grid place-items-center [align-self:stretch]">
@@ -731,7 +735,10 @@ function endDrag() {
                   {{ isEntryExpanded(entry, index) ? '▴' : '▾' }}
                 </span>
 
-                <span class="mobile-reorder" @click.stop>
+                <span
+                  class="mobile-reorder hidden down-mobile:grid down-mobile:[grid-column:1_/_-1] down-mobile:[grid-template-columns:repeat(2,_minmax(0,_1fr))] down-mobile:gap-2 down-mobile:w-full"
+                  @click.stop
+                >
                   <button type="button" :disabled="index === 0" @click="moveEntry(index, -1)">
                     Up
                   </button>
@@ -784,7 +791,10 @@ function endDrag() {
                 </button>
               </div>
 
-              <div v-if="isEntryExpanded(entry, index)" class="entry-edit-panel">
+              <div
+                v-if="isEntryExpanded(entry, index)"
+                class="entry-edit-panel grid [grid-column:1_/_-1] [grid-template-columns:minmax(0,_1fr)_minmax(180px,_0.55fr)] gap-3 border border-line rounded bg-surface-soft p-3 down-mobile:[grid-column:1] down-mobile:[grid-template-columns:1fr]"
+              >
                 <template v-if="entry.type === 'section'">
                   <label class="comment-input-label [align-self:stretch]">
                     Section title
@@ -851,7 +861,7 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 [margin-bottom:0]"
+          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 [margin-bottom:0] flex items-center justify-between gap-3 mb-2.5 border border-line rounded [background:var(--panel-soft-bg)] [padding:10px_12px] down-mobile:[align-items:stretch] down-mobile:flex-col"
           aria-label="Reading order entry pages"
         >
           <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>

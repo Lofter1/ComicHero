@@ -828,7 +828,10 @@ onUnmounted(() => {
     @show-login="showLogin"
   />
 
-  <main v-else class="app-shell">
+  <main
+    v-else
+    class="app-shell min-h-screen grid [grid-template-columns:260px_minmax(0,_1fr)] down-tablet:block"
+  >
     <AppSidebar
       :active-view="activeView"
       :theme-preference="themePreference"
@@ -844,7 +847,9 @@ onUnmounted(() => {
       @logout="signOut"
     />
 
-    <section class="content">
+    <section
+      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] [padding:var(--content-padding)] min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:[max-width:none] down-tablet:[padding:var(--content-padding)] down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:[padding:var(--content-padding)] down-phone:p-2.5"
+    >
       <AppToolbar
         v-if="!isEditing && !isDetail"
         :result-count="toolbarResultCount"
@@ -1194,7 +1199,10 @@ onUnmounted(() => {
         @open-series="openSeries"
       />
 
-      <div v-else class="browse-view comic-browse-view">
+      <div
+        v-else
+        class="browse-view comic-browse-view [margin-top:-24px] down-mobile:[margin-top:-12px]"
+      >
         <ComicListView
           title="Comics"
           :comics="comics"

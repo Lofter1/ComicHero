@@ -35,7 +35,9 @@ const formModel = computed({
 
 <template>
   <div class="editor-view grid gap-4.5 w-full">
-    <header class="editor-header sticky-toolbar">
+    <header
+      class="editor-header sticky-toolbar flex items-center gap-3.5 justify-between flex-wrap"
+    >
       <button class="secondary-button" type="button" @click="$emit('back')">Back</button>
       <div>
         <p class="eyebrow">Reading Order</p>

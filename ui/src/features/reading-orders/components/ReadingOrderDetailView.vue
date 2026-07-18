@@ -137,8 +137,13 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           </div>
         </header>
 
-        <div class="reading-order-summary">
-          <div v-if="readingOrderCover(selectedOrder)" class="reading-order-thumbnail">
+        <div
+          class="reading-order-summary grid [grid-template-columns:minmax(150px,_220px)_minmax(0,_1fr)] items-start gap-4.5 down-mobile:[grid-template-columns:1fr]"
+        >
+          <div
+            v-if="readingOrderCover(selectedOrder)"
+            class="reading-order-thumbnail w-full overflow-hidden border border-line rounded bg-surface-muted down-mobile:[max-width:220px]"
+          >
             <img
               :src="assetURL(readingOrderCover(selectedOrder))"
               :alt="`${selectedOrder.name} thumbnail`"
