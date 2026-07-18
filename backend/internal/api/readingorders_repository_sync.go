@@ -28,12 +28,13 @@ const (
 )
 
 type CBLRepositorySyncSettings struct {
-	Enabled      bool     `json:"enabled" doc:"Whether repository imports can run."`
-	Repositories []string `json:"repositories" doc:"Public GitHub repository URLs containing CBL files."`
-	AutoSync     bool     `json:"autoSync" doc:"Whether repositories are checked on a schedule."`
-	Schedule     string   `json:"schedule" enum:"daily,weekly"`
-	Weekdays     []string `json:"weekdays,omitempty"`
-	StartTime    string   `json:"startTime" example:"04:00"`
+	Enabled      bool                           `json:"enabled" doc:"Whether repository imports can run."`
+	Repositories []string                       `json:"repositories" doc:"Public GitHub repository URLs containing CBL files."`
+	Folders      []CBLRepositoryFolderSelection `json:"folders,omitempty" doc:"Optional repository subfolders to import recursively. When set, only repositories and folders in this list are imported."`
+	AutoSync     bool                           `json:"autoSync" doc:"Whether repositories are checked on a schedule."`
+	Schedule     string                         `json:"schedule" enum:"daily,weekly"`
+	Weekdays     []string                       `json:"weekdays,omitempty"`
+	StartTime    string                         `json:"startTime" example:"04:00"`
 }
 
 type CBLRepositorySyncStatus struct {
@@ -70,6 +71,11 @@ type CBLRepositoryFile struct {
 type CBLRepositoryFileSelection struct {
 	RepositoryURL string `json:"repositoryUrl"`
 	Path          string `json:"path"`
+}
+
+type CBLRepositoryFolderSelection struct {
+	RepositoryURL string `json:"repositoryUrl" doc:"Configured GitHub repository URL."`
+	Path          string `json:"path" doc:"Repository-relative folder path. CBL files in this folder and its descendants are included." example:"Marvel/Events"`
 }
 
 type CBLMetronIssueCandidate struct {
@@ -203,6 +209,7 @@ func validateCBLRepositorySyncSettings(settings *CBLRepositorySyncSettings) erro
 		return errors.New("at least one repository is required")
 	}
 	seenRepositories := map[string]bool{}
+	configuredRepositories := map[string]string{}
 	repositories := make([]string, 0, len(settings.Repositories))
 	for _, value := range settings.Repositories {
 		repository, err := parseCBLGitHubRepository(value)
@@ -214,8 +221,38 @@ func validateCBLRepositorySyncSettings(settings *CBLRepositorySyncSettings) erro
 			seenRepositories[key] = true
 			repositories = append(repositories, repository.URL)
 		}
+		configuredRepositories[key] = repository.URL
 	}
 	settings.Repositories = repositories
+	folders := make([]CBLRepositoryFolderSelection, 0, len(settings.Folders))
+	seenFolders := map[string]bool{}
+	for _, selection := range settings.Folders {
+		repository, err := parseCBLGitHubRepository(selection.RepositoryURL)
+		if err != nil {
+			return err
+		}
+		repositoryURL, ok := configuredRepositories[strings.ToLower(repository.URL)]
+		if !ok {
+			return fmt.Errorf("folder repository %q is not configured", repository.URL)
+		}
+		folderPath, err := normalizeCBLRepositoryFolder(selection.Path)
+		if err != nil {
+			return err
+		}
+		key := strings.ToLower(repositoryURL) + "\n" + folderPath
+		if seenFolders[key] {
+			continue
+		}
+		seenFolders[key] = true
+		folders = append(folders, CBLRepositoryFolderSelection{RepositoryURL: repositoryURL, Path: folderPath})
+	}
+	sort.Slice(folders, func(i, j int) bool {
+		if !strings.EqualFold(folders[i].RepositoryURL, folders[j].RepositoryURL) {
+			return strings.ToLower(folders[i].RepositoryURL) < strings.ToLower(folders[j].RepositoryURL)
+		}
+		return strings.ToLower(folders[i].Path) < strings.ToLower(folders[j].Path)
+	})
+	settings.Folders = removeRedundantCBLRepositoryFolders(folders)
 	seenDays := map[string]bool{}
 	days := make([]string, 0, len(settings.Weekdays))
 	for _, value := range settings.Weekdays {
@@ -234,6 +271,35 @@ func validateCBLRepositorySyncSettings(settings *CBLRepositorySyncSettings) erro
 		return errors.New("weekly schedules need at least one weekday")
 	}
 	return nil
+}
+
+func normalizeCBLRepositoryFolder(value string) (string, error) {
+	value = strings.Trim(strings.TrimSpace(value), "/")
+	if value == "" || strings.Contains(value, "\\") {
+		return "", fmt.Errorf("folder path %q must be a repository-relative subfolder", value)
+	}
+	cleaned := path.Clean(value)
+	if cleaned == "." || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", fmt.Errorf("folder path %q must be a repository-relative subfolder", value)
+	}
+	return cleaned, nil
+}
+
+func removeRedundantCBLRepositoryFolders(folders []CBLRepositoryFolderSelection) []CBLRepositoryFolderSelection {
+	filtered := make([]CBLRepositoryFolderSelection, 0, len(folders))
+	for _, folder := range folders {
+		redundant := false
+		for _, selected := range filtered {
+			if strings.EqualFold(selected.RepositoryURL, folder.RepositoryURL) && pathIsInCBLRepositoryFolder(folder.Path, selected.Path) {
+				redundant = true
+				break
+			}
+		}
+		if !redundant {
+			filtered = append(filtered, folder)
+		}
+	}
+	return filtered
 }
 
 func parseCBLGitHubRepository(value string) (cblGitHubRepository, error) {
@@ -405,11 +471,17 @@ func (s *cblRepositorySyncer) run(ctx context.Context, settings CBLRepositorySyn
 			if selectedFiles != nil && len(selection) == 0 {
 				continue
 			}
+			folderPaths := cblRepositoryFolderPaths(settings, repository.URL)
+			if selectedFiles != nil {
+				folderPaths = nil
+			} else if len(settings.Folders) > 0 && len(folderPaths) == 0 {
+				continue
+			}
 			s.update(func(status *CBLRepositorySyncStatus) {
 				status.CurrentRepository = repository.URL
 				status.CurrentFile = ""
 			})
-			if syncErr := s.syncRepositoryWithResolver(ctx, repository, selection, resolveMissing); syncErr != nil {
+			if syncErr := s.syncRepositoryWithResolver(ctx, repository, selection, folderPaths, resolveMissing); syncErr != nil {
 				s.recordFailure(syncErr)
 			}
 			s.update(func(status *CBLRepositorySyncStatus) { status.RepositoriesProcessed++ })
@@ -439,11 +511,21 @@ func (s *cblRepositorySyncer) run(ctx context.Context, settings CBLRepositorySyn
 	s.broadcast()
 }
 
-func (s *cblRepositorySyncer) syncRepository(ctx context.Context, repository cblGitHubRepository, selectedPaths map[string]bool) error {
-	return s.syncRepositoryWithResolver(ctx, repository, selectedPaths, nil)
+func cblRepositoryFolderPaths(settings CBLRepositorySyncSettings, repositoryURL string) []string {
+	folders := make([]string, 0)
+	for _, selection := range settings.Folders {
+		if strings.EqualFold(selection.RepositoryURL, repositoryURL) {
+			folders = append(folders, selection.Path)
+		}
+	}
+	return folders
 }
 
-func (s *cblRepositorySyncer) syncRepositoryWithResolver(ctx context.Context, repository cblGitHubRepository, selectedPaths map[string]bool, resolveMissing cblMissingComicResolver) error {
+func (s *cblRepositorySyncer) syncRepository(ctx context.Context, repository cblGitHubRepository, selectedPaths map[string]bool) error {
+	return s.syncRepositoryWithResolver(ctx, repository, selectedPaths, nil, nil)
+}
+
+func (s *cblRepositorySyncer) syncRepositoryWithResolver(ctx context.Context, repository cblGitHubRepository, selectedPaths map[string]bool, folderPaths []string, resolveMissing cblMissingComicResolver) error {
 	branch, files, err := s.listRepositoryFiles(ctx, repository)
 	if err != nil {
 		return err
@@ -451,6 +533,9 @@ func (s *cblRepositorySyncer) syncRepositoryWithResolver(ctx context.Context, re
 	states, err := s.repositoryFileStates(ctx, repository.URL)
 	if err != nil {
 		return err
+	}
+	if selectedPaths == nil {
+		files = cblRepositoryFilesInFolders(files, folderPaths)
 	}
 	selectedPaths = expandManagedMultipartSelections(files, selectedPaths, states)
 	files, err = selectedRepositoryFiles(files, selectedPaths, repository.URL)
@@ -504,6 +589,26 @@ func (s *cblRepositorySyncer) syncRepositoryWithResolver(ctx context.Context, re
 		s.syncMultipartGroup(ctx, repository, branch, key, parentNames[key], group, states, resolveMissing)
 	}
 	return nil
+}
+
+func cblRepositoryFilesInFolders(files []cblGitHubFile, folderPaths []string) []cblGitHubFile {
+	if len(folderPaths) == 0 {
+		return files
+	}
+	filtered := make([]cblGitHubFile, 0, len(files))
+	for _, file := range files {
+		for _, folderPath := range folderPaths {
+			if pathIsInCBLRepositoryFolder(file.Path, folderPath) {
+				filtered = append(filtered, file)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
+func pathIsInCBLRepositoryFolder(filePath, folderPath string) bool {
+	return filePath == folderPath || strings.HasPrefix(filePath, folderPath+"/")
 }
 
 func expandManagedMultipartSelections(files []cblGitHubFile, selectedPaths map[string]bool, states map[string]cblRepositoryFileState) map[string]bool {

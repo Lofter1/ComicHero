@@ -20,6 +20,11 @@ func TestValidateCBLRepositorySyncSettingsNormalizesRepositories(t *testing.T) {
 			"https://github.com/DieselTech/CBL-ReadingLists.git",
 			"https://github.com/example/other",
 		},
+		Folders: []CBLRepositoryFolderSelection{
+			{RepositoryURL: "https://github.com/DieselTech/CBL-ReadingLists.git", Path: "/Marvel/Events/"},
+			{RepositoryURL: "https://github.com/DieselTech/CBL-ReadingLists", Path: "Marvel/Events/Secret Wars"},
+			{RepositoryURL: "https://github.com/example/other", Path: "DC"},
+		},
 		Schedule:  "weekly",
 		Weekdays:  []string{"Friday", "friday"},
 		StartTime: "04:30",
@@ -33,6 +38,33 @@ func TestValidateCBLRepositorySyncSettingsNormalizesRepositories(t *testing.T) {
 	}
 	if len(settings.Weekdays) != 1 || settings.Weekdays[0] != "friday" {
 		t.Fatalf("weekdays = %#v; want one normalized Friday", settings.Weekdays)
+	}
+	if len(settings.Folders) != 2 || settings.Folders[0].Path != "Marvel/Events" || settings.Folders[1].Path != "DC" {
+		t.Fatalf("folders = %#v; want canonical folders without redundant descendants", settings.Folders)
+	}
+}
+
+func TestValidateCBLRepositorySyncSettingsRejectsFolderFromUnconfiguredRepository(t *testing.T) {
+	settings := defaultCBLRepositorySyncSettings()
+	settings.Folders = []CBLRepositoryFolderSelection{{
+		RepositoryURL: "https://github.com/example/other",
+		Path:          "Marvel",
+	}}
+	if err := validateCBLRepositorySyncSettings(&settings); err == nil {
+		t.Fatal("validate settings succeeded; want unconfigured folder repository rejected")
+	}
+}
+
+func TestCBLRepositoryFilesInFoldersIncludesDescendantsOnly(t *testing.T) {
+	files := []cblGitHubFile{
+		{Path: "DC/Batman/Year One.cbl"},
+		{Path: "DC/Batman Beyond/Neo Year.cbl"},
+		{Path: "DC/Batman/Modern/Court of Owls.cbl"},
+		{Path: "Marvel/Events/Secret Wars.cbl"},
+	}
+	filtered := cblRepositoryFilesInFolders(files, []string{"DC/Batman", "Marvel/Events"})
+	if len(filtered) != 3 || filtered[0].Path != "DC/Batman/Year One.cbl" || filtered[1].Path != "DC/Batman/Modern/Court of Owls.cbl" || filtered[2].Path != "Marvel/Events/Secret Wars.cbl" {
+		t.Fatalf("filtered files = %#v; want only files inside selected folder boundaries", filtered)
 	}
 }
 

@@ -40,6 +40,15 @@
     grid-column: auto;
   }
 
+  .cbl-folder-scope {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cbl-folder-scope > button {
+    width: 100%;
+  }
+
   .cbl-file-picker-list > div {
     align-items: stretch;
     flex-direction: column;
