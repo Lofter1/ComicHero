@@ -6,6 +6,7 @@ import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
 import { formatProgress, formatRating, readingOrderCover } from '@/features/reading-orders/model.js'
+import { useClickOutside } from '@/shared/composables/useClickOutside.js'
 
 const props = defineProps({
   orders: {
@@ -63,6 +64,9 @@ const emit = defineEmits([
 
 const cblFileInput = ref(null)
 const orderActionsOpen = ref(false)
+const orderActions = ref(null)
+
+useClickOutside(orderActions, () => (orderActionsOpen.value = false), orderActionsOpen)
 
 const sortOptions = [
   { value: 'name', label: 'Name' },
@@ -116,7 +120,7 @@ function handleCBLFile(event) {
             @update:direction="$emit('update:direction', $event)"
           >
             <template #actions>
-              <div v-if="!readOnly" class="browse-header-actions order-actions">
+              <div v-if="!readOnly" ref="orderActions" class="browse-header-actions order-actions">
                 <button
                   class="secondary-button icon-text-button mobile-order-actions-trigger"
                   type="button"

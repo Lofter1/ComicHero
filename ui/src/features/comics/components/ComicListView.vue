@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { listComics } from '@/api/client.js'
 import IssueListItem from '@/shared/components/browse/IssueListItem.vue'
+import { useClickOutside } from '@/shared/composables/useClickOutside.js'
 
 const props = defineProps({
   comics: {
@@ -121,7 +122,15 @@ const visibleLimit = ref(props.localPageSize)
 const loadMoreSentinel = ref(null)
 const autoLoadSupported = ref(false)
 const comicOptionsOpen = ref(false)
+const comicOptionsTrigger = ref(null)
+const comicFilterControls = ref(null)
 const collapsedSections = ref(new Set())
+
+useClickOutside(
+  [comicOptionsTrigger, comicFilterControls],
+  () => (comicOptionsOpen.value = false),
+  comicOptionsOpen,
+)
 
 let loadMoreObserver = null
 
@@ -530,6 +539,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
         <button
+          ref="comicOptionsTrigger"
           class="mobile-comic-options-trigger"
           type="button"
           :aria-expanded="comicOptionsOpen"
@@ -539,7 +549,11 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <span aria-hidden="true">⌄</span>
         </button>
 
-        <div class="comic-filter-controls" :class="{ open: comicOptionsOpen }">
+        <div
+          ref="comicFilterControls"
+          class="comic-filter-controls"
+          :class="{ open: comicOptionsOpen }"
+        >
           <div
             class="inline-filter-tabs issue-status-tabs"
             role="group"
