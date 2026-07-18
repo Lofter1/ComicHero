@@ -36,7 +36,7 @@ func RegisterDashboardRoutes(api huma.API, db *sqlx.DB) {
 		OperationID: "getDashboard",
 		Tags:        []string{tagDashboard},
 		Summary:     "Get dashboard",
-		Description: "Returns started reading content with each item's next unread and unskipped comic, plus achievement highlights.",
+		Description: "Returns started reading content, including private character collections, with each item's next unread and unskipped comic, plus achievement highlights.",
 		Method:      http.MethodGet,
 		Path:        "/dashboard",
 		Errors:      []int{401, 500},
@@ -79,6 +79,7 @@ func dashboardItems(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardIt
 		{name: "reading orders", load: dashboardReadingOrders},
 		{name: "arcs", load: dashboardArcs},
 		{name: "characters", load: dashboardCharacters},
+		{name: "collections", load: dashboardCharacterCollections},
 		{name: "series", load: dashboardSeries},
 	} {
 		loaded, err := loader.load(ctx, db, userID)
@@ -248,6 +249,62 @@ func dashboardCharacters(ctx context.Context, db *sqlx.DB, userID int) ([]Dashbo
 		return nil, err
 	}
 	return dashboardItemsFromComicRows("character", rows), nil
+}
+
+func dashboardCharacterCollections(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardItem, error) {
+	rows := []dashboardComicRow{}
+	if err := db.SelectContext(ctx, &rows, `
+		SELECT
+			collection.id,
+			collection.name,
+			collection.started_at,
+			COALESCE(totals.progress, 0.0) AS progress,
+			COALESCE(c.id, 0) AS comic_id,
+			c.metron_issue_id,
+			c.series_id,
+			COALESCE(c.series, '') AS series,
+			COALESCE(c.series_year, 0) AS series_year,
+			COALESCE(c.issue, '') AS issue,
+			COALESCE(c.publisher, '') AS publisher,
+			COALESCE(c.cover_date, '') AS cover_date,
+			COALESCE(c.cover_image, '') AS cover_image,
+			COALESCE(c.description, '') AS description,
+			COALESCE(uc.read, 0) AS read,
+			COALESCE(uc.skipped, 0) AS skipped
+		FROM character_collections collection
+		LEFT JOIN (
+			SELECT appearances.collection_id,
+				AVG(CASE WHEN COALESCE(uc_total.read, 0) = 1 THEN 1.0 ELSE 0.0 END) AS progress
+			FROM (
+				SELECT DISTINCT member.collection_id, cc.comic_id
+				FROM character_collection_members member
+				JOIN comic_characters cc ON cc.character_id = member.character_id
+			) appearances
+			LEFT JOIN user_comics uc_total ON uc_total.comic_id = appearances.comic_id AND uc_total.user_id = ?
+			GROUP BY appearances.collection_id
+		) totals ON totals.collection_id = collection.id
+		LEFT JOIN comics c ON c.id = (
+			SELECT candidate.id
+			FROM comics candidate
+			JOIN comic_characters candidate_character ON candidate_character.comic_id = candidate.id
+			JOIN character_collection_members candidate_member
+				ON candidate_member.character_id = candidate_character.character_id
+			LEFT JOIN user_comics candidate_uc ON candidate_uc.comic_id = candidate.id AND candidate_uc.user_id = ?
+			WHERE candidate_member.collection_id = collection.id
+				AND COALESCE(candidate_uc.read, 0) = 0
+				AND COALESCE(candidate_uc.skipped, 0) = 0
+			GROUP BY candidate.id
+			ORDER BY candidate.cover_date, candidate.series, candidate.series_year,
+				CAST(candidate.issue AS REAL), candidate.issue, candidate.id
+			LIMIT 1
+		)
+		LEFT JOIN user_comics uc ON uc.comic_id = c.id AND uc.user_id = ?
+		WHERE collection.user_id = ? AND collection.started_at IS NOT NULL
+		ORDER BY collection.started_at, collection.name COLLATE NOCASE
+	`, userID, userID, userID, userID); err != nil {
+		return nil, err
+	}
+	return dashboardItemsFromComicRows("characterCollection", rows), nil
 }
 
 func dashboardSeries(ctx context.Context, db *sqlx.DB, userID int) ([]DashboardItem, error) {

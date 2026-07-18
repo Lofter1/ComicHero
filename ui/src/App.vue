@@ -10,6 +10,9 @@ import AppSidebar from '@/app/components/AppSidebar.vue'
 import AppToolbar from '@/app/components/AppToolbar.vue'
 import CharactersBrowseView from '@/features/characters/components/CharactersBrowseView.vue'
 import CharacterDetailView from '@/features/characters/components/CharacterDetailView.vue'
+import AddToCollectionDialog from '@/features/collections/components/AddToCollectionDialog.vue'
+import CollectionDetailView from '@/features/collections/components/CollectionDetailView.vue'
+import CollectionsBrowseView from '@/features/collections/components/CollectionsBrowseView.vue'
 import ComicDetailView from '@/features/comics/components/ComicDetailView.vue'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import DashboardView from '@/features/dashboard/components/DashboardView.vue'
@@ -28,6 +31,7 @@ import { useAccount } from '@/features/account/useAccount.js'
 import { useArcs } from '@/features/arcs/useArcs.js'
 import { useAuthSession } from '@/features/auth/useAuthSession.js'
 import { useCharacters } from '@/features/characters/useCharacters.js'
+import { useCharacterCollections } from '@/features/collections/useCharacterCollections.js'
 import { useComics } from '@/features/comics/useComics.js'
 import { useDashboard } from '@/features/dashboard/useDashboard.js'
 import { useListOptions } from '@/shared/composables/useListOptions.js'
@@ -236,6 +240,27 @@ const {
 })
 
 const {
+  collections: characterCollections,
+  selectedCollection,
+  saving: collectionSaving,
+  startSaving: collectionStartSaving,
+  addDialogCharacter,
+  addDialogCollections,
+  addDialogLoading,
+  loadCollections: loadCharacterCollections,
+  openCollection,
+  createCollection,
+  toggleSelectedCollectionStarted,
+  deleteSelectedCollection,
+  addCharacter: addCharacterToSelectedCollection,
+  removeCharacter: removeCharacterFromSelectedCollection,
+  openAddDialog: openAddToCollection,
+  closeAddDialog: closeAddToCollection,
+  addDialogCharacterTo,
+  createAndAddDialogCollection,
+} = useCharacterCollections({ activeView, viewMode, loading, error })
+
+const {
   selectedArc,
   quickSavingArcID,
   startSaving: arcStartSaving,
@@ -334,6 +359,7 @@ const {
   selectedArc,
   selectedCharacter,
   selectedSeries,
+  selectedCollection,
   collectionProgress: arcProgress,
 })
 const {
@@ -351,6 +377,7 @@ const toolbarResultCount = computed(() => {
   if (activeView.value === 'comics') return comics.value.length
   if (activeView.value === 'series') return visibleSeries.value.length
   if (activeView.value === 'characters') return visibleCharacters.value.length
+  if (activeView.value === 'collections') return characterCollections.value.length
   if (activeView.value === 'users') return userAdminRows.value.length
   if (activeView.value === 'account' || activeView.value === 'progress') return 1
   return 0
@@ -362,6 +389,7 @@ const toolbarTotalCount = computed(() => {
   if (activeView.value === 'comics') return listTotal('comics')
   if (activeView.value === 'series') return listTotal('series')
   if (activeView.value === 'characters') return listTotal('characters')
+  if (activeView.value === 'collections') return characterCollections.value.length
   if (activeView.value === 'users') return userAdminRows.value.length
   if (activeView.value === 'account' || activeView.value === 'progress') return 1
   return 0
@@ -415,6 +443,8 @@ function routeLocationForCurrentState() {
       return detailRouteLocation(activeView.value, selectedSeries.value?.id)
     if (activeView.value === 'characters')
       return detailRouteLocation(activeView.value, selectedCharacter.value?.id)
+    if (activeView.value === 'collections')
+      return detailRouteLocation(activeView.value, selectedCollection.value?.id)
   }
   if (viewMode.value === 'edit') {
     if (activeView.value === 'readingOrders')
@@ -524,6 +554,11 @@ async function activateRoute(route) {
 
   if (route.view === 'characters') {
     await openCharacter({ id: route.id })
+    return
+  }
+
+  if (route.view === 'collections') {
+    await openCollection({ id: route.id })
   }
 }
 
@@ -582,6 +617,10 @@ async function loadActiveViewData(options = {}) {
   }
   if (activeView.value === 'characters') {
     await loadCharacters(options)
+    return
+  }
+  if (activeView.value === 'collections') {
+    await loadCharacterCollections()
     return
   }
   if (activeView.value === 'users') {
@@ -1073,6 +1112,7 @@ onUnmounted(() => {
         @back="backToPreviousPage"
         @toggle-favorite="toggleCharacterFavorite"
         @toggle-started="toggleSelectedCharacterStarted"
+        @add-to-collection="openAddToCollection"
         @import-appearances="importSelectedCharacterAppearances"
         @delete="deleteSelectedCharacter"
         @open-comic="openComic"
@@ -1097,6 +1137,33 @@ onUnmounted(() => {
         @update:direction="updateListOption('characters', 'direction', $event)"
         @open-character="openCharacter"
         @toggle-favorite="toggleCharacterFavorite"
+        @add-to-collection="openAddToCollection"
+      />
+
+      <CollectionDetailView
+        v-else-if="activeView === 'collections' && isDetail"
+        :collection="selectedCollection"
+        :selected-comic-id="selectedComic?.id"
+        :quick-saving-comic-id="quickSavingComicID"
+        :saving="collectionSaving"
+        :start-saving="collectionStartSaving"
+        @back="backToPreviousPage"
+        @toggle-started="toggleSelectedCollectionStarted"
+        @delete="deleteSelectedCollection"
+        @add-character="addCharacterToSelectedCollection"
+        @remove-character="removeCharacterFromSelectedCollection"
+        @open-character="openCharacter"
+        @open-comic="openComic"
+        @toggle-read="toggleComicRead"
+        @toggle-skipped="toggleComicSkipped"
+      />
+
+      <CollectionsBrowseView
+        v-else-if="activeView === 'collections'"
+        :collections="characterCollections"
+        :saving="collectionSaving"
+        @create="createCollection"
+        @open="openCollection"
       />
 
       <ComicDetailView
@@ -1162,6 +1229,17 @@ onUnmounted(() => {
         <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>
+
+      <AddToCollectionDialog
+        v-if="addDialogCharacter"
+        :character="addDialogCharacter"
+        :collections="addDialogCollections"
+        :loading="addDialogLoading"
+        :saving="collectionSaving"
+        @close="closeAddToCollection"
+        @add="addDialogCharacterTo"
+        @create="createAndAddDialogCollection"
+      />
     </section>
   </main>
 </template>

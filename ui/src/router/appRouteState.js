@@ -12,6 +12,7 @@ export function routeToAppState(route) {
   if (route.name === 'comicEdit') return entityState(route, 'comics', 'edit')
   if (route.name === 'seriesDetail') return entityState(route, 'series')
   if (route.name === 'characterDetail') return entityState(route, 'characters')
+  if (route.name === 'collectionDetail') return entityState(route, 'collections')
   return { view: 'dashboard', mode: 'browse', replace: true }
 }
 
@@ -43,6 +44,7 @@ const BROWSE_ROUTE_NAMES = {
   comics: 'comics',
   series: 'series',
   characters: 'characters',
+  collections: 'collections',
   users: 'users',
   settings: 'settings',
   account: 'account',
@@ -55,6 +57,7 @@ const DETAIL_ROUTE_NAMES = {
   comics: 'comicDetail',
   series: 'seriesDetail',
   characters: 'characterDetail',
+  collections: 'collectionDetail',
 }
 
 const EDIT_ROUTE_NAMES = {

@@ -26,6 +26,11 @@ test('maps valid entity routes and rejects invalid IDs', () => {
     mode: 'browse',
     replace: true,
   })
+  assert.deepEqual(routeToAppState({ name: 'collectionDetail', params: { id: '8' } }), {
+    view: 'collections',
+    mode: 'detail',
+    id: 8,
+  })
 })
 
 test('builds browse, detail, and edit route locations', () => {
@@ -38,6 +43,11 @@ test('builds browse, detail, and edit route locations', () => {
   assert.deepEqual(detailRouteLocation('characters', 7), {
     name: 'characterDetail',
     params: { id: 7 },
+  })
+  assert.deepEqual(browseRouteLocation('collections'), { name: 'collections' })
+  assert.deepEqual(detailRouteLocation('collections', 8), {
+    name: 'collectionDetail',
+    params: { id: 8 },
   })
   assert.deepEqual(editRouteLocation('arcs'), { name: 'arcsNew' })
   assert.deepEqual(editRouteLocation('arcs', 9), { name: 'arcEdit', params: { id: 9 } })

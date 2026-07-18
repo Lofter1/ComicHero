@@ -33,6 +33,7 @@ function itemTypeLabel(type) {
   if (type === 'readingOrder') return 'Reading order'
   if (type === 'arc') return 'Arc'
   if (type === 'character') return 'Character'
+  if (type === 'characterCollection') return 'Character collection'
   if (type === 'series') return 'Series'
   return 'Started'
 }
@@ -134,7 +135,10 @@ function achievementProgress(achievement) {
 
     <section v-else class="empty-panel">
       <h2>No started reading yet</h2>
-      <p>Start a reading order, arc, character, or series and it will appear here.</p>
+      <p>
+        Start a reading order, arc, character, character collection, or series and it will appear
+        here.
+      </p>
     </section>
   </section>
 </template>

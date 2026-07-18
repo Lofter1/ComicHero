@@ -25,6 +25,7 @@ export function useComics({
   selectedArc,
   selectedCharacter,
   selectedSeries,
+  selectedCollection,
   collectionProgress = readingOrderProgress,
 }) {
   const comics = ref([])
@@ -267,6 +268,18 @@ export function useComics({
         progress: readingOrderProgress(seriesComics),
       }
     }
+    if (selectedCollection.value?.comics) {
+      const collectionComics = selectedCollection.value.comics.map((comic) => {
+        return comic.id === detail.id
+          ? { ...comic, read: detail.read, skipped: detail.skipped }
+          : comic
+      })
+      selectedCollection.value = {
+        ...selectedCollection.value,
+        comics: collectionComics,
+        progress: readingOrderProgress(collectionComics),
+      }
+    }
   }
 
   function applyComicDetailState(detail) {
@@ -315,6 +328,16 @@ export function useComics({
         comics: seriesComics,
         readCount: seriesComics.filter((comic) => comic.read).length,
         progress: readingOrderProgress(seriesComics),
+      }
+    }
+    if (selectedCollection.value?.comics) {
+      const collectionComics = selectedCollection.value.comics.map((comic) => {
+        return comic.id === detail.id ? { ...comic, ...detail } : comic
+      })
+      selectedCollection.value = {
+        ...selectedCollection.value,
+        comics: collectionComics,
+        progress: readingOrderProgress(collectionComics),
       }
     }
   }

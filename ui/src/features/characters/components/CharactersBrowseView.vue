@@ -53,6 +53,7 @@ defineEmits([
   'update:direction',
   'open-character',
   'toggle-favorite',
+  'add-to-collection',
 ])
 
 const sortOptions = [
@@ -126,6 +127,15 @@ function characterProgress(character) {
                     `${character.startedCount} reading`,
                   ]"
                 />
+              </template>
+              <template v-if="!readOnly" #actions>
+                <button
+                  class="secondary-action collection-row-action"
+                  type="button"
+                  @click="$emit('add-to-collection', character)"
+                >
+                  Add to collection
+                </button>
               </template>
             </BrowseEntityRow>
           </template>

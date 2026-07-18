@@ -1,7 +1,7 @@
 package api
 
 type DashboardItem struct {
-	Type      string  `json:"type"      doc:"Started content type." enum:"readingOrder,arc,character,series" example:"readingOrder"`
+	Type      string  `json:"type"      doc:"Started content type." enum:"readingOrder,arc,character,characterCollection,series" example:"readingOrder"`
 	ID        int     `json:"id"        doc:"Local content identifier." example:"7"`
 	Name      string  `json:"name"      doc:"Started content display name." example:"Batman: Court of Owls"`
 	StartedAt string  `json:"startedAt" doc:"When the current user started this content." example:"2026-07-10T12:30:00Z"`
@@ -15,7 +15,7 @@ type DashboardAchievementSummary struct {
 }
 
 type DashboardView struct {
-	Items        []DashboardItem             `json:"items"        doc:"Started reading orders, arcs, characters, and series with their next comic."`
+	Items        []DashboardItem             `json:"items"        doc:"Started reading orders, arcs, characters, character collections, and series with their next comic."`
 	Achievements DashboardAchievementSummary `json:"achievements" doc:"Achievement highlights for the current user."`
 }
 

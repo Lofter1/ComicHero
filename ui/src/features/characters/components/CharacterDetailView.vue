@@ -44,6 +44,7 @@ defineEmits([
   'toggle-read',
   'toggle-skipped',
   'delete',
+  'add-to-collection',
 ])
 
 function characterProgress(character) {
@@ -70,6 +71,14 @@ function characterProgress(character) {
         :disabled="quickSavingCharacterId === selectedCharacter.id"
         @toggle="$emit('toggle-favorite', selectedCharacter)"
       />
+      <button
+        v-if="selectedCharacter && !readOnly"
+        class="secondary-button"
+        type="button"
+        @click="$emit('add-to-collection', selectedCharacter)"
+      >
+        Add to collection
+      </button>
       <button
         v-if="selectedCharacter && !readOnly"
         :class="selectedCharacter.startedAt ? 'secondary-button' : 'primary-button'"
