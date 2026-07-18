@@ -2,7 +2,7 @@
 
 @tailwind components;
 
-@layer components {
+@layer base {
   /* Theme tokens, resets, and global element defaults. */
 
   :root {
@@ -34,7 +34,11 @@
 
   button:disabled {
     @apply cursor-wait opacity-65;
-  } /* Authentication, navigation shell, shared buttons, and page toolbars. */
+  }
+}
+
+@layer components {
+  /* Authentication, navigation shell, shared buttons, and page toolbars. */
 
   .app-shell {
     @apply min-h-screen grid [grid-template-columns:260px_minmax(0,_1fr)];
