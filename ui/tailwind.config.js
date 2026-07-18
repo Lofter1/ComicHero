@@ -1,0 +1,91 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{vue,js}'],
+  theme: {
+    extend: {
+      colors: {
+        ink: 'var(--ink)',
+        muted: 'var(--muted)',
+        line: 'var(--line)',
+        'line-strong': 'var(--line-strong)',
+        surface: 'var(--surface)',
+        'surface-soft': 'var(--surface-soft)',
+        'surface-muted': 'var(--surface-muted)',
+        control: 'var(--control-ink)',
+        body: 'var(--body-copy)',
+        label: 'var(--label-ink)',
+        eyebrow: 'var(--eyebrow)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          strong: 'var(--primary-strong)',
+          soft: 'var(--primary-soft)',
+        },
+        accent: 'var(--accent)',
+        warning: {
+          DEFAULT: 'var(--warning-ink)',
+          soft: 'var(--warning-soft)',
+          border: 'var(--warning-border)',
+        },
+        danger: {
+          DEFAULT: 'var(--danger)',
+          soft: 'var(--danger-soft)',
+          border: 'var(--danger-border)',
+        },
+      },
+      fontFamily: {
+        sans: [
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          'Segoe UI',
+          'sans-serif',
+        ],
+      },
+      fontSize: {
+        xxs: ['0.68rem', { lineHeight: '1rem' }],
+        '2xs': ['0.72rem', { lineHeight: '1rem' }],
+        compact: ['0.8rem', { lineHeight: '1.15rem' }],
+        lead: ['1.05rem', { lineHeight: '1.55rem' }],
+        display: ['1.9rem', { lineHeight: '2.2rem' }],
+      },
+      spacing: {
+        4.5: '1.125rem',
+        13: '3.25rem',
+        15: '3.75rem',
+        18: '4.5rem',
+        22: '5.5rem',
+        30: '7.5rem',
+      },
+      borderRadius: {
+        xs: '3px',
+        sm: '5px',
+        DEFAULT: '8px',
+        md: '9px',
+        lg: '10px',
+        xl: '12px',
+        '2xl': '14px',
+      },
+      boxShadow: {
+        soft: '0 8px 22px var(--shadow-soft)',
+        panel: '0 18px 48px var(--shadow-panel)',
+        elevated: '0 24px 64px var(--shadow-panel)',
+        inset: 'inset 0 0 0 1px var(--line-strong)',
+        focus: '0 0 0 3px var(--focus-ring)',
+      },
+      backgroundImage: {
+        app: 'linear-gradient(180deg, var(--app-bg-start) 0%, var(--app-bg-end) 340px)',
+      },
+      transitionDuration: {
+        140: '140ms',
+      },
+      zIndex: {
+        40: '40',
+        60: '60',
+        80: '80',
+      },
+    },
+  },
+  plugins: [],
+}

@@ -20,3 +20,7 @@
 @import './styles/responsive-tablet.css';
 @import './styles/responsive-mobile.css';
 @import './styles/responsive-small.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
