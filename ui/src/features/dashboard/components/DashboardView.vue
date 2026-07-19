@@ -60,43 +60,11 @@ function achievementProgress(achievement) {
       </button>
     </header>
 
-    <div
-      class="dashboard-achievements grid [grid-template-columns:repeat(auto-fit,_minmax(260px,_1fr))] gap-3.5"
-    >
-      <article
-        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
-      >
-        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Recently earned</p>
-        <template v-if="recentAchievement">
-          <h3>{{ recentAchievement.name }}</h3>
-          <p>{{ recentAchievement.description }}</p>
-        </template>
-        <p v-else class="muted block text-muted">No achievements earned yet.</p>
-      </article>
-      <article
-        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
-      >
-        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Next achievement</p>
-        <template v-if="nextAchievement">
-          <h3>{{ nextAchievement.name }}</h3>
-          <p>{{ nextAchievement.description }}</p>
-          <div
-            class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
-            :aria-label="`${nextAchievement.name} progress`"
-          >
-            <span :style="{ width: formatProgress(nextAchievement.percent) }"></span>
-          </div>
-          <small>{{ achievementProgress(nextAchievement) }}</small>
-        </template>
-        <p v-else class="muted block text-muted">All achievements earned.</p>
-      </article>
-    </div>
-
     <LoadingState v-if="loading && !dashboard" />
 
     <div
       v-else-if="items.length"
-      class="dashboard-grid grid [grid-template-columns:repeat(auto-fit,_minmax(260px,_1fr))] gap-3.5"
+      class="dashboard-grid grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-mobile:grid-cols-1"
     >
       <article
         v-for="item in items"
@@ -172,5 +140,37 @@ function achievementProgress(achievement) {
         here.
       </p>
     </section>
+
+    <div
+      class="dashboard-achievements grid [grid-template-columns:repeat(auto-fit,_minmax(260px,_1fr))] gap-3.5"
+    >
+      <article
+        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
+      >
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Recently earned</p>
+        <template v-if="recentAchievement">
+          <h3>{{ recentAchievement.name }}</h3>
+          <p>{{ recentAchievement.description }}</p>
+        </template>
+        <p v-else class="muted block text-muted">No achievements earned yet.</p>
+      </article>
+      <article
+        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
+      >
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Next achievement</p>
+        <template v-if="nextAchievement">
+          <h3>{{ nextAchievement.name }}</h3>
+          <p>{{ nextAchievement.description }}</p>
+          <div
+            class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+            :aria-label="`${nextAchievement.name} progress`"
+          >
+            <span :style="{ width: formatProgress(nextAchievement.percent) }"></span>
+          </div>
+          <small>{{ achievementProgress(nextAchievement) }}</small>
+        </template>
+        <p v-else class="muted block text-muted">All achievements earned.</p>
+      </article>
+    </div>
   </section>
 </template>
