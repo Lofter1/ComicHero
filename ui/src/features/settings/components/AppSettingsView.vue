@@ -501,6 +501,7 @@ function selectSettingsTab(tab) {
             }}
           </p>
         </div>
+
         <div
           class="registration-mode-toggle grid grid-cols-2 gap-1 border border-line rounded bg-surface p-1 [&_button]:min-w-0 [&_button]:min-h-10 [&_button]:border-0 [&_button]:rounded-[7px] [&_button]:bg-transparent [&_button]:text-control [&_button]:py-2 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-black [&_button]:leading-tight [&_button]:whitespace-normal [&_button]:break-anywhere [&_button.active]:bg-primary [&_button.active]:[color:var(--primary-ink)]"
           role="group"
@@ -1260,7 +1261,6 @@ function selectSettingsTab(tab) {
             <template v-else>Not run yet</template>
           </p>
         </div>
-
         <div
           class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 [&_>_button]:min-h-11 down-mobile:[&_>_button]:w-full"
         >
@@ -1415,6 +1415,9 @@ function selectSettingsTab(tab) {
             </template>
           </p>
         </div>
+        <p v-if="metronComicScan.lastError" class="text-danger text-sm m-0">
+          Last error: {{ metronComicScan.lastError }}
+        </p>
 
         <div
           class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 [&_>_button]:min-h-11 down-mobile:[&_>_button]:w-full"
