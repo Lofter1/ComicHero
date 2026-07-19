@@ -517,9 +517,9 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 </script>
 
 <template>
-  <section class="comic-list-view grid gap-3">
+  <section class="comic-list-view grid w-full min-w-0 max-w-full gap-3">
     <div
-      class="comic-list-sticky grid gap-2.5 pb-3 [border-bottom:1px_solid_var(--sticky-border)] [background:var(--sticky-bg)] [margin-top:2rem]"
+      class="comic-list-sticky grid w-full min-w-0 max-w-full gap-2.5 pb-3 [border-bottom:1px_solid_var(--sticky-border)] [background:var(--sticky-bg)] [margin-top:2rem]"
     >
       <header class="comic-list-header">
         <div>
@@ -537,7 +537,10 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         </button>
       </header>
 
-      <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
+      <div
+        v-if="sourceComics.length || serverSource || hasFilters"
+        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2"
+      >
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
         <button
@@ -624,7 +627,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
     </div>
 
     <template v-if="visibleComics.length">
-      <div class="issue-list grid gap-2.5">
+      <div class="issue-list grid w-full min-w-0 max-w-full gap-2.5">
         <template v-for="(comic, index) in visibleComics" :key="`${comic.id}-${index}`">
           <button
             v-if="showSectionBefore(comic, index)"

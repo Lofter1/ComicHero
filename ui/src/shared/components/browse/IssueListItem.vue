@@ -40,18 +40,18 @@ function entryTags() {
 
 <template>
   <div
-    class="issue-list-item read-accent [border-bottom-width:4px] [border-bottom-style:solid] flex [align-items:flex-start] justify-between gap-3 border border-line rounded bg-surface-soft [padding:10px_12px] down-mobile:flex-wrap"
+    class="issue-list-item read-accent flex w-full min-w-0 max-w-full flex-wrap [align-items:flex-start] justify-between gap-3 rounded border border-line border-b-4 bg-surface-soft [padding:10px_12px]"
     :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
   >
     <button
-      class="issue-list-main flex items-center gap-2.5 [flex:1_1_auto] border-0 bg-transparent [color:inherit] [padding:0] text-left"
+      class="issue-list-main flex max-w-full min-w-0 items-center gap-2.5 [flex:1_1_280px] border-0 bg-transparent [color:inherit] [padding:0] text-left"
       type="button"
       @click="$emit('open', comic)"
     >
       <span v-if="showCover && comic.coverImage" class="issue-list-cover" aria-hidden="true">
         <img :src="assetURL(comic.coverImage)" alt="" loading="lazy" />
       </span>
-      <span class="issue-list-copy min-w-0">
+      <span class="issue-list-copy min-w-0 max-w-full [overflow-wrap:anywhere]">
         <strong>{{ comic.title }}</strong>
         <small v-if="showComment && comic.comment">{{ comic.comment }}</small>
         <span
