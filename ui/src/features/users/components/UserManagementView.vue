@@ -137,21 +137,23 @@ function formatTimestamp(value) {
 </script>
 
 <template>
-  <section class="browse-view user-management-view grid gap-5 [max-width:1160px]">
+  <section class="browse-view user-management-view grid w-full min-w-0 max-w-[1160px] gap-5">
     <div v-if="users.length === 0" class="empty-panel">No users yet.</div>
 
     <template v-else>
       <header
-        class="user-directory-toolbar flex items-end justify-between gap-4 [border-bottom:1px_solid_var(--line)] [padding:4px_0_12px] down-mobile:[align-items:stretch] down-mobile:flex-col"
+        class="user-directory-toolbar flex min-w-0 items-end justify-between gap-4 [border-bottom:1px_solid_var(--line)] [padding:4px_0_12px] down-tablet:flex-col down-tablet:items-stretch"
       >
         <div>
           <p class="eyebrow">Accounts</p>
           <h3>{{ users.length }} {{ users.length === 1 ? 'user' : 'users' }}</h3>
         </div>
         <div
-          class="user-directory-filters grid [grid-template-columns:minmax(220px,_1fr)_auto_auto] gap-2 [width:min(680px,_100%)] down-mobile:[grid-template-columns:1fr_1fr] down-mobile:w-full"
+          class="user-directory-filters grid w-full max-w-[680px] min-w-0 [grid-template-columns:minmax(220px,_1fr)_auto_auto] gap-2 down-tablet:max-w-none down-tablet:[grid-template-columns:1fr_1fr]"
         >
-          <label class="user-search-field [width:min(360px,_100%)] down-mobile:w-full">
+          <label
+            class="user-search-field w-full min-w-0 max-w-[360px] down-tablet:col-span-2 down-tablet:max-w-none"
+          >
             <span class="sr-only">Search users</span>
             <input v-model="userQuery" type="search" placeholder="Search by name or email" />
           </label>
@@ -210,10 +212,10 @@ function formatTimestamp(value) {
           </summary>
 
           <div
-            class="user-card-sections grid [grid-template-columns:minmax(220px,_0.7fr)_minmax(420px,_1.3fr)] [gap:0] [align-items:stretch] min-w-0"
+            class="user-card-sections grid min-w-0 [grid-template-columns:minmax(220px,_0.7fr)_minmax(420px,_1.3fr)] [align-items:stretch] [gap:0] down-tablet:grid-cols-1"
           >
             <section
-              class="user-card-section account-section grid content-start gap-3 min-w-0 [padding:16px_18px] [border-right:1px_solid_var(--line)] down-mobile:[border-right:0] down-mobile:[border-bottom:1px_solid_var(--line)]"
+              class="user-card-section account-section grid min-w-0 content-start gap-3 [border-right:1px_solid_var(--line)] [padding:16px_18px] down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line"
             >
               <div class="section-heading">
                 <p class="eyebrow">Account</p>
@@ -258,7 +260,7 @@ function formatTimestamp(value) {
               </div>
 
               <div
-                class="metron-settings-grid grid [grid-template-columns:minmax(180px,_240px)_1fr] gap-3 items-start min-w-0"
+                class="metron-settings-grid grid min-w-0 grid-cols-[minmax(180px,240px)_minmax(0,1fr)] items-start gap-3 down-tablet:grid-cols-1"
               >
                 <div class="metron-control-column grid gap-2.5 min-w-0">
                   <label class="compact-toggle">
@@ -315,7 +317,7 @@ function formatTimestamp(value) {
       </div>
     </template>
 
-    <section class="detail-panel">
+    <section class="detail-panel min-w-0 max-w-full">
       <header class="section-heading">
         <p class="eyebrow">Audit log</p>
         <h3>Recent changes</h3>
@@ -323,24 +325,31 @@ function formatTimestamp(value) {
       <p v-if="auditEvents.length === 0" class="empty-state">
         No state-changing actions recorded yet.
       </p>
-      <div v-else class="table-scroll">
-        <table>
+      <div
+        v-else
+        class="table-scroll mt-4 w-full max-w-full overflow-x-auto overscroll-x-contain rounded border border-line"
+      >
+        <table class="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr>
-              <th>When</th>
-              <th>User</th>
-              <th>Action</th>
-              <th>Status</th>
+              <th class="border-b border-line bg-surface-muted px-3 py-2.5">When</th>
+              <th class="border-b border-line bg-surface-muted px-3 py-2.5">User</th>
+              <th class="border-b border-line bg-surface-muted px-3 py-2.5">Action</th>
+              <th class="border-b border-line bg-surface-muted px-3 py-2.5">Status</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="event in auditEvents" :key="event.id">
-              <td>{{ formatTimestamp(event.occurredAt) }}</td>
-              <td>{{ event.userName || 'System / unauthenticated' }}</td>
-              <td>
-                <code>{{ event.method }} {{ event.path }}</code>
+              <td class="border-b border-line px-3 py-2.5 align-top">
+                {{ formatTimestamp(event.occurredAt) }}
               </td>
-              <td>{{ event.statusCode }}</td>
+              <td class="border-b border-line px-3 py-2.5 align-top">
+                {{ event.userName || 'System / unauthenticated' }}
+              </td>
+              <td class="border-b border-line px-3 py-2.5 align-top">
+                <code class="whitespace-nowrap">{{ event.method }} {{ event.path }}</code>
+              </td>
+              <td class="border-b border-line px-3 py-2.5 align-top">{{ event.statusCode }}</td>
             </tr>
           </tbody>
         </table>
