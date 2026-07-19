@@ -44,20 +44,27 @@ function achievementTimestampLabel(achievement) {
 </script>
 
 <template>
-  <section class="browse-view progress-view grid gap-4 [max-width:1180px]">
+  <section class="browse-view progress-view grid gap-4 max-w-295 min-w-0 w-full">
     <LoadingState v-if="loading && !statisticsView" />
-    <div v-else-if="error" class="empty-state">
+    <div
+      v-else-if="error"
+      class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+    >
       {{ error }}
     </div>
     <template v-else-if="statisticsView">
-      <article class="progress-summary-panel [grid-template-columns:1fr]">
-        <div class="progress-section-heading flex items-center justify-between gap-3 min-w-0">
+      <article
+        class="progress-summary-panel grid-cols-1 grid gap-4 border border-line rounded bg-surface-soft p-4.5 down-tablet:grid-cols-1"
+      >
+        <div
+          class="progress-section-heading flex items-center justify-between gap-3 min-w-0 [&_h3]:break-anywhere"
+        >
           <div>
-            <p class="eyebrow">Progress</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Progress</p>
             <h3>Reading progress</h3>
           </div>
           <button
-            class="secondary-button compact-button min-h-9 [padding:7px_10px]"
+            class="secondary-button compact-button min-h-9 py-1.75 px-2.5 min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
             type="button"
             :disabled="loading"
             @click="emit('refresh')"
@@ -66,7 +73,9 @@ function achievementTimestampLabel(achievement) {
           </button>
         </div>
 
-        <div class="metadata-grid progress-stat-grid">
+        <div
+          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+        >
           <span>
             <strong>{{ statisticsView.statistics.readComics }}</strong>
             <small>Read comics</small>
@@ -86,8 +95,12 @@ function achievementTimestampLabel(achievement) {
         </div>
       </article>
 
-      <article class="progress-section-panel">
-        <div class="metadata-grid progress-stat-grid">
+      <article
+        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4.5"
+      >
+        <div
+          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+        >
           <span>
             <strong>{{ statisticsView.statistics.distinctReadSeries }}</strong>
             <small>Series read</small>
@@ -131,9 +144,13 @@ function achievementTimestampLabel(achievement) {
         </div>
       </article>
 
-      <article class="progress-section-panel">
-        <div class="progress-section-heading flex items-center justify-between gap-3 min-w-0">
-          <p class="eyebrow">Achievements</p>
+      <article
+        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4.5"
+      >
+        <div
+          class="progress-section-heading flex items-center justify-between gap-3 min-w-0 [&_h3]:break-anywhere"
+        >
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Achievements</p>
           <h3>Milestones</h3>
         </div>
 
@@ -144,14 +161,14 @@ function achievementTimestampLabel(achievement) {
           <article
             v-for="achievement in statisticsView.achievements"
             :key="achievement.id"
-            class="achievement-card grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted"
+            class="achievement-card grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted [&.earned]:[border-color:color-mix(in_srgb,_var(--accent)_45%,_var(--line))] [&.earned]:[background:color-mix(in_srgb,_var(--accent)_12%,_var(--surface))] [&.earned]:text-ink [&.earned_.achievement-badge]:[border-color:var(--accent)] [&.earned_.achievement-badge]:[background:var(--accent)] [&.earned_.achievement-badge]:[color:var(--surface)] [&_p]:m-0"
             :class="{ earned: achievement.earned }"
           >
             <div
-              class="achievement-card-heading grid [grid-template-columns:auto_minmax(0,_1fr)] gap-2.5 items-center"
+              class="achievement-card-heading grid [grid-template-columns:auto_minmax(0,_1fr)] gap-2.5 items-center [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.5"
             >
               <span
-                class="achievement-badge grid place-items-center [width:34px] [height:34px] border border-line rounded-full bg-surface-soft text-muted [font-size:0.75rem] font-black"
+                class="achievement-badge grid place-items-center w-8.5 h-8.5 border border-line rounded-full bg-surface-soft text-muted text-xs font-black"
                 aria-hidden="true"
                 >{{ achievement.earned ? 'OK' : '--' }}</span
               >
@@ -161,13 +178,15 @@ function achievementTimestampLabel(achievement) {
               </div>
             </div>
             <p>{{ achievement.description }}</p>
-            <div class="achievement-progress grid gap-1.5 [font-size:0.82rem] font-extrabold">
+            <div
+              class="achievement-progress grid gap-1.5 text-ui-sm font-extrabold [&_small]:block [&_small]:text-muted [&_small]:mt-1"
+            >
               <span
                 >{{ Math.min(achievement.progress, achievement.target) }} /
                 {{ achievement.target }}</span
               >
               <div
-                class="progress-track overflow-hidden h-2 rounded-full bg-surface-muted"
+                class="progress-track overflow-hidden h-2 rounded-full bg-surface-muted [&_span]:block [&_span]:[width:0] [&_span]:h-full [&_span]:[border-radius:inherit] [&_span]:[background:var(--accent)] [&_span]:[transition:width_0.2s_ease]"
                 aria-hidden="true"
               >
                 <span :style="{ width: percentLabel(achievement.percent) }"></span>
@@ -176,7 +195,12 @@ function achievementTimestampLabel(achievement) {
             </div>
           </article>
         </div>
-        <div v-else class="empty-state">No achievements yet.</div>
+        <div
+          v-else
+          class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+        >
+          No achievements yet.
+        </div>
       </article>
     </template>
   </section>

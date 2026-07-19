@@ -68,22 +68,35 @@ function deleteAccount() {
 </script>
 
 <template>
-  <section class="browse-view account-view [max-width:960px]">
-    <div v-if="!user" class="empty-panel">No active account.</div>
+  <section class="browse-view account-view [max-width:960px] min-w-0 w-full">
+    <div
+      v-if="!user"
+      class="empty-panel border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold"
+    >
+      No active account.
+    </div>
 
     <form v-else class="account-settings grid gap-3.5" @submit.prevent="save">
-      <article class="account-settings-panel">
-        <div class="account-settings-heading flex items-center gap-3.5 min-w-0">
-          <span class="account-avatar large" aria-hidden="true">{{
-            (user.name || '?').slice(0, 1).toUpperCase()
-          }}</span>
+      <article
+        class="account-settings-panel grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+      >
+        <div
+          class="account-settings-heading flex items-center gap-3.5 min-w-0 [&_h3]:break-anywhere"
+        >
+          <span
+            class="account-avatar large w-9 min-w-9 h-9 border border-primary rounded-full inline-flex items-center justify-center bg-primary-soft text-primary font-black leading-none [&.large]:w-11.5 [&.large]:min-w-11.5 [&.large]:h-11.5 [&.large]:text-ui-title-sm"
+            aria-hidden="true"
+            >{{ (user.name || '?').slice(0, 1).toUpperCase() }}</span
+          >
           <div>
-            <p class="eyebrow">Profile</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Profile</p>
             <h3>{{ user.name }}</h3>
           </div>
         </div>
 
-        <div class="metadata-grid account-metadata">
+        <div
+          class="metadata-grid account-metadata [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+        >
           <span>
             <strong>{{ user.isAdmin ? 'Admin' : 'User' }}</strong>
             <small>Role</small>
@@ -91,13 +104,17 @@ function deleteAccount() {
         </div>
       </article>
 
-      <article class="account-settings-panel">
+      <article
+        class="account-settings-panel grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+      >
         <div>
-          <p class="eyebrow">Account Data</p>
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Account Data</p>
           <h3>Manage account</h3>
         </div>
 
-        <div class="auth-fields">
+        <div
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        >
           <label>
             <span>Display name</span>
             <input v-model.trim="form.name" type="text" autocomplete="name" required />
@@ -105,13 +122,18 @@ function deleteAccount() {
         </div>
       </article>
 
-      <article v-if="userMode === 'multi'" class="account-settings-panel">
+      <article
+        v-if="userMode === 'multi'"
+        class="account-settings-panel grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+      >
         <div>
-          <p class="eyebrow">Password</p>
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Password</p>
           <h3>Change password</h3>
         </div>
 
-        <div class="auth-fields">
+        <div
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        >
           <label>
             <span>Current password</span>
             <input v-model="form.currentPassword" type="password" autocomplete="current-password" />
@@ -138,7 +160,7 @@ function deleteAccount() {
       </article>
 
       <button
-        class="primary-button account-save-button [justify-self:start]"
+        class="primary-button account-save-button justify-self-start min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -147,18 +169,20 @@ function deleteAccount() {
 
       <article
         v-if="userMode === 'multi'"
-        class="account-settings-panel danger-panel border-danger-border bg-danger-soft"
+        class="account-settings-panel danger-panel border-danger-border bg-danger-soft grid gap-3.5 border border-line rounded bg-surface-soft p-4"
       >
         <div>
-          <p class="eyebrow">Danger Zone</p>
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Danger Zone</p>
           <h3>Delete account</h3>
-          <p class="muted">
+          <p class="muted block text-muted">
             This removes your account, sessions, read status, and Metron permissions. Reading lists
             you authored stay in the library without an author.
           </p>
         </div>
 
-        <div class="auth-fields">
+        <div
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        >
           <label>
             <span>Current password</span>
             <input
@@ -171,7 +195,7 @@ function deleteAccount() {
         </div>
 
         <button
-          class="danger-button account-save-button [justify-self:start]"
+          class="danger-button account-save-button justify-self-start min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
           type="button"
           :disabled="deleting"
           @click="deleteAccount"

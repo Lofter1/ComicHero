@@ -87,13 +87,13 @@ function jobMessage(job) {
 <template>
   <div
     v-if="jobs.length"
-    class="import-monitor fixed [right:24px] [bottom:24px] [z-index:45] grid gap-2.5 [width:min(440px,_calc(100vw_-_32px))] border border-line-strong rounded [background:var(--panel-bg)] [box-shadow:0_18px_42px_var(--shadow-panel)] p-3 down-tablet:[right:16px] down-tablet:[bottom:16px] down-mobile:[right:10px] down-mobile:[bottom:10px] down-mobile:[width:calc(100vw_-_20px)] down-mobile:[max-height:42vh] down-mobile:overflow-auto"
+    class="import-monitor fixed right-6 bottom-6 z-45 grid gap-2.5 [width:min(440px,_calc(100vw_-_32px))] border border-line-strong rounded bg-panel shadow-monitor p-3 down-tablet:right-4 down-tablet:bottom-4 down-mobile:right-2.5 down-mobile:bottom-2.5 down-mobile:[width:calc(100vw_-_20px)] down-mobile:[max-height:42vh] down-mobile:overflow-auto [&.collapsed]:w-auto [&.collapsed]:[max-width:min(300px,_calc(100vw_-_32px))] [&.collapsed]:py-2 [&.collapsed]:px-2.5 [&_header]:flex [&_header]:items-baseline [&_header]:justify-between [&_header]:gap-3 [&_header_small]:text-muted [&_header_small]:font-bold down-mobile:[&.collapsed]:w-auto down-mobile:[&.collapsed]:[max-width:calc(100vw_-_20px)]"
     :class="{ collapsed: !open }"
     aria-live="polite"
   >
     <header>
       <button
-        class="import-monitor-toggle flex [align-items:baseline] gap-2.5 [min-height:0] border-0 bg-transparent [color:inherit] [padding:0] text-left"
+        class="import-monitor-toggle flex items-baseline gap-2.5 min-h-0 border-0 bg-transparent text-inherit p-0 text-left [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap"
         type="button"
         :aria-expanded="open"
         @click="updateOpen(!open)"
@@ -110,7 +110,7 @@ function jobMessage(job) {
       <div
         v-for="job in jobs"
         :key="job.id"
-        class="metron-job flex [align-items:flex-start] justify-between gap-3 border border-line-strong rounded bg-surface-soft [padding:10px_12px]"
+        class="metron-job flex items-start justify-between gap-3 border border-line-strong rounded bg-surface-soft py-2.5 px-3 [&.failed]:border-danger-border [&.failed]:bg-danger-soft [&.canceled]:[border-color:#d8c38a] [&.canceled]:bg-warning-soft [&.succeeded]:[border-color:color-mix(in_srgb,_var(--primary)_35%,_var(--line-strong))] [&_span:first-child]:min-w-0 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.75 down-mobile:items-stretch down-mobile:flex-col"
         :class="job.status"
       >
         <span>
@@ -118,28 +118,35 @@ function jobMessage(job) {
           <small>{{ jobMessage(job) }}</small>
           <small>{{ progressLabel(job) }}</small>
           <span
-            class="job-progress block [width:min(260px,_100%)] h-2 rounded-full [background:var(--read-progress-bg)] overflow-hidden mt-2"
+            class="job-progress block [width:min(260px,_100%)] h-2 rounded-full bg-read-progress overflow-hidden mt-2 [&_span]:block [&_span]:h-full [&_span]:[border-radius:inherit] [&_span]:bg-primary [&_span]:[transition:width_180ms_ease] [&.indeterminate_span]:![width:42%] [&.indeterminate_span]:[min-width:42%] [&.indeterminate_span]:animate-job-progress-sweep"
             :class="{ indeterminate: progressIndeterminate(job) }"
             aria-hidden="true"
           >
             <span :style="{ width: `${progressPercent(job)}%` }"></span>
           </span>
         </span>
-        <span class="job-actions flex items-center gap-2 [flex:0_0_auto]">
-          <span class="status-pill">{{ job.status }}</span>
+        <span class="job-actions flex items-center gap-2 flex-none down-mobile:flex-wrap">
+          <span
+            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+            >{{ job.status }}</span
+          >
           <button
             v-if="job.status === 'failed'"
-            class="icon-button compact-icon-button [align-self:center] [width:34px] [min-width:34px] [min-height:34px] [padding:0]"
+            class="icon-button compact-icon-button self-center w-8.5 min-w-8.5 min-h-8.5 p-0 min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
             type="button"
             aria-label="Retry import"
             title="Retry import"
             @click="$emit('retry', job)"
           >
-            <span aria-hidden="true" class="button-icon">↻</span>
+            <span
+              aria-hidden="true"
+              class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+              >↻</span
+            >
           </button>
           <button
             v-if="canContinue(job)"
-            class="ghost-button"
+            class="ghost-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
             type="button"
             @click="$emit('continue', job)"
           >
@@ -147,7 +154,7 @@ function jobMessage(job) {
           </button>
           <button
             v-if="canCancel(job)"
-            class="ghost-button"
+            class="ghost-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
             type="button"
             @click="$emit('cancel', job.id)"
           >
@@ -155,13 +162,17 @@ function jobMessage(job) {
           </button>
           <button
             v-if="canDismiss(job)"
-            class="icon-button compact-icon-button [align-self:center] [width:34px] [min-width:34px] [min-height:34px] [padding:0]"
+            class="icon-button compact-icon-button self-center w-8.5 min-w-8.5 min-h-8.5 p-0 min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
             type="button"
             aria-label="Dismiss import"
             title="Dismiss import"
             @click="$emit('dismiss', job.id)"
           >
-            <span aria-hidden="true" class="button-icon">×</span>
+            <span
+              aria-hidden="true"
+              class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+              >×</span
+            >
           </button>
         </span>
       </div>

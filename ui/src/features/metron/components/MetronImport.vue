@@ -432,8 +432,12 @@ function formatDate(value) {
 </script>
 
 <template>
-  <div class="metron-view grid gap-5 [padding-block-start:16px]">
-    <div class="metron-modes" role="tablist" aria-label="Metron search type">
+  <div class="metron-view grid gap-5 [padding-block-start:16px] down-mobile:gap-3.5">
+    <div
+      class="metron-modes inline-grid grid-cols-5 gap-1.5 [width:min(680px,_100%)] [&_button]:min-h-10.5 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3 [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white [&.compact]:grid-cols-2 [&.compact]:[width:min(260px,_100%)] [&.compact_button]:min-h-8.5 [&.compact_button]:py-1.75 [&.compact_button]:px-2.5 down-mobile:grid-cols-2 down-mobile:w-full"
+      role="tablist"
+      aria-label="Metron search type"
+    >
       <button
         type="button"
         :class="{ active: activeSearch === 'comics' }"
@@ -482,7 +486,7 @@ function formatDate(value) {
     </div>
 
     <div
-      class="metron-quota-strip flex [align-items:baseline] justify-between gap-3 border border-line-strong rounded bg-surface-soft text-label [padding:10px_12px] [font-size:0.92rem] font-bold"
+      class="metron-quota-strip flex items-baseline justify-between gap-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-ui-lg font-bold [&_span]:flex [&_span]:items-baseline [&_span]:gap-2.5 [&_span]:min-w-0 [&_small]:text-muted [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap down-mobile:items-stretch down-mobile:flex-col down-mobile:[&_span]:flex-wrap"
     >
       <span>
         <strong>Metron quota</strong>
@@ -499,7 +503,7 @@ function formatDate(value) {
     />
 
     <form
-      class="metron-search grid [grid-template-columns:repeat(auto-fit,_minmax(160px,_1fr))] gap-3.5 items-end"
+      class="metron-search grid [grid-template-columns:repeat(auto-fit,_minmax(160px,_1fr))] gap-3.5 items-end [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold down-tablet:grid-cols-1 down-mobile:[&_button]:w-full"
       @submit.prevent="search"
     >
       <label>
@@ -532,30 +536,38 @@ function formatDate(value) {
         Volume
         <input v-model="seriesVolume" inputmode="numeric" placeholder="Optional volume" />
       </label>
-      <button class="primary-button" type="submit" :disabled="busy">
+      <button
+        class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        type="submit"
+        :disabled="busy"
+      >
         {{ searchLabel }}
       </button>
     </form>
 
     <div
       v-if="importStatus"
-      class="metron-status flex items-center flex-wrap [gap:8px_12px] border border-line-strong rounded bg-surface-soft text-label [padding:10px_12px] [font-size:0.92rem] font-bold"
+      class="metron-status flex items-center flex-wrap gapy-2 gapx-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-ui-lg font-bold"
     >
       <span>{{ importStatus }}</span>
     </div>
 
     <section
-      class="metron-results single grid [grid-template-columns:repeat(3,_minmax(0,_1fr))] gap-5 items-start"
+      class="metron-results single grid grid-cols-3 gap-5 items-start [&.single]:[grid-template-columns:minmax(0,_1fr)] [&_.row:disabled]:cursor-wait [&_.row:disabled]:[opacity:0.72] down-mobile:gap-3.5 down-mobile:[&_.detail-panel]:py-3.5 down-mobile:[&_.detail-panel]:px-3 down-tablet:grid-cols-1"
     >
-      <article class="detail-panel">
+      <article
+        class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+      >
         <template v-if="activeSearch === 'comics'">
           <h3>Comics</h3>
-          <p v-if="searching" class="muted">Searching Metron comics...</p>
-          <p v-else-if="comicResults.length === 0" class="muted">No Metron comic results yet.</p>
+          <p v-if="searching" class="muted block text-muted">Searching Metron comics...</p>
+          <p v-else-if="comicResults.length === 0" class="muted block text-muted">
+            No Metron comic results yet.
+          </p>
           <button
             v-for="comic in comicResults"
             :key="comic.id"
-            class="row"
+            class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             :disabled="rowImporting('comic', comic.id)"
             @click="importComic(comic)"
           >
@@ -564,18 +576,21 @@ function formatDate(value) {
               <small v-if="comicMeta(comic)">{{ comicMeta(comic) }}</small>
               <small v-if="comicStoryLine(comic)">{{ comicStoryLine(comic) }}</small>
             </span>
-            <span class="status-pill">{{
-              rowImporting('comic', comic.id) ? 'Importing...' : 'Import'
-            }}</span>
+            <span
+              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+              >{{ rowImporting('comic', comic.id) ? 'Importing...' : 'Import' }}</span
+            >
           </button>
         </template>
 
         <template v-else-if="activeSearch === 'readingLists'">
-          <div class="section-title">
+          <div
+            class="section-title justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+          >
             <h3>Reading Lists</h3>
             <button
               type="button"
-              class="secondary-action"
+              class="secondary-action min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
               :disabled="importingAllReadingLists || rowImporting('readingLists', 0)"
               @click="importAllReadingLists"
             >
@@ -586,14 +601,14 @@ function formatDate(value) {
               }}
             </button>
           </div>
-          <p v-if="searching" class="muted">Searching Metron reading lists...</p>
-          <p v-else-if="readingListResults.length === 0" class="muted">
+          <p v-if="searching" class="muted block text-muted">Searching Metron reading lists...</p>
+          <p v-else-if="readingListResults.length === 0" class="muted block text-muted">
             No Metron reading-list results yet.
           </p>
           <button
             v-for="list in readingListResults"
             :key="list.id"
-            class="row"
+            class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             :disabled="rowImporting('readingList', list.id)"
             @click="openReadingList(list)"
           >
@@ -601,20 +616,23 @@ function formatDate(value) {
               <strong>{{ list.name || 'Untitled reading list' }}</strong>
               <small>{{ readingListSummary(list) }}</small>
             </span>
-            <span class="status-pill">{{
-              rowImporting('readingList', list.id) ? 'Importing...' : 'Details'
-            }}</span>
+            <span
+              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+              >{{ rowImporting('readingList', list.id) ? 'Importing...' : 'Details' }}</span
+            >
           </button>
         </template>
 
         <template v-else-if="activeSearch === 'series'">
           <h3>Series</h3>
-          <p v-if="searching" class="muted">Searching Metron series...</p>
-          <p v-else-if="seriesResults.length === 0" class="muted">No Metron series results yet.</p>
+          <p v-if="searching" class="muted block text-muted">Searching Metron series...</p>
+          <p v-else-if="seriesResults.length === 0" class="muted block text-muted">
+            No Metron series results yet.
+          </p>
           <button
             v-for="item in seriesResults"
             :key="item.id"
-            class="row"
+            class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             :disabled="rowImporting('series', item.id)"
             @click="importSeries(item)"
           >
@@ -625,20 +643,23 @@ function formatDate(value) {
                 {{ item.issueCount }} issues
               </small>
             </span>
-            <span class="status-pill">{{
-              rowImporting('series', item.id) ? 'Importing...' : 'Import'
-            }}</span>
+            <span
+              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+              >{{ rowImporting('series', item.id) ? 'Importing...' : 'Import' }}</span
+            >
           </button>
         </template>
 
         <template v-else-if="activeSearch === 'arcs'">
           <h3>Arcs</h3>
-          <p v-if="searching" class="muted">Searching Metron arcs...</p>
-          <p v-else-if="arcResults.length === 0" class="muted">No Metron arc results yet.</p>
+          <p v-if="searching" class="muted block text-muted">Searching Metron arcs...</p>
+          <p v-else-if="arcResults.length === 0" class="muted block text-muted">
+            No Metron arc results yet.
+          </p>
           <button
             v-for="item in arcResults"
             :key="item.id"
-            class="row"
+            class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             :disabled="rowImporting('arc', item.id)"
             @click="importArc(item)"
           >
@@ -646,22 +667,23 @@ function formatDate(value) {
               <strong>{{ item.name || 'Untitled arc' }}</strong>
               <small>{{ arcSummary(item) }}</small>
             </span>
-            <span class="status-pill">{{
-              rowImporting('arc', item.id) ? 'Importing...' : 'Import'
-            }}</span>
+            <span
+              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+              >{{ rowImporting('arc', item.id) ? 'Importing...' : 'Import' }}</span
+            >
           </button>
         </template>
 
         <template v-else>
           <h3>Characters</h3>
-          <p v-if="searching" class="muted">Searching Metron characters...</p>
-          <p v-else-if="characterResults.length === 0" class="muted">
+          <p v-if="searching" class="muted block text-muted">Searching Metron characters...</p>
+          <p v-else-if="characterResults.length === 0" class="muted block text-muted">
             No Metron character results yet.
           </p>
           <button
             v-for="character in characterResults"
             :key="character.id"
-            class="row"
+            class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             :disabled="rowImporting('character', character.id)"
             @click="importCharacter(character)"
           >
@@ -669,7 +691,9 @@ function formatDate(value) {
               <strong>{{ character.name }}</strong>
               <small>Metron ID {{ character.id }}</small>
             </span>
-            <span class="status-pill">
+            <span
+              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+            >
               {{ rowImporting('character', character.id) ? 'Importing...' : 'Import' }}
             </span>
           </button>

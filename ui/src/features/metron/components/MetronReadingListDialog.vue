@@ -35,20 +35,25 @@ function formatDate(value) {
 </script>
 
 <template>
-  <div class="modal-backdrop" @click.self="$emit('close')">
+  <div
+    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4.5"
+    @click.self="$emit('close')"
+  >
     <section
-      class="metron-detail-dialog [width:min(760px,_100%)] [max-height:min(760px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_minmax(0,_1fr)_auto] border border-line-strong rounded [background:var(--panel-bg)] [box-shadow:0_22px_56px_var(--shadow-panel)] overflow-hidden"
+      class="metron-detail-dialog [width:min(760px,_100%)] [max-height:min(760px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_minmax(0,_1fr)_auto] border border-line-strong rounded bg-panel shadow-overlay overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reading-list-detail-title"
     >
-      <header class="metron-detail-header [border-bottom:1px_solid_var(--line)]">
+      <header
+        class="metron-detail-header border-b border-line flex items-start justify-between gap-3 py-3.5 px-4 [&_span]:min-w-0 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:break-anywhere [&_small]:text-muted [&_small]:mt-0.75"
+      >
         <span>
           <strong id="reading-list-detail-title">{{ readingList?.name || 'Reading list' }}</strong>
           <small>{{ summary }}</small>
         </span>
         <button
-          class="icon-button"
+          class="icon-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close reading list detail"
           @click="$emit('close')"
@@ -57,20 +62,20 @@ function formatDate(value) {
         </button>
       </header>
       <div
-        class="metron-detail-body [min-height:0] overflow-auto grid [grid-template-columns:minmax(140px,_210px)_minmax(0,_1fr)] gap-4 p-4"
+        class="metron-detail-body min-h-0 overflow-auto grid [grid-template-columns:minmax(140px,_210px)_minmax(0,_1fr)] gap-4 p-4 down-mobile:grid-cols-1"
       >
         <img
           v-if="readingList?.image"
-          class="metron-detail-image w-full [aspect-ratio:2_/_3] border border-line rounded object-cover bg-surface-muted down-mobile:[max-width:220px]"
+          class="metron-detail-image w-full aspect-portrait border border-line rounded object-cover bg-surface-muted down-mobile:max-w-55"
           :src="assetURL(readingList.image)"
           :alt="readingList.name || 'Reading list image'"
         />
-        <div class="metron-detail-copy min-w-0 text-body">
+        <div class="metron-detail-copy min-w-0 text-body [&_p]:break-anywhere">
           <LoadingState v-if="loading" compact />
-          <p v-else-if="error" class="error-text">{{ error }}</p>
+          <p v-else-if="error" class="error-text text-danger font-bold">{{ error }}</p>
           <p v-else>{{ readingList?.description || 'No description from Metron.' }}</p>
           <dl
-            class="metron-detail-facts grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] [gap:10px_14px] [margin:14px_0_0]"
+            class="metron-detail-facts grid grid-cols-2 gapy-2.5 gapx-3.5 mt-3.5 mx-0 mb-0 [&_div]:min-w-0 [&_dt]:text-muted [&_dt]:text-ui-compact [&_dt]:font-extrabold [&_dt]:uppercase [&_dd]:mt-0.75 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:break-anywhere [&_dd]:font-bold down-mobile:grid-cols-1"
           >
             <div v-if="readingList?.user?.username">
               <dt>User</dt>
@@ -99,10 +104,18 @@ function formatDate(value) {
           </dl>
         </div>
       </div>
-      <footer class="metron-detail-actions justify-end [border-top:1px_solid_var(--line)]">
-        <button class="secondary-button" type="button" @click="$emit('close')">Close</button>
+      <footer
+        class="metron-detail-actions justify-end border-t border-line flex items-start justify-between gap-3 py-3.5 px-4"
+      >
         <button
-          class="primary-button"
+          class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          type="button"
+          @click="$emit('close')"
+        >
+          Close
+        </button>
+        <button
+          class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           :disabled="!readingList || importing"
           @click="$emit('import')"
