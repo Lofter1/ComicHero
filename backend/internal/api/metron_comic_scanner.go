@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
@@ -67,6 +68,7 @@ type MetronComicScanStatus struct {
 	Scanned        int                     `json:"scanned"`
 	Updated        int                     `json:"updated"`
 	Failed         int                     `json:"failed"`
+	LastError      string                  `json:"lastError,omitempty"`
 	CallsUsedToday int                     `json:"callsUsedToday"`
 	CallsLeftToday int                     `json:"callsLeftToday"`
 	UsageDate      string                  `json:"usageDate"`
@@ -324,8 +326,8 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 				if searchErr != nil {
 					fetchErr = searchErr
 				} else if len(matches) == 0 {
-					if markIncompleteComicChecked(ctx, s.db, row.ID, time.Now()) != nil {
-						s.incrementFailed()
+					if markErr := markIncompleteComicChecked(ctx, s.db, row.ID, time.Now()); markErr != nil {
+						s.recordFailure(row.ID, fmt.Errorf("mark unmatched comic as checked: %w", markErr))
 					}
 					continue
 				} else if len(matches) > 1 {
@@ -349,11 +351,11 @@ func (s *metronComicScanner) run(ctx context.Context, settings MetronComicScanSe
 				if ctx.Err() != nil {
 					break
 				}
-				s.incrementFailed()
+				s.recordFailure(row.ID, fmt.Errorf("fetch Metron issue: %w", fetchErr))
 				continue
 			}
-			if enrichIncompleteComicFromMetron(ctx, s.db, s.covers, row.ID, *issue) != nil {
-				s.incrementFailed()
+			if enrichErr := enrichIncompleteComicFromMetron(ctx, s.db, s.covers, row.ID, *issue); enrichErr != nil {
+				s.recordFailure(row.ID, enrichErr)
 			} else {
 				s.incrementUpdated()
 			}
@@ -435,24 +437,50 @@ func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *C
 			var err error
 			cover, err = localCoverURL(ctx, covers, cover)
 			if err != nil {
-				return err
+				return fmt.Errorf("cache cover: %w", err)
 			}
 		} else {
 			cover = current
 		}
 	}
-	syncedAt := time.Now().UTC().Format(time.RFC3339)
-	_, err := db.ExecContext(ctx, `UPDATE comics SET metron_issue_id = COALESCE(metron_issue_id, ?), comic_vine_id = COALESCE(comic_vine_id, ?), publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END, cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END, cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END, description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END, metron_synced_at = ? WHERE id = ?`, nullablePositiveID(issue.ID), nullablePositiveID(issue.ComicVineID), issue.Publisher, issue.CoverDate, cover, issue.Description, syncedAt, comicID)
+	_, err := db.ExecContext(ctx, `
+		UPDATE comics SET
+			metron_issue_id = COALESCE(metron_issue_id, (
+				SELECT ? WHERE NOT EXISTS (
+					SELECT 1 FROM comics linked
+					WHERE linked.metron_issue_id = ? AND linked.id <> ?
+				)
+			)),
+			comic_vine_id = COALESCE(comic_vine_id, (
+				SELECT ? WHERE NOT EXISTS (
+					SELECT 1 FROM comics linked
+					WHERE linked.comic_vine_id = ? AND linked.id <> ?
+				)
+			)),
+			publisher = CASE WHEN TRIM(publisher) = '' THEN ? ELSE publisher END,
+			cover_date = CASE WHEN TRIM(cover_date) = '' THEN ? ELSE cover_date END,
+			cover_image = CASE WHEN TRIM(cover_image) = '' THEN ? ELSE cover_image END,
+			description = CASE WHEN TRIM(description) = '' THEN ? ELSE description END
+		WHERE id = ?
+	`, nullablePositiveID(issue.ID), issue.ID, comicID,
+		nullablePositiveID(issue.ComicVineID), issue.ComicVineID, comicID,
+		issue.Publisher, issue.CoverDate, cover, issue.Description, comicID)
 	if err != nil {
-		return err
+		return fmt.Errorf("update comic metadata: %w", err)
 	}
 	// The issue response already contains lightweight arc and character data. A
 	// nil client prevents these helpers from making any detail requests.
 	options := MetronImportOptions{Mode: "basic"}
 	if err := syncMetronIssueArcsWithOptions(ctx, db, nil, comicID, issue, options); err != nil {
-		return err
+		return fmt.Errorf("sync comic arcs: %w", err)
 	}
-	return syncMetronIssueCharactersWithOptions(ctx, db, nil, covers, comicID, issue, options)
+	if err := syncMetronIssueCharactersWithOptions(ctx, db, nil, covers, comicID, issue, options); err != nil {
+		return fmt.Errorf("sync comic characters: %w", err)
+	}
+	if err := markIncompleteComicChecked(ctx, db, comicID, time.Now()); err != nil {
+		return fmt.Errorf("mark comic as synced: %w", err)
+	}
+	return nil
 }
 
 func markIncompleteComicChecked(ctx context.Context, db *sqlx.DB, comicID int, checkedAt time.Time) error {
@@ -528,9 +556,12 @@ func (s *metronComicScanner) incrementUpdated() {
 	s.mu.Unlock()
 	s.broadcastSnapshot()
 }
-func (s *metronComicScanner) incrementFailed() {
+func (s *metronComicScanner) recordFailure(comicID int, err error) {
+	message := fmt.Sprintf("comic %d: %v", comicID, err)
+	log.Printf("Metron comic scan failed: %s", message)
 	s.mu.Lock()
 	s.status.Failed++
+	s.status.LastError = message
 	s.mu.Unlock()
 	s.broadcastSnapshot()
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -338,6 +339,108 @@ func TestEnrichIncompleteComicStoresComicVineID(t *testing.T) {
 	}
 	if comicVineID != 9988 {
 		t.Fatalf("Comic Vine ID = %d; want 9988", comicVineID)
+	}
+}
+
+func TestEnrichIncompleteComicSkipsConflictingComicVineID(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.Exec(`
+		INSERT INTO comics (id, series, series_year, issue, publisher, metron_issue_id)
+		VALUES (1, 'Target', 2026, '1', '', 77);
+		INSERT INTO comics (id, series, series_year, issue, publisher, comic_vine_id)
+		VALUES (2, 'Existing Comic Vine row', 2026, '1', 'Publisher', 9988);
+	`); err != nil {
+		t.Fatalf("seed comics: %v", err)
+	}
+
+	if err := enrichIncompleteComicFromMetron(ctx, db, nil, 1, metron.Issue{
+		ID:          77,
+		ComicVineID: 9988,
+		Publisher:   "Publisher",
+	}); err != nil {
+		t.Fatalf("enrich comic with conflicting Comic Vine ID: %v", err)
+	}
+
+	var comic struct {
+		ComicVineID *int   `db:"comic_vine_id"`
+		Publisher   string `db:"publisher"`
+	}
+	if err := db.Get(&comic, `SELECT comic_vine_id, publisher FROM comics WHERE id = 1`); err != nil {
+		t.Fatalf("read enriched comic: %v", err)
+	}
+	if comic.ComicVineID != nil {
+		t.Fatalf("conflicting Comic Vine ID was attached: %d", *comic.ComicVineID)
+	}
+	if comic.Publisher != "Publisher" {
+		t.Fatalf("publisher = %q; want metadata enrichment to succeed", comic.Publisher)
+	}
+}
+
+func TestEnrichIncompleteComicSkipsConflictingMetronID(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.Exec(`
+		INSERT INTO comics (id, series, series_year, issue, publisher, comic_vine_id)
+		VALUES (1, 'Target', 2026, '1', '', 9988);
+		INSERT INTO comics (id, series, series_year, issue, publisher, metron_issue_id)
+		VALUES (2, 'Existing Metron row', 2026, '1', 'Publisher', 77);
+	`); err != nil {
+		t.Fatalf("seed comics: %v", err)
+	}
+
+	if err := enrichIncompleteComicFromMetron(ctx, db, nil, 1, metron.Issue{
+		ID:          77,
+		ComicVineID: 9988,
+		Publisher:   "Publisher",
+	}); err != nil {
+		t.Fatalf("enrich comic with conflicting Metron ID: %v", err)
+	}
+
+	var comic struct {
+		MetronID  *int   `db:"metron_issue_id"`
+		Publisher string `db:"publisher"`
+	}
+	if err := db.Get(&comic, `SELECT metron_issue_id, publisher FROM comics WHERE id = 1`); err != nil {
+		t.Fatalf("read enriched comic: %v", err)
+	}
+	if comic.MetronID != nil {
+		t.Fatalf("conflicting Metron ID was attached: %d", *comic.MetronID)
+	}
+	if comic.Publisher != "Publisher" {
+		t.Fatalf("publisher = %q; want metadata enrichment to succeed", comic.Publisher)
+	}
+}
+
+func TestMetronComicScanReportsLastFailure(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		INSERT INTO comics (id, series, issue, publisher, metron_issue_id)
+		VALUES (1, 'Target', '1', '', 77);
+	`); err != nil {
+		t.Fatalf("seed scanner data: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "Metron unavailable", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.DailyCallLimit = 10
+	settings.MinIntervalSeconds = 0
+	settings.RecheckCooldownDays = 0
+	settings.IncompleteFields = []string{"publisher"}
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	status := scanner.snapshot(context.Background())
+	if status.Failed != 1 {
+		t.Fatalf("failed = %d; want 1", status.Failed)
+	}
+	if !strings.Contains(status.LastError, "comic 1: fetch Metron issue") {
+		t.Fatalf("last error = %q; want comic and failure stage", status.LastError)
 	}
 }
 
