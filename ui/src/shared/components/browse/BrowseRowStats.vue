@@ -15,7 +15,7 @@ const visibleItems = computed(() =>
 
 <template>
   <span
-    class="engagement-stats inline-flex items-center text-muted [font-size:0.78rem] font-bold whitespace-nowrap"
+    class="engagement-stats inline-flex items-center text-muted text-ui-compact font-bold whitespace-nowrap"
     >{{ visibleItems.join(' · ') }}</span
   >
 </template>

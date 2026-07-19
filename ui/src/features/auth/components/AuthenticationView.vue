@@ -50,15 +50,17 @@ defineEmits([
 
   <main v-else-if="setupRequired" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-display"
       @submit.prevent="$emit('submit-setup')"
     >
       <div>
-        <p class="eyebrow">First Run</p>
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">First Run</p>
         <h1>Choose user mode</h1>
       </div>
 
-      <fieldset class="mode-options border-0 [padding:0] [margin:0] grid gap-2.5">
+      <fieldset
+        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:[grid-template-columns:auto_minmax(0,_1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_input]:mt-1 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
+      >
         <legend>User environment</legend>
         <label>
           <input v-model="setupForm.mode" type="radio" value="single" />
@@ -76,7 +78,10 @@ defineEmits([
         </label>
       </fieldset>
 
-      <div v-if="setupForm.mode === 'multi'" class="auth-fields">
+      <div
+        v-if="setupForm.mode === 'multi'"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+      >
         <label>
           <span>Name</span>
           <input v-model.trim="setupForm.name" type="text" autocomplete="name" required />
@@ -99,7 +104,11 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button class="primary-action" type="submit" :disabled="saving">
+      <button
+        class="primary-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        type="submit"
+        :disabled="saving"
+      >
         {{ saving ? 'Saving...' : 'Continue' }}
       </button>
     </form>
@@ -110,16 +119,18 @@ defineEmits([
     class="auth-shell min-h-screen grid place-items-center p-6"
   >
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-display"
       @submit.prevent="$emit('submit-verification')"
     >
       <div>
-        <p class="eyebrow">Verify Email</p>
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Verify Email</p>
         <h1>Check your email</h1>
         <p>Enter the verification token sent to {{ verificationEmail }}.</p>
       </div>
 
-      <div class="auth-fields">
+      <div
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+      >
         <label>
           <span>Verification token</span>
           <input
@@ -142,11 +153,15 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button class="primary-action" type="submit" :disabled="saving">
+      <button
+        class="primary-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        type="submit"
+        :disabled="saving"
+      >
         {{ saving ? 'Verifying...' : 'Verify email' }}
       </button>
       <button
-        class="secondary-action"
+        class="secondary-action min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
         type="button"
         :disabled="saving"
         @click="$emit('resend-verification')"
@@ -158,7 +173,7 @@ defineEmits([
 
   <main v-else-if="passwordResetMode" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-display"
       @submit.prevent="
         passwordResetForm.requested
           ? $emit('submit-password-reset')
@@ -166,7 +181,7 @@ defineEmits([
       "
     >
       <div>
-        <p class="eyebrow">Account</p>
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Account</p>
         <h1>Reset password</h1>
         <p v-if="!passwordResetForm.requested">
           Enter your email and we will send a password reset token if the account exists.
@@ -174,7 +189,9 @@ defineEmits([
         <p v-else>Enter the token from your email and choose a new password.</p>
       </div>
 
-      <div class="auth-fields">
+      <div
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+      >
         <label v-if="!passwordResetForm.requested">
           <span>Email</span>
           <input
@@ -219,7 +236,11 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button class="primary-action" type="submit" :disabled="saving">
+      <button
+        class="primary-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        type="submit"
+        :disabled="saving"
+      >
         {{
           saving
             ? 'Working...'
@@ -229,7 +250,7 @@ defineEmits([
         }}
       </button>
       <button
-        class="secondary-action"
+        class="secondary-action min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
         type="button"
         :disabled="saving"
         @click="$emit('show-login')"
@@ -241,16 +262,16 @@ defineEmits([
 
   <main v-else-if="authRequired" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-display"
       @submit.prevent="$emit('submit-auth')"
     >
       <div>
-        <p class="eyebrow">Multi User</p>
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Multi User</p>
         <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
       </div>
 
       <div
-        class="auth-tabs grid [grid-template-columns:repeat(2,_minmax(0,_1fr))] gap-2"
+        class="auth-tabs grid grid-cols-2 gap-2 [&_button]:min-h-10.5 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3.5 [&_button]:font-extrabold [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white"
         role="group"
         aria-label="Authentication mode"
       >
@@ -266,7 +287,9 @@ defineEmits([
         </button>
       </div>
 
-      <div class="auth-fields">
+      <div
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+      >
         <label v-if="authMode === 'register'">
           <span>Name</span>
           <input v-model.trim="authForm.name" type="text" autocomplete="name" required />
@@ -317,12 +340,16 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button class="primary-action" type="submit" :disabled="saving">
+      <button
+        class="primary-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        type="submit"
+        :disabled="saving"
+      >
         {{ saving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
       </button>
       <button
         v-if="authMode === 'login'"
-        class="secondary-action"
+        class="secondary-action min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
         type="button"
         :disabled="saving"
         @click="$emit('show-forgot-password')"
@@ -334,14 +361,19 @@ defineEmits([
 
   <main v-else class="auth-shell min-h-screen grid place-items-center p-6">
     <section
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded [background:var(--panel-bg)] [box-shadow:0_18px_60px_var(--shadow-panel)] p-7 grid gap-5"
+      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-display"
     >
       <div>
-        <p class="eyebrow">Setup</p>
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Setup</p>
         <h1>Could not load user setup</h1>
       </div>
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
-      <button class="primary-action" type="button" :disabled="loading" @click="$emit('retry')">
+      <button
+        class="primary-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        type="button"
+        :disabled="loading"
+        @click="$emit('retry')"
+      >
         Retry
       </button>
     </section>
