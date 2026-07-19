@@ -55,6 +55,30 @@ func TestValidateCBLRepositorySyncSettingsRejectsFolderFromUnconfiguredRepositor
 	}
 }
 
+func TestCBLRepositorySyncSubscriptionSendsSnapshotAndProgress(t *testing.T) {
+	db := newMetronComicScannerTestDB(t)
+	syncer := NewCBLRepositorySyncer(db, nil, nil)
+	updates, unsubscribe := syncer.subscribe(context.Background())
+	defer unsubscribe()
+
+	initial := <-updates
+	if initial.Imported != 0 || initial.CurrentFile != "" {
+		t.Fatalf("initial status = %+v; want idle snapshot", initial)
+	}
+
+	syncer.setCurrentFile("Marvel/Events/Secret Wars.cbl")
+	progress := <-updates
+	if progress.CurrentFile != "Marvel/Events/Secret Wars.cbl" {
+		t.Fatalf("progress current file = %q; want SSE subscriber update", progress.CurrentFile)
+	}
+
+	syncer.increment("imported")
+	progress = <-updates
+	if progress.Imported != 1 {
+		t.Fatalf("progress imported = %d; want SSE subscriber update", progress.Imported)
+	}
+}
+
 func TestCBLRepositoryFilesInFoldersIncludesDescendantsOnly(t *testing.T) {
 	files := []cblGitHubFile{
 		{Path: "DC/Batman/Year One.cbl"},

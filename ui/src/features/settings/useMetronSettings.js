@@ -44,15 +44,13 @@ export function useMetronSettings({
   let comicScanEvents = null
   let comicDiscoveryEvents = null
   let cblRepositorySyncEvents = null
-  let cblRepositorySyncRefreshTimer = null
-  let refreshingCBLRepositorySync = false
 
   async function loadSettings() {
     if (!connectComicScanEvents()) comicScan.value = await getMetronComicScan()
     if (!connectComicDiscoveryEvents()) comicDiscovery.value = await getMetronComicDiscovery()
-    connectCBLRepositorySyncEvents()
-    cblRepositorySync.value = await getCBLRepositorySync()
-    scheduleCBLRepositorySyncRefresh()
+    if (!connectCBLRepositorySyncEvents()) {
+      cblRepositorySync.value = await getCBLRepositorySync()
+    }
   }
 
   async function saveComicScan(settings) {
@@ -125,7 +123,6 @@ export function useMetronSettings({
         files,
         resolveMissingOnMetron,
       })
-      scheduleCBLRepositorySyncRefresh(0)
     })
     savingCBLRepositorySync.value = false
   }
@@ -218,18 +215,16 @@ export function useMetronSettings({
       target: cblRepositorySync,
       close: closeCBLRepositorySyncEvents,
       fallback: getCBLRepositorySync,
-      onUpdate: scheduleCBLRepositorySyncRefresh,
     })
     return true
   }
 
-  function connectEvents({ url, eventName, payloadKey, target, close, fallback, onUpdate }) {
+  function connectEvents({ url, eventName, payloadKey, target, close, fallback }) {
     const source = new EventSource(url, { withCredentials: true })
     source.addEventListener(eventName, (event) => {
       try {
         const payload = JSON.parse(event.data)
         target.value = payload[payloadKey] || payload
-        onUpdate?.()
       } catch (err) {
         error.value = err.message
       }
@@ -263,42 +258,6 @@ export function useMetronSettings({
     cblRepositorySyncEvents = null
   }
 
-  function scheduleCBLRepositorySyncRefresh(delay) {
-    clearTimeout(cblRepositorySyncRefreshTimer)
-    if (activeView.value !== 'settings') return
-    const refreshDelay = delay ?? (cblRepositorySync.value?.running ? 750 : 5000)
-    cblRepositorySyncRefreshTimer = setTimeout(refreshCBLRepositorySyncStatus, refreshDelay)
-  }
-
-  async function refreshCBLRepositorySyncStatus() {
-    if (activeView.value !== 'settings' || refreshingCBLRepositorySync) return
-    refreshingCBLRepositorySync = true
-    try {
-      const status = await getCBLRepositorySync()
-      // Do not let a request started before a manual trigger briefly replace the
-      // new running state with the preceding idle snapshot.
-      if (!(
-        cblRepositorySync.value?.running &&
-        !status.running &&
-        !status.finishedAt &&
-        cblRepositorySync.value?.startedAt
-      )) {
-        cblRepositorySync.value = status
-      }
-    } catch {
-      // The SSE connection remains the primary live update path. A failed
-      // fallback refresh should not replace a more useful settings-page error.
-    } finally {
-      refreshingCBLRepositorySync = false
-      scheduleCBLRepositorySyncRefresh()
-    }
-  }
-
-  function stopCBLRepositorySyncRefresh() {
-    clearTimeout(cblRepositorySyncRefreshTimer)
-    cblRepositorySyncRefreshTimer = null
-  }
-
   async function withSaving(savingRef, action) {
     savingRef.value = true
     await run(action)
@@ -315,21 +274,16 @@ export function useMetronSettings({
   }
 
   watch(activeView, (view) => {
-    if (view === 'settings') {
-      scheduleCBLRepositorySyncRefresh(0)
-      return
-    }
+    if (view === 'settings') return
     closeComicScanEvents()
     closeComicDiscoveryEvents()
     closeCBLRepositorySyncEvents()
-    stopCBLRepositorySyncRefresh()
   })
 
   onUnmounted(() => {
     closeComicScanEvents()
     closeComicDiscoveryEvents()
     closeCBLRepositorySyncEvents()
-    stopCBLRepositorySyncRefresh()
   })
 
   return {
