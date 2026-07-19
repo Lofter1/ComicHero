@@ -159,17 +159,11 @@ function formatTimestamp(value) {
           <label
             class="user-search-field w-full min-w-0 max-w-[360px] down-tablet:col-span-2 down-tablet:max-w-none [&_input]:min-h-10"
           >
-            <span
-              class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-              >Search users</span
-            >
+            <span class="sr-only">Search users</span>
             <input v-model="userQuery" type="search" placeholder="Search by name or email" />
           </label>
           <label>
-            <span
-              class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-              >Filter by role</span
-            >
+            <span class="sr-only">Filter by role</span>
             <select v-model="roleFilter">
               <option value="all">All roles</option>
               <option value="admin">Admins</option>
@@ -177,10 +171,7 @@ function formatTimestamp(value) {
             </select>
           </label>
           <label>
-            <span
-              class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-              >Sort by creation date</span
-            >
+            <span class="sr-only">Sort by creation date</span>
             <select v-model="creationSort">
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>

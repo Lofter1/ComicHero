@@ -205,10 +205,7 @@ function seriesLabel(comic) {
           <span>Sources</span>
           <a v-if="metronIssueURL" :href="metronIssueURL" target="_blank" rel="noreferrer noopener">
             Metron <span aria-hidden="true">↗</span>
-            <span
-              class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-              >(opens in a new tab)</span
-            >
+            <span class="sr-only">(opens in a new tab)</span>
           </a>
           <a
             v-if="comicVineIssueURL"
@@ -217,10 +214,7 @@ function seriesLabel(comic) {
             rel="noreferrer noopener"
           >
             Comic Vine <span aria-hidden="true">↗</span>
-            <span
-              class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-              >(opens in a new tab)</span
-            >
+            <span class="sr-only">(opens in a new tab)</span>
           </a>
         </nav>
 

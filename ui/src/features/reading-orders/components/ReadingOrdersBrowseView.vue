@@ -172,12 +172,7 @@ function handleCBLFile(event) {
                     ></span>
                     {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
                   </button>
-                  <span
-                    v-if="cblImporting"
-                    class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-                    aria-live="polite"
-                    >Importing CBL</span
-                  >
+                  <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
                   <button
                     class="primary-button icon-text-button new-order-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
                     type="button"

@@ -88,11 +88,7 @@ function countLabel(count, singular) {
       <div
         class="collection-create-controls grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-control [&_input]:py-2.25 [&_input]:px-3 [&_input:focus]:outline-3 [&_input:focus]:outline-focus down-compact:grid-cols-1"
       >
-        <label
-          class="sr-only absolute w-px h-px overflow-hidden [clip:rect(0,_0,_0,_0)] whitespace-nowrap"
-          for="collection-name"
-          >Collection name</label
-        >
+        <label class="sr-only" for="collection-name">Collection name</label>
         <input id="collection-name" ref="nameInput" v-model="name" maxlength="120" />
         <button
           class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
