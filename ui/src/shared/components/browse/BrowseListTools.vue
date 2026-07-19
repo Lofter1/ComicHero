@@ -46,11 +46,11 @@ const searchModel = computed({
 
 <template>
   <div
-    class="comic-list-tools browse-list-tools flex flex-auto flex-wrap items-center gap-2 w-full [&_>_*]:min-w-0 [&_>_input]:[flex:1_1_280px] [&_>_input]:[min-width:min(280px,_100%)] [&_>_.inline-filter-tabs]:[flex:1_1_360px] [&_select]:flex-none [&_select]:w-auto [&_select]:max-w-56 [&_select]:justify-self-start [&_>_.browse-header-actions]:flex-none [&_>_.browse-header-actions]:w-auto [&_>_.browse-header-actions]:ml-auto [&_.list-direction-select]:min-w-36 [&_.list-direction-select]:max-w-44 [&_input]:h-11 [&_input]:min-h-11 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:py-2 [&_input]:px-2.5 [&_select]:h-11 [&_select]:min-h-11 [&_select]:border [&_select]:border-line-strong [&_select]:rounded [&_select]:bg-surface [&_select]:py-2 [&_select]:px-2.5 [&_select]:[flex:1_1_140px] [&_select]:min-w-32 [&_select]:max-w-44 [&_select]:pr-8 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&_>_.inline-filter-tabs]:hidden down-mobile:[&_>_.list-sort-select]:hidden down-mobile:[&_>_.list-direction-select]:hidden down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&:has(>_.comic-filter-controls)_>_input]:[flex:1_1_280px] down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
+    class="comic-list-tools browse-list-tools flex w-full flex-auto flex-wrap items-center gap-2 down-mobile:w-full"
   >
     <input v-model="searchModel" type="search" :placeholder="searchPlaceholder" />
     <div
-      class="inline-filter-tabs inline-grid grid-cols-3 gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2 [&_button]:text-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-xs"
+      class="inline-filter-tabs inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full"
       :class="{ 'grid-cols-4': filterOptions.length === 4 }"
       role="tablist"
       aria-label="List filter"
@@ -86,13 +86,11 @@ const searchModel = computed({
       <option value="asc">Ascending</option>
       <option value="desc">Descending</option>
     </select>
-    <details
-      class="mobile-list-options down-mobile:relative down-mobile:block down-mobile:flex-auto down-mobile:min-w-36 hidden down-mobile:[&_summary]:min-h-11 down-mobile:[&_summary]:border down-mobile:[&_summary]:border-line-strong down-mobile:[&_summary]:rounded down-mobile:[&_summary]:bg-surface down-mobile:[&_summary]:text-control down-mobile:[&_summary]:pt-3 down-mobile:[&_summary]:pr-9 down-mobile:[&_summary]:pb-3 down-mobile:[&_summary]:pl-3 down-mobile:[&_summary]:font-bold down-mobile:[&_summary]:[list-style:none] down-mobile:[&_summary]:cursor-pointer down-mobile:[&_summary::-webkit-details-marker]:hidden down-mobile:[&_summary::after]:[content:'⌄'] down-mobile:[&_summary::after]:absolute down-mobile:[&_summary::after]:top-2.5 down-mobile:[&_summary::after]:right-3 down-mobile:[&_summary::after]:text-muted down-mobile:[&[open]_summary::after]:[content:'⌃'] down-mobile:[&_>_div]:absolute down-mobile:[&_>_div]:z-25 down-mobile:[&_>_div]:[top:calc(100%_+_8px)] down-mobile:[&_>_div]:right-0 down-mobile:[&_>_div]:[left:auto] down-mobile:[&_>_div]:gap-2.5 down-mobile:[&_>_div]:border down-mobile:[&_>_div]:border-line-strong down-mobile:[&_>_div]:rounded-lg down-mobile:[&_>_div]:bg-surface down-mobile:[&_>_div]:p-3 down-mobile:[&_>_div]:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:[width:min(320px,_calc(100vw_-_28px))] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&_select]:w-full down-mobile:[&_select]:max-w-none"
-    >
+    <details class="mobile-list-options hidden">
       <summary>Filter &amp; sort</summary>
       <div>
         <div
-          class="inline-filter-tabs inline-grid grid-cols-3 gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2 [&_button]:text-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-xs"
+          class="inline-filter-tabs inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full"
           :class="{ 'grid-cols-4': filterOptions.length === 4 }"
           role="tablist"
           aria-label="List filter"
@@ -131,3 +129,96 @@ const searchModel = computed({
     <slot name="actions"></slot>
   </div>
 </template>
+
+<style scoped>
+.browse-list-tools > * {
+  @apply min-w-0;
+}
+
+.browse-list-tools > input {
+  flex: 1 1 280px;
+  min-width: min(280px, 100%);
+}
+
+.browse-list-tools > .inline-filter-tabs {
+  flex: 1 1 360px;
+}
+
+.browse-list-tools :is(input, select) {
+  @apply h-11 min-h-11 rounded border border-line-strong bg-surface py-2 px-2.5;
+}
+
+.browse-list-tools select {
+  @apply w-auto min-w-32 max-w-44 flex-none justify-self-start pr-8;
+  flex: 1 1 140px;
+}
+
+.browse-list-tools .list-sort-select {
+  @apply min-w-44;
+}
+
+.browse-list-tools .list-direction-select {
+  @apply min-w-36 max-w-44;
+}
+
+.browse-list-tools :slotted(.browse-header-actions) {
+  @apply ml-auto w-auto flex-none;
+}
+
+.inline-filter-tabs button {
+  @apply min-h-8 rounded-ui-sm border-0 bg-transparent px-2 py-1.5 text-sm font-bold text-label;
+}
+
+.inline-filter-tabs button.active {
+  @apply bg-primary text-white;
+}
+
+@screen down-mobile {
+  .browse-list-tools > :is(.inline-filter-tabs, .list-sort-select, .list-direction-select) {
+    @apply hidden;
+  }
+
+  .mobile-list-options {
+    @apply relative block min-w-36 flex-auto;
+  }
+
+  .mobile-list-options summary {
+    @apply min-h-11 cursor-pointer rounded border border-line-strong bg-surface pt-3 pr-9 pb-3 pl-3 font-bold text-control;
+    list-style: none;
+  }
+
+  .mobile-list-options summary::-webkit-details-marker {
+    @apply hidden;
+  }
+
+  .mobile-list-options summary::after {
+    @apply absolute right-3 top-2.5 text-muted;
+    content: '⌄';
+  }
+
+  .mobile-list-options[open] summary::after {
+    content: '⌃';
+  }
+
+  .mobile-list-options > div {
+    @apply absolute right-0 z-25 grid gap-2.5 rounded-lg border border-line-strong bg-surface p-3 shadow-monitor;
+    top: calc(100% + 8px);
+    left: auto;
+    width: min(320px, calc(100vw - 28px));
+  }
+
+  .mobile-list-options .inline-filter-tabs {
+    @apply grid w-full min-w-0;
+  }
+
+  .mobile-list-options select {
+    @apply w-full max-w-none;
+  }
+}
+
+@screen down-phone {
+  .inline-filter-tabs button {
+    @apply px-1.5 text-xs;
+  }
+}
+</style>

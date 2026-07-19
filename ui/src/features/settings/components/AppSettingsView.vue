@@ -640,7 +640,7 @@ function selectSettingsTab(tab) {
       </header>
 
       <label
-        class="metron-scan-field cbl-repository-list-field grid gap-2 text-label font-extrabold max-w-prose [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight [&_textarea]:min-h-24 [&_textarea]:resize-y [&_textarea]:[font-family:ui-monospace,_SFMono-Regular,_Menlo,_Monaco,_Consolas,_monospace] [&_textarea]:font-ui-semibold"
+        class="metron-scan-field cbl-repository-list-field grid gap-2 text-label font-extrabold max-w-prose"
       >
         <span>Repositories (one GitHub URL per line)</span>
         <textarea
@@ -682,18 +682,14 @@ function selectSettingsTab(tab) {
       <div
         class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
       >
-        <label
-          class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-        >
+        <label class="metron-scan-field grid gap-2 text-label font-extrabold">
           <span>Schedule</span>
           <select v-model="cblDraft.schedule" :disabled="!cblDraft.autoSync">
             <option value="daily">Daily</option>
             <option value="weekly">Specific weekdays</option>
           </select>
         </label>
-        <label
-          class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-        >
+        <label class="metron-scan-field grid gap-2 text-label font-extrabold">
           <span>Start time (server time)</span>
           <input v-model="cblDraft.startTime" type="time" :disabled="!cblDraft.autoSync" />
         </label>
@@ -701,7 +697,7 @@ function selectSettingsTab(tab) {
 
       <fieldset
         v-if="cblDraft.autoSync && cblDraft.schedule === 'weekly'"
-        class="permission-scopes [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+        class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
       >
         <legend>Run on</legend>
         <label v-for="day in weekdays" :key="`cbl-${day}`">
@@ -734,7 +730,7 @@ function selectSettingsTab(tab) {
       </div>
 
       <div
-        class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface py-3 px-3.5 text-muted [&_>_div]:grid [&_>_div]:gap-px [&_strong]:text-ink [&_strong]:text-base [&_span]:m-0 [&_span]:text-sm [&_span]:font-bold [&_p]:m-0 [&_p]:text-sm [&_p]:font-bold [&_p]:ml-auto down-mobile:items-stretch down-mobile:flex-col down-mobile:[&_p]:ml-0"
+        class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface py-3 px-3.5 text-muted down-mobile:items-stretch down-mobile:flex-col"
         aria-live="polite"
       >
         <div>
@@ -832,7 +828,7 @@ function selectSettingsTab(tab) {
           aria-labelledby="cbl-folder-picker-title"
         >
           <header
-            class="cbl-file-picker-header border-b border-line flex items-center justify-between gap-3 py-3.5 px-4 [&_>_div]:grid [&_>_div]:gap-1 [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold"
+            class="cbl-file-picker-header border-b border-line flex items-center justify-between gap-3 py-3.5 px-4"
           >
             <div>
               <strong id="cbl-folder-picker-title">Choose repository folders</strong>
@@ -886,9 +882,7 @@ function selectSettingsTab(tab) {
                   :checked="selectedCBLFolderKeys.has(cblFolderKey(folder))"
                   @change="toggleCBLFolder(folder, $event.target.checked)"
                 />
-                <span
-                  class="cbl-file-picker-path min-w-0 grid gap-1 [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_strong]:break-anywhere"
-                >
+                <span class="cbl-file-picker-path min-w-0 grid gap-1">
                   <strong>{{ folder.path }}</strong>
                   <small>
                     {{ repositoryLabel(folder.repositoryUrl) }} · {{ folder.fileCount }}
@@ -909,7 +903,7 @@ function selectSettingsTab(tab) {
           </div>
 
           <footer
-            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_span]:mr-auto down-mobile:[&_span]:mr-0"
+            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4"
           >
             <span>
               {{
@@ -949,7 +943,7 @@ function selectSettingsTab(tab) {
           aria-labelledby="cbl-file-picker-title"
         >
           <header
-            class="cbl-file-picker-header border-b border-line flex items-center justify-between gap-3 py-3.5 px-4 [&_>_div]:grid [&_>_div]:gap-1 [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold"
+            class="cbl-file-picker-header border-b border-line flex items-center justify-between gap-3 py-3.5 px-4"
           >
             <div>
               <strong id="cbl-file-picker-title">Choose CBL files</strong>
@@ -1003,9 +997,7 @@ function selectSettingsTab(tab) {
                   :checked="selectedCBLFileKeys.has(cblFileKey(file))"
                   @change="toggleCBLFile(file, $event.target.checked)"
                 />
-                <span
-                  class="cbl-file-picker-path min-w-0 grid gap-1 [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_strong]:break-anywhere"
-                >
+                <span class="cbl-file-picker-path min-w-0 grid gap-1">
                   <strong>{{ file.path }}</strong>
                   <small>
                     {{ repositoryLabel(file.repositoryUrl) }} · {{ fileSizeLabel(file.size) }}
@@ -1041,7 +1033,7 @@ function selectSettingsTab(tab) {
           </div>
 
           <footer
-            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_span]:mr-auto down-mobile:[&_span]:mr-0"
+            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4"
           >
             <span>{{ selectedCBLRepositoryFiles.length }} files selected</span>
             <button
@@ -1074,7 +1066,7 @@ function selectSettingsTab(tab) {
           aria-labelledby="cbl-metron-issue-picker-title"
         >
           <header
-            class="cbl-file-picker-header border-b border-line flex items-center justify-between gap-3 py-3.5 px-4 [&_>_div]:grid [&_>_div]:gap-1 [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold"
+            class="cbl-file-picker-header border-b border-line flex items-center justify-between gap-3 py-3.5 px-4"
           >
             <div>
               <strong id="cbl-metron-issue-picker-title">Choose the matching Metron issue</strong>
@@ -1125,7 +1117,7 @@ function selectSettingsTab(tab) {
           </div>
 
           <footer
-            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_span]:mr-auto down-mobile:[&_span]:mr-0"
+            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4"
           >
             <span>Select the issue that should be added to this reading order.</span>
             <button
@@ -1174,7 +1166,7 @@ function selectSettingsTab(tab) {
         </header>
 
         <fieldset
-          class="permission-scopes metron-discovery-types [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes metron-discovery-types border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Pull content</legend>
           <label>
@@ -1190,9 +1182,7 @@ function selectSettingsTab(tab) {
         <div
           class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
         >
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Schedule</span>
             <select v-model="discoveryDraft.schedule">
               <option value="daily">Daily</option>
@@ -1200,15 +1190,11 @@ function selectSettingsTab(tab) {
               <option value="monthly">Monthly</option>
             </select>
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Start time (server time)</span>
             <input v-model="discoveryDraft.startTime" type="time" />
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Publisher name filter</span>
             <input
               v-model="discoveryDraft.publisherName"
@@ -1217,9 +1203,7 @@ function selectSettingsTab(tab) {
               :disabled="!discoveryDraft.pullComics"
             />
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Series name filter</span>
             <input
               v-model="discoveryDraft.seriesName"
@@ -1230,7 +1214,7 @@ function selectSettingsTab(tab) {
           </label>
           <label
             v-if="discoveryDraft.schedule === 'monthly'"
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
+            class="metron-scan-field grid gap-2 text-label font-extrabold"
           >
             <span>Day of month</span>
             <input v-model.number="discoveryDraft.monthDay" type="number" min="1" max="31" />
@@ -1239,7 +1223,7 @@ function selectSettingsTab(tab) {
 
         <fieldset
           v-if="discoveryDraft.schedule === 'weekly'"
-          class="permission-scopes [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Run on</legend>
           <label v-for="day in weekdays" :key="`discovery-${day}`">
@@ -1253,7 +1237,7 @@ function selectSettingsTab(tab) {
         </fieldset>
 
         <div
-          class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface py-3 px-3.5 text-muted [&_>_div]:grid [&_>_div]:gap-px [&_strong]:text-ink [&_strong]:text-base [&_span]:m-0 [&_span]:text-sm [&_span]:font-bold [&_p]:m-0 [&_p]:text-sm [&_p]:font-bold [&_p]:ml-auto down-mobile:items-stretch down-mobile:flex-col down-mobile:[&_p]:ml-0"
+          class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface py-3 px-3.5 text-muted down-mobile:items-stretch down-mobile:flex-col"
           aria-live="polite"
         >
           <div>
@@ -1340,7 +1324,7 @@ function selectSettingsTab(tab) {
         </header>
 
         <fieldset
-          class="permission-scopes metron-incomplete-fields [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes metron-incomplete-fields border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Consider a comic incomplete when it has no</legend>
           <label v-for="option in incompleteFieldOptions" :key="option.value">
@@ -1362,36 +1346,26 @@ function selectSettingsTab(tab) {
         <div
           class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
         >
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Schedule</span>
             <select v-model="draft.schedule">
               <option value="daily">Daily</option>
               <option value="weekly">Specific weekdays</option>
             </select>
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Start time (server time)</span>
             <input v-model="draft.startTime" type="time" />
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Calls per day</span>
             <input v-model.number="draft.dailyCallLimit" min="1" step="1" type="number" />
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Minimum Metron interval (seconds)</span>
             <input v-model.number="draft.minIntervalSeconds" min="0" step="1" type="number" />
           </label>
-          <label
-            class="metron-scan-field grid gap-2 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
-          >
+          <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Re-check cooldown (days)</span>
             <input v-model.number="draft.recheckCooldownDays" min="0" step="1" type="number" />
           </label>
@@ -1405,7 +1379,7 @@ function selectSettingsTab(tab) {
 
         <fieldset
           v-if="draft.schedule === 'weekly'"
-          class="permission-scopes [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Run on</legend>
           <label v-for="day in weekdays" :key="day">
@@ -1419,7 +1393,7 @@ function selectSettingsTab(tab) {
         </fieldset>
 
         <div
-          class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface py-3 px-3.5 text-muted [&_>_div]:grid [&_>_div]:gap-px [&_strong]:text-ink [&_strong]:text-base [&_span]:m-0 [&_span]:text-sm [&_span]:font-bold [&_p]:m-0 [&_p]:text-sm [&_p]:font-bold [&_p]:ml-auto down-mobile:items-stretch down-mobile:flex-col down-mobile:[&_p]:ml-0"
+          class="metron-scan-status flex items-center gap-7 border border-line rounded bg-surface py-3 px-3.5 text-muted down-mobile:items-stretch down-mobile:flex-col"
           aria-live="polite"
         >
           <div>
@@ -1476,3 +1450,67 @@ function selectSettingsTab(tab) {
     </div>
   </section>
 </template>
+
+<style scoped>
+.metron-scan-field :is(input, select, textarea) {
+  @apply w-full;
+}
+
+.metron-scan-field :is(input, select) {
+  @apply h-11 min-h-11 py-0 leading-tight;
+}
+
+.cbl-repository-list-field textarea {
+  @apply min-h-24 resize-y font-ui-semibold;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.permission-scopes label {
+  @apply inline-flex min-h-8 items-center gap-2 rounded border border-line bg-surface px-2.5 py-2 font-extrabold leading-ui-tight text-label;
+}
+
+.permission-scopes legend {
+  @apply mb-0.5 w-full text-sm font-extrabold uppercase text-muted;
+}
+
+.metron-scan-status > div {
+  @apply grid gap-px;
+}
+
+.metron-scan-status strong {
+  @apply text-base text-ink;
+}
+
+.metron-scan-status :is(span, p) {
+  @apply m-0 text-sm font-bold;
+}
+
+.metron-scan-status p {
+  @apply ml-auto;
+}
+
+.cbl-file-picker-header > div {
+  @apply grid gap-1;
+}
+
+.cbl-file-picker-header small,
+.cbl-file-picker-path small,
+.cbl-file-picker-actions span {
+  @apply text-sm font-bold text-muted;
+}
+
+.cbl-file-picker-path strong {
+  overflow-wrap: anywhere;
+}
+
+.cbl-file-picker-actions span {
+  @apply mr-auto;
+}
+
+@screen down-mobile {
+  .metron-scan-status p,
+  .cbl-file-picker-actions span {
+    @apply ml-0 mr-0;
+  }
+}
+</style>

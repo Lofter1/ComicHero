@@ -40,17 +40,17 @@ function entryTags() {
 
 <template>
   <div
-    class="issue-list-item read-accent flex w-full min-w-0 max-w-full flex-wrap items-start justify-between gap-3 rounded border border-line border-b-4 bg-surface-soft py-2.5 px-3 [&.read]:[border-bottom-color:var(--primary)] [&.unread]:[border-bottom-color:#e2c46a] [&.skipped]:[border-bottom-color:var(--muted)] [&.read-accent]:[border-bottom-width:4px] [&.read-accent.read]:[border-bottom-color:var(--primary)] [&.read-accent.unread]:[border-bottom-color:#e2c46a] [&.read-accent.skipped]:[border-bottom-color:var(--muted)] [&_>_span]:min-w-0 down-mobile:[&_.issue-list-main]:[flex-basis:100%] down-mobile:[&_.issue-list-main]:w-full down-mobile:[&_.read-state-actions]:[flex:1_0_100%] down-mobile:[&_.read-state-actions]:w-full down-mobile:[&_.read-state-actions]:justify-start"
+    class="issue-list-item read-accent flex w-full min-w-0 max-w-full flex-wrap items-start justify-between gap-3 rounded border border-b-4 border-line bg-surface-soft px-3 py-2.5"
     :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
   >
     <button
-      class="issue-list-main flex max-w-full min-w-0 items-center gap-2.5 [flex:1_1_280px] border-0 bg-transparent text-inherit p-0 text-left [&_>_span:last-child]:min-w-0 hover:[border-color:transparent] hover:shadow-none hover:transform-none [&_strong]:block [&_small]:block"
+      class="issue-list-main flex max-w-full min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit [flex:1_1_280px]"
       type="button"
       @click="$emit('open', comic)"
     >
       <span
         v-if="showCover && comic.coverImage"
-        class="flex-none w-11 h-16 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-10 down-phone:h-12"
+        class="issue-cover h-16 w-11 flex-none overflow-hidden rounded-ui-sm border border-line bg-surface-muted down-phone:h-12 down-phone:w-10"
         aria-hidden="true"
       >
         <img :src="assetURL(comic.coverImage)" alt="" loading="lazy" />
@@ -58,10 +58,7 @@ function entryTags() {
       <span class="issue-list-copy min-w-0 max-w-full break-anywhere">
         <strong>{{ comic.title }}</strong>
         <small v-if="showComment && comic.comment">{{ comic.comment }}</small>
-        <span
-          v-if="showComment && entryTags().length"
-          class="entry-tags flex flex-wrap gap-1 mt-1 [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2 [&_span]:text-xs [&_span]:font-extrabold [&_span]:leading-snug"
-        >
+        <span v-if="showComment && entryTags().length" class="entry-tags mt-1 flex flex-wrap gap-1">
           <span v-for="tag in entryTags()" :key="tag">{{ tag }}</span>
         </span>
         <small v-if="!showComment || (!comic.comment && !comic.tags)"
@@ -73,20 +70,20 @@ function entryTags() {
 
     <span class="read-state-actions flex items-center justify-end flex-none flex-wrap gap-2">
       <span
-        class="read-state-pill inline-flex items-center justify-center min-h-7 rounded-full py-1 px-2.5 text-xs font-extrabold leading-none whitespace-nowrap [&.read]:bg-primary-soft [&.read]:text-primary [&.unread]:bg-warning-soft [&.unread]:text-warning [&.unread]:[box-shadow:inset_0_0_0_1px_var(--warning-border)] [&.skipped]:bg-surface-muted [&.skipped]:text-muted [&.skipped]:[box-shadow:inset_0_0_0_1px_var(--line-strong)]"
+        class="read-state-pill inline-flex min-h-7 items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none"
         :class="{ read: comic.read, unread: !comic.read }"
       >
         {{ comic.read ? 'Read' : 'Unread' }}
       </span>
       <span
         v-if="comic.skipped"
-        class="read-state-pill skipped inline-flex items-center justify-center min-h-7 rounded-full py-1 px-2.5 text-xs font-extrabold leading-none whitespace-nowrap [&.read]:bg-primary-soft [&.read]:text-primary [&.unread]:bg-warning-soft [&.unread]:text-warning [&.unread]:[box-shadow:inset_0_0_0_1px_var(--warning-border)] [&.skipped]:bg-surface-muted [&.skipped]:text-muted [&.skipped]:[box-shadow:inset_0_0_0_1px_var(--line-strong)]"
+        class="read-state-pill skipped inline-flex min-h-7 items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none"
         >Skipped</span
       >
       <button
         v-if="!readOnly"
         type="button"
-        class="read-toggle-button flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
+        class="read-toggle-button min-h-8 flex-none whitespace-nowrap rounded border border-line-strong bg-surface px-2.5 py-1.5 text-sm font-bold text-label"
         :disabled="quickSaving"
         @click="$emit('toggle-read', comic)"
       >
@@ -95,7 +92,7 @@ function entryTags() {
       <button
         v-if="!readOnly"
         type="button"
-        class="read-toggle-button flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
+        class="read-toggle-button min-h-8 flex-none whitespace-nowrap rounded border border-line-strong bg-surface px-2.5 py-1.5 text-sm font-bold text-label"
         :class="{ skipped: comic.skipped }"
         :disabled="quickSaving"
         @click="$emit('toggle-skipped', comic)"
@@ -105,3 +102,74 @@ function entryTags() {
     </span>
   </div>
 </template>
+
+<style scoped>
+.issue-list-item.read {
+  border-bottom-color: var(--primary);
+}
+
+.issue-list-item.unread {
+  border-bottom-color: #e2c46a;
+}
+
+.issue-list-item.skipped {
+  border-bottom-color: var(--muted);
+}
+
+.issue-list-item > span,
+.issue-list-main > span:last-child {
+  @apply min-w-0;
+}
+
+.issue-list-main:hover:not(:disabled) {
+  @apply border-transparent shadow-none transform-none;
+}
+
+.issue-list-main strong,
+.issue-list-main small,
+.issue-cover img {
+  @apply block;
+}
+
+.issue-cover img {
+  @apply h-full w-full object-cover;
+}
+
+.entry-tags span {
+  @apply rounded-full bg-primary-soft px-2 py-1 text-xs font-extrabold leading-snug text-primary-strong;
+}
+
+.read-state-pill.read {
+  @apply bg-primary-soft text-primary;
+}
+
+.read-state-pill.unread {
+  @apply bg-warning-soft text-warning;
+  box-shadow: inset 0 0 0 1px var(--warning-border);
+}
+
+.read-state-pill.skipped {
+  @apply bg-surface-muted text-muted;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.read-toggle-button.skipped {
+  @apply border-muted text-muted;
+}
+
+.read-toggle-button.large {
+  @apply min-h-10 px-3.5 py-2.5 text-base;
+}
+
+@screen down-mobile {
+  .issue-list-main {
+    @apply w-full;
+    flex-basis: 100%;
+  }
+
+  .read-state-actions {
+    @apply w-full justify-start;
+    flex: 1 0 100%;
+  }
+}
+</style>

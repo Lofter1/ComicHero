@@ -196,9 +196,7 @@ function formatTimestamp(value) {
           <summary
             class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap pt-3 pr-12 pb-3 pl-4 cursor-pointer [list-style:none] relative down-mobile:items-stretch down-mobile:flex-col [&::-webkit-details-marker]:hidden after:[content:'›'] after:absolute after:right-4 after:[top:50%] after:text-muted after:text-2xl after:leading-none after:[transform:translateY(-50%)] after:[transition:transform_140ms_ease] [&_h3]:mb-0.5 [&_p]:text-muted [&_p]:text-sm [&_p]:font-bold"
           >
-            <div
-              class="user-summary min-w-0 [&_h3]:break-anywhere [&_p]:break-anywhere [&_.user-account-dates]:flex [&_.user-account-dates]:gap-y-1.5 [&_.user-account-dates]:gap-x-3.5 [&_.user-account-dates]:flex-wrap [&_.user-account-dates]:mt-1 [&_.user-account-dates]:text-xs [&_.user-account-dates]:font-ui-semibold"
-            >
+            <div class="user-summary min-w-0">
               <h3>{{ entry.user.name }}</h3>
               <p>{{ entry.user.email || 'No email address' }}</p>
               <p class="user-account-dates">
@@ -211,7 +209,7 @@ function formatTimestamp(value) {
               </p>
             </div>
             <div
-              class="user-summary-badges flex items-center justify-end gap-2 text-muted text-xs font-extrabold down-mobile:justify-start down-mobile:flex-wrap [&_span]:border [&_span]:border-line [&_span]:rounded-full [&_span]:bg-surface [&_span]:py-1 [&_span]:px-2 [&_.user-role-badge]:border-warning-border [&_.user-role-badge]:bg-warning-soft [&_.user-role-badge]:text-warning"
+              class="user-summary-badges flex items-center justify-end gap-2 text-muted text-xs font-extrabold down-mobile:justify-start down-mobile:flex-wrap"
               aria-hidden="true"
             >
               <span v-if="entry.user.isAdmin" class="user-role-badge">Admin</span>
@@ -227,9 +225,7 @@ function formatTimestamp(value) {
             <section
               class="user-card-section account-section grid min-w-0 content-start gap-3 border-r border-line py-4 px-4 down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line"
             >
-              <div
-                class="section-heading [&_h4]:mt-0.5 [&_h4]:mx-0 [&_h4]:mb-0 [&_h4]:text-label [&_h4]:text-base [&_h4]:font-bold"
-              >
+              <div class="section-heading">
                 <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Account</p>
                 <h4>Role and access</h4>
               </div>
@@ -268,9 +264,7 @@ function formatTimestamp(value) {
             <section
               class="user-card-section metron-permission-editor grid content-start gap-3 min-w-0 py-4 px-4"
             >
-              <div
-                class="section-heading [&_h4]:mt-0.5 [&_h4]:mx-0 [&_h4]:mb-0 [&_h4]:text-label [&_h4]:text-base [&_h4]:font-bold"
-              >
+              <div class="section-heading">
                 <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Metron</p>
                 <h4>API permissions</h4>
               </div>
@@ -285,9 +279,7 @@ function formatTimestamp(value) {
                     <input v-model="draftFor(entry.user.id).allowed" type="checkbox" />
                     <span>{{ draftFor(entry.user.id).allowed ? 'Enabled' : 'Disabled' }}</span>
                   </label>
-                  <label
-                    class="hourly-limit-field grid gap-1 w-full text-label font-extrabold [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2 [&_input]:px-2.5"
-                  >
+                  <label class="hourly-limit-field grid gap-1 w-full text-label font-extrabold">
                     <span>Hourly endpoint limit</span>
                     <input
                       v-model.number="draftFor(entry.user.id).hourlyLimit"
@@ -308,7 +300,7 @@ function formatTimestamp(value) {
                 </div>
 
                 <fieldset
-                  class="permission-scopes [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+                  class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
                   :disabled="!draftFor(entry.user.id).allowed"
                 >
                   <legend>Allowed endpoint scopes</legend>
@@ -343,9 +335,7 @@ function formatTimestamp(value) {
     <section
       class="detail-panel min-w-0 max-w-full min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
     >
-      <header
-        class="section-heading [&_h4]:mt-0.5 [&_h4]:mx-0 [&_h4]:mb-0 [&_h4]:text-label [&_h4]:text-base [&_h4]:font-bold"
-      >
+      <header class="section-heading">
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Audit log</p>
         <h3>Recent changes</h3>
       </header>
@@ -387,3 +377,41 @@ function formatTimestamp(value) {
     </section>
   </section>
 </template>
+
+<style scoped>
+.user-summary :is(h3, p) {
+  overflow-wrap: anywhere;
+}
+
+.user-account-dates {
+  @apply mt-1 flex flex-wrap gap-x-3.5 gap-y-1.5 text-xs font-ui-semibold;
+}
+
+.user-summary-badges span {
+  @apply rounded-full border border-line bg-surface px-2 py-1;
+}
+
+.user-summary-badges .user-role-badge {
+  @apply border-warning-border bg-warning-soft text-warning;
+}
+
+.section-heading h4 {
+  @apply mt-0.5 mb-0 text-base font-bold text-label;
+}
+
+.hourly-limit-field small {
+  @apply text-sm font-bold text-muted;
+}
+
+.hourly-limit-field input {
+  @apply min-h-10 w-full min-w-0 rounded border border-line-strong bg-surface px-2.5 py-2 text-ink;
+}
+
+.permission-scopes label {
+  @apply inline-flex min-h-8 items-center gap-2 rounded border border-line bg-surface px-2.5 py-2 font-extrabold leading-ui-tight text-label;
+}
+
+.permission-scopes legend {
+  @apply mb-0.5 w-full text-sm font-extrabold uppercase text-muted;
+}
+</style>
