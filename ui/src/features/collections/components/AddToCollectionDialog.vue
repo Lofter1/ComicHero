@@ -25,29 +25,27 @@ function monogram(name) {
 
 <template>
   <div
-    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4.5"
+    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
     @click.self="$emit('close')"
   >
     <section
-      class="collection-dialog [&_.collection-create-form_input]:w-full [&_.collection-create-form_input]:min-w-0 [&_.collection-create-form_input]:min-h-10.5 [&_.collection-create-form_input]:border [&_.collection-create-form_input]:border-line-strong [&_.collection-create-form_input]:rounded [&_.collection-create-form_input]:bg-surface [&_.collection-create-form_input]:text-control [&_.collection-create-form_input]:py-2.25 [&_.collection-create-form_input]:px-3 [&_.collection-create-form_input:focus]:outline-3 [&_.collection-create-form_input:focus]:outline-focus [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-0.75 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
+      class="collection-dialog [&_.collection-create-form_input]:w-full [&_.collection-create-form_input]:min-w-0 [&_.collection-create-form_input]:min-h-10 [&_.collection-create-form_input]:border [&_.collection-create-form_input]:border-line-strong [&_.collection-create-form_input]:rounded [&_.collection-create-form_input]:bg-surface [&_.collection-create-form_input]:text-control [&_.collection-create-form_input]:py-2 [&_.collection-create-form_input]:px-3 [&_.collection-create-form_input:focus]:outline-3 [&_.collection-create-form_input:focus]:outline-focus [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-to-collection-title"
     >
       <header
-        class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+        class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
       >
         <div>
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">My collections</p>
           <h3 id="add-to-collection-title">Add {{ character.name }} to a collection</h3>
-          <p
-            class="collection-dialog-description mt-1.25 mx-0 mb-0 text-muted text-ui-sm-plus leading-snug"
-          >
+          <p class="collection-dialog-description mt-1 mx-0 mb-0 text-muted text-sm leading-snug">
             Choose an existing collection or create one below.
           </p>
         </div>
         <button
-          class="icon-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close"
           @click="$emit('close')"
@@ -59,12 +57,12 @@ function monogram(name) {
       <LoadingState v-if="loading" compact />
       <div
         v-else-if="collections.length"
-        class="collection-dialog-list grid gap-2 my-3.5 mx-4.5 [&_.row]:items-center [&_.row]:rounded-lg [&_.row]:py-2.75 [&_.row]:px-3 [&_.row_strong]:block [&_.row_small]:block [&_.row_small]:mt-0.75 [&_.row:disabled_.status-pill]:bg-surface-muted [&_.row:disabled_.status-pill]:text-muted"
+        class="collection-dialog-list grid gap-2 my-3.5 mx-4 [&_.row]:items-center [&_.row]:rounded-lg [&_.row]:py-3 [&_.row]:px-3 [&_.row_strong]:block [&_.row_small]:block [&_.row_small]:mt-1 [&_.row:disabled_.status-pill]:bg-surface-muted [&_.row:disabled_.status-pill]:text-muted"
       >
         <button
           v-for="collection in collections"
           :key="collection.id"
-          class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+          class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
           type="button"
           :disabled="saving || collection.containsCharacter"
           @click="emit('add', collection)"
@@ -73,7 +71,7 @@ function monogram(name) {
             class="collection-dialog-item-main grid [grid-template-columns:38px_minmax(0,_1fr)] items-center gap-2.5 min-w-0"
           >
             <span
-              class="collection-dialog-monogram bg-primary-soft grid place-items-center w-9.5 h-9.5 overflow-hidden border border-line-strong rounded-md bg-surface-muted text-primary-strong font-black"
+              class="collection-dialog-monogram bg-primary-soft grid place-items-center w-10 h-10 overflow-hidden border border-line-strong rounded-md bg-surface-muted text-primary-strong font-black"
               aria-hidden="true"
             >
               {{ monogram(collection.name) }}
@@ -84,7 +82,7 @@ function monogram(name) {
             </span>
           </span>
           <span
-            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
           >
             {{ collection.containsCharacter ? 'Added' : 'Add' }}
           </span>
@@ -95,14 +93,14 @@ function monogram(name) {
       </p>
 
       <form
-        class="collection-create-form grid gap-2 mt-4.5 pt-4.5 border-t border-line [&_>_label]:text-label [&_>_label]:text-ui-md [&_>_label]:font-extrabold [&_>_div]:grid [&_>_div]:[grid-template-columns:minmax(0,_1fr)_max-content] [&_>_div]:gap-2.5 down-compact:[&_>_div]:grid-cols-1"
+        class="collection-create-form grid gap-2 mt-4 pt-4 border-t border-line [&_>_label]:text-label [&_>_label]:text-sm [&_>_label]:font-extrabold [&_>_div]:grid [&_>_div]:[grid-template-columns:minmax(0,_1fr)_max-content] [&_>_div]:gap-2.5 down-compact:[&_>_div]:grid-cols-1"
         @submit.prevent="createCollection"
       >
         <label for="new-character-collection">Create a new collection</label>
         <div>
           <input id="new-character-collection" v-model="newName" maxlength="120" />
           <button
-            class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+            class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
             type="submit"
             :disabled="saving || !newName.trim()"
           >

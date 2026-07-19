@@ -96,7 +96,7 @@ function seriesLabel(comic) {
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedComic && canDelete"
-        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="deleting || mergeSaving"
         @click="$emit('open-merge')"
@@ -105,7 +105,7 @@ function seriesLabel(comic) {
       </button>
       <button
         v-if="selectedComic && canDelete"
-        class="danger-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"
@@ -114,7 +114,7 @@ function seriesLabel(comic) {
       </button>
       <button
         v-if="selectedComic && !readOnly"
-        class="read-toggle-button large flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-ui-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10.5 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
+        class="read-toggle-button large flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
         type="button"
         :disabled="quickSavingComicId === selectedComic.id"
         @click="$emit('toggle-read', selectedComic)"
@@ -123,7 +123,7 @@ function seriesLabel(comic) {
       </button>
       <button
         v-if="selectedComic && !readOnly"
-        class="read-toggle-button large flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-ui-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10.5 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
+        class="read-toggle-button large flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
         :class="{ skipped: selectedComic.skipped }"
         type="button"
         :disabled="quickSavingComicId === selectedComic.id"
@@ -133,7 +133,7 @@ function seriesLabel(comic) {
       </button>
       <button
         v-if="selectedComic && !readOnly"
-        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="metronActionDisabled"
         @click="runMetronAction"
@@ -143,11 +143,11 @@ function seriesLabel(comic) {
     </DetailNavigation>
 
     <article
-      class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+      class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
     >
-      <div v-if="selectedComic" class="read-only-detail grid gap-4.5">
+      <div v-if="selectedComic" class="read-only-detail grid gap-4">
         <header
-          class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+          class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
         >
           <div>
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Comic</p>
@@ -157,7 +157,7 @@ function seriesLabel(comic) {
 
         <div
           v-if="selectedComic.coverImage"
-          class="cover-preview overflow-hidden border border-line rounded bg-surface-muted max-w-55 [&_img]:block [&_img]:w-full [&_img]:aspect-portrait [&_img]:object-cover"
+          class="cover-preview overflow-hidden border border-line rounded bg-surface-muted max-w-56 [&_img]:block [&_img]:w-full [&_img]:aspect-portrait [&_img]:object-cover"
         >
           <img
             :src="assetURL(selectedComic.coverImage)"
@@ -199,7 +199,7 @@ function seriesLabel(comic) {
 
         <nav
           v-if="metronIssueURL || comicVineIssueURL"
-          class="comic-source-links flex items-center flex-wrap gap-y-1.5 gap-x-3 mt-2.5 text-muted text-ui-compact [&_>_span]:font-bold [&_a]:text-muted [&_a]:no-underline [&_a:hover]:text-accent [&_a:hover]:[text-decoration:underline] [&_a:focus-visible]:rounded-xs [&_a:focus-visible]:outline-3 [&_a:focus-visible]:outline-focus [&_a:focus-visible]:outline-offset-2"
+          class="comic-source-links flex items-center flex-wrap gap-y-1.5 gap-x-3 mt-2.5 text-muted text-xs [&_>_span]:font-bold [&_a]:text-muted [&_a]:no-underline [&_a:hover]:text-accent [&_a:hover]:[text-decoration:underline] [&_a:focus-visible]:rounded-xs [&_a:focus-visible]:outline-3 [&_a:focus-visible]:outline-focus [&_a:focus-visible]:outline-offset-2"
           aria-label="External comic sources"
         >
           <span>Sources</span>
@@ -231,7 +231,7 @@ function seriesLabel(comic) {
             </div>
             <button
               v-if="metronMetadataOpen || metronMetadataStatus"
-              class="ghost-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+              class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
               type="button"
               @click="$emit('reset-metron')"
             >
@@ -246,7 +246,7 @@ function seriesLabel(comic) {
             <button
               v-for="issue in metronMetadataResults"
               :key="issue.id"
-              class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+              class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
               type="button"
               :disabled="metronMetadataApplyingId !== null"
               @click="$emit('apply-metron', issue.id)"
@@ -262,7 +262,7 @@ function seriesLabel(comic) {
                 >
               </span>
               <span
-                class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+                class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
               >
                 {{ metronMetadataApplyingId === issue.id ? 'Applying...' : 'Apply' }}
               </span>
@@ -276,11 +276,11 @@ function seriesLabel(comic) {
 
         <div
           v-if="selectedComic.characters?.length"
-          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
+          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-6 [&_ul]:mb-0 [&_ul]:pl-6 [&_li]:mb-2.5"
         >
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Characters</p>
           <div
-            class="alias-list flex flex-wrap gap-2 [&_span]:min-h-7.5 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1.25 [&_span]:px-2.5 [&_span]:text-ui-sm-plus [&_span]:font-extrabold [&_button]:min-h-7.5 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1.25 [&_button]:px-2.5 [&_button]:text-ui-sm-plus [&_button]:font-extrabold [&_button]:cursor-pointer"
+            class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold [&_button]:min-h-8 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-extrabold [&_button]:cursor-pointer"
           >
             <button
               v-for="character in selectedComic.characters"

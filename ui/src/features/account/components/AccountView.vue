@@ -84,7 +84,7 @@ function deleteAccount() {
           class="account-settings-heading flex items-center gap-3.5 min-w-0 [&_h3]:break-anywhere"
         >
           <span
-            class="account-avatar large w-9 min-w-9 h-9 border border-primary rounded-full inline-flex items-center justify-center bg-primary-soft text-primary font-black leading-none [&.large]:w-11.5 [&.large]:min-w-11.5 [&.large]:h-11.5 [&.large]:text-ui-title-sm"
+            class="account-avatar large w-9 min-w-9 h-9 border border-primary rounded-full inline-flex items-center justify-center bg-primary-soft text-primary font-black leading-none [&.large]:w-12 [&.large]:min-w-12 [&.large]:h-12 [&.large]:text-lg"
             aria-hidden="true"
             >{{ (user.name || '?').slice(0, 1).toUpperCase() }}</span
           >
@@ -113,7 +113,7 @@ function deleteAccount() {
         </div>
 
         <div
-          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
         >
           <label>
             <span>Display name</span>
@@ -132,7 +132,7 @@ function deleteAccount() {
         </div>
 
         <div
-          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
         >
           <label>
             <span>Current password</span>
@@ -160,7 +160,7 @@ function deleteAccount() {
       </article>
 
       <button
-        class="primary-button account-save-button justify-self-start min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button account-save-button justify-self-start min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -181,7 +181,7 @@ function deleteAccount() {
         </div>
 
         <div
-          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
         >
           <label>
             <span>Current password</span>
@@ -195,7 +195,7 @@ function deleteAccount() {
         </div>
 
         <button
-          class="danger-button account-save-button justify-self-start min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+          class="danger-button account-save-button justify-self-start min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
           type="button"
           :disabled="deleting"
           @click="deleteAccount"

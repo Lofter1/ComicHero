@@ -124,7 +124,7 @@ function seriesPublisherLabel(series) {
               <template #byline>
                 <span
                   v-if="item.startedAt"
-                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2 text-xs font-extrabold leading-tight"
                   >Started</span
                 >
                 <BrowseRowStats
@@ -147,13 +147,13 @@ function seriesPublisherLabel(series) {
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
         <button
           v-if="!hasFilters && !readOnly"
-          class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
           type="button"
           @click="$emit('new-comic')"
         >
           <span
             aria-hidden="true"
-            class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+            class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
             >+</span
           >
           Add the first comic

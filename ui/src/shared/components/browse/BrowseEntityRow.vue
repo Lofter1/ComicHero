@@ -50,7 +50,7 @@ defineEmits(['open', 'toggle-favorite'])
 
 <template>
   <div
-    class="row flex-col min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+    class="row flex-col min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
     :class="{ selected }"
   >
     <span
@@ -64,7 +64,7 @@ defineEmits(['open', 'toggle-favorite'])
       >
         <span
           v-if="image"
-          class="flex-none w-11 h-15 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-9.5 down-phone:h-13"
+          class="flex-none w-11 h-16 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-10 down-phone:h-12"
           aria-hidden="true"
         >
           <img :src="assetURL(image)" alt="" loading="lazy" />

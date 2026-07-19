@@ -18,7 +18,7 @@ function search() {
 
 <template>
   <div
-    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4.5"
+    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
     @click.self="$emit('close')"
   >
     <section
@@ -28,14 +28,14 @@ function search() {
       aria-labelledby="merge-title"
     >
       <header
-        class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+        class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
       >
         <div>
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Admin</p>
           <h3 id="merge-title">Merge a duplicate into {{ target.title }}</h3>
         </div>
         <button
-          class="icon-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close comic merge"
           @click="$emit('close')"
@@ -50,12 +50,12 @@ function search() {
       </p>
 
       <form
-        class="comic-merge-search grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 my-4.5 mx-0"
+        class="comic-merge-search grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 my-4 mx-0"
         @submit.prevent="search"
       >
         <input v-model="query" type="search" placeholder="Search duplicate comics" autofocus />
         <button
-          class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
           type="submit"
           :disabled="searching || saving"
         >
@@ -67,7 +67,7 @@ function search() {
         <button
           v-for="comic in candidates"
           :key="comic.id"
-          class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+          class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
           type="button"
           :disabled="saving"
           @click="emit('merge', comic)"
@@ -77,7 +77,7 @@ function search() {
             <small>{{ comic.publisher || 'Unknown publisher' }}</small>
           </span>
           <span
-            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
             >Merge</span
           >
         </button>

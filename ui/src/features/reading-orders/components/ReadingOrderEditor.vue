@@ -434,10 +434,10 @@ function endDrag() {
     </label>
 
     <div
-      class="reading-order-editor-layout grid [grid-template-columns:minmax(320px,_420px)_minmax(620px,_1fr)] items-start gap-4.5 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:[padding-top:0]"
+      class="reading-order-editor-layout grid [grid-template-columns:minmax(320px,_420px)_minmax(620px,_1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:[padding-top:0]"
     >
       <div
-        class="reading-order-search-column grid self-start gap-4.5 min-w-0 sticky [top:calc(var(--sticky-toolbar-top,_0px)_+_14px)] down-laptop:static"
+        class="reading-order-search-column grid self-start gap-4 min-w-0 sticky [top:calc(var(--sticky-toolbar-top,_0px)_+_14px)] down-laptop:static"
       >
         <section class="entry-section add-entry-panel grid gap-2.5 border-t border-line pt-3.5">
           <div
@@ -447,7 +447,7 @@ function endDrag() {
           </div>
 
           <div
-            class="add-entry-tabs grid grid-cols-3 gap-2 [&_button]:min-h-9.5 [&_button]:border [&_button]:border-line [&_button]:rounded [&_button]:bg-surface [&_button]:text-muted [&_button]:font-black [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white"
+            class="add-entry-tabs grid grid-cols-3 gap-2 [&_button]:min-h-10 [&_button]:border [&_button]:border-line [&_button]:rounded [&_button]:bg-surface [&_button]:text-muted [&_button]:font-black [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white"
             role="tablist"
             aria-label="Entry source"
           >
@@ -489,7 +489,7 @@ function endDrag() {
               />
               <button
                 v-if="comicSearch"
-                class="ghost-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+                class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
                 type="button"
                 @click="clearComicSearch"
               >
@@ -510,14 +510,14 @@ function endDrag() {
                 v-for="comic in comicSearchResults"
                 :key="comic.id"
                 type="button"
-                class="comic-add-result flex items-start justify-between gap-3 min-h-20.5 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [&[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:[border-color:color-mix(in_srgb,_var(--primary)_46%,_var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-0.75 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
+                class="comic-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [&[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:[border-color:color-mix(in_srgb,_var(--primary)_46%,_var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
                 draggable="true"
                 @click="addNewEntryToEnd(newComicEntry(comic))"
                 @dragstart="startAddDrag($event, newComicEntry(comic))"
               >
                 <span>
                   <span
-                    class="entry-type-pill inline-grid self-start mb-1.25 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-1.75 text-xxs font-black leading-tight uppercase"
+                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
                     >Issue</span
                   >
                   <strong>{{ comic.title }}</strong>
@@ -526,7 +526,7 @@ function endDrag() {
                 </span>
 
                 <span
-                  class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+                  class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
                   >Add</span
                 >
               </button>
@@ -550,7 +550,7 @@ function endDrag() {
               />
               <button
                 v-if="readingOrderSearch"
-                class="ghost-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+                class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
                 type="button"
                 @click="readingOrderSearch = ''"
               >
@@ -566,14 +566,14 @@ function endDrag() {
                 v-for="order in childOrderChoices"
                 :key="order.id"
                 type="button"
-                class="comic-add-result reading-order-add-result flex items-start justify-between gap-3 min-h-20.5 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [&[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:[border-color:color-mix(in_srgb,_var(--primary)_46%,_var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-0.75 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
+                class="comic-add-result reading-order-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [&[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:[border-color:color-mix(in_srgb,_var(--primary)_46%,_var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
                 draggable="true"
                 @click="addNewEntryToEnd(newChildOrderEntry(order))"
                 @dragstart="startAddDrag($event, newChildOrderEntry(order))"
               >
                 <span>
                   <span
-                    class="entry-type-pill inline-grid self-start mb-1.25 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-1.75 text-xxs font-black leading-tight uppercase"
+                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
                     >Reading order</span
                   >
                   <strong>{{ order.name }}</strong>
@@ -581,7 +581,7 @@ function endDrag() {
                 </span>
 
                 <span
-                  class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-compact flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
+                  class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
                   >Add</span
                 >
               </button>
@@ -619,7 +619,7 @@ function endDrag() {
             </label>
             <button
               type="button"
-              class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+              class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
               :disabled="!sectionTitle.trim()"
               @click="addSection"
             >
@@ -630,7 +630,7 @@ function endDrag() {
       </div>
 
       <section
-        class="entry-section reading-order-list-edit min-w-0 border-t border-line pt-3.5 [&_.section-title_>_span]:text-muted [&_.section-title_>_span]:text-ui-sm [&_.section-title_>_span]:font-ui-bold"
+        class="entry-section reading-order-list-edit min-w-0 border-t border-line pt-3.5 [&_.section-title_>_span]:text-muted [&_.section-title_>_span]:text-sm [&_.section-title_>_span]:font-ui-bold"
       >
         <div
           class="section-title justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
@@ -641,7 +641,7 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-ui-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_.secondary-button]:min-h-9 [&_.secondary-button]:py-1.75 [&_.secondary-button]:px-2.5 [&_strong]:min-w-26 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1 down-mobile:[&_.secondary-button]:w-full"
+          class="reading-order-entry-pages flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_.secondary-button]:min-h-9 [&_.secondary-button]:py-2 [&_.secondary-button]:px-2.5 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1 down-mobile:[&_.secondary-button]:w-full"
           aria-label="Reading order entry pages"
         >
           <span>
@@ -651,7 +651,7 @@ function endDrag() {
           <div>
             <button
               type="button"
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(0)"
             >
@@ -659,7 +659,7 @@ function endDrag() {
             </button>
             <button
               type="button"
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(entryPageState.page - 1)"
             >
@@ -668,7 +668,7 @@ function endDrag() {
             <strong>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</strong>
             <button
               type="button"
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.page + 1)"
             >
@@ -676,7 +676,7 @@ function endDrag() {
             </button>
             <button
               type="button"
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.pageCount - 1)"
             >
@@ -702,7 +702,7 @@ function endDrag() {
             :key="entryKey(entry, index)"
           >
             <div
-              class="entry-drop-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-9.5 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
+              class="entry-drop-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
               :class="{ active: dragOverIndex === index }"
               @dragover="overDropZone($event, index)"
               @dragleave="dragOverIndex = null"
@@ -720,11 +720,11 @@ function endDrag() {
             >
               <button
                 type="button"
-                class="selected-order-comic entry-summary-button flex flex-col justify-center items-start min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid [grid-template-columns:34px_minmax(0,_1fr)_34px] items-center gap-3 w-full min-h-18.5 h-18.5 text-ink text-left down-mobile:[grid-template-columns:30px_minmax(0,_1fr)_30px] down-mobile:h-auto down-mobile:min-h-18.5 down-mobile:py-2 down-mobile:px-2.5 hover:[border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-0.75"
+                class="selected-order-comic entry-summary-button flex flex-col justify-center items-start min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid [grid-template-columns:34px_minmax(0,_1fr)_34px] items-center gap-3 w-full min-h-20 h-20 text-ink text-left down-mobile:[grid-template-columns:30px_minmax(0,_1fr)_30px] down-mobile:h-auto down-mobile:min-h-20 down-mobile:py-2 down-mobile:px-2.5 hover:[border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-1"
                 @click="toggleEntry(entry, index)"
               >
                 <span
-                  class="entry-drag-cell grid place-items-center self-stretch [&_.drag-handle]:grid [&_.drag-handle]:place-items-center [&_.drag-handle]:w-7 [&_.drag-handle]:h-11 [&_.drag-handle]:rounded [&_.drag-handle]:cursor-grab [&_.drag-handle]:text-muted [&_.drag-handle]:text-ui-title-sm [&_.drag-handle]:font-black [&_.drag-handle]:leading-none [&_.drag-handle:hover]:bg-surface [&_.drag-handle:hover]:text-primary [&_.drag-handle:active]:cursor-grabbing"
+                  class="entry-drag-cell grid place-items-center self-stretch [&_.drag-handle]:grid [&_.drag-handle]:place-items-center [&_.drag-handle]:w-7 [&_.drag-handle]:h-11 [&_.drag-handle]:rounded [&_.drag-handle]:cursor-grab [&_.drag-handle]:text-muted [&_.drag-handle]:text-lg [&_.drag-handle]:font-black [&_.drag-handle]:leading-none [&_.drag-handle:hover]:bg-surface [&_.drag-handle:hover]:text-primary [&_.drag-handle:active]:cursor-grabbing"
                 >
                   <span
                     class="drag-handle"
@@ -748,7 +748,7 @@ function endDrag() {
                   class="entry-summary-copy grid min-w-0 justify-items-start [&_strong]:[line-clamp:1] [&_strong]:[-webkit-line-clamp:1]"
                 >
                   <span
-                    class="entry-type-pill inline-grid self-start mb-1.25 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-1.75 text-xxs font-black leading-tight uppercase"
+                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
                     >{{ entryTypeLabel(entry) }}</span
                   >
                   <strong>{{ entryLabel(entry) }}</strong>
@@ -756,7 +756,7 @@ function endDrag() {
 
                 <span
                   aria-hidden="true"
-                  class="button-icon entry-expand-icon grid place-items-center justify-self-end w-7.5 h-7.5 rounded-full text-control text-ui-title-sm [transition:background-color_120ms_ease,_color_120ms_ease] inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+                  class="button-icon entry-expand-icon grid place-items-center justify-self-end w-8 h-8 rounded-full text-control text-lg [transition:background-color_120ms_ease,_color_120ms_ease] inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
                   :title="isEntryExpanded(entry, index) ? 'Collapse' : 'Expand'"
                 >
                   {{ isEntryExpanded(entry, index) ? '▴' : '▾' }}
@@ -781,7 +781,7 @@ function endDrag() {
 
               <button
                 type="button"
-                class="remove-entry-button grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 [font-size:1.45rem] font-extrabold leading-none hover:[border-color:var(--danger)] hover:[background:color-mix(in_srgb,_var(--danger-soft)_72%,_var(--danger))] hover:text-danger"
+                class="remove-entry-button grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 text-2xl font-extrabold leading-none hover:[border-color:var(--danger)] hover:[background:color-mix(in_srgb,_var(--danger-soft)_72%,_var(--danger))] hover:text-danger"
                 :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`"
                 title="Remove"
                 @click="removeEntry(index)"
@@ -795,12 +795,12 @@ function endDrag() {
                   (index === entryPageState.end - 1 &&
                     entryPageState.page < entryPageState.pageCount - 1)
                 "
-                class="entry-page-move flex col-span-full justify-end gap-2 [&_button]:min-h-9 [&_button]:py-1.75 [&_button]:px-3 [&_button]:text-ui-sm"
+                class="entry-page-move flex col-span-full justify-end gap-2 [&_button]:min-h-9 [&_button]:py-2 [&_button]:px-3 [&_button]:text-sm"
               >
                 <button
                   v-if="index === entryPageState.start && entryPageState.page > 0"
                   type="button"
-                  class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+                  class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
                   @click="moveEntryAcrossPage(index, -1)"
                 >
                   Move to previous page
@@ -811,7 +811,7 @@ function endDrag() {
                     entryPageState.page < entryPageState.pageCount - 1
                   "
                   type="button"
-                  class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+                  class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
                   @click="moveEntryAcrossPage(index, 1)"
                 >
                   Move to next page
@@ -884,7 +884,7 @@ function endDrag() {
           </template>
 
           <div
-            class="entry-drop-zone end-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-9.5 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
+            class="entry-drop-zone end-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
             :class="{ active: dragOverIndex === entryPageState.end }"
             @dragover="overDropZone($event, entryPageState.end)"
             @dragleave="dragOverIndex = null"
@@ -894,14 +894,14 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 mb-0 flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-ui-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_.secondary-button]:min-h-9 [&_.secondary-button]:py-1.75 [&_.secondary-button]:px-2.5 [&_strong]:min-w-26 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1 down-mobile:[&_.secondary-button]:w-full"
+          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 mb-0 flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_.secondary-button]:min-h-9 [&_.secondary-button]:py-2 [&_.secondary-button]:px-2.5 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1 down-mobile:[&_.secondary-button]:w-full"
           aria-label="Reading order entry pages"
         >
           <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>
           <div>
             <button
               type="button"
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(entryPageState.page - 1)"
             >
@@ -909,7 +909,7 @@ function endDrag() {
             </button>
             <button
               type="button"
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.page + 1)"
             >

@@ -122,7 +122,7 @@ function characterProgress(character) {
               <template #byline>
                 <span
                   v-if="character.startedAt"
-                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2 text-xs font-extrabold leading-tight"
                   >Started</span
                 >
                 <BrowseRowStats
@@ -136,7 +136,7 @@ function characterProgress(character) {
               </template>
               <template v-if="!readOnly" #actions>
                 <button
-                  class="secondary-action collection-row-action min-h-8.5 py-1.5 px-2.5 text-ui-compact whitespace-nowrap min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+                  class="secondary-action collection-row-action min-h-8 py-1.5 px-2.5 text-xs whitespace-nowrap min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
                   type="button"
                   @click="$emit('add-to-collection', character)"
                 >

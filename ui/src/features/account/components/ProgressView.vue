@@ -44,7 +44,7 @@ function achievementTimestampLabel(achievement) {
 </script>
 
 <template>
-  <section class="browse-view progress-view grid gap-4 max-w-295 min-w-0 w-full">
+  <section class="browse-view progress-view grid gap-4 max-w-content min-w-0 w-full">
     <LoadingState v-if="loading && !statisticsView" />
     <div
       v-else-if="error"
@@ -54,7 +54,7 @@ function achievementTimestampLabel(achievement) {
     </div>
     <template v-else-if="statisticsView">
       <article
-        class="progress-summary-panel grid-cols-1 grid gap-4 border border-line rounded bg-surface-soft p-4.5 down-tablet:grid-cols-1"
+        class="progress-summary-panel grid-cols-1 grid gap-4 border border-line rounded bg-surface-soft p-4 down-tablet:grid-cols-1"
       >
         <div
           class="progress-section-heading flex items-center justify-between gap-3 min-w-0 [&_h3]:break-anywhere"
@@ -64,7 +64,7 @@ function achievementTimestampLabel(achievement) {
             <h3>Reading progress</h3>
           </div>
           <button
-            class="secondary-button compact-button min-h-9 py-1.75 px-2.5 min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+            class="secondary-button compact-button min-h-9 py-2 px-2.5 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
             type="button"
             :disabled="loading"
             @click="emit('refresh')"
@@ -96,7 +96,7 @@ function achievementTimestampLabel(achievement) {
       </article>
 
       <article
-        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4.5"
+        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4"
       >
         <div
           class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
@@ -145,7 +145,7 @@ function achievementTimestampLabel(achievement) {
       </article>
 
       <article
-        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4.5"
+        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4"
       >
         <div
           class="progress-section-heading flex items-center justify-between gap-3 min-w-0 [&_h3]:break-anywhere"
@@ -168,7 +168,7 @@ function achievementTimestampLabel(achievement) {
               class="achievement-card-heading grid [grid-template-columns:auto_minmax(0,_1fr)] gap-2.5 items-center [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.5"
             >
               <span
-                class="achievement-badge grid place-items-center w-8.5 h-8.5 border border-line rounded-full bg-surface-soft text-muted text-xs font-black"
+                class="achievement-badge grid place-items-center w-8 h-8 border border-line rounded-full bg-surface-soft text-muted text-xs font-black"
                 aria-hidden="true"
                 >{{ achievement.earned ? 'OK' : '--' }}</span
               >
@@ -179,7 +179,7 @@ function achievementTimestampLabel(achievement) {
             </div>
             <p>{{ achievement.description }}</p>
             <div
-              class="achievement-progress grid gap-1.5 text-ui-sm font-extrabold [&_small]:block [&_small]:text-muted [&_small]:mt-1"
+              class="achievement-progress grid gap-1.5 text-sm font-extrabold [&_small]:block [&_small]:text-muted [&_small]:mt-1"
             >
               <span
                 >{{ Math.min(achievement.progress, achievement.target) }} /

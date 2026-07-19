@@ -962,7 +962,7 @@ onUnmounted(() => {
         <h2>Page not found</h2>
         <p>This route does not match a ComicHero view.</p>
         <router-link
-          class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
           :to="{ name: 'readingOrders' }"
         >
           Go to reading orders
@@ -1237,12 +1237,12 @@ onUnmounted(() => {
       <div
         v-if="showInfiniteScrollSentinel"
         ref="loadMoreSentinel"
-        class="load-more-sentinel flex items-center gap-2 w-full min-h-10.5 text-muted text-sm font-bold"
+        class="load-more-sentinel flex items-center gap-2 w-full min-h-10 text-muted text-sm font-bold"
         aria-live="polite"
       >
         <span
           v-if="activeListLoadingMore"
-          class="loading-spinner small w-4.5 h-4.5 border-3 border-spinner-track border-t-primary rounded-full animate-loading-spin flex-none [&.small]:w-3.5 [&.small]:h-3.5 [&.small]:[border-width:2px]"
+          class="loading-spinner small w-4 h-4 border-3 border-spinner-track border-t-primary rounded-full animate-loading-spin flex-none [&.small]:w-3.5 [&.small]:h-3.5 [&.small]:[border-width:2px]"
           aria-hidden="true"
         ></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>

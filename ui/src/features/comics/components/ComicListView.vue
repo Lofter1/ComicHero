@@ -533,7 +533,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <button
           v-if="showNewButton && !readOnly"
-          class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           @click="$emit('new-comic')"
         >
@@ -543,13 +543,13 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
       <div
         v-if="sourceComics.length || serverSource || hasFilters"
-        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_>_input]:[flex:1_1_280px] [&_>_input]:[min-width:min(280px,_100%)] [&_input]:h-11 [&_input]:min-h-11 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:py-2 [&_input]:px-2.5 [&_select]:h-11 [&_select]:min-h-11 [&_select]:border [&_select]:border-line-strong [&_select]:rounded [&_select]:bg-surface [&_select]:py-2 [&_select]:px-2.5 [&_select]:[flex:1_1_140px] [&_select]:min-w-30 [&_select]:max-w-45 [&_select]:pr-8 [&_.list-sort-select]:min-w-45 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-90 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&:has(>_.comic-filter-controls)_>_input]:[flex:1_1_280px] down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
+        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_>_input]:[flex:1_1_280px] [&_>_input]:[min-width:min(280px,_100%)] [&_input]:h-11 [&_input]:min-h-11 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:py-2 [&_input]:px-2.5 [&_select]:h-11 [&_select]:min-h-11 [&_select]:border [&_select]:border-line-strong [&_select]:rounded [&_select]:bg-surface [&_select]:py-2 [&_select]:px-2.5 [&_select]:[flex:1_1_140px] [&_select]:min-w-32 [&_select]:max-w-44 [&_select]:pr-8 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&:has(>_.comic-filter-controls)_>_input]:[flex:1_1_280px] down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
       >
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
         <button
           ref="comicOptionsTrigger"
-          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-47.5 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-2.75 down-mobile:pr-9 down-mobile:pb-2.75 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
+          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pr-9 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
           type="button"
           :aria-expanded="comicOptionsOpen"
           @click="comicOptionsOpen = !comicOptionsOpen"
@@ -564,7 +564,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           :class="{ open: comicOptionsOpen }"
         >
           <div
-            class="inline-filter-tabs issue-status-tabs inline-grid grid-cols-3 gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2.25 [&_button]:text-ui-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white grid-cols-4 down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-ui-compact"
+            class="inline-filter-tabs issue-status-tabs inline-grid grid-cols-3 gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2 [&_button]:text-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white grid-cols-4 down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-xs"
             role="group"
             aria-label="Issue status filters"
           >
@@ -635,7 +635,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         <template v-for="(comic, index) in visibleComics" :key="`${comic.id}-${index}`">
           <button
             v-if="showSectionBefore(comic, index)"
-            class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] border-t-0 border-r-0 border-l-0 [border-radius:0] bg-transparent text-inherit text-left pt-4.5 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,_var(--primary)_5%,_transparent)] [&.nested-reading-order-heading]:[border-bottom-color:color-mix(in_srgb,_var(--accent)_52%,_var(--line))] [&_.section-description]:text-muted [&_.section-description]:[font-weight:500] [&[aria-expanded='false']_.section-collapse-icon]:[transform:rotate(-90deg)]"
+            class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] border-t-0 border-r-0 border-l-0 [border-radius:0] bg-transparent text-inherit text-left pt-4 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,_var(--primary)_5%,_transparent)] [&.nested-reading-order-heading]:[border-bottom-color:color-mix(in_srgb,_var(--accent)_52%,_var(--line))] [&_.section-description]:text-muted [&_.section-description]:[font-weight:500] [&[aria-expanded='false']_.section-collapse-icon]:[transform:rotate(-90deg)]"
             :class="{
               'nested-reading-order-heading': comic.section.kind === 'readingOrder',
             }"
@@ -645,7 +645,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             @click="toggleSection(comic.section)"
           >
             <span
-              class="reading-order-section-heading-content grid gap-1 min-w-0 [&_strong]:[font-size:1.08rem]"
+              class="reading-order-section-heading-content grid gap-1 min-w-0 [&_strong]:text-lg"
             >
               <span class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">{{
                 comic.section.label || 'Section'
@@ -656,7 +656,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
               </span>
             </span>
             <span
-              class="section-collapse-icon me-2 [font-size:1.35rem] leading-none [transition:transform_160ms_ease]"
+              class="section-collapse-icon me-2 text-xl leading-none [transition:transform_160ms_ease]"
               aria-hidden="true"
               >⌄</span
             >
@@ -685,7 +685,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
       <button
         v-if="showManualLoadMore"
-        class="ghost-button load-more-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+        class="ghost-button load-more-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
         type="button"
         @click="loadMoreLocal"
       >

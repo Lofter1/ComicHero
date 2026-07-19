@@ -50,7 +50,7 @@ function entryTags() {
     >
       <span
         v-if="showCover && comic.coverImage"
-        class="flex-none w-11 h-15 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-9.5 down-phone:h-13"
+        class="flex-none w-11 h-16 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-10 down-phone:h-12"
         aria-hidden="true"
       >
         <img :src="assetURL(comic.coverImage)" alt="" loading="lazy" />
@@ -60,7 +60,7 @@ function entryTags() {
         <small v-if="showComment && comic.comment">{{ comic.comment }}</small>
         <span
           v-if="showComment && entryTags().length"
-          class="entry-tags flex flex-wrap gap-1.25 mt-1.25 [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-0.75 [&_span]:px-2 [&_span]:text-ui-compact-xs [&_span]:font-extrabold [&_span]:leading-snug"
+          class="entry-tags flex flex-wrap gap-1 mt-1 [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2 [&_span]:text-xs [&_span]:font-extrabold [&_span]:leading-snug"
         >
           <span v-for="tag in entryTags()" :key="tag">{{ tag }}</span>
         </span>
@@ -73,20 +73,20 @@ function entryTags() {
 
     <span class="read-state-actions flex items-center justify-end flex-none flex-wrap gap-2">
       <span
-        class="read-state-pill inline-flex items-center justify-center min-h-7 rounded-full py-1 px-2.5 text-ui-compact font-extrabold leading-none whitespace-nowrap [&.read]:bg-primary-soft [&.read]:text-primary [&.unread]:bg-warning-soft [&.unread]:text-warning [&.unread]:[box-shadow:inset_0_0_0_1px_var(--warning-border)] [&.skipped]:bg-surface-muted [&.skipped]:text-muted [&.skipped]:[box-shadow:inset_0_0_0_1px_var(--line-strong)]"
+        class="read-state-pill inline-flex items-center justify-center min-h-7 rounded-full py-1 px-2.5 text-xs font-extrabold leading-none whitespace-nowrap [&.read]:bg-primary-soft [&.read]:text-primary [&.unread]:bg-warning-soft [&.unread]:text-warning [&.unread]:[box-shadow:inset_0_0_0_1px_var(--warning-border)] [&.skipped]:bg-surface-muted [&.skipped]:text-muted [&.skipped]:[box-shadow:inset_0_0_0_1px_var(--line-strong)]"
         :class="{ read: comic.read, unread: !comic.read }"
       >
         {{ comic.read ? 'Read' : 'Unread' }}
       </span>
       <span
         v-if="comic.skipped"
-        class="read-state-pill skipped inline-flex items-center justify-center min-h-7 rounded-full py-1 px-2.5 text-ui-compact font-extrabold leading-none whitespace-nowrap [&.read]:bg-primary-soft [&.read]:text-primary [&.unread]:bg-warning-soft [&.unread]:text-warning [&.unread]:[box-shadow:inset_0_0_0_1px_var(--warning-border)] [&.skipped]:bg-surface-muted [&.skipped]:text-muted [&.skipped]:[box-shadow:inset_0_0_0_1px_var(--line-strong)]"
+        class="read-state-pill skipped inline-flex items-center justify-center min-h-7 rounded-full py-1 px-2.5 text-xs font-extrabold leading-none whitespace-nowrap [&.read]:bg-primary-soft [&.read]:text-primary [&.unread]:bg-warning-soft [&.unread]:text-warning [&.unread]:[box-shadow:inset_0_0_0_1px_var(--warning-border)] [&.skipped]:bg-surface-muted [&.skipped]:text-muted [&.skipped]:[box-shadow:inset_0_0_0_1px_var(--line-strong)]"
         >Skipped</span
       >
       <button
         v-if="!readOnly"
         type="button"
-        class="read-toggle-button flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-ui-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10.5 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
+        class="read-toggle-button flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
         :disabled="quickSaving"
         @click="$emit('toggle-read', comic)"
       >
@@ -95,7 +95,7 @@ function entryTags() {
       <button
         v-if="!readOnly"
         type="button"
-        class="read-toggle-button flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-ui-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10.5 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
+        class="read-toggle-button flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
         :class="{ skipped: comic.skipped }"
         :disabled="quickSaving"
         @click="$emit('toggle-skipped', comic)"

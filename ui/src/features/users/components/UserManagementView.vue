@@ -194,10 +194,10 @@ function formatTimestamp(value) {
           class="user-permission-row border border-line rounded bg-surface-soft p-0 grid min-w-0 max-w-full overflow-hidden [&[open]_.user-permission-header]:border-b [&[open]_.user-permission-header]:border-line [&[open]_.user-permission-header::after]:[transform:translateY(-50%)_rotate(90deg)]"
         >
           <summary
-            class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap pt-3.25 pr-12 pb-3.25 pl-4.5 cursor-pointer [list-style:none] relative down-mobile:items-stretch down-mobile:flex-col [&::-webkit-details-marker]:hidden after:[content:'›'] after:absolute after:right-4.5 after:[top:50%] after:text-muted after:[font-size:1.5rem] after:leading-none after:[transform:translateY(-50%)] after:[transition:transform_140ms_ease] [&_h3]:mb-0.5 [&_p]:text-muted [&_p]:text-ui-md [&_p]:font-bold"
+            class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap pt-3 pr-12 pb-3 pl-4 cursor-pointer [list-style:none] relative down-mobile:items-stretch down-mobile:flex-col [&::-webkit-details-marker]:hidden after:[content:'›'] after:absolute after:right-4 after:[top:50%] after:text-muted after:text-2xl after:leading-none after:[transform:translateY(-50%)] after:[transition:transform_140ms_ease] [&_h3]:mb-0.5 [&_p]:text-muted [&_p]:text-sm [&_p]:font-bold"
           >
             <div
-              class="user-summary min-w-0 [&_h3]:break-anywhere [&_p]:break-anywhere [&_.user-account-dates]:flex [&_.user-account-dates]:gap-y-1.5 [&_.user-account-dates]:gap-x-3.5 [&_.user-account-dates]:flex-wrap [&_.user-account-dates]:mt-1.25 [&_.user-account-dates]:text-ui-compact-xs [&_.user-account-dates]:font-ui-semibold"
+              class="user-summary min-w-0 [&_h3]:break-anywhere [&_p]:break-anywhere [&_.user-account-dates]:flex [&_.user-account-dates]:gap-y-1.5 [&_.user-account-dates]:gap-x-3.5 [&_.user-account-dates]:flex-wrap [&_.user-account-dates]:mt-1 [&_.user-account-dates]:text-xs [&_.user-account-dates]:font-ui-semibold"
             >
               <h3>{{ entry.user.name }}</h3>
               <p>{{ entry.user.email || 'No email address' }}</p>
@@ -211,7 +211,7 @@ function formatTimestamp(value) {
               </p>
             </div>
             <div
-              class="user-summary-badges flex items-center justify-end gap-2 text-muted text-ui-compact font-extrabold down-mobile:justify-start down-mobile:flex-wrap [&_span]:border [&_span]:border-line [&_span]:rounded-full [&_span]:bg-surface [&_span]:py-1 [&_span]:px-2 [&_.user-role-badge]:border-warning-border [&_.user-role-badge]:bg-warning-soft [&_.user-role-badge]:text-warning"
+              class="user-summary-badges flex items-center justify-end gap-2 text-muted text-xs font-extrabold down-mobile:justify-start down-mobile:flex-wrap [&_span]:border [&_span]:border-line [&_span]:rounded-full [&_span]:bg-surface [&_span]:py-1 [&_span]:px-2 [&_.user-role-badge]:border-warning-border [&_.user-role-badge]:bg-warning-soft [&_.user-role-badge]:text-warning"
               aria-hidden="true"
             >
               <span v-if="entry.user.isAdmin" class="user-role-badge">Admin</span>
@@ -225,7 +225,7 @@ function formatTimestamp(value) {
             class="user-card-sections grid min-w-0 [grid-template-columns:minmax(220px,_0.7fr)_minmax(420px,_1.3fr)] items-stretch [gap:0] down-tablet:grid-cols-1 down-mobile:grid-cols-1"
           >
             <section
-              class="user-card-section account-section grid min-w-0 content-start gap-3 border-r border-line py-4 px-4.5 down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line"
+              class="user-card-section account-section grid min-w-0 content-start gap-3 border-r border-line py-4 px-4 down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line"
             >
               <div
                 class="section-heading [&_h4]:mt-0.5 [&_h4]:mx-0 [&_h4]:mb-0 [&_h4]:text-label [&_h4]:text-base [&_h4]:font-bold"
@@ -234,10 +234,10 @@ function formatTimestamp(value) {
                 <h4>Role and access</h4>
               </div>
               <div
-                class="account-control-grid grid grid-cols-1 gap-2 max-w-65 down-mobile:max-w-none"
+                class="account-control-grid grid grid-cols-1 gap-2 max-w-64 down-mobile:max-w-none"
               >
                 <label
-                  class="compact-toggle inline-flex items-center gap-2 min-h-8.5 border border-line rounded bg-surface text-label py-1.75 px-2.5 font-extrabold leading-ui-tight"
+                  class="compact-toggle inline-flex items-center gap-2 min-h-8 border border-line rounded bg-surface text-label py-2 px-2.5 font-extrabold leading-ui-tight"
                 >
                   <input
                     v-model="draftFor(entry.user.id).isAdmin"
@@ -248,7 +248,7 @@ function formatTimestamp(value) {
                 </label>
                 <button
                   type="button"
-                  class="secondary-action min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+                  class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
                   :disabled="savingAdminUserID === entry.user.id || entry.user.id === currentUserID"
                   @click="saveAdmin(entry)"
                 >
@@ -256,7 +256,7 @@ function formatTimestamp(value) {
                 </button>
                 <button
                   type="button"
-                  class="danger-text-button min-h-9.5 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
+                  class="danger-text-button min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
                   :disabled="deletingUserID === entry.user.id || entry.user.id === currentUserID"
                   @click="$emit('delete-user', entry.user.id)"
                 >
@@ -266,7 +266,7 @@ function formatTimestamp(value) {
             </section>
 
             <section
-              class="user-card-section metron-permission-editor grid content-start gap-3 min-w-0 py-4 px-4.5"
+              class="user-card-section metron-permission-editor grid content-start gap-3 min-w-0 py-4 px-4"
             >
               <div
                 class="section-heading [&_h4]:mt-0.5 [&_h4]:mx-0 [&_h4]:mb-0 [&_h4]:text-label [&_h4]:text-base [&_h4]:font-bold"
@@ -280,13 +280,13 @@ function formatTimestamp(value) {
               >
                 <div class="metron-control-column grid gap-2.5 min-w-0">
                   <label
-                    class="compact-toggle inline-flex items-center gap-2 min-h-8.5 border border-line rounded bg-surface text-label py-1.75 px-2.5 font-extrabold leading-ui-tight"
+                    class="compact-toggle inline-flex items-center gap-2 min-h-8 border border-line rounded bg-surface text-label py-2 px-2.5 font-extrabold leading-ui-tight"
                   >
                     <input v-model="draftFor(entry.user.id).allowed" type="checkbox" />
                     <span>{{ draftFor(entry.user.id).allowed ? 'Enabled' : 'Disabled' }}</span>
                   </label>
                   <label
-                    class="hourly-limit-field grid gap-1.25 w-full text-label font-extrabold [&_small]:text-muted [&_small]:text-ui-md [&_small]:font-bold [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-9.5 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2 [&_input]:px-2.5"
+                    class="hourly-limit-field grid gap-1 w-full text-label font-extrabold [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2 [&_input]:px-2.5"
                   >
                     <span>Hourly endpoint limit</span>
                     <input
@@ -299,7 +299,7 @@ function formatTimestamp(value) {
                   </label>
                   <button
                     type="button"
-                    class="secondary-action min-h-9.5 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+                    class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
                     :disabled="savingUserID === entry.user.id"
                     @click="save(entry)"
                   >
@@ -308,7 +308,7 @@ function formatTimestamp(value) {
                 </div>
 
                 <fieldset
-                  class="permission-scopes [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8.5 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-1.75 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-ui-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
+                  class="permission-scopes [&_label]:inline-flex [&_label]:items-center [&_label]:gap-2 [&_label]:min-h-8 [&_label]:border [&_label]:border-line [&_label]:rounded [&_label]:bg-surface [&_label]:text-label [&_label]:py-2 [&_label]:px-2.5 [&_label]:font-extrabold [&_label]:leading-ui-tight border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 [&_legend]:w-full [&_legend]:mb-0.5 [&_legend]:text-muted [&_legend]:text-sm [&_legend]:font-extrabold [&_legend]:uppercase disabled:opacity-55 down-mobile:grid-cols-1"
                   :disabled="!draftFor(entry.user.id).allowed"
                 >
                   <legend>Allowed endpoint scopes</legend>
@@ -341,7 +341,7 @@ function formatTimestamp(value) {
     </template>
 
     <section
-      class="detail-panel min-w-0 max-w-full min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+      class="detail-panel min-w-0 max-w-full min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
     >
       <header
         class="section-heading [&_h4]:mt-0.5 [&_h4]:mx-0 [&_h4]:mb-0 [&_h4]:text-label [&_h4]:text-base [&_h4]:font-bold"

@@ -113,7 +113,7 @@ const sectionTitle = computed(
               <template #byline>
                 <span
                   v-if="arc.startedAt"
-                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2 text-xs font-extrabold leading-tight"
                   >Started</span
                 >
                 <BrowseRowStats

@@ -57,7 +57,7 @@ function characterProgress(character) {
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedCharacter && canDelete"
-        class="danger-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"
@@ -73,7 +73,7 @@ function characterProgress(character) {
       />
       <button
         v-if="selectedCharacter && !readOnly"
-        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         @click="$emit('add-to-collection', selectedCharacter)"
       >
@@ -92,7 +92,7 @@ function characterProgress(character) {
       </button>
       <button
         v-if="selectedCharacter?.metronCharacterId && !readOnly"
-        class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         :disabled="importRunning"
         @click="$emit('import-appearances')"
@@ -102,11 +102,11 @@ function characterProgress(character) {
     </DetailNavigation>
 
     <article
-      class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+      class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
     >
-      <div v-if="selectedCharacter" class="read-only-detail grid gap-4.5">
+      <div v-if="selectedCharacter" class="read-only-detail grid gap-4">
         <header
-          class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+          class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
         >
           <div>
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Character</p>
@@ -116,7 +116,7 @@ function characterProgress(character) {
 
         <div
           v-if="selectedCharacter.image"
-          class="character-portrait overflow-hidden border border-line rounded bg-surface-muted max-w-45 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
+          class="character-portrait overflow-hidden border border-line rounded bg-surface-muted max-w-44 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
         >
           <img
             :src="assetURL(selectedCharacter.image)"
@@ -162,7 +162,7 @@ function characterProgress(character) {
 
         <div
           v-if="selectedCharacter.aliases?.length"
-          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-7.5 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1.25 [&_span]:px-2.5 [&_span]:text-ui-sm-plus [&_span]:font-extrabold [&_button]:min-h-7.5 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1.25 [&_button]:px-2.5 [&_button]:text-ui-sm-plus [&_button]:font-extrabold [&_button]:cursor-pointer"
+          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold [&_button]:min-h-8 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-extrabold [&_button]:cursor-pointer"
         >
           <span v-for="alias in selectedCharacter.aliases" :key="alias">{{ alias }}</span>
         </div>
@@ -172,7 +172,7 @@ function characterProgress(character) {
         </p>
 
         <ComicListView
-          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
+          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-6 [&_ul]:mb-0 [&_ul]:pl-6 [&_li]:mb-2.5"
           title="Appearances"
           :comics="selectedCharacter.comics || []"
           :source-params="{ characterId: selectedCharacter.id }"

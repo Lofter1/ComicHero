@@ -44,7 +44,7 @@ function monogram(name) {
         {{ startSaving ? 'Saving...' : collection.startedAt ? 'Stop reading' : 'Start reading' }}
       </button>
       <button
-        class="danger-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="saving"
         @click="$emit('delete')"
@@ -54,20 +54,20 @@ function monogram(name) {
     </DetailNavigation>
 
     <article
-      class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+      class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
     >
-      <div v-if="collection" class="read-only-detail grid gap-4.5">
+      <div v-if="collection" class="read-only-detail grid gap-4">
         <header
-          class="collection-detail-hero grid [grid-template-columns:72px_minmax(0,_1fr)_auto] items-center gap-4 border border-line rounded-xl [background:var(--primary-soft),_var(--surface-soft)] p-4.5 down-narrow:[grid-template-columns:58px_minmax(0,_1fr)]"
+          class="collection-detail-hero grid [grid-template-columns:72px_minmax(0,_1fr)_auto] items-center gap-4 border border-line rounded-xl [background:var(--primary-soft),_var(--surface-soft)] p-4 down-narrow:[grid-template-columns:58px_minmax(0,_1fr)]"
         >
           <span
-            class="collection-detail-monogram w-18 h-18 text-ui-display-sm down-narrow:w-14.5 down-narrow:h-14.5 down-narrow:[font-size:1.4rem] inline-flex items-center justify-center flex-none border border-line-strong rounded-xl bg-primary text-white font-black shadow-control"
+            class="collection-detail-monogram w-20 h-20 text-3xl down-narrow:w-14 down-narrow:h-14 down-narrow:text-2xl inline-flex items-center justify-center flex-none border border-line-strong rounded-xl bg-primary text-white font-black shadow-control"
             aria-hidden="true"
           >
             {{ monogram(collection.name) }}
           </span>
           <div
-            class="collection-detail-copy min-w-0 [&_h3]:my-0.75 [&_h3]:mx-1.25 [&_h3]:break-anywhere [&_>_p:last-child]:m-0 [&_>_p:last-child]:text-muted"
+            class="collection-detail-copy min-w-0 [&_h3]:my-1 [&_h3]:mx-1 [&_h3]:break-anywhere [&_>_p:last-child]:m-0 [&_>_p:last-child]:text-muted"
           >
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
               Private character collection
@@ -76,14 +76,14 @@ function monogram(name) {
             <p>One release-date queue across every character in this collection.</p>
           </div>
           <span
-            class="collection-detail-status self-start border border-line-strong rounded-full bg-surface text-muted py-1.25 px-2.5 text-ui-compact-xs font-extrabold down-narrow:col-span-full down-narrow:justify-self-start [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-primary-strong"
+            class="collection-detail-status self-start border border-line-strong rounded-full bg-surface text-muted py-1 px-2.5 text-xs font-extrabold down-narrow:col-span-full down-narrow:justify-self-start [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-primary-strong"
             :class="{ active: collection.startedAt }"
           >
             {{ collection.startedAt ? 'Currently reading' : 'Not started' }}
           </span>
         </header>
         <div
-          class="collection-detail-summary grid grid-cols-3 gap-2.5 down-compact:grid-cols-1 [&_span]:border [&_span]:border-line [&_span]:rounded-lg [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_small]:block [&_strong]:text-control [&_strong]:text-lead [&_small]:mt-0.75 [&_small]:text-muted"
+          class="collection-detail-summary grid grid-cols-3 gap-2.5 down-compact:grid-cols-1 [&_span]:border [&_span]:border-line [&_span]:rounded-lg [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_small]:block [&_strong]:text-control [&_strong]:text-base [&_small]:mt-1 [&_small]:text-muted"
         >
           <span
             ><strong>{{ formatProgress(collection.progress) }}</strong
@@ -114,13 +114,13 @@ function monogram(name) {
               <h3>Characters</h3>
             </div>
             <button
-              class="secondary-button icon-text-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
+              class="secondary-button icon-text-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
               type="button"
               :disabled="saving"
               @click="pickerOpen = true"
             >
               <span
-                class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+                class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
                 aria-hidden="true"
                 >+</span
               >
@@ -134,15 +134,15 @@ function monogram(name) {
             <div
               v-for="character in collection.characters"
               :key="character.id"
-              class="row min-h-10.5 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-13 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+              class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             >
               <button
                 type="button"
-                class="collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-0.75 [&_small]:text-muted"
+                class="collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-1 [&_small]:text-muted"
                 @click="$emit('open-character', character)"
               >
                 <span
-                  class="collection-member-avatar grid place-items-center w-10.5 h-10.5 overflow-hidden border border-line-strong rounded-lg bg-surface-muted text-muted font-black [&_img]:w-full [&_img]:h-full [&_img]:object-cover"
+                  class="collection-member-avatar grid place-items-center w-10 h-10 overflow-hidden border border-line-strong rounded-lg bg-surface-muted text-muted font-black [&_img]:w-full [&_img]:h-full [&_img]:object-cover"
                   aria-hidden="true"
                 >
                   <img
@@ -159,7 +159,7 @@ function monogram(name) {
                 </span>
               </button>
               <button
-                class="danger-text-button collection-member-remove flex-none min-h-9.5 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
+                class="danger-text-button collection-member-remove flex-none min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
                 type="button"
                 :disabled="saving"
                 @click="$emit('remove-character', character)"
@@ -180,7 +180,7 @@ function monogram(name) {
         </section>
 
         <ComicListView
-          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
+          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-6 [&_ul]:mb-0 [&_ul]:pl-6 [&_li]:mb-2.5"
           title="Combined appearances"
           :comics="collection.comics || []"
           :selected-comic-id="selectedComicId"

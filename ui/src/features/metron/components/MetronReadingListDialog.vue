@@ -36,7 +36,7 @@ function formatDate(value) {
 
 <template>
   <div
-    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4.5"
+    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
     @click.self="$emit('close')"
   >
     <section
@@ -46,14 +46,14 @@ function formatDate(value) {
       aria-labelledby="reading-list-detail-title"
     >
       <header
-        class="metron-detail-header border-b border-line flex items-start justify-between gap-3 py-3.5 px-4 [&_span]:min-w-0 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:break-anywhere [&_small]:text-muted [&_small]:mt-0.75"
+        class="metron-detail-header border-b border-line flex items-start justify-between gap-3 py-3.5 px-4 [&_span]:min-w-0 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:break-anywhere [&_small]:text-muted [&_small]:mt-1"
       >
         <span>
           <strong id="reading-list-detail-title">{{ readingList?.name || 'Reading list' }}</strong>
           <small>{{ summary }}</small>
         </span>
         <button
-          class="icon-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close reading list detail"
           @click="$emit('close')"
@@ -66,7 +66,7 @@ function formatDate(value) {
       >
         <img
           v-if="readingList?.image"
-          class="metron-detail-image w-full aspect-portrait border border-line rounded object-cover bg-surface-muted down-mobile:max-w-55"
+          class="metron-detail-image w-full aspect-portrait border border-line rounded object-cover bg-surface-muted down-mobile:max-w-56"
           :src="assetURL(readingList.image)"
           :alt="readingList.name || 'Reading list image'"
         />
@@ -75,7 +75,7 @@ function formatDate(value) {
           <p v-else-if="error" class="error-text text-danger font-bold">{{ error }}</p>
           <p v-else>{{ readingList?.description || 'No description from Metron.' }}</p>
           <dl
-            class="metron-detail-facts grid grid-cols-2 gap-y-2.5 gap-x-3.5 mt-3.5 mx-0 mb-0 [&_div]:min-w-0 [&_dt]:text-muted [&_dt]:text-ui-compact [&_dt]:font-extrabold [&_dt]:uppercase [&_dd]:mt-0.75 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:break-anywhere [&_dd]:font-bold down-mobile:grid-cols-1"
+            class="metron-detail-facts grid grid-cols-2 gap-y-2.5 gap-x-3.5 mt-3.5 mx-0 mb-0 [&_div]:min-w-0 [&_dt]:text-muted [&_dt]:text-xs [&_dt]:font-extrabold [&_dt]:uppercase [&_dd]:mt-1 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:break-anywhere [&_dd]:font-bold down-mobile:grid-cols-1"
           >
             <div v-if="readingList?.user?.username">
               <dt>User</dt>
@@ -108,14 +108,14 @@ function formatDate(value) {
         class="metron-detail-actions justify-end border-t border-line flex items-start justify-between gap-3 py-3.5 px-4"
       >
         <button
-          class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
           type="button"
           @click="$emit('close')"
         >
           Close
         </button>
         <button
-          class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           :disabled="!readingList || importing"
           @click="$emit('import')"

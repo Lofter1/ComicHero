@@ -130,7 +130,7 @@ function handleCBLFile(event) {
                 class="browse-header-actions order-actions relative ml-auto flex flex-none items-center flex-wrap gap-2 down-tablet:justify-start down-tablet:w-full down-mobile:justify-end [&_.icon-text-button]:w-11 [&_.icon-text-button]:min-w-11 [&_.icon-text-button]:h-11 [&_.icon-text-button]:p-0 [&_.cbl-import-button]:w-auto [&_.cbl-import-button]:[min-width:max-content] [&_.cbl-import-button]:py-0 [&_.cbl-import-button]:px-3.5 [&_.cbl-import-button]:whitespace-nowrap down-tablet:[&_.cbl-import-button]:min-w-0"
               >
                 <button
-                  class="secondary-button icon-text-button mobile-order-actions-trigger inline-flex w-11 min-w-11 h-11 p-0 min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] items-center justify-center gap-2"
+                  class="secondary-button icon-text-button mobile-order-actions-trigger inline-flex w-11 min-w-11 h-11 p-0 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] items-center justify-center gap-2"
                   type="button"
                   :aria-expanded="orderActionsOpen"
                   aria-label="Actions"
@@ -139,7 +139,7 @@ function handleCBLFile(event) {
                 >
                   <span
                     aria-hidden="true"
-                    class="vertical-ellipsis [font-size:1.5rem] font-extrabold leading-none"
+                    class="vertical-ellipsis text-2xl font-extrabold leading-none"
                     >⋮</span
                   >
                 </button>
@@ -156,7 +156,7 @@ function handleCBLFile(event) {
                   :class="{ open: orderActionsOpen }"
                 >
                   <button
-                    class="secondary-button icon-text-button cbl-import-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
+                    class="secondary-button icon-text-button cbl-import-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
                     :class="{ loading: cblImporting }"
                     type="button"
                     :disabled="cblImporting"
@@ -174,7 +174,7 @@ function handleCBLFile(event) {
                   </button>
                   <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
                   <button
-                    class="primary-button icon-text-button new-order-action min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
+                    class="primary-button icon-text-button new-order-action min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
                     type="button"
                     aria-label="New reading order"
                     title="New reading order"
@@ -182,7 +182,7 @@ function handleCBLFile(event) {
                   >
                     <span
                       aria-hidden="true"
-                      class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+                      class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
                       >+</span
                     >
                     <span class="order-action-label [display:inline]">New reading order</span>
@@ -213,20 +213,20 @@ function handleCBLFile(event) {
               <template #byline>
                 <span
                   v-if="order.authorName"
-                  class="author-pill inline-flex items-center w-fit max-w-full mt-2 border border-line-strong rounded-full bg-surface-muted text-label py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  class="author-pill inline-flex items-center w-fit max-w-full mt-2 border border-line-strong rounded-full bg-surface-muted text-label py-1 px-2 text-xs font-extrabold leading-tight"
                 >
                   Author: {{ order.authorName }}
                 </span>
                 <span
                   v-if="order.rating"
-                  class="author-pill inline-flex items-center w-fit max-w-full mt-2 border border-line-strong rounded-full bg-surface-muted text-label py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  class="author-pill inline-flex items-center w-fit max-w-full mt-2 border border-line-strong rounded-full bg-surface-muted text-label py-1 px-2 text-xs font-extrabold leading-tight"
                 >
                   Rating: {{ formatRating(order.rating) }}
                   <template v-if="order.ratingCount">({{ order.ratingCount }})</template>
                 </span>
                 <span
                   v-if="order.startedAt"
-                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2 text-xs font-extrabold leading-tight"
                   >Started</span
                 >
                 <BrowseRowStats
@@ -244,13 +244,13 @@ function handleCBLFile(event) {
         {{ hasFilters ? 'No reading orders match these filters.' : 'No reading orders yet.' }}
         <button
           v-if="!hasFilters && !readOnly"
-          class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
           type="button"
           @click="$emit('new-order')"
         >
           <span
             aria-hidden="true"
-            class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+            class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
             >+</span
           >
           Create the first order

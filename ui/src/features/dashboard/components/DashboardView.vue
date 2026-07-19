@@ -45,13 +45,13 @@ function achievementProgress(achievement) {
 </script>
 
 <template>
-  <section class="dashboard-view grid gap-4.5 pt-4.5">
+  <section class="dashboard-view grid gap-4 pt-4">
     <header class="dashboard-header flex items-start justify-between gap-4">
       <div>
         <h2>Continue reading</h2>
       </div>
       <button
-        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="loading"
         @click="$emit('refresh')"
@@ -117,7 +117,7 @@ function achievementProgress(achievement) {
 
         <template v-if="item.nextComic">
           <button
-            class="dashboard-comic grid [grid-template-columns:56px_minmax(0,_1fr)] gap-3 items-center w-full min-h-20.5 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-18 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
+            class="dashboard-comic grid [grid-template-columns:56px_minmax(0,_1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
             type="button"
             @click="$emit('open-comic', item.nextComic)"
           >
@@ -129,7 +129,7 @@ function achievementProgress(achievement) {
             />
             <span
               v-else
-              class="dashboard-cover-placeholder w-14 h-18 rounded-[6px] object-cover bg-surface-muted"
+              class="dashboard-cover-placeholder w-14 h-20 rounded-[6px] object-cover bg-surface-muted"
               aria-hidden="true"
             ></span>
             <span>
@@ -140,7 +140,7 @@ function achievementProgress(achievement) {
 
           <div v-if="!readOnly" class="dashboard-card-actions grid grid-cols-2 gap-2.5">
             <button
-              class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+              class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
               type="button"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-read', item.nextComic)"
@@ -148,7 +148,7 @@ function achievementProgress(achievement) {
               Read
             </button>
             <button
-              class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               type="button"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-skipped', item.nextComic)"

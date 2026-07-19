@@ -36,11 +36,11 @@
   }
 
   h1 {
-    @apply mb-0 text-title-1;
+    @apply mb-0 text-3xl;
   }
 
   h2 {
-    @apply mb-0 text-title-2 leading-tight;
+    @apply mb-0 text-2xl leading-tight;
   }
 
   h3,
@@ -76,21 +76,21 @@
 
   @screen down-mobile {
     h1 {
-      @apply text-title-1-mobile;
+      @apply text-lg;
     }
 
     h2 {
-      @apply text-title-2-mobile;
+      @apply text-xl;
     }
 
     h3 {
-      @apply text-title-3-mobile;
+      @apply text-lg;
     }
 
     input,
     select,
     textarea {
-      @apply min-h-11 px-3 py-2.75;
+      @apply min-h-11 px-3 py-3;
     }
   }
 }

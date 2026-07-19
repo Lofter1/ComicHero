@@ -25,7 +25,7 @@ const DATA_OPTIONS = [
     class="metron-import-options inline-flex items-center gap-3 justify-self-start w-fit max-w-full flex-wrap border border-line-strong rounded bg-surface-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col"
   >
     <div
-      class="metron-modes compact inline-grid grid-cols-5 gap-1.5 [width:min(680px,_100%)] [&_button]:min-h-10.5 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3 [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white [&.compact]:grid-cols-2 [&.compact]:[width:min(260px,_100%)] [&.compact_button]:min-h-8.5 [&.compact_button]:py-1.75 [&.compact_button]:px-2.5 down-mobile:grid-cols-2 down-mobile:w-full"
+      class="metron-modes compact inline-grid grid-cols-5 gap-1.5 [width:min(680px,_100%)] [&_button]:min-h-10 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3 [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white [&.compact]:grid-cols-2 [&.compact]:[width:min(260px,_100%)] [&.compact_button]:min-h-8 [&.compact_button]:py-2 [&.compact_button]:px-2.5 down-mobile:grid-cols-2 down-mobile:w-full"
       role="tablist"
       aria-label="Metron import depth"
     >
@@ -48,7 +48,7 @@ const DATA_OPTIONS = [
       <label
         v-for="option in DATA_OPTIONS"
         :key="option.value"
-        class="inline-toggle inline-flex items-center gap-1.75 text-label text-ui-md font-bold whitespace-nowrap [&_input]:w-4 [&_input]:h-4 [&_input]:m-0"
+        class="inline-toggle inline-flex items-center gap-2 text-label text-sm font-bold whitespace-nowrap [&_input]:w-4 [&_input]:h-4 [&_input]:m-0"
       >
         <input
           type="checkbox"
