@@ -40,7 +40,11 @@ func listReadingOrders(ctx context.Context, db *sqlx.DB, input *ReadingOrderList
 	if err != nil {
 		return nil, err
 	}
-	total, err := countRows(ctx, db, query, args)
+	countQuery, countArgs, err := readingOrderListCountQuery(input, userID, editUserID)
+	if err != nil {
+		return nil, err
+	}
+	total, err := countRows(ctx, db, countQuery, countArgs)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to count reading orders")
 	}
@@ -107,6 +111,32 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			ON preference.reading_order_id = ro.id AND preference.user_id = ?
 	`)
 	query.args = append(query.args, editUserID, editUserID, userID, userID, userID)
+	if err := applyReadingOrderListFilters(query, input, editUserID); err != nil {
+		return "", nil, err
+	}
+
+	query.groupBy("GROUP BY ro.id")
+	query.orderBy(readingOrderListOrder(input.Sort, input.Direction))
+	sql, args := query.build()
+	return sql, args, nil
+}
+
+func readingOrderListCountQuery(input *ReadingOrderListInput, userID int, editUserID int) (string, []any, error) {
+	query := newSelectQuery(`
+		SELECT ro.id
+		FROM reading_orders ro
+		LEFT JOIN user_reading_orders preference
+			ON preference.reading_order_id = ro.id AND preference.user_id = ?
+	`)
+	query.args = append(query.args, userID)
+	if err := applyReadingOrderListFilters(query, input, editUserID); err != nil {
+		return "", nil, err
+	}
+	sql, args := query.build()
+	return sql, args, nil
+}
+
+func applyReadingOrderListFilters(query *selectQuery, input *ReadingOrderListInput, editUserID int) error {
 	query.where(`(
 		ro.is_public = 1
 		OR ro.author_user_id = ?
@@ -118,12 +148,12 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 		query.where("(ro.name LIKE ? OR ro.description LIKE ?)", search, search)
 	}
 	if favorite, ok, err := parseOptionalBool(input.Favorite, "favorite"); err != nil {
-		return "", nil, err
+		return err
 	} else if ok {
 		query.where("COALESCE(preference.favorite, 0) = ?", favorite)
 	}
 	if started, ok, err := parseOptionalBool(input.Started, "started"); err != nil {
-		return "", nil, err
+		return err
 	} else if ok && started {
 		query.where("preference.started_at IS NOT NULL")
 	} else if ok {
@@ -137,11 +167,7 @@ func readingOrderListQuery(input *ReadingOrderListInput, userID int, editUserID 
 			)
 		`, input.ComicID)
 	}
-
-	query.groupBy("GROUP BY ro.id")
-	query.orderBy(readingOrderListOrder(input.Sort, input.Direction))
-	sql, args := query.build()
-	return sql, args, nil
+	return nil
 }
 
 func readingOrderListOrder(sort, direction string) string {
