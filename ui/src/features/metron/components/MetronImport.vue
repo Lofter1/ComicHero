@@ -547,7 +547,7 @@ function formatDate(value) {
 
     <div
       v-if="importStatus"
-      class="metron-status flex items-center flex-wrap gapy-2 gapx-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-ui-lg font-bold"
+      class="metron-status flex items-center flex-wrap gap-y-2 gap-x-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-ui-lg font-bold"
     >
       <span>{{ importStatus }}</span>
     </div>

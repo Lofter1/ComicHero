@@ -193,14 +193,14 @@ function handleCBLFile(event) {
           </BrowseListTools>
         </div>
       </div>
-      <div v-if="orders.length" class="sectioned-list grid gap-4">
+      <div v-if="orders.length" class="grid gap-4">
         <BrowseListSection :title="sectionTitle" :items="orders">
           <template #item="{ item: order }">
             <BrowseEntityRow
               :title="order.name"
               :subtitle="order.description || 'No description'"
               :image="readingOrderCover(order)"
-              main-class="arc-row-main [&_>_span:last-child]:min-w-0 flex items-center gap-2.5"
+              main-class="[&_>_span:last-child]:min-w-0 flex items-center gap-2.5"
               :selected="selectedOrderId === order.id"
               :favorite="order.favorite"
               :can-favorite="order.canEdit"

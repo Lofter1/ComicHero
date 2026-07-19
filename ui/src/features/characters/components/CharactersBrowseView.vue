@@ -100,7 +100,7 @@ function characterProgress(character) {
           @update:direction="$emit('update:direction', $event)"
         />
       </div>
-      <div v-if="characters.length" class="sectioned-list grid gap-4">
+      <div v-if="characters.length" class="grid gap-4">
         <BrowseListSection :title="sectionTitle" :items="characters">
           <template #item="{ item: character }">
             <BrowseEntityRow
@@ -109,7 +109,7 @@ function characterProgress(character) {
                 character.aliases?.length ? character.aliases.join(', ') : 'No aliases saved'
               "
               :image="character.image"
-              main-class="character-row-main flex items-center gap-2 [&_>_span:last-child]:min-w-0"
+              main-class="flex items-center gap-2 [&_>_span:last-child]:min-w-0"
               :selected="selectedCharacterId === character.id"
               :favorite="character.favorite"
               :can-favorite="!readOnly"

@@ -75,7 +75,7 @@ function formatDate(value) {
           <p v-else-if="error" class="error-text text-danger font-bold">{{ error }}</p>
           <p v-else>{{ readingList?.description || 'No description from Metron.' }}</p>
           <dl
-            class="metron-detail-facts grid grid-cols-2 gapy-2.5 gapx-3.5 mt-3.5 mx-0 mb-0 [&_div]:min-w-0 [&_dt]:text-muted [&_dt]:text-ui-compact [&_dt]:font-extrabold [&_dt]:uppercase [&_dd]:mt-0.75 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:break-anywhere [&_dd]:font-bold down-mobile:grid-cols-1"
+            class="metron-detail-facts grid grid-cols-2 gap-y-2.5 gap-x-3.5 mt-3.5 mx-0 mb-0 [&_div]:min-w-0 [&_dt]:text-muted [&_dt]:text-ui-compact [&_dt]:font-extrabold [&_dt]:uppercase [&_dd]:mt-0.75 [&_dd]:mx-0 [&_dd]:mb-0 [&_dd]:break-anywhere [&_dd]:font-bold down-mobile:grid-cols-1"
           >
             <div v-if="readingList?.user?.username">
               <dt>User</dt>

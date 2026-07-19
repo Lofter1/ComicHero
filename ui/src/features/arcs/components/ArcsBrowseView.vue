@@ -93,14 +93,14 @@ const sectionTitle = computed(
           />
         </div>
       </div>
-      <div v-if="arcs.length" class="sectioned-list grid gap-4">
+      <div v-if="arcs.length" class="grid gap-4">
         <BrowseListSection :title="sectionTitle" :items="arcs">
           <template #item="{ item: arc }">
             <BrowseEntityRow
               :title="arc.name"
               :subtitle="arc.description || 'No description'"
               :image="arc.image"
-              main-class="arc-row-main [&_>_span:last-child]:min-w-0 flex items-center gap-2.5"
+              main-class="[&_>_span:last-child]:min-w-0 flex items-center gap-2.5"
               :selected="selectedArcId === arc.id"
               :favorite="arc.favorite"
               :can-favorite="!readOnly"

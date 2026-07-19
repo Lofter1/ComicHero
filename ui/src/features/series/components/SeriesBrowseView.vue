@@ -105,14 +105,14 @@ function seriesPublisherLabel(series) {
         />
       </div>
       <LoadingState v-if="loading && !series.length" />
-      <div v-else-if="series.length" class="sectioned-list grid gap-4">
+      <div v-else-if="series.length" class="grid gap-4">
         <BrowseListSection :title="sectionTitle" :items="series">
           <template #item="{ item }">
             <BrowseEntityRow
               :title="`${item.name}${seriesYearLabel(item)}`"
               :subtitle="seriesPublisherLabel(item)"
               :image="item.coverImage"
-              main-class="series-row-main flex items-center gap-2.5 [&_>_span:last-child]:min-w-0"
+              main-class="flex items-center gap-2.5 [&_>_span:last-child]:min-w-0"
               :selected="selectedSeriesId === item.id"
               :favorite="item.favorite"
               :can-favorite="!readOnly"

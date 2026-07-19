@@ -141,7 +141,7 @@ function countLabel(count, singular) {
               >
             </span>
             <span
-              class="collection-card-meta flex flex-wrap gapy-1 gapx-3 mt-1.5 text-muted text-compact font-bold [&_span_+_span::before]:mr-3 [&_span_+_span::before]:[color:var(--line-strong)] [&_span_+_span::before]:[content:'•']"
+              class="collection-card-meta flex flex-wrap gap-y-1 gap-x-3 mt-1.5 text-muted text-compact font-bold [&_span_+_span::before]:mr-3 [&_span_+_span::before]:[color:var(--line-strong)] [&_span_+_span::before]:[content:'•']"
             >
               <span>{{ countLabel(collection.characterCount, 'character') }}</span>
               <span>{{ countLabel(collection.appearanceCount, 'appearance') }}</span>

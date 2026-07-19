@@ -680,7 +680,7 @@ function selectSettingsTab(tab) {
       </label>
 
       <div
-        class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gapy-4 gapx-6 down-mobile:grid-cols-1"
+        class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
       >
         <label
           class="metron-scan-field grid gap-1.75 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
@@ -1188,7 +1188,7 @@ function selectSettingsTab(tab) {
         </fieldset>
 
         <div
-          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gapy-4 gapx-6 down-mobile:grid-cols-1"
+          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
         >
           <label
             class="metron-scan-field grid gap-1.75 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"
@@ -1360,7 +1360,7 @@ function selectSettingsTab(tab) {
         </p>
 
         <div
-          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gapy-4 gapx-6 down-mobile:grid-cols-1"
+          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
         >
           <label
             class="metron-scan-field grid gap-1.75 text-label font-extrabold [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:h-11 [&_input]:min-h-11 [&_input]:py-0 [&_input]:leading-tight [&_select]:h-11 [&_select]:min-h-11 [&_select]:py-0 [&_select]:leading-tight"

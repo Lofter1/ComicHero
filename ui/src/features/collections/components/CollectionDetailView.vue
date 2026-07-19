@@ -138,7 +138,7 @@ function monogram(name) {
             >
               <button
                 type="button"
-                class="row-main collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-0.75 [&_small]:text-muted"
+                class="collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-0.75 [&_small]:text-muted"
                 @click="$emit('open-character', character)"
               >
                 <span
@@ -180,7 +180,7 @@ function monogram(name) {
         </section>
 
         <ComicListView
-          class="preview-list [&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
+          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
           title="Combined appearances"
           :comics="collection.comics || []"
           :selected-comic-id="selectedComicId"

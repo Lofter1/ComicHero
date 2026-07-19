@@ -197,7 +197,7 @@ function formatTimestamp(value) {
             class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap pt-3.25 pr-12 pb-3.25 pl-4.5 cursor-pointer [list-style:none] relative down-mobile:items-stretch down-mobile:flex-col [&::-webkit-details-marker]:hidden after:[content:'›'] after:absolute after:right-4.5 after:[top:50%] after:text-muted after:[font-size:1.5rem] after:leading-none after:[transform:translateY(-50%)] after:[transition:transform_140ms_ease] [&_h3]:mb-0.5 [&_p]:text-muted [&_p]:text-ui-md [&_p]:font-bold"
           >
             <div
-              class="user-summary min-w-0 [&_h3]:break-anywhere [&_p]:break-anywhere [&_.user-account-dates]:flex [&_.user-account-dates]:gapy-1.5 [&_.user-account-dates]:gapx-3.5 [&_.user-account-dates]:flex-wrap [&_.user-account-dates]:mt-1.25 [&_.user-account-dates]:text-ui-compact-xs [&_.user-account-dates]:font-ui-semibold"
+              class="user-summary min-w-0 [&_h3]:break-anywhere [&_p]:break-anywhere [&_.user-account-dates]:flex [&_.user-account-dates]:gap-y-1.5 [&_.user-account-dates]:gap-x-3.5 [&_.user-account-dates]:flex-wrap [&_.user-account-dates]:mt-1.25 [&_.user-account-dates]:text-ui-compact-xs [&_.user-account-dates]:font-ui-semibold"
             >
               <h3>{{ entry.user.name }}</h3>
               <p>{{ entry.user.email || 'No email address' }}</p>

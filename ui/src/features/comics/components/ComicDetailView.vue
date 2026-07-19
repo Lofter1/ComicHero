@@ -199,7 +199,7 @@ function seriesLabel(comic) {
 
         <nav
           v-if="metronIssueURL || comicVineIssueURL"
-          class="comic-source-links flex items-center flex-wrap gapy-1.5 gapx-3 mt-2.5 text-muted text-ui-compact [&_>_span]:font-bold [&_a]:text-muted [&_a]:no-underline [&_a:hover]:text-accent [&_a:hover]:[text-decoration:underline] [&_a:focus-visible]:rounded-xs [&_a:focus-visible]:outline-3 [&_a:focus-visible]:outline-focus [&_a:focus-visible]:outline-offset-2"
+          class="comic-source-links flex items-center flex-wrap gap-y-1.5 gap-x-3 mt-2.5 text-muted text-ui-compact [&_>_span]:font-bold [&_a]:text-muted [&_a]:no-underline [&_a:hover]:text-accent [&_a:hover]:[text-decoration:underline] [&_a:focus-visible]:rounded-xs [&_a:focus-visible]:outline-3 [&_a:focus-visible]:outline-focus [&_a:focus-visible]:outline-offset-2"
           aria-label="External comic sources"
         >
           <span>Sources</span>
@@ -276,7 +276,7 @@ function seriesLabel(comic) {
 
         <div
           v-if="selectedComic.characters?.length"
-          class="preview-list [&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
+          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
         >
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Characters</p>
           <div

@@ -131,7 +131,7 @@ defineEmits([
         </div>
 
         <ComicListView
-          class="preview-list [&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
+          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
           title="Comics"
           :comics="selectedArc.comics"
           :source-params="{ arcId: selectedArc.id }"

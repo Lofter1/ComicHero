@@ -392,7 +392,7 @@ function endDrag() {
     </label>
 
     <fieldset
-      class="visibility-field grid [grid-template-columns:max-content_1fr] gapy-1.5 gapx-3 m-0 p-3 border border-line rounded [&_legend]:py-0 [&_legend]:px-1 [&_legend]:text-label [&_legend]:text-sm [&_legend]:font-bold [&_.muted]:m-0 [&_.muted]:self-center"
+      class="visibility-field grid [grid-template-columns:max-content_1fr] gap-y-1.5 gap-x-3 m-0 p-3 border border-line rounded [&_legend]:py-0 [&_legend]:px-1 [&_legend]:text-label [&_legend]:text-sm [&_legend]:font-bold [&_.muted]:m-0 [&_.muted]:self-center"
     >
       <legend>Visibility</legend>
       <label>

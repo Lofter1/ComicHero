@@ -12,9 +12,9 @@ defineProps({
 </script>
 
 <template>
-  <section class="list-section grid gap-2">
+  <section class="grid gap-2">
     <div
-      class="list-section-header flex items-center justify-between gap-2.5 py-0 px-0.5 [&_.eyebrow]:m-0 [&_small]:text-muted [&_small]:font-bold"
+      class="flex items-center justify-between gap-2.5 py-0 px-0.5 [&_.eyebrow]:m-0 [&_small]:text-muted [&_small]:font-bold"
     >
       <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
         {{ title }}

@@ -50,7 +50,7 @@ function entryTags() {
     >
       <span
         v-if="showCover && comic.coverImage"
-        class="issue-list-cover flex-none w-11 h-15 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-9.5 down-phone:h-13"
+        class="flex-none w-11 h-15 overflow-hidden border border-line rounded-[6px] bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover down-phone:w-9.5 down-phone:h-13"
         aria-hidden="true"
       >
         <img :src="assetURL(comic.coverImage)" alt="" loading="lazy" />
