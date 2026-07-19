@@ -174,6 +174,17 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 			t.Fatalf("%s table missing", table)
 		}
 	}
+
+	var characterAppearanceIndexCount int
+	if err := database.Get(&characterAppearanceIndexCount, `
+		SELECT COUNT(*) FROM sqlite_master
+		WHERE type = 'index' AND name = 'idx_comic_characters_character_id'
+	`); err != nil {
+		t.Fatalf("check character appearance index: %v", err)
+	}
+	if characterAppearanceIndexCount != 1 {
+		t.Fatalf("idx_comic_characters_character_id count = %d; want 1", characterAppearanceIndexCount)
+	}
 }
 
 func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
