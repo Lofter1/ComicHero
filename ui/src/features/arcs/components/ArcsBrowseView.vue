@@ -70,10 +70,14 @@ const sectionTitle = computed(
 </script>
 
 <template>
-  <div class="browse-view">
-    <div class="list-pane">
-      <div class="browse-list-sticky">
-        <div class="comic-list-header">
+  <div class="browse-view min-w-0 w-full">
+    <div class="list-pane grid gap-3">
+      <div
+        class="browse-list-sticky max-w-none sticky [top:var(--comic-list-sticky-top)] z-18 grid gap-2.5 [margin-inline:calc(var(--sticky-toolbar-inline-offset)_*_-1)] [padding:12px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky-soft backdrop-blur-ui down-tablet:[&_.comic-list-header]:items-stretch down-tablet:[&_.comic-list-header]:flex-col down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
+      >
+        <div
+          class="comic-list-header flex items-center justify-between gap-3 [&_>_*]:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
+        >
           <BrowseListTools
             :search="search"
             search-placeholder="Search arcs"
@@ -89,14 +93,14 @@ const sectionTitle = computed(
           />
         </div>
       </div>
-      <div v-if="arcs.length" class="sectioned-list">
+      <div v-if="arcs.length" class="sectioned-list grid gap-4">
         <BrowseListSection :title="sectionTitle" :items="arcs">
           <template #item="{ item: arc }">
             <BrowseEntityRow
               :title="arc.name"
               :subtitle="arc.description || 'No description'"
               :image="arc.image"
-              main-class="arc-row-main"
+              main-class="arc-row-main [&_>_span:last-child]:min-w-0 flex items-center gap-2.5"
               :selected="selectedArcId === arc.id"
               :favorite="arc.favorite"
               :can-favorite="!readOnly"
@@ -107,7 +111,11 @@ const sectionTitle = computed(
               @toggle-favorite="$emit('toggle-favorite', arc)"
             >
               <template #byline>
-                <span v-if="arc.startedAt" class="started-pill">Started</span>
+                <span
+                  v-if="arc.startedAt"
+                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  >Started</span
+                >
                 <BrowseRowStats
                   :items="[`${arc.favoriteCount} favorites`, `${arc.startedCount} reading`]"
                 />

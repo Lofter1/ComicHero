@@ -53,11 +53,11 @@ function characterProgress(character) {
 </script>
 
 <template>
-  <div class="detail-view">
+  <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedCharacter && canDelete"
-        class="danger-button"
+        class="danger-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"
@@ -66,14 +66,14 @@ function characterProgress(character) {
       </button>
       <FavoriteToggle
         v-if="selectedCharacter && !readOnly"
-        class="detail-favorite-toggle"
+        class="detail-favorite-toggle self-center"
         :favorite="selectedCharacter.favorite"
         :disabled="quickSavingCharacterId === selectedCharacter.id"
         @toggle="$emit('toggle-favorite', selectedCharacter)"
       />
       <button
         v-if="selectedCharacter && !readOnly"
-        class="secondary-button"
+        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         @click="$emit('add-to-collection', selectedCharacter)"
       >
@@ -92,7 +92,7 @@ function characterProgress(character) {
       </button>
       <button
         v-if="selectedCharacter?.metronCharacterId && !readOnly"
-        class="primary-button"
+        class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         :disabled="importRunning"
         @click="$emit('import-appearances')"
@@ -101,16 +101,23 @@ function characterProgress(character) {
       </button>
     </DetailNavigation>
 
-    <article class="detail-panel">
-      <div v-if="selectedCharacter" class="read-only-detail">
-        <header class="panel-header">
+    <article
+      class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+    >
+      <div v-if="selectedCharacter" class="read-only-detail grid gap-4.5">
+        <header
+          class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+        >
           <div>
-            <p class="eyebrow">Character</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Character</p>
             <h3>{{ selectedCharacter.name }}</h3>
           </div>
         </header>
 
-        <div v-if="selectedCharacter.image" class="character-portrait">
+        <div
+          v-if="selectedCharacter.image"
+          class="character-portrait overflow-hidden border border-line rounded bg-surface-muted max-w-45 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
+        >
           <img
             :src="assetURL(selectedCharacter.image)"
             :alt="`${selectedCharacter.name} portrait`"
@@ -118,7 +125,9 @@ function characterProgress(character) {
           />
         </div>
 
-        <div class="metadata-grid">
+        <div
+          class="metadata-grid grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+        >
           <span>
             <strong>{{ characterProgress(selectedCharacter) }}</strong>
             <small>Progress</small>
@@ -144,18 +153,26 @@ function characterProgress(character) {
             ><small>{{ new Date(selectedCharacter.startedAt).toLocaleDateString() }}</small></span
           >
         </div>
-        <div class="progress-meter" aria-label="Character read progress">
+        <div
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          aria-label="Character read progress"
+        >
           <span :style="{ width: characterProgress(selectedCharacter) }"></span>
         </div>
 
-        <div v-if="selectedCharacter.aliases?.length" class="alias-list">
+        <div
+          v-if="selectedCharacter.aliases?.length"
+          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-7.5 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1.25 [&_span]:px-2.5 [&_span]:text-ui-sm-plus [&_span]:font-extrabold [&_button]:min-h-7.5 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1.25 [&_button]:px-2.5 [&_button]:text-ui-sm-plus [&_button]:font-extrabold [&_button]:cursor-pointer"
+        >
           <span v-for="alias in selectedCharacter.aliases" :key="alias">{{ alias }}</span>
         </div>
 
-        <p class="detail-description">{{ selectedCharacter.description || 'No description' }}</p>
+        <p class="detail-description text-body leading-normal">
+          {{ selectedCharacter.description || 'No description' }}
+        </p>
 
         <ComicListView
-          class="preview-list"
+          class="preview-list [&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
           title="Appearances"
           :comics="selectedCharacter.comics || []"
           :source-params="{ characterId: selectedCharacter.id }"
@@ -172,7 +189,12 @@ function characterProgress(character) {
           @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
-      <p v-else class="empty-state">Select a character to view appearances.</p>
+      <p
+        v-else
+        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+      >
+        Select a character to view appearances.
+      </p>
     </article>
   </div>
 </template>

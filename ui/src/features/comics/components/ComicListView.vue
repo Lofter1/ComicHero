@@ -519,17 +519,21 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 <template>
   <section class="comic-list-view grid w-full min-w-0 max-w-full gap-3">
     <div
-      class="comic-list-sticky grid w-full min-w-0 max-w-full gap-2.5 pb-3 [border-bottom:1px_solid_var(--sticky-border)] [background:var(--sticky-bg)] [margin-top:2rem]"
+      class="comic-list-sticky grid w-full min-w-0 max-w-full gap-2.5 pb-3 border-b border-sticky-border bg-sticky-bg [margin-top:2rem] max-w-none down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
     >
-      <header class="comic-list-header">
+      <header
+        class="comic-list-header flex items-center justify-between gap-3 [&_>_*]:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
+      >
         <div>
-          <p class="eyebrow">{{ title }}</p>
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
+            {{ title }}
+          </p>
           <small>{{ summaryText }}</small>
         </div>
 
         <button
           v-if="showNewButton && !readOnly"
-          class="primary-button"
+          class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           @click="$emit('new-comic')"
         >
@@ -539,13 +543,13 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
       <div
         v-if="sourceComics.length || serverSource || hasFilters"
-        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2"
+        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_>_input]:[flex:1_1_280px] [&_>_input]:[min-width:min(280px,_100%)] [&_input]:h-11 [&_input]:min-h-11 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:py-2 [&_input]:px-2.5 [&_select]:h-11 [&_select]:min-h-11 [&_select]:border [&_select]:border-line-strong [&_select]:rounded [&_select]:bg-surface [&_select]:py-2 [&_select]:px-2.5 [&_select]:[flex:1_1_140px] [&_select]:min-w-30 [&_select]:max-w-45 [&_select]:pr-8 [&_.list-sort-select]:min-w-45 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-90 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&:has(>_.comic-filter-controls)_>_input]:[flex:1_1_280px] down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
       >
         <input v-model="searchText" type="search" placeholder="Search issues" />
 
         <button
           ref="comicOptionsTrigger"
-          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:[flex:0_0_auto] down-mobile:[min-width:190px] down-mobile:pr-3"
+          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-47.5 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-2.75 down-mobile:pr-9 down-mobile:pb-2.75 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
           type="button"
           :aria-expanded="comicOptionsOpen"
           @click="comicOptionsOpen = !comicOptionsOpen"
@@ -556,11 +560,11 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <div
           ref="comicFilterControls"
-          class="comic-filter-controls [display:contents] down-mobile:hidden down-mobile:[width:min(360px,_calc(100vw_-_28px))]"
+          class="comic-filter-controls contents down-mobile:hidden down-mobile:[width:min(360px,_calc(100vw_-_28px))] down-mobile:absolute down-mobile:z-25 down-mobile:[top:calc(100%_+_8px)] down-mobile:right-0 down-mobile:[left:auto] down-mobile:gap-2.5 down-mobile:border down-mobile:border-line-strong down-mobile:rounded-lg down-mobile:bg-surface down-mobile:p-3 down-mobile:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&_select]:w-full down-mobile:[&_select]:max-w-none down-mobile:[&.open]:grid down-mobile:[&_select]:block"
           :class="{ open: comicOptionsOpen }"
         >
           <div
-            class="inline-filter-tabs issue-status-tabs"
+            class="inline-filter-tabs issue-status-tabs inline-grid grid-cols-3 gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2.25 [&_button]:text-ui-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white grid-cols-4 down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-ui-compact"
             role="group"
             aria-label="Issue status filters"
           >
@@ -631,7 +635,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         <template v-for="(comic, index) in visibleComics" :key="`${comic.id}-${index}`">
           <button
             v-if="showSectionBefore(comic, index)"
-            class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] [border-top:0] [border-right:0] [border-left:0] [border-radius:0] bg-transparent [color:inherit] text-left [padding:18px_4px_10px] cursor-pointer"
+            class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] border-t-0 border-r-0 border-l-0 [border-radius:0] bg-transparent text-inherit text-left pt-4.5 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,_var(--primary)_5%,_transparent)] [&.nested-reading-order-heading]:[border-bottom-color:color-mix(in_srgb,_var(--accent)_52%,_var(--line))] [&_.section-description]:text-muted [&_.section-description]:[font-weight:500] [&[aria-expanded='false']_.section-collapse-icon]:[transform:rotate(-90deg)]"
             :class="{
               'nested-reading-order-heading': comic.section.kind === 'readingOrder',
             }"
@@ -640,15 +644,19 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             :aria-label="`${isSectionCollapsed(comic) ? 'Expand' : 'Collapse'} ${comic.section.label || 'section'} ${comic.section.title}`"
             @click="toggleSection(comic.section)"
           >
-            <span class="reading-order-section-heading-content grid gap-1 min-w-0">
-              <span class="eyebrow">{{ comic.section.label || 'Section' }}</span>
+            <span
+              class="reading-order-section-heading-content grid gap-1 min-w-0 [&_strong]:[font-size:1.08rem]"
+            >
+              <span class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">{{
+                comic.section.label || 'Section'
+              }}</span>
               <strong>{{ comic.section.title }}</strong>
               <span v-if="comic.section.description" class="section-description">
                 {{ comic.section.description }}
               </span>
             </span>
             <span
-              class="section-collapse-icon [margin-inline-end:8px] [font-size:1.35rem] leading-none [transition:transform_160ms_ease]"
+              class="section-collapse-icon me-2 [font-size:1.35rem] leading-none [transition:transform_160ms_ease]"
               aria-hidden="true"
               >⌄</span
             >
@@ -671,13 +679,13 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       <div
         v-if="canLoadMoreLocal || canLoadMoreServer"
         ref="loadMoreSentinel"
-        class="issue-list-sentinel w-full [height:1px]"
+        class="issue-list-sentinel w-full h-px"
         aria-hidden="true"
       ></div>
 
       <button
         v-if="showManualLoadMore"
-        class="ghost-button load-more-button"
+        class="ghost-button load-more-button min-h-8.5 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
         type="button"
         @click="loadMoreLocal"
       >
@@ -685,7 +693,10 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       </button>
     </template>
 
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+    >
       {{ hasFilters ? filteredEmptyMessage : emptyMessage }}
     </div>
   </section>

@@ -85,9 +85,11 @@ function seriesPublisherLabel(series) {
 </script>
 
 <template>
-  <div class="browse-view">
-    <div class="list-pane">
-      <div class="browse-list-sticky">
+  <div class="browse-view min-w-0 w-full">
+    <div class="list-pane grid gap-3">
+      <div
+        class="browse-list-sticky max-w-none sticky [top:var(--comic-list-sticky-top)] z-18 grid gap-2.5 [margin-inline:calc(var(--sticky-toolbar-inline-offset)_*_-1)] [padding:12px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky-soft backdrop-blur-ui down-tablet:[&_.comic-list-header]:items-stretch down-tablet:[&_.comic-list-header]:flex-col down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
+      >
         <BrowseListTools
           :search="search"
           search-placeholder="Search series"
@@ -103,14 +105,14 @@ function seriesPublisherLabel(series) {
         />
       </div>
       <LoadingState v-if="loading && !series.length" />
-      <div v-else-if="series.length" class="sectioned-list">
+      <div v-else-if="series.length" class="sectioned-list grid gap-4">
         <BrowseListSection :title="sectionTitle" :items="series">
           <template #item="{ item }">
             <BrowseEntityRow
               :title="`${item.name}${seriesYearLabel(item)}`"
               :subtitle="seriesPublisherLabel(item)"
               :image="item.coverImage"
-              main-class="series-row-main flex items-center gap-2.5"
+              main-class="series-row-main flex items-center gap-2.5 [&_>_span:last-child]:min-w-0"
               :selected="selectedSeriesId === item.id"
               :favorite="item.favorite"
               :can-favorite="!readOnly"
@@ -120,7 +122,11 @@ function seriesPublisherLabel(series) {
               @toggle-favorite="$emit('toggle-favorite', item)"
             >
               <template #byline>
-                <span v-if="item.startedAt" class="started-pill">Started</span>
+                <span
+                  v-if="item.startedAt"
+                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2.25 text-ui-compact font-extrabold leading-tight"
+                  >Started</span
+                >
                 <BrowseRowStats
                   :items="[
                     `${item.entryCount} entries`,
@@ -134,15 +140,22 @@ function seriesPublisherLabel(series) {
           </template>
         </BrowseListSection>
       </div>
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+      >
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
         <button
           v-if="!hasFilters && !readOnly"
-          class="secondary-button"
+          class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
           type="button"
           @click="$emit('new-comic')"
         >
-          <span aria-hidden="true" class="button-icon">+</span>
+          <span
+            aria-hidden="true"
+            class="button-icon inline-flex items-center justify-center w-em h-em text-xl font-extrabold leading-none"
+            >+</span
+          >
           Add the first comic
         </button>
       </div>

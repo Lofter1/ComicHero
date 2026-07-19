@@ -52,11 +52,11 @@ function seriesPublisherLabel(series) {
 </script>
 
 <template>
-  <div class="detail-view">
+  <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedSeries && canDelete"
-        class="danger-button"
+        class="danger-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"
@@ -65,7 +65,7 @@ function seriesPublisherLabel(series) {
       </button>
       <FavoriteToggle
         v-if="selectedSeries && !readOnly"
-        class="detail-favorite-toggle"
+        class="detail-favorite-toggle self-center"
         :favorite="selectedSeries.favorite"
         @toggle="$emit('toggle-favorite', selectedSeries)"
       />
@@ -82,7 +82,7 @@ function seriesPublisherLabel(series) {
       </button>
       <button
         v-if="selectedSeries?.metronSeriesId && !readOnly"
-        class="primary-button"
+        class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         :disabled="importRunning"
         @click="$emit('import-series')"
@@ -91,19 +91,28 @@ function seriesPublisherLabel(series) {
       </button>
     </DetailNavigation>
 
-    <article class="detail-panel">
-      <div v-if="selectedSeries" class="read-only-detail">
-        <header class="panel-header">
+    <article
+      class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+    >
+      <div v-if="selectedSeries" class="read-only-detail grid gap-4.5">
+        <header
+          class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+        >
           <div>
-            <p class="eyebrow">Series</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Series</p>
             <h3>{{ selectedSeries.name }}{{ seriesYearLabel(selectedSeries) }}</h3>
           </div>
         </header>
 
-        <div class="progress-meter" aria-label="Series read progress">
+        <div
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          aria-label="Series read progress"
+        >
           <span :style="{ width: formatProgress(selectedSeries.progress) }"></span>
         </div>
-        <div class="metadata-grid">
+        <div
+          class="metadata-grid grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+        >
           <span>
             <strong>{{ formatProgress(selectedSeries.progress) }}</strong>
             <small>Progress</small>
@@ -135,7 +144,7 @@ function seriesPublisherLabel(series) {
         </div>
 
         <ComicListView
-          class="preview-list"
+          class="preview-list [&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
           title="Entries"
           :comics="selectedSeries.comics || []"
           :source-params="{ seriesId: selectedSeries.id }"
@@ -152,7 +161,12 @@ function seriesPublisherLabel(series) {
           @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
-      <p v-else class="empty-state">Select a series to view entries.</p>
+      <p
+        v-else
+        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+      >
+        Select a series to view entries.
+      </p>
     </article>
   </div>
 </template>
