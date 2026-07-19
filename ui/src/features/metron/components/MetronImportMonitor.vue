@@ -132,7 +132,7 @@ function jobMessage(job) {
           >
           <button
             v-if="job.status === 'failed'"
-            class="icon-button compact-icon-button self-center w-8 min-w-8 min-h-8 p-0 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+            class="icon-button compact-icon-button self-center inline-flex size-10 min-w-10 items-center justify-center border border-line-strong rounded bg-surface text-control p-0 down-mobile:self-stretch down-mobile:w-full"
             type="button"
             aria-label="Retry import"
             title="Retry import"
@@ -162,7 +162,7 @@ function jobMessage(job) {
           </button>
           <button
             v-if="canDismiss(job)"
-            class="icon-button compact-icon-button self-center w-8 min-w-8 min-h-8 p-0 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+            class="icon-button compact-icon-button self-center inline-flex size-10 min-w-10 items-center justify-center border border-line-strong rounded bg-surface text-control p-0 down-mobile:self-stretch down-mobile:w-full"
             type="button"
             aria-label="Dismiss import"
             title="Dismiss import"

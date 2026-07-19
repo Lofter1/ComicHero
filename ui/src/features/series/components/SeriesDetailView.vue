@@ -71,7 +71,12 @@ function seriesPublisherLabel(series) {
       />
       <button
         v-if="selectedSeries && !readOnly"
-        :class="selectedSeries.startedAt ? 'secondary-button' : 'primary-button'"
+        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5"
+        :class="
+          selectedSeries.startedAt
+            ? 'secondary-button bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]'
+            : 'primary-button border-primary bg-primary text-white'
+        "
         type="button"
         :disabled="startSaving"
         @click="$emit('toggle-started')"
