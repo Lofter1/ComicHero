@@ -848,7 +848,7 @@ onUnmounted(() => {
     />
 
     <section
-      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] [padding:var(--content-padding)] min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:[padding:var(--content-padding)] down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:[padding:var(--content-padding)] down-phone:p-2.5 [&_>_*]:min-w-0 [&_>_*]:max-w-full"
+      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] [padding:var(--content-padding)] min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:[padding:var(--content-padding)] down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:[padding:var(--content-padding)] down-phone:p-2.5 [&_>_*]:min-w-0 [&_>_*]:max-w-full [&_>_.sticky-toolbar]:max-w-none"
     >
       <AppToolbar
         v-if="!isEditing && !isDetail"
