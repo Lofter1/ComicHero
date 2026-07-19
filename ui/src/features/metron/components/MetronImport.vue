@@ -537,7 +537,7 @@ function formatDate(value) {
         <input v-model="seriesVolume" inputmode="numeric" placeholder="Optional volume" />
       </label>
       <button
-        class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
         type="submit"
         :disabled="busy"
       >

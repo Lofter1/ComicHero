@@ -35,7 +35,7 @@ function search() {
           <h3 id="merge-title">Merge a duplicate into {{ target.title }}</h3>
         </div>
         <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close comic merge"
           @click="$emit('close')"
@@ -55,7 +55,7 @@ function search() {
       >
         <input v-model="query" type="search" placeholder="Search duplicate comics" autofocus />
         <button
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           type="submit"
           :disabled="searching || saving"
         >

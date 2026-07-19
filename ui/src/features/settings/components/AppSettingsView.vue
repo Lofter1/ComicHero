@@ -548,7 +548,7 @@ function selectSettingsTab(tab) {
           </p>
         </div>
         <button
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           :disabled="generatingInvite"
           @click="$emit('generate-invite')"
@@ -614,7 +614,7 @@ function selectSettingsTab(tab) {
       v-if="cblRepositorySync"
       v-show="activeSettingsTab === 'cbl-repositories'"
       id="settings-panel-cbl-repositories"
-      class="account-settings-panel metron-scan-panel settings-tab-panel min-w-0 gap-6 rounded-xl p-6 down-mobile:p-4 grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+      class="account-settings-panel metron-scan-panel settings-tab-panel min-w-0 gap-6 rounded-xl p-6 down-mobile:p-4 grid border border-line bg-surface-soft"
       role="tabpanel"
       aria-labelledby="settings-tab-cbl-repositories"
     >
@@ -633,7 +633,7 @@ function selectSettingsTab(tab) {
           </p>
         </div>
         <label
-          class="compact-toggle metron-scan-toggle flex-none min-w-36 justify-center border border-line rounded bg-surface py-3 px-3.5 down-mobile:self-start inline-flex items-center gap-2 min-h-8 text-label py-2 px-2.5 font-extrabold leading-ui-tight"
+          class="compact-toggle metron-scan-toggle flex-none min-w-36 justify-center border border-line rounded bg-surface py-3 px-3.5 down-mobile:self-start inline-flex items-center gap-2 min-h-8 text-label font-extrabold leading-ui-tight"
         >
           <input v-model="cblDraft.enabled" type="checkbox" />
           <span>{{ cblDraft.enabled ? 'Enabled' : 'Disabled' }}</span>
@@ -778,7 +778,7 @@ function selectSettingsTab(tab) {
       >
         <button
           type="button"
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           :disabled="savingCblRepositorySync || !repositoryText.trim()"
           @click="saveCBLRepositorySync"
         >
@@ -838,7 +838,7 @@ function selectSettingsTab(tab) {
               </small>
             </div>
             <button
-              class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+              class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
               type="button"
               aria-label="Close CBL folder picker"
               @click="closeCBLFolderPicker"
@@ -895,7 +895,7 @@ function selectSettingsTab(tab) {
             <button
               v-if="remainingCBLRepositoryFolderCount"
               type="button"
-              class="secondary-button cbl-file-picker-more justify-self-center grid gap-0.5 [min-width:min(280px,_100%)] my-3 mx-2 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs"
+              class="secondary-button cbl-file-picker-more justify-self-center grid gap-0.5 [min-width:min(280px,_100%)] my-3 mx-2 min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs"
               @click="showMoreCBLRepositoryFolders"
             >
               Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFolderCount) }} more
@@ -904,7 +904,7 @@ function selectSettingsTab(tab) {
           </div>
 
           <footer
-            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4"
+            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center gap-3 py-3.5 px-4"
           >
             <span>
               {{
@@ -915,14 +915,14 @@ function selectSettingsTab(tab) {
             </span>
             <button
               type="button"
-              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               @click="closeCBLFolderPicker"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
               :disabled="loadingCblRepositoryFiles"
               @click="applySelectedCBLRepositoryFolders"
             >
@@ -953,7 +953,7 @@ function selectSettingsTab(tab) {
               >
             </div>
             <button
-              class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+              class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
               type="button"
               aria-label="Close CBL file picker"
               @click="closeCBLFilePicker"
@@ -1025,7 +1025,7 @@ function selectSettingsTab(tab) {
             <button
               v-if="remainingCBLRepositoryFileCount"
               type="button"
-              class="secondary-button cbl-file-picker-more justify-self-center grid gap-0.5 [min-width:min(280px,_100%)] my-3 mx-2 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs"
+              class="secondary-button cbl-file-picker-more justify-self-center grid gap-0.5 [min-width:min(280px,_100%)] my-3 mx-2 min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs"
               @click="showMoreCBLRepositoryFiles"
             >
               Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFileCount) }} more
@@ -1034,19 +1034,19 @@ function selectSettingsTab(tab) {
           </div>
 
           <footer
-            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4"
+            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center gap-3 py-3.5 px-4"
           >
             <span>{{ selectedCBLRepositoryFiles.length }} files selected</span>
             <button
               type="button"
-              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               @click="closeCBLFilePicker"
             >
               Cancel
             </button>
             <button
               type="button"
-              class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
               :disabled="!selectedCBLRepositoryFiles.length || savingCblRepositorySync"
               @click="startSelectedCBLRepositoryFiles"
             >
@@ -1061,7 +1061,7 @@ function selectSettingsTab(tab) {
         class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
       >
         <section
-          class="cbl-file-picker cbl-metron-issue-picker [width:min(920px,_100%)] [max-height:min(820px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_auto_minmax(0,_1fr)_auto] border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden [width:min(760px,_100%)] [grid-template-rows:auto_minmax(0,_1fr)_auto]"
+          class="cbl-file-picker cbl-metron-issue-picker [max-height:min(820px,_calc(100vh_-_36px))] grid border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden [width:min(760px,_100%)] [grid-template-rows:auto_minmax(0,_1fr)_auto]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cbl-metron-issue-picker-title"
@@ -1118,12 +1118,12 @@ function selectSettingsTab(tab) {
           </div>
 
           <footer
-            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center justify-between gap-3 py-3.5 px-4"
+            class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center gap-3 py-3.5 px-4"
           >
             <span>Select the issue that should be added to this reading order.</span>
             <button
               type="button"
-              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               @click="chooseCBLMetronIssue(0)"
             >
               Use CBL data only
@@ -1144,7 +1144,7 @@ function selectSettingsTab(tab) {
 
       <section
         v-if="metronComicDiscovery"
-        class="account-settings-panel metron-scan-panel gap-6 rounded-xl p-6 down-mobile:p-4 grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+        class="account-settings-panel metron-scan-panel gap-6 rounded-xl p-6 down-mobile:p-4 grid border border-line bg-surface-soft"
       >
         <header
           class="metron-scan-heading flex items-start justify-between gap-6 down-mobile:items-stretch down-mobile:flex-col"
@@ -1159,7 +1159,7 @@ function selectSettingsTab(tab) {
             </p>
           </div>
           <label
-            class="compact-toggle metron-scan-toggle flex-none min-w-36 justify-center border border-line rounded bg-surface py-3 px-3.5 down-mobile:self-start inline-flex items-center gap-2 min-h-8 text-label py-2 px-2.5 font-extrabold leading-ui-tight"
+            class="compact-toggle metron-scan-toggle flex-none min-w-36 justify-center border border-line rounded bg-surface py-3 px-3.5 down-mobile:self-start inline-flex items-center gap-2 min-h-8 text-label font-extrabold leading-ui-tight"
           >
             <input v-model="discoveryDraft.enabled" type="checkbox" />
             <span>{{ discoveryDraft.enabled ? 'Enabled' : 'Disabled' }}</span>
@@ -1266,7 +1266,7 @@ function selectSettingsTab(tab) {
         >
           <button
             type="button"
-            class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
             :disabled="
               savingDiscovery || (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)
             "
@@ -1300,7 +1300,7 @@ function selectSettingsTab(tab) {
 
       <section
         v-if="metronComicScan"
-        class="account-settings-panel metron-scan-panel gap-6 rounded-xl p-6 down-mobile:p-4 grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+        class="account-settings-panel metron-scan-panel gap-6 rounded-xl p-6 down-mobile:p-4 grid border border-line bg-surface-soft"
       >
         <header
           class="metron-scan-heading flex items-start justify-between gap-6 down-mobile:items-stretch down-mobile:flex-col"
@@ -1316,7 +1316,7 @@ function selectSettingsTab(tab) {
             </p>
           </div>
           <label
-            class="compact-toggle metron-scan-toggle flex-none min-w-36 justify-center border border-line rounded bg-surface py-3 px-3.5 down-mobile:self-start inline-flex items-center gap-2 min-h-8 text-label py-2 px-2.5 font-extrabold leading-ui-tight"
+            class="compact-toggle metron-scan-toggle flex-none min-w-36 justify-center border border-line rounded bg-surface py-3 px-3.5 down-mobile:self-start inline-flex items-center gap-2 min-h-8 text-label font-extrabold leading-ui-tight"
           >
             <input v-model="draft.enabled" type="checkbox" />
             <span>{{ draft.enabled ? 'Enabled' : 'Disabled' }}</span>
@@ -1424,7 +1424,7 @@ function selectSettingsTab(tab) {
         >
           <button
             type="button"
-            class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
             :disabled="saving || !(draft.incompleteFields || []).length"
             @click="save"
           >

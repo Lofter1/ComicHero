@@ -96,7 +96,7 @@ function seriesLabel(comic) {
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedComic && canDelete"
-        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="deleting || mergeSaving"
         @click="$emit('open-merge')"
@@ -105,7 +105,7 @@ function seriesLabel(comic) {
       </button>
       <button
         v-if="selectedComic && canDelete"
-        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"
@@ -133,7 +133,7 @@ function seriesLabel(comic) {
       </button>
       <button
         v-if="selectedComic && !readOnly"
-        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="metronActionDisabled"
         @click="runMetronAction"

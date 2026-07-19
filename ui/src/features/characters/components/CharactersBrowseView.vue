@@ -136,7 +136,7 @@ function characterProgress(character) {
               </template>
               <template v-if="!readOnly" #actions>
                 <button
-                  class="secondary-action collection-row-action min-h-8 py-1.5 px-2.5 text-xs whitespace-nowrap min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+                  class="secondary-action collection-row-action min-h-8 py-1.5 px-2.5 text-xs whitespace-nowrap border border-line-strong rounded bg-surface text-control font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
                   type="button"
                   @click="$emit('add-to-collection', character)"
                 >

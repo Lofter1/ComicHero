@@ -53,7 +53,7 @@ function formatDate(value) {
           <small>{{ summary }}</small>
         </span>
         <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close reading list detail"
           @click="$emit('close')"
@@ -105,17 +105,17 @@ function formatDate(value) {
         </div>
       </div>
       <footer
-        class="metron-detail-actions justify-end border-t border-line flex items-start justify-between gap-3 py-3.5 px-4"
+        class="metron-detail-actions justify-end border-t border-line flex items-start gap-3 py-3.5 px-4"
       >
         <button
-          class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
           type="button"
           @click="$emit('close')"
         >
           Close
         </button>
         <button
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           :disabled="!readingList || importing"
           @click="$emit('import')"

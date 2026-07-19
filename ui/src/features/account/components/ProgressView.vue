@@ -64,7 +64,7 @@ function achievementTimestampLabel(achievement) {
             <h3>Reading progress</h3>
           </div>
           <button
-            class="secondary-button compact-button min-h-9 py-2 px-2.5 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+            class="secondary-button compact-button min-h-9 py-2 px-2.5 border rounded text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
             type="button"
             :disabled="loading"
             @click="emit('refresh')"
@@ -74,7 +74,7 @@ function achievementTimestampLabel(achievement) {
         </div>
 
         <div
-          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
         >
           <span>
             <strong>{{ statisticsView.statistics.readComics }}</strong>
@@ -99,7 +99,7 @@ function achievementTimestampLabel(achievement) {
         class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4"
       >
         <div
-          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
         >
           <span>
             <strong>{{ statisticsView.statistics.distinctReadSeries }}</strong>
