@@ -45,46 +45,71 @@ function achievementProgress(achievement) {
 </script>
 
 <template>
-  <section class="dashboard-view">
-    <header class="dashboard-header">
+  <section class="dashboard-view grid gap-4 pt-4">
+    <header class="dashboard-header flex items-start justify-between gap-4">
       <div>
         <h2>Continue reading</h2>
       </div>
-      <button class="secondary-button" type="button" :disabled="loading" @click="$emit('refresh')">
+      <button
+        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        type="button"
+        :disabled="loading"
+        @click="$emit('refresh')"
+      >
         {{ loading ? 'Refreshing...' : 'Refresh' }}
       </button>
     </header>
 
-    <div class="dashboard-achievements">
-      <article class="achievement-summary-card">
-        <p class="eyebrow">Recently earned</p>
+    <div
+      class="dashboard-achievements grid [grid-template-columns:repeat(auto-fit,_minmax(260px,_1fr))] gap-3.5"
+    >
+      <article
+        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
+      >
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Recently earned</p>
         <template v-if="recentAchievement">
           <h3>{{ recentAchievement.name }}</h3>
           <p>{{ recentAchievement.description }}</p>
         </template>
-        <p v-else class="muted">No achievements earned yet.</p>
+        <p v-else class="muted block text-muted">No achievements earned yet.</p>
       </article>
-      <article class="achievement-summary-card">
-        <p class="eyebrow">Next achievement</p>
+      <article
+        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
+      >
+        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Next achievement</p>
         <template v-if="nextAchievement">
           <h3>{{ nextAchievement.name }}</h3>
           <p>{{ nextAchievement.description }}</p>
-          <div class="progress-meter" :aria-label="`${nextAchievement.name} progress`">
+          <div
+            class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+            :aria-label="`${nextAchievement.name} progress`"
+          >
             <span :style="{ width: formatProgress(nextAchievement.percent) }"></span>
           </div>
           <small>{{ achievementProgress(nextAchievement) }}</small>
         </template>
-        <p v-else class="muted">All achievements earned.</p>
+        <p v-else class="muted block text-muted">All achievements earned.</p>
       </article>
     </div>
 
     <LoadingState v-if="loading && !dashboard" />
 
-    <div v-else-if="items.length" class="dashboard-grid">
-      <article v-for="item in items" :key="`${item.type}:${item.id}`" class="dashboard-card">
-        <div class="dashboard-card-header">
+    <div
+      v-else-if="items.length"
+      class="dashboard-grid grid [grid-template-columns:repeat(auto-fit,_minmax(260px,_1fr))] gap-3.5"
+    >
+      <article
+        v-for="item in items"
+        :key="`${item.type}:${item.id}`"
+        class="dashboard-card grid gap-3.5 border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
+      >
+        <div
+          class="dashboard-card-header flex items-start justify-between gap-4 [&_strong]:text-accent [&_strong]:whitespace-nowrap"
+        >
           <div>
-            <p class="eyebrow">{{ itemTypeLabel(item.type) }}</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
+              {{ itemTypeLabel(item.type) }}
+            </p>
             <h3>{{ item.name }}</h3>
           </div>
           <strong>{{ formatProgress(item.progress) }}</strong>
@@ -92,7 +117,7 @@ function achievementProgress(achievement) {
 
         <template v-if="item.nextComic">
           <button
-            class="dashboard-comic"
+            class="dashboard-comic grid [grid-template-columns:56px_minmax(0,_1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
             type="button"
             @click="$emit('open-comic', item.nextComic)"
           >
@@ -102,16 +127,20 @@ function achievementProgress(achievement) {
               :alt="`${item.nextComic.title} cover`"
               loading="lazy"
             />
-            <span v-else class="dashboard-cover-placeholder" aria-hidden="true"></span>
+            <span
+              v-else
+              class="dashboard-cover-placeholder w-14 h-20 rounded-[6px] object-cover bg-surface-muted"
+              aria-hidden="true"
+            ></span>
             <span>
               <strong>{{ item.nextComic.title }}</strong>
               <small>{{ item.nextComic.publisher || 'No publisher saved' }}</small>
             </span>
           </button>
 
-          <div v-if="!readOnly" class="dashboard-card-actions">
+          <div v-if="!readOnly" class="dashboard-card-actions grid grid-cols-2 gap-2.5">
             <button
-              class="primary-button"
+              class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
               type="button"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-read', item.nextComic)"
@@ -119,7 +148,7 @@ function achievementProgress(achievement) {
               Read
             </button>
             <button
-              class="secondary-button"
+              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               type="button"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-skipped', item.nextComic)"
@@ -129,11 +158,14 @@ function achievementProgress(achievement) {
           </div>
         </template>
 
-        <p v-else class="dashboard-complete-copy">No unread comics left here.</p>
+        <p v-else class="dashboard-complete-copy text-muted">No unread comics left here.</p>
       </article>
     </div>
 
-    <section v-else class="empty-panel">
+    <section
+      v-else
+      class="empty-panel border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold"
+    >
       <h2>No started reading yet</h2>
       <p>
         Start a reading order, arc, character, character collection, or series and it will appear

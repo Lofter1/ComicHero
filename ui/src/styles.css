@@ -1,22 +1,96 @@
-/*
- * Global stylesheet entry point.
- * Import order is intentional: later feature and responsive modules may refine
- * shared foundations without relying on Vue component mount order.
- */
-@import './styles/foundation.css';
-@import './styles/app-shell.css';
-@import './styles/account-progress.css';
-@import './styles/administration.css';
-@import './styles/loading.css';
-@import './styles/browse-detail.css';
-@import './styles/list-rows.css';
-@import './styles/detail-forms.css';
-@import './styles/metron.css';
-@import './styles/reading-order-editor.css';
-@import './styles/list-views.css';
-@import './styles/dashboard.css';
-@import './styles/collections.css';
-@import './styles/responsive-wide.css';
-@import './styles/responsive-tablet.css';
-@import './styles/responsive-mobile.css';
-@import './styles/responsive-small.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply m-0 min-w-80 overflow-x-hidden bg-app font-sans text-ink;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  select,
+  button {
+    @apply cursor-pointer;
+  }
+
+  button {
+    @apply transition-interactive duration-140;
+  }
+
+  button:disabled {
+    @apply cursor-wait opacity-65;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p {
+    @apply mt-0;
+  }
+
+  h1 {
+    @apply mb-0 text-3xl;
+  }
+
+  h2 {
+    @apply mb-0 text-2xl leading-tight;
+  }
+
+  h3,
+  h4 {
+    @apply mb-1.5;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-ink;
+  }
+
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply min-w-4 w-auto p-0 accent-primary;
+  }
+
+  button:hover:not(:disabled) {
+    @apply -translate-y-px border-primary shadow-interactive;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus,
+  button:focus-visible {
+    @apply outline-3 outline-offset-2 outline-focus;
+  }
+
+  textarea {
+    @apply resize-y;
+  }
+
+  @screen down-mobile {
+    h1 {
+      @apply text-lg;
+    }
+
+    h2 {
+      @apply text-xl;
+    }
+
+    h3 {
+      @apply text-lg;
+    }
+
+    input,
+    select,
+    textarea {
+      @apply min-h-11 px-3 py-3;
+    }
+  }
+}

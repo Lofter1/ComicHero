@@ -828,7 +828,10 @@ onUnmounted(() => {
     @show-login="showLogin"
   />
 
-  <main v-else class="app-shell">
+  <main
+    v-else
+    class="app-shell min-h-screen grid [grid-template-columns:260px_minmax(0,_1fr)] down-tablet:block down-tablet:grid-cols-1"
+  >
     <AppSidebar
       :active-view="activeView"
       :theme-preference="themePreference"
@@ -844,7 +847,9 @@ onUnmounted(() => {
       @logout="signOut"
     />
 
-    <section class="content">
+    <section
+      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] [padding:var(--content-padding)] min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:[padding:var(--content-padding)] down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:[padding:var(--content-padding)] down-phone:p-2.5 [&_>_*]:min-w-0 [&_>_*]:max-w-full"
+    >
       <AppToolbar
         v-if="!isEditing && !isDetail"
         :result-count="toolbarResultCount"
@@ -950,10 +955,16 @@ onUnmounted(() => {
         @refresh="loadAccountStatistics"
       />
 
-      <section v-else-if="activeView === 'notFound'" class="empty-panel">
+      <section
+        v-else-if="activeView === 'notFound'"
+        class="empty-panel border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold"
+      >
         <h2>Page not found</h2>
         <p>This route does not match a ComicHero view.</p>
-        <router-link class="primary-button" :to="{ name: 'readingOrders' }">
+        <router-link
+          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          :to="{ name: 'readingOrders' }"
+        >
           Go to reading orders
         </router-link>
       </section>
@@ -1194,7 +1205,10 @@ onUnmounted(() => {
         @open-series="openSeries"
       />
 
-      <div v-else class="browse-view comic-browse-view">
+      <div
+        v-else
+        class="browse-view comic-browse-view [margin-top:-24px] down-mobile:[margin-top:-12px] min-w-0 w-full"
+      >
         <ComicListView
           title="Comics"
           :comics="comics"
@@ -1223,10 +1237,14 @@ onUnmounted(() => {
       <div
         v-if="showInfiniteScrollSentinel"
         ref="loadMoreSentinel"
-        class="load-more-sentinel"
+        class="load-more-sentinel flex items-center gap-2 w-full min-h-10 text-muted text-sm font-bold"
         aria-live="polite"
       >
-        <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
+        <span
+          v-if="activeListLoadingMore"
+          class="loading-spinner small w-4 h-4 border-3 border-spinner-track border-t-primary rounded-full animate-loading-spin flex-none [&.small]:w-3.5 [&.small]:h-3.5 [&.small]:[border-width:2px]"
+          aria-hidden="true"
+        ></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>
 
