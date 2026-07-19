@@ -76,11 +76,11 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
 </script>
 
 <template>
-  <div class="detail-view">
+  <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedOrder && !readOnly && !selectedOrder.startedAt"
-        class="primary-button"
+        class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         :disabled="startSaving"
         @click="$emit('start')"
@@ -89,7 +89,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
       <button
         v-if="selectedOrder && !readOnly && selectedOrder.startedAt"
-        class="secondary-button"
+        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="startSaving"
         @click="$emit('stop')"
@@ -98,7 +98,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
       <button
         v-if="selectedOrder?.canEdit"
-        class="primary-button"
+        class="primary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         @click="$emit('edit')"
       >
@@ -111,7 +111,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           selectedOrder.authorUserId &&
           selectedOrder.authorUserId !== currentUserId
         "
-        class="secondary-button"
+        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="saving"
         @click="$emit('copy')"
@@ -120,7 +120,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
       <button
         v-if="selectedOrder"
-        class="secondary-button"
+        class="secondary-button min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         @click="$emit('export-cbl')"
       >
@@ -128,21 +128,27 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
     </DetailNavigation>
 
-    <article class="detail-panel">
-      <div v-if="selectedOrder" class="read-only-detail">
-        <header class="panel-header">
+    <article
+      class="detail-panel min-h-90 border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+    >
+      <div v-if="selectedOrder" class="read-only-detail grid gap-4.5">
+        <header
+          class="panel-header justify-between mb-4.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
+        >
           <div>
-            <p class="eyebrow">Reading Order</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
+              Reading Order
+            </p>
             <h3>{{ selectedOrder.name }}</h3>
           </div>
         </header>
 
         <div
-          class="reading-order-summary grid [grid-template-columns:minmax(150px,_220px)_minmax(0,_1fr)] items-start gap-4.5 down-mobile:[grid-template-columns:1fr]"
+          class="reading-order-summary grid [grid-template-columns:minmax(150px,_220px)_minmax(0,_1fr)] items-start gap-4.5 down-mobile:grid-cols-1 [&_.detail-description]:m-0"
         >
           <div
             v-if="readingOrderCover(selectedOrder)"
-            class="reading-order-thumbnail w-full overflow-hidden border border-line rounded bg-surface-muted down-mobile:[max-width:220px]"
+            class="reading-order-thumbnail w-full overflow-hidden border border-line rounded bg-surface-muted down-mobile:max-w-55 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
           >
             <img
               :src="assetURL(readingOrderCover(selectedOrder))"
@@ -153,16 +159,21 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
 
           <!-- eslint-disable-next-line vue/no-v-html -- markdown-it renders with raw HTML disabled. -->
           <div
-            class="detail-description markdown-content grid gap-2.5"
+            class="detail-description markdown-content grid gap-2.5 text-body leading-normal [&_:where(p,_ul,_ol,_h3,_h4,_h5)]:m-0 [&_:where(ul,_ol)]:pl-5.5 [&_:where(h3,_h4,_h5)]:text-control [&_a]:text-accent [&_a]:font-extrabold"
             v-html="renderedDescription"
           ></div>
         </div>
 
-        <div class="progress-meter" aria-label="Reading order progress">
+        <div
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          aria-label="Reading order progress"
+        >
           <span :style="{ width: formatProgress(selectedOrder.progress) }"></span>
         </div>
 
-        <div class="metadata-grid">
+        <div
+          class="metadata-grid grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+        >
           <span>
             <strong>{{ formatProgress(selectedOrder.progress) }}</strong>
             <small>Progress</small>
@@ -199,10 +210,10 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
 
         <section
           v-if="!readOnly"
-          class="reading-order-rating-panel flex items-center justify-between gap-3 border border-line rounded bg-surface-soft p-3"
+          class="reading-order-rating-panel flex items-center justify-between gap-3 border border-line rounded bg-surface-soft p-3 [&_strong]:block"
         >
           <div>
-            <p class="eyebrow">Your rating</p>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Your rating</p>
             <strong>{{
               selectedOrder.myRating ? `${selectedOrder.myRating.toFixed(1)} / 5` : 'Not rated'
             }}</strong>
@@ -216,7 +227,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
               v-for="value in ratingValues"
               :key="value"
               type="button"
-              class="rating-button inline-flex items-center justify-center [width:38px] [height:38px] border border-line-strong rounded bg-surface [color:var(--text)] font-extrabold cursor-pointer"
+              class="rating-button inline-flex items-center justify-center w-9.5 h-9.5 border border-line-strong rounded bg-surface [color:var(--text)] font-extrabold cursor-pointer [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary [&:hover:not(:disabled)]:[color:var(--primary-contrast)] [&.active]:border-primary [&.active]:bg-primary [&.active]:[color:var(--primary-contrast)]"
               :class="{ active: selectedOrder.myRating === value }"
               :aria-pressed="selectedOrder.myRating === value"
               :disabled="ratingSaving"
@@ -226,7 +237,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             </button>
             <button
               type="button"
-              class="secondary-button compact-rating-clear [width:auto] [min-height:38px] [padding-block:8px]"
+              class="secondary-button compact-rating-clear w-auto min-h-9.5 py-2 min-h-10.5 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="ratingSaving || !selectedOrder.myRating"
               @click="emit('rate', 0)"
             >
@@ -236,7 +247,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
         </section>
 
         <ComicListView
-          class="preview-list"
+          class="preview-list [&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-5.5 [&_ul]:mb-0 [&_ul]:pl-5.5 [&_li]:mb-2.5"
           title="Comics"
           :comics="displayComics"
           :selected-comic-id="selectedComicId"
@@ -256,7 +267,12 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
         />
       </div>
 
-      <div v-else class="empty-state">Select a reading order to view details.</div>
+      <div
+        v-else
+        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+      >
+        Select a reading order to view details.
+      </div>
     </article>
   </div>
 </template>
