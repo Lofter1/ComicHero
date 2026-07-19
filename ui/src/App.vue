@@ -962,7 +962,7 @@ onUnmounted(() => {
         <h2>Page not found</h2>
         <p>This route does not match a ComicHero view.</p>
         <router-link
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           :to="{ name: 'readingOrders' }"
         >
           Go to reading orders

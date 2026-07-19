@@ -45,7 +45,7 @@ function monogram(name) {
           </p>
         </div>
         <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Close"
           @click="$emit('close')"
@@ -71,7 +71,7 @@ function monogram(name) {
             class="collection-dialog-item-main grid [grid-template-columns:38px_minmax(0,_1fr)] items-center gap-2.5 min-w-0"
           >
             <span
-              class="collection-dialog-monogram bg-primary-soft grid place-items-center w-10 h-10 overflow-hidden border border-line-strong rounded-md bg-surface-muted text-primary-strong font-black"
+              class="collection-dialog-monogram bg-primary-soft grid place-items-center w-10 h-10 overflow-hidden border border-line-strong rounded-md text-primary-strong font-black"
               aria-hidden="true"
             >
               {{ monogram(collection.name) }}
@@ -100,7 +100,7 @@ function monogram(name) {
         <div>
           <input id="new-character-collection" v-model="newName" maxlength="120" />
           <button
-            class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
             type="submit"
             :disabled="saving || !newName.trim()"
           >

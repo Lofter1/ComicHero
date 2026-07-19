@@ -519,7 +519,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 <template>
   <section class="comic-list-view grid w-full min-w-0 max-w-full gap-3">
     <div
-      class="comic-list-sticky grid w-full min-w-0 max-w-full gap-2.5 pb-3 border-b border-sticky-border bg-sticky-bg [margin-top:2rem] max-w-none down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
+      class="comic-list-sticky grid w-full min-w-0 gap-2.5 pb-3 border-b border-sticky-border bg-sticky-bg [margin-top:2rem] max-w-none down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
     >
       <header
         class="comic-list-header flex items-center justify-between gap-3 [&_>_*]:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
@@ -533,7 +533,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <button
           v-if="showNewButton && !readOnly"
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           type="button"
           @click="$emit('new-comic')"
         >
@@ -549,7 +549,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <button
           ref="comicOptionsTrigger"
-          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pr-9 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
+          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
           type="button"
           :aria-expanded="comicOptionsOpen"
           @click="comicOptionsOpen = !comicOptionsOpen"
@@ -564,7 +564,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           :class="{ open: comicOptionsOpen }"
         >
           <div
-            class="inline-filter-tabs issue-status-tabs inline-grid grid-cols-3 gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2 [&_button]:text-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white grid-cols-4 down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-xs"
+            class="inline-filter-tabs issue-status-tabs inline-grid gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2 [&_button]:text-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white grid-cols-4 down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-xs"
             role="group"
             aria-label="Issue status filters"
           >

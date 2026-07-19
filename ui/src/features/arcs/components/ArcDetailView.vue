@@ -47,7 +47,7 @@ defineEmits([
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedArc && canDelete"
-        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"

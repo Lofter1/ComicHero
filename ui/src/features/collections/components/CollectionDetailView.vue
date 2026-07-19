@@ -49,7 +49,7 @@ function monogram(name) {
         {{ startSaving ? 'Saving...' : collection.startedAt ? 'Stop reading' : 'Start reading' }}
       </button>
       <button
-        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="saving"
         @click="$emit('delete')"
@@ -119,7 +119,7 @@ function monogram(name) {
               <h3>Characters</h3>
             </div>
             <button
-              class="secondary-button icon-text-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
+              class="secondary-button icon-text-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
               type="button"
               :disabled="saving"
               @click="pickerOpen = true"

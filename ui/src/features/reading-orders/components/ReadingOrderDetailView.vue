@@ -80,7 +80,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedOrder && !readOnly && !selectedOrder.startedAt"
-        class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         :disabled="startSaving"
         @click="$emit('start')"
@@ -89,7 +89,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
       <button
         v-if="selectedOrder && !readOnly && selectedOrder.startedAt"
-        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="startSaving"
         @click="$emit('stop')"
@@ -98,7 +98,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
       <button
         v-if="selectedOrder?.canEdit"
-        class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         @click="$emit('edit')"
       >
@@ -111,7 +111,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           selectedOrder.authorUserId &&
           selectedOrder.authorUserId !== currentUserId
         "
-        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="saving"
         @click="$emit('copy')"
@@ -120,7 +120,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       </button>
       <button
         v-if="selectedOrder"
-        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         @click="$emit('export-cbl')"
       >
@@ -237,7 +237,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             </button>
             <button
               type="button"
-              class="secondary-button compact-rating-clear w-auto min-h-10 py-2 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button compact-rating-clear w-auto min-h-10 py-2 border rounded text-control px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               :disabled="ratingSaving || !selectedOrder.myRating"
               @click="emit('rate', 0)"
             >

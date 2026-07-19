@@ -147,7 +147,7 @@ function seriesPublisherLabel(series) {
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
         <button
           v-if="!hasFilters && !readOnly"
-          class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
           type="button"
           @click="$emit('new-comic')"
         >

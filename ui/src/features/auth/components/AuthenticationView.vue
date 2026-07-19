@@ -105,7 +105,7 @@ defineEmits([
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
       <button
-        class="primary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -154,7 +154,7 @@ defineEmits([
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
       <button
-        class="primary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -237,7 +237,7 @@ defineEmits([
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
       <button
-        class="primary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -341,7 +341,7 @@ defineEmits([
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
       <button
-        class="primary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -369,7 +369,7 @@ defineEmits([
       </div>
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
       <button
-        class="primary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
         type="button"
         :disabled="loading"
         @click="$emit('retry')"

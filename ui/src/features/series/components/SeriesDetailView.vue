@@ -56,7 +56,7 @@ function seriesPublisherLabel(series) {
     <DetailNavigation @back="$emit('back')">
       <button
         v-if="selectedSeries && canDelete"
-        class="danger-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
         type="button"
         :disabled="deleting"
         @click="$emit('delete')"
@@ -87,7 +87,7 @@ function seriesPublisherLabel(series) {
       </button>
       <button
         v-if="selectedSeries?.metronSeriesId && !readOnly"
-        class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
         type="button"
         :disabled="importRunning"
         @click="$emit('import-series')"

@@ -51,7 +51,7 @@ function achievementProgress(achievement) {
         <h2>Continue reading</h2>
       </div>
       <button
-        class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
         type="button"
         :disabled="loading"
         @click="$emit('refresh')"
@@ -108,7 +108,7 @@ function achievementProgress(achievement) {
 
           <div v-if="!readOnly" class="dashboard-card-actions grid grid-cols-2 gap-2.5">
             <button
-              class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
               type="button"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-read', item.nextComic)"
@@ -116,7 +116,7 @@ function achievementProgress(achievement) {
               Read
             </button>
             <button
-              class="secondary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
               type="button"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-skipped', item.nextComic)"

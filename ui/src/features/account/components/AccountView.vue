@@ -95,7 +95,7 @@ function deleteAccount() {
         </div>
 
         <div
-          class="metadata-grid account-metadata [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+          class="metadata-grid account-metadata [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
         >
           <span>
             <strong>{{ user.isAdmin ? 'Admin' : 'User' }}</strong>
@@ -160,7 +160,7 @@ function deleteAccount() {
       </article>
 
       <button
-        class="primary-button account-save-button justify-self-start min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+        class="primary-button account-save-button justify-self-start min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
         type="submit"
         :disabled="saving"
       >
@@ -169,7 +169,7 @@ function deleteAccount() {
 
       <article
         v-if="userMode === 'multi'"
-        class="account-settings-panel danger-panel border-danger-border bg-danger-soft grid gap-3.5 border border-line rounded bg-surface-soft p-4"
+        class="account-settings-panel danger-panel border-danger-border bg-danger-soft grid gap-3.5 border rounded p-4"
       >
         <div>
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Danger Zone</p>
@@ -195,7 +195,7 @@ function deleteAccount() {
         </div>
 
         <button
-          class="danger-button account-save-button justify-self-start min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
+          class="danger-button account-save-button justify-self-start min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
           type="button"
           :disabled="deleting"
           @click="deleteAccount"

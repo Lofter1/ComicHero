@@ -50,7 +50,7 @@ function countLabel(count, singular) {
       </div>
       <button
         v-if="!createOpen"
-        class="primary-button icon-text-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
+        class="primary-button icon-text-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
         type="button"
         @click="openCreate"
       >
@@ -77,7 +77,7 @@ function countLabel(count, singular) {
         </div>
         <button
           v-if="collections.length"
-          class="icon-button collection-create-close w-8 min-w-8 min-h-8 p-0 min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
+          class="icon-button collection-create-close w-8 min-w-8 min-h-8 p-0 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
           type="button"
           aria-label="Cancel creating collection"
           @click="closeCreate"
@@ -91,7 +91,7 @@ function countLabel(count, singular) {
         <label class="sr-only" for="collection-name">Collection name</label>
         <input id="collection-name" ref="nameInput" v-model="name" maxlength="120" />
         <button
-          class="primary-button min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 border-primary bg-primary text-white"
+          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
           type="submit"
           :disabled="saving || !name.trim()"
         >
