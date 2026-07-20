@@ -45,7 +45,7 @@ type contextPublicAccessKey struct{}
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
 		OperationID: "listAuditEvents", Tags: []string{tagUsers}, Summary: "List user audit events",
-		Description: "Lists successful state-changing API requests, newest first. Admin users only.",
+		Description: "Searches, filters, sorts, and paginates successful state-changing API requests. Admin users only.",
 		Method:      http.MethodGet, Path: "/audit-events", Errors: []int{401, 403, 500},
 	}, func(ctx context.Context, input *AuditEventListInput) (*AuditEventListOutput, error) {
 		return listAuditEvents(ctx, db, input)

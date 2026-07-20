@@ -427,8 +427,9 @@ export function deleteUser(id) {
   return request(`/users/${id}`, { method: 'DELETE' })
 }
 
-export function listAuditEvents(params = {}) {
-  return request(`/audit-events${queryString(params)}`)
+export async function listAuditEvents(params = {}) {
+  const { data, pagination } = await requestWithMeta(`/audit-events${queryString(params)}`)
+  return pagedListResult(data, pagination)
 }
 
 export function deleteComic(id) {
