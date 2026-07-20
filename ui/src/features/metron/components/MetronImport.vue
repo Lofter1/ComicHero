@@ -436,12 +436,14 @@ function formatDate(value) {
 <template>
   <div class="metron-view grid gap-5 [padding-block-start:16px] down-mobile:gap-3.5">
     <div
-      class="metron-modes inline-grid grid-cols-5 gap-1.5 [width:min(680px,_100%)] [&_button]:min-h-10 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3 [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white [&.compact]:grid-cols-2 [&.compact]:[width:min(260px,_100%)] [&.compact_button]:min-h-8 [&.compact_button]:py-2 [&.compact_button]:px-2.5 down-mobile:grid-cols-2 down-mobile:w-full"
+      class="metron-modes inline-grid grid-cols-5 gap-1.5 [width:min(680px,_100%)] down-mobile:grid-cols-2 down-mobile:w-full"
       role="tablist"
       aria-label="Metron search type"
     >
+      <!-- Native buttons: search modes are a stateful tablist rather than form actions. -->
       <button
         type="button"
+        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
         :class="{ active: activeSearch === 'comics' }"
         role="tab"
         :aria-selected="activeSearch === 'comics'"
@@ -451,6 +453,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
+        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
         :class="{ active: activeSearch === 'readingLists' }"
         role="tab"
         :aria-selected="activeSearch === 'readingLists'"
@@ -460,6 +463,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
+        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
         :class="{ active: activeSearch === 'series' }"
         role="tab"
         :aria-selected="activeSearch === 'series'"
@@ -469,6 +473,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
+        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
         :class="{ active: activeSearch === 'characters' }"
         role="tab"
         :aria-selected="activeSearch === 'characters'"
@@ -478,6 +483,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
+        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
         :class="{ active: activeSearch === 'arcs' }"
         role="tab"
         :aria-selected="activeSearch === 'arcs'"
@@ -556,12 +562,14 @@ function formatDate(value) {
       <article
         class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
       >
+        <!-- Native buttons below are full-card result selection targets. -->
         <template v-if="activeSearch === 'comics'">
           <h3>Comics</h3>
           <p v-if="searching" class="muted block text-muted">Searching Metron comics...</p>
           <p v-else-if="comicResults.length === 0" class="muted block text-muted">
             No Metron comic results yet.
           </p>
+          <!-- Native buttons: comic results are full-card selection targets. -->
           <button
             v-for="comic in comicResults"
             :key="comic.id"
@@ -602,6 +610,7 @@ function formatDate(value) {
           <p v-else-if="readingListResults.length === 0" class="muted block text-muted">
             No Metron reading-list results yet.
           </p>
+          <!-- Native buttons: reading-list results are full-card selection targets. -->
           <button
             v-for="list in readingListResults"
             :key="list.id"
@@ -626,6 +635,7 @@ function formatDate(value) {
           <p v-else-if="seriesResults.length === 0" class="muted block text-muted">
             No Metron series results yet.
           </p>
+          <!-- Native buttons: series results are full-card selection targets. -->
           <button
             v-for="item in seriesResults"
             :key="item.id"
@@ -653,6 +663,7 @@ function formatDate(value) {
           <p v-else-if="arcResults.length === 0" class="muted block text-muted">
             No Metron arc results yet.
           </p>
+          <!-- Native buttons: arc results are full-card selection targets. -->
           <button
             v-for="item in arcResults"
             :key="item.id"
@@ -677,6 +688,7 @@ function formatDate(value) {
           <p v-else-if="characterResults.length === 0" class="muted block text-muted">
             No Metron character results yet.
           </p>
+          <!-- Native buttons: character results are full-card selection targets. -->
           <button
             v-for="character in characterResults"
             :key="character.id"

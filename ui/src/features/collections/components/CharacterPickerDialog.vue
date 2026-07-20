@@ -46,7 +46,7 @@ function monogram(name) {
     @click.self="$emit('close')"
   >
     <section
-      class="collection-dialog [&_.collection-create-form_input]:w-full [&_.collection-create-form_input]:min-w-0 [&_.collection-create-form_input]:min-h-10 [&_.collection-create-form_input]:border [&_.collection-create-form_input]:border-line-strong [&_.collection-create-form_input]:rounded [&_.collection-create-form_input]:bg-surface [&_.collection-create-form_input]:text-control [&_.collection-create-form_input]:py-2 [&_.collection-create-form_input]:px-3 [&_.collection-create-form_input:focus]:outline-3 [&_.collection-create-form_input:focus]:outline-focus [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
+      class="collection-dialog [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-character-title"
@@ -63,17 +63,18 @@ function monogram(name) {
             Search names and aliases in your character library.
           </p>
         </div>
-        <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
-          type="button"
+        <BaseButton
+          class="self-end down-mobile:self-stretch down-mobile:w-full"
+          variant="neutral"
+          size="icon"
           aria-label="Close"
           @click="$emit('close')"
         >
           ×
-        </button>
+        </BaseButton>
       </header>
       <form
-        class="collection-search-form my-4 mx-0 grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-control [&_input]:py-2 [&_input]:px-3 [&_input:focus]:outline-3 [&_input:focus]:outline-focus down-compact:grid-cols-1"
+        class="collection-search-form my-4 mx-0 grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 down-compact:grid-cols-1"
         @submit.prevent="search"
       >
         <BaseTextInput
@@ -92,6 +93,7 @@ function monogram(name) {
         v-else-if="results.length"
         class="collection-dialog-list grid gap-2 my-3.5 mx-4 [&_.row]:items-center [&_.row]:rounded-lg [&_.row]:py-3 [&_.row]:px-3 [&_.row_strong]:block [&_.row_small]:block [&_.row_small]:mt-1 [&_.row:disabled_.status-pill]:bg-surface-muted [&_.row:disabled_.status-pill]:text-muted"
       >
+        <!-- Native button: search results are full-card selection targets. -->
         <button
           v-for="character in results"
           :key="character.id"

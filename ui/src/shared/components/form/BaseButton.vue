@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 
+// Appearance belongs here; parents may only control width, margin, positioning, and placement.
+// Add a variant or size instead of styling the rendered button through a parent selector.
 defineOptions({ inheritAttrs: false })
 
 const props = defineProps({
@@ -12,12 +14,35 @@ const props = defineProps({
     type: String,
     default: 'secondary',
     validator: (value) =>
-      ['primary', 'secondary', 'neutral', 'danger', 'danger-ghost'].includes(value),
+      [
+        'primary',
+        'primary-start',
+        'primary-strong',
+        'secondary',
+        'secondary-start',
+        'secondary-stacked',
+        'neutral',
+        'danger',
+        'danger-ghost',
+      ].includes(value),
   },
   size: {
     type: String,
     default: 'default',
-    validator: (value) => ['default', 'compact', 'icon'].includes(value),
+    validator: (value) =>
+      [
+        'default',
+        'compact',
+        'compact-label',
+        'compact-wide',
+        'dense',
+        'large',
+        'single-line',
+        'sidebar',
+        'toolbar',
+        'toolbar-nowrap',
+        'icon',
+      ].includes(value),
   },
 })
 
@@ -29,8 +54,14 @@ defineExpose({
 
 const variantClasses = {
   primary: 'primary-button border-primary bg-primary text-white',
+  'primary-start': 'primary-button border-primary bg-primary text-white',
+  'primary-strong': 'primary-button border-primary bg-primary text-white font-extrabold',
   secondary:
     'secondary-button text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]',
+  'secondary-start':
+    'secondary-button text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]',
+  'secondary-stacked':
+    'secondary-button text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs',
   neutral:
     'secondary-action border-line-strong bg-surface text-control font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft',
   danger:
@@ -41,19 +72,41 @@ const variantClasses = {
 
 const sizeClasses = {
   compact: 'min-h-9 py-2 px-2.5',
-  icon: 'inline-flex size-11 min-h-10 items-center justify-center p-0',
+  'compact-label': 'min-h-9 py-2 px-2.5 text-xs whitespace-nowrap',
+  'compact-wide': 'min-h-9 py-2 px-3 text-sm',
+  dense: 'min-h-10 py-2 px-3.5',
+  sidebar: 'min-h-10 py-2 px-3 down-tablet:py-0 down-tablet:px-4',
+  toolbar: 'min-h-11 py-0 px-3.5',
+  'toolbar-nowrap': 'min-h-11 py-0 px-3.5 whitespace-nowrap',
+  icon: 'size-11 min-h-10 p-0',
 }
 
-const defaultSizeClasses = computed(() =>
-  ['neutral', 'danger-ghost'].includes(props.variant)
-    ? 'min-h-10 py-2 px-3'
-    : 'min-h-10 py-2.5 px-3.5',
+const defaultPaddingClasses = computed(() =>
+  ['neutral', 'danger-ghost'].includes(props.variant) ? 'py-2 px-3' : 'py-2.5 px-3.5',
+)
+
+const responsiveSizeClasses = computed(() =>
+  props.size === 'large'
+    ? `min-h-11 ${defaultPaddingClasses.value}`
+    : `min-h-10 ${defaultPaddingClasses.value}${props.size === 'single-line' ? ' whitespace-nowrap' : ''}`,
+)
+
+const displayClasses = computed(() =>
+  props.variant === 'secondary-stacked' ? 'grid gap-0.5' : 'inline-flex items-center gap-2',
+)
+
+const alignmentClasses = computed(() =>
+  ['primary-start', 'secondary-start'].includes(props.variant) ? 'justify-start' : 'justify-center',
 )
 
 const classes = computed(() => [
-  'base-button border rounded',
+  'base-button border rounded cursor-pointer transition-interactive duration-140 disabled:cursor-wait disabled:opacity-65 [&:hover:not(:disabled)]:-translate-y-px [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:shadow-interactive focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus',
+  displayClasses.value,
+  alignmentClasses.value,
   variantClasses[props.variant],
-  props.size === 'default' ? defaultSizeClasses.value : sizeClasses[props.size],
+  ['default', 'large', 'single-line'].includes(props.size)
+    ? responsiveSizeClasses.value
+    : sizeClasses[props.size],
 ])
 </script>
 

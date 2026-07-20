@@ -53,14 +53,15 @@ function formatDate(value) {
           <strong id="reading-list-detail-title">{{ readingList?.name || 'Reading list' }}</strong>
           <small>{{ summary }}</small>
         </span>
-        <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
-          type="button"
+        <BaseButton
+          class="self-end down-mobile:self-stretch down-mobile:w-full"
+          variant="neutral"
+          size="icon"
           aria-label="Close reading list detail"
           @click="$emit('close')"
         >
           ×
-        </button>
+        </BaseButton>
       </header>
       <div
         class="metron-detail-body min-h-0 overflow-auto grid [grid-template-columns:minmax(140px,_210px)_minmax(0,_1fr)] gap-4 p-4 down-mobile:grid-cols-1"

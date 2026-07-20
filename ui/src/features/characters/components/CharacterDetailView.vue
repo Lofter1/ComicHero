@@ -158,7 +158,7 @@ function characterProgress(character) {
 
         <div
           v-if="selectedCharacter.aliases?.length"
-          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold [&_button]:min-h-8 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-extrabold [&_button]:cursor-pointer"
+          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
         >
           <span v-for="alias in selectedCharacter.aliases" :key="alias">{{ alias }}</span>
         </div>

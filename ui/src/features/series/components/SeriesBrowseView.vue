@@ -146,11 +146,7 @@ function seriesPublisherLabel(series) {
         class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
       >
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
-        <BaseButton
-          v-if="!hasFilters && !readOnly"
-          class="inline-flex items-center gap-2"
-          @click="$emit('new-comic')"
-        >
+        <BaseButton v-if="!hasFilters && !readOnly" @click="$emit('new-comic')">
           <span
             aria-hidden="true"
             class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"

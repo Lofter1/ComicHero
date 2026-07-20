@@ -43,7 +43,7 @@ function countLabel(count, singular) {
 <template>
   <section class="collections-view grid gap-6 pt-4 down-compact:pt-1.5">
     <header
-      class="collection-page-intro flex items-center justify-between gap-6 pb-4 border-b border-line down-narrow:items-start down-compact:items-stretch down-compact:flex-col down-compact:gap-3.5 [&_>_div]:min-w-0 [&_.eyebrow]:mb-1 [&_h3]:m-0 [&_p:last-child]:mt-1.5 [&_p:last-child]:mx-0 [&_p:last-child]:mb-0 [&_p:last-child]:text-muted [&_p:last-child]:leading-ui [&_p:last-child]:max-w-intro [&_>_.primary-button]:flex-none [&_>_.primary-button]:whitespace-nowrap down-compact:[&_>_.primary-button]:w-full"
+      class="collection-page-intro flex items-center justify-between gap-6 pb-4 border-b border-line down-narrow:items-start down-compact:items-stretch down-compact:flex-col down-compact:gap-3.5 [&_>_div]:min-w-0 [&_.eyebrow]:mb-1 [&_h3]:m-0 [&_p:last-child]:mt-1.5 [&_p:last-child]:mx-0 [&_p:last-child]:mb-0 [&_p:last-child]:text-muted [&_p:last-child]:leading-ui [&_p:last-child]:max-w-intro"
     >
       <div>
         <p>
@@ -52,8 +52,9 @@ function countLabel(count, singular) {
       </div>
       <BaseButton
         v-if="!createOpen"
-        class="icon-text-button inline-flex items-center justify-center gap-2"
+        class="flex-none down-compact:w-full"
         variant="primary"
+        size="single-line"
         @click="openCreate"
       >
         <span
@@ -77,6 +78,7 @@ function countLabel(count, singular) {
           <strong>Create a collection</strong>
           <small>Give this character group a memorable name.</small>
         </div>
+        <!-- Native button: this compact close control has editor-panel-specific dimensions. -->
         <button
           v-if="collections.length"
           class="icon-button collection-create-close w-8 min-w-8 min-h-8 p-0 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
@@ -88,7 +90,7 @@ function countLabel(count, singular) {
         </button>
       </div>
       <div
-        class="collection-create-controls grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-control [&_input]:py-2 [&_input]:px-3 [&_input:focus]:outline-3 [&_input:focus]:outline-focus down-compact:grid-cols-1"
+        class="collection-create-controls grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 down-compact:grid-cols-1"
       >
         <label class="sr-only" for="collection-name">Collection name</label>
         <BaseTextInput id="collection-name" ref="nameInput" v-model="name" maxlength="120" />
@@ -114,6 +116,7 @@ function countLabel(count, singular) {
       <div
         class="collection-grid grid [grid-template-columns:repeat(auto-fill,_minmax(min(100%,_330px),_410px))] gap-3.5 items-stretch down-compact:grid-cols-1"
       >
+        <!-- Native buttons: collections are full-card navigation targets. -->
         <button
           v-for="collection in collections"
           :key="collection.id"

@@ -108,11 +108,7 @@ function monogram(name) {
               <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Members</p>
               <h3>Characters</h3>
             </div>
-            <BaseButton
-              class="icon-text-button inline-flex items-center justify-center gap-2"
-              :disabled="saving"
-              @click="pickerOpen = true"
-            >
+            <BaseButton :disabled="saving" @click="pickerOpen = true">
               <span
                 class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
                 aria-hidden="true"
@@ -130,6 +126,7 @@ function monogram(name) {
               :key="character.id"
               class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             >
+              <!-- Native button: the member body is a full-row navigation target. -->
               <button
                 type="button"
                 class="collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-1 [&_small]:text-muted"
@@ -153,7 +150,7 @@ function monogram(name) {
                 </span>
               </button>
               <BaseButton
-                class="collection-member-remove flex-none"
+                class="flex-none"
                 variant="danger-ghost"
                 :disabled="saving"
                 @click="$emit('remove-character', character)"

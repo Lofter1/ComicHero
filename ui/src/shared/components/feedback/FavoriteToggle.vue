@@ -14,6 +14,7 @@ defineEmits(['toggle'])
 </script>
 
 <template>
+  <!-- Native button: this reusable control has a unique circular pressed-state design. -->
   <button
     type="button"
     class="favorite-toggle flex-none inline-flex items-center justify-center w-8 min-w-8 min-h-8 border border-warning-border rounded-full bg-warning-soft text-warning p-0 text-lg font-bold leading-none [&.active]:border-warning-border [&.active]:[background:color-mix(in_srgb,_var(--warning-soft)_40%,_#f6d56b)] [&.active]:text-warning"

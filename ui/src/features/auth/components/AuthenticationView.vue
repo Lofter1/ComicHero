@@ -61,18 +61,18 @@ defineEmits([
       </div>
 
       <fieldset
-        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:[grid-template-columns:auto_minmax(0,_1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_input]:mt-1 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
+        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:[grid-template-columns:auto_minmax(0,_1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
       >
         <legend>User environment</legend>
         <label>
-          <input v-model="setupForm.mode" type="radio" value="single" />
+          <input v-model="setupForm.mode" class="mt-1" type="radio" value="single" />
           <span>
             <strong>Single user</strong>
             <small>No login. Existing read status stays with the default user.</small>
           </span>
         </label>
         <label>
-          <input v-model="setupForm.mode" type="radio" value="multi" />
+          <input v-model="setupForm.mode" class="mt-1" type="radio" value="multi" />
           <span>
             <strong>Multi user</strong>
             <small>Register and log in. Existing read status becomes the first account.</small>
@@ -111,12 +111,7 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <BaseButton
-        class="primary-action font-extrabold"
-        variant="primary"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{ saving ? 'Saving...' : 'Continue' }}
       </BaseButton>
     </form>
@@ -161,12 +156,7 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <BaseButton
-        class="primary-action font-extrabold"
-        variant="primary"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{ saving ? 'Verifying...' : 'Verify email' }}
       </BaseButton>
       <BaseButton variant="neutral" :disabled="saving" @click="$emit('resend-verification')">
@@ -240,12 +230,7 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <BaseButton
-        class="primary-action font-extrabold"
-        variant="primary"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{
           saving
             ? 'Working...'
@@ -270,15 +255,18 @@ defineEmits([
         <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
       </div>
 
-      <div
-        class="auth-tabs grid grid-cols-2 gap-2 [&_button]:min-h-10 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3.5 [&_button]:font-extrabold [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white"
-        role="group"
-        aria-label="Authentication mode"
-      >
-        <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">
+      <div class="auth-tabs grid grid-cols-2 gap-2" role="group" aria-label="Authentication mode">
+        <!-- Native buttons: authentication modes are a stateful segmented control. -->
+        <button
+          class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+          type="button"
+          :class="{ active: authMode === 'login' }"
+          @click="authMode = 'login'"
+        >
           Log in
         </button>
         <button
+          class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
           type="button"
           :class="{ active: authMode === 'register' }"
           @click="authMode = 'register'"
@@ -340,12 +328,7 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <BaseButton
-        class="primary-action font-extrabold"
-        variant="primary"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{ saving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
       </BaseButton>
       <BaseButton
@@ -368,12 +351,7 @@ defineEmits([
         <h1>Could not load user setup</h1>
       </div>
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
-      <BaseButton
-        class="primary-action font-extrabold"
-        variant="primary"
-        :disabled="loading"
-        @click="$emit('retry')"
-      >
+      <BaseButton variant="primary-strong" :disabled="loading" @click="$emit('retry')">
         Retry
       </BaseButton>
     </section>

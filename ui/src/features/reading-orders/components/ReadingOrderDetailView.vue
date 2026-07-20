@@ -207,6 +207,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             role="group"
             aria-label="Rate reading order"
           >
+            <!-- Native buttons: rating choices are a stateful numeric segmented control. -->
             <button
               v-for="value in ratingValues"
               :key="value"
@@ -221,7 +222,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             </button>
             <BaseButton
               type="button"
-              class="compact-rating-clear w-auto"
+              class="w-auto"
               variant="secondary"
               size="compact"
               :disabled="ratingSaving || !selectedOrder.myRating"

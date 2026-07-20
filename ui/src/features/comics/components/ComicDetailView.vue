@@ -110,6 +110,7 @@ function seriesLabel(comic) {
       >
         {{ deleting ? 'Deleting...' : 'Delete comic' }}
       </BaseButton>
+      <!-- Native buttons: read/skip controls expose persistent state-specific styling. -->
       <button
         v-if="selectedComic && !readOnly"
         class="read-toggle-button large flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
@@ -172,6 +173,7 @@ function seriesLabel(comic) {
             <small>Status</small>
           </span>
           <span>
+            <!-- Native button: metadata navigation is styled as an inline text link. -->
             <button
               v-if="selectedComic.seriesId"
               class="metadata-link-button block w-full border-0 bg-transparent text-accent p-0 [font:inherit] font-extrabold text-left break-anywhere cursor-pointer hover:[text-decoration:underline]"
@@ -225,6 +227,7 @@ function seriesLabel(comic) {
               <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Metron</p>
               <h4>Metadata matches</h4>
             </div>
+            <!-- Native button: this is a borderless inline panel command. -->
             <button
               v-if="metronMetadataOpen || metronMetadataStatus"
               class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
@@ -239,6 +242,7 @@ function seriesLabel(comic) {
             {{ metronMetadataStatus }}
           </p>
           <div v-if="metronMetadataResults.length" class="list grid gap-2.5 down-mobile:gap-2">
+            <!-- Native buttons: metadata matches are full-card selection targets. -->
             <button
               v-for="issue in metronMetadataResults"
               :key="issue.id"
@@ -276,11 +280,13 @@ function seriesLabel(comic) {
         >
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Characters</p>
           <div
-            class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold [&_button]:min-h-8 [&_button]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_button]:rounded-full [&_button]:bg-primary-soft [&_button]:text-primary-strong [&_button]:py-1 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-extrabold [&_button]:cursor-pointer"
+            class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
           >
+            <!-- Native buttons: character chips use pill-shaped navigation styling. -->
             <button
               v-for="character in selectedComic.characters"
               :key="character.id"
+              class="min-h-8 [border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] rounded-full bg-primary-soft text-primary-strong py-1 px-2.5 text-sm font-extrabold cursor-pointer"
               type="button"
               @click="$emit('open-character', character)"
             >

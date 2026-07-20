@@ -225,10 +225,10 @@ function formatTimestamp(value) {
           <h3>{{ users.length }} {{ users.length === 1 ? 'user' : 'users' }}</h3>
         </div>
         <div
-          class="user-directory-filters grid w-full max-w-[680px] min-w-0 [grid-template-columns:minmax(220px,_1fr)_auto_auto] gap-2 down-tablet:max-w-none down-tablet:[grid-template-columns:1fr_1fr] [&_select]:min-h-10 [&_select]:whitespace-nowrap down-mobile:[&_.user-search-field]:col-span-full"
+          class="user-directory-filters grid w-full max-w-[680px] min-w-0 [grid-template-columns:minmax(220px,_1fr)_auto_auto] gap-2 down-tablet:max-w-none down-tablet:[grid-template-columns:1fr_1fr] down-mobile:[&_.user-search-field]:col-span-full"
         >
           <label
-            class="user-search-field w-full min-w-0 max-w-[360px] down-tablet:col-span-2 down-tablet:max-w-none [&_input]:min-h-10"
+            class="user-search-field w-full min-w-0 max-w-[360px] down-tablet:col-span-2 down-tablet:max-w-none"
           >
             <span class="sr-only">Search users</span>
             <BaseTextInput
@@ -239,7 +239,7 @@ function formatTimestamp(value) {
           </label>
           <label>
             <span class="sr-only">Filter by role</span>
-            <BaseSelect v-model="roleFilter">
+            <BaseSelect v-model="roleFilter" variant="nowrap">
               <option value="all">All roles</option>
               <option value="admin">Admins</option>
               <option value="user">Users</option>
@@ -247,7 +247,7 @@ function formatTimestamp(value) {
           </label>
           <label>
             <span class="sr-only">Sort by creation date</span>
-            <BaseSelect v-model="creationSort">
+            <BaseSelect v-model="creationSort" variant="nowrap">
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
             </BaseSelect>
@@ -356,6 +356,7 @@ function formatTimestamp(value) {
                     <span>Hourly endpoint limit</span>
                     <BaseTextInput
                       v-model.number="draftFor(entry.user.id).hourlyLimit"
+                      size="dense"
                       min="0"
                       step="1"
                       type="number"
@@ -419,7 +420,7 @@ function formatTimestamp(value) {
       </header>
 
       <div
-        class="audit-log-tools mt-4 grid min-w-0 [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_140px),_1fr))] gap-2 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_select]:w-full [&_select]:min-w-0 [&_select]:min-h-10"
+        class="audit-log-tools mt-4 grid min-w-0 [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_140px),_1fr))] gap-2"
       >
         <label class="audit-search-field col-span-2 down-compact:[grid-column:1_/_-1]">
           <span class="sr-only">Search audit log</span>
@@ -577,10 +578,6 @@ function formatTimestamp(value) {
 
 .hourly-limit-field small {
   @apply text-sm font-bold text-muted;
-}
-
-.hourly-limit-field input {
-  @apply min-h-10 w-full min-w-0 rounded border border-line-strong bg-surface px-2.5 py-2 text-ink;
 }
 
 .permission-scopes label {

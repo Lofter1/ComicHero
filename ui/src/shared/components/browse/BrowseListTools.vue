@@ -50,13 +50,19 @@ const searchModel = computed({
   <div
     class="comic-list-tools browse-list-tools flex w-full flex-auto flex-wrap items-center gap-2 down-mobile:w-full"
   >
-    <BaseTextInput v-model="searchModel" type="search" :placeholder="searchPlaceholder" />
+    <BaseTextInput
+      v-model="searchModel"
+      size="toolbar"
+      type="search"
+      :placeholder="searchPlaceholder"
+    />
     <div
       class="inline-filter-tabs inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full"
       :class="{ 'grid-cols-4': filterOptions.length === 4 }"
       role="tablist"
       aria-label="List filter"
     >
+      <!-- Native buttons: list filters are a stateful tablist. -->
       <button
         v-for="option in filterOptions"
         :key="option.value"
@@ -72,6 +78,8 @@ const searchModel = computed({
     <BaseSelect
       class="list-sort-select"
       :model-value="sort"
+      size="toolbar"
+      variant="trailing"
       aria-label="Sort list"
       @update:model-value="$emit('update:sort', $event)"
     >
@@ -82,6 +90,8 @@ const searchModel = computed({
     <BaseSelect
       class="list-direction-select"
       :model-value="direction"
+      size="toolbar"
+      variant="trailing"
       aria-label="Sort direction"
       @update:model-value="$emit('update:direction', $event)"
     >
@@ -97,6 +107,7 @@ const searchModel = computed({
           role="tablist"
           aria-label="List filter"
         >
+          <!-- Native buttons: mobile list filters mirror the stateful tablist above. -->
           <button
             v-for="option in filterOptions"
             :key="option.value"
@@ -146,12 +157,8 @@ const searchModel = computed({
   flex: 1 1 360px;
 }
 
-.browse-list-tools :is(input, select) {
-  @apply h-11 min-h-11 rounded border border-line-strong bg-surface py-2 px-2.5;
-}
-
 .browse-list-tools select {
-  @apply w-auto min-w-32 max-w-44 flex-none justify-self-start pr-8;
+  @apply w-auto min-w-32 max-w-44 flex-none justify-self-start;
   flex: 1 1 140px;
 }
 

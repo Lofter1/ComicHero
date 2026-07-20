@@ -165,12 +165,7 @@ function deleteAccount() {
         </div>
       </article>
 
-      <BaseButton
-        class="account-save-button justify-self-start"
-        variant="primary"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton class="justify-self-start" variant="primary" type="submit" :disabled="saving">
         {{ saving ? 'Saving...' : 'Save account' }}
       </BaseButton>
 
@@ -202,7 +197,7 @@ function deleteAccount() {
         </div>
 
         <BaseButton
-          class="account-save-button justify-self-start"
+          class="justify-self-start"
           variant="danger"
           :disabled="deleting"
           @click="deleteAccount"

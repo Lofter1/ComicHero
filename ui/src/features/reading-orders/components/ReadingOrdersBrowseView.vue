@@ -128,10 +128,9 @@ function handleCBLFile(event) {
               <div
                 v-if="!readOnly"
                 ref="orderActions"
-                class="browse-header-actions order-actions relative ml-auto flex flex-none items-center flex-wrap gap-2 down-tablet:justify-start down-tablet:w-full down-mobile:justify-end [&_.icon-text-button]:w-11 [&_.icon-text-button]:min-w-11 [&_.icon-text-button]:h-11 [&_.icon-text-button]:p-0 [&_.cbl-import-button]:w-auto [&_.cbl-import-button]:[min-width:max-content] [&_.cbl-import-button]:py-0 [&_.cbl-import-button]:px-3.5 [&_.cbl-import-button]:whitespace-nowrap down-tablet:[&_.cbl-import-button]:min-w-0"
+                class="browse-header-actions order-actions relative ml-auto flex flex-none items-center flex-wrap gap-2 down-tablet:justify-start down-tablet:w-full down-mobile:justify-end"
               >
                 <BaseButton
-                  class="icon-text-button mobile-order-actions-trigger gap-2"
                   variant="secondary"
                   size="icon"
                   :aria-expanded="orderActionsOpen"
@@ -154,12 +153,13 @@ function handleCBLFile(event) {
                   @change="handleCBLFile"
                 />
                 <div
-                  class="order-actions-panel absolute [z-index:26] [top:calc(100%_+_8px)] right-0 hidden items-stretch gap-2 [width:max-content] [min-width:210px] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&.open]:grid [&_.icon-text-button]:w-full [&_.icon-text-button]:min-w-0 [&_.icon-text-button]:justify-start [&_.icon-text-button]:px-3"
+                  class="order-actions-panel absolute [z-index:26] [top:calc(100%_+_8px)] right-0 hidden items-stretch gap-2 [width:max-content] [min-width:210px] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&.open]:grid"
                   :class="{ open: orderActionsOpen }"
                 >
                   <BaseButton
-                    class="icon-text-button cbl-import-button inline-flex items-center justify-center gap-2"
-                    variant="secondary"
+                    class="w-full min-w-0"
+                    variant="secondary-start"
+                    size="toolbar-nowrap"
                     :class="{ loading: cblImporting }"
                     :disabled="cblImporting"
                     :aria-busy="cblImporting"
@@ -176,8 +176,9 @@ function handleCBLFile(event) {
                   </BaseButton>
                   <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
                   <BaseButton
-                    class="icon-text-button new-order-action inline-flex items-center justify-center gap-2"
-                    variant="primary"
+                    class="w-full min-w-0"
+                    variant="primary-start"
+                    size="toolbar"
                     aria-label="New reading order"
                     title="New reading order"
                     @click="createReadingOrder"

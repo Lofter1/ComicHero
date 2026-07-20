@@ -43,6 +43,7 @@ function entryTags() {
     class="issue-list-item read-accent flex w-full min-w-0 max-w-full flex-wrap items-start justify-between gap-3 rounded border border-b-4 border-line bg-surface-soft px-3 py-2.5"
     :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
   >
+    <!-- Native button: the issue body is a full-row navigation target. -->
     <button
       class="issue-list-main flex max-w-full min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit [flex:1_1_280px]"
       type="button"
@@ -80,6 +81,7 @@ function entryTags() {
         class="read-state-pill skipped inline-flex min-h-7 items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none"
         >Skipped</span
       >
+      <!-- Native buttons: read/skip controls expose persistent state-specific styling. -->
       <button
         v-if="!readOnly"
         type="button"

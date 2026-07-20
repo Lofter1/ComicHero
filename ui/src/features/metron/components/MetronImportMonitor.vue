@@ -92,6 +92,7 @@ function jobMessage(job) {
     aria-live="polite"
   >
     <header>
+      <!-- Native button: the monitor heading is a borderless disclosure control. -->
       <button
         class="import-monitor-toggle flex items-baseline gap-2.5 min-h-0 border-0 bg-transparent text-inherit p-0 text-left [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap"
         type="button"
@@ -130,6 +131,7 @@ function jobMessage(job) {
             class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
             >{{ job.status }}</span
           >
+          <!-- Native buttons: monitor actions use compact icon and inline-link treatments. -->
           <button
             v-if="job.status === 'failed'"
             class="icon-button compact-icon-button self-center inline-flex size-10 min-w-10 items-center justify-center border border-line-strong rounded bg-surface text-control p-0 down-mobile:self-stretch down-mobile:w-full"

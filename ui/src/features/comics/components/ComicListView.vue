@@ -541,10 +541,16 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
       <div
         v-if="sourceComics.length || serverSource || hasFilters"
-        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_>_input]:[flex:1_1_280px] [&_>_input]:[min-width:min(280px,_100%)] [&_input]:h-11 [&_input]:min-h-11 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:py-2 [&_input]:px-2.5 [&_select]:h-11 [&_select]:min-h-11 [&_select]:border [&_select]:border-line-strong [&_select]:rounded [&_select]:bg-surface [&_select]:py-2 [&_select]:px-2.5 [&_select]:[flex:1_1_140px] [&_select]:min-w-32 [&_select]:max-w-44 [&_select]:pr-8 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&:has(>_.comic-filter-controls)_>_input]:[flex:1_1_280px] down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
+        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
       >
-        <BaseTextInput v-model="searchText" type="search" placeholder="Search issues" />
+        <BaseTextInput
+          v-model="searchText"
+          class="[flex:1_1_280px] [min-width:min(280px,_100%)] down-mobile:[flex:1_1_280px]"
+          type="search"
+          placeholder="Search issues"
+        />
 
+        <!-- Native button: this DOM ref anchors the bespoke mobile filter popover. -->
         <button
           ref="comicOptionsTrigger"
           class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
@@ -558,16 +564,18 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <div
           ref="comicFilterControls"
-          class="comic-filter-controls contents down-mobile:hidden down-mobile:[width:min(360px,_calc(100vw_-_28px))] down-mobile:absolute down-mobile:z-25 down-mobile:[top:calc(100%_+_8px)] down-mobile:right-0 down-mobile:[left:auto] down-mobile:gap-2.5 down-mobile:border down-mobile:border-line-strong down-mobile:rounded-lg down-mobile:bg-surface down-mobile:p-3 down-mobile:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&_select]:w-full down-mobile:[&_select]:max-w-none down-mobile:[&.open]:grid down-mobile:[&_select]:block"
+          class="comic-filter-controls contents down-mobile:hidden down-mobile:[width:min(360px,_calc(100vw_-_28px))] down-mobile:absolute down-mobile:z-25 down-mobile:[top:calc(100%_+_8px)] down-mobile:right-0 down-mobile:[left:auto] down-mobile:gap-2.5 down-mobile:border down-mobile:border-line-strong down-mobile:rounded-lg down-mobile:bg-surface down-mobile:p-3 down-mobile:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&.open]:grid"
           :class="{ open: comicOptionsOpen }"
         >
           <div
-            class="inline-filter-tabs issue-status-tabs inline-grid gap-1 border border-line rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-1.5 [&_button]:px-2 [&_button]:text-sm [&_button]:font-bold [&_button.active]:bg-primary [&_button.active]:text-white grid-cols-4 down-mobile:w-full down-phone:[&_button]:px-1.5 down-phone:[&_button]:text-xs"
+            class="inline-filter-tabs issue-status-tabs inline-grid gap-1 border border-line rounded bg-panel-soft p-1 grid-cols-4 down-mobile:w-full"
             role="group"
             aria-label="Issue status filters"
           >
+            <!-- Native buttons: status filters are a segmented pressed-state control. -->
             <button
               type="button"
+              class="min-h-8 border-0 rounded-[6px] bg-transparent text-label py-1.5 px-2 text-sm font-bold [&.active]:bg-primary [&.active]:text-white down-phone:px-1.5 down-phone:text-xs"
               :class="{ active: statusModel === 'all' }"
               :aria-pressed="statusModel === 'all'"
               @click="setAllStatuses"
@@ -576,6 +584,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             </button>
             <button
               type="button"
+              class="min-h-8 border-0 rounded-[6px] bg-transparent text-label py-1.5 px-2 text-sm font-bold [&.active]:bg-primary [&.active]:text-white down-phone:px-1.5 down-phone:text-xs"
               :class="{ active: statusActive('unread') && statusModel !== 'all' }"
               :aria-pressed="statusActive('unread') && statusModel !== 'all'"
               @click="toggleStatus('unread')"
@@ -584,6 +593,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             </button>
             <button
               type="button"
+              class="min-h-8 border-0 rounded-[6px] bg-transparent text-label py-1.5 px-2 text-sm font-bold [&.active]:bg-primary [&.active]:text-white down-phone:px-1.5 down-phone:text-xs"
               :class="{ active: statusActive('read') && statusModel !== 'all' }"
               :aria-pressed="statusActive('read') && statusModel !== 'all'"
               @click="toggleStatus('read')"
@@ -592,6 +602,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             </button>
             <button
               type="button"
+              class="min-h-8 border-0 rounded-[6px] bg-transparent text-label py-1.5 px-2 text-sm font-bold [&.active]:bg-primary [&.active]:text-white down-phone:px-1.5 down-phone:text-xs"
               :class="{ active: statusActive('skipped') && statusModel !== 'all' }"
               :aria-pressed="statusActive('skipped') && statusModel !== 'all'"
               @click="toggleStatus('skipped')"
@@ -603,6 +614,8 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <BaseSelect
             v-if="!effectiveServerMode && tagOptions.length"
             v-model="tag"
+            class="[flex:1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
+            variant="trailing"
             aria-label="Filter by tag"
           >
             <option value="all">All Tags</option>
@@ -611,7 +624,12 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             </option>
           </BaseSelect>
 
-          <BaseSelect v-model="sortModel" aria-label="Sort issues">
+          <BaseSelect
+            v-model="sortModel"
+            class="[flex:1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
+            variant="trailing"
+            aria-label="Sort issues"
+          >
             <option v-if="showReadingOrderSort" value="readingOrder">Reading Order</option>
             <option value="series">Series</option>
             <option value="title">Title</option>
@@ -620,7 +638,12 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             <option value="read">Read Status</option>
           </BaseSelect>
 
-          <BaseSelect v-model="directionModel" aria-label="Sort direction">
+          <BaseSelect
+            v-model="directionModel"
+            class="[flex:1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
+            variant="trailing"
+            aria-label="Sort direction"
+          >
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
           </BaseSelect>
@@ -631,6 +654,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
     <template v-if="visibleComics.length">
       <div class="issue-list grid w-full min-w-0 max-w-full gap-2.5">
         <template v-for="(comic, index) in visibleComics" :key="`${comic.id}-${index}`">
+          <!-- Native button: section headings are expandable full-width content rows. -->
           <button
             v-if="showSectionBefore(comic, index)"
             class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] border-t-0 border-r-0 border-l-0 [border-radius:0] bg-transparent text-inherit text-left pt-4 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,_var(--primary)_5%,_transparent)] [&.nested-reading-order-heading]:[border-bottom-color:color-mix(in_srgb,_var(--accent)_52%,_var(--line))] [&_.section-description]:text-muted [&_.section-description]:[font-weight:500] [&[aria-expanded='false']_.section-collapse-icon]:[transform:rotate(-90deg)]"
@@ -681,6 +705,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         aria-hidden="true"
       ></div>
 
+      <!-- Native button: this is a borderless inline loading affordance. -->
       <button
         v-if="showManualLoadMore"
         class="ghost-button load-more-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"

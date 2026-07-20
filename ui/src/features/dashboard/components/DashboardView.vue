@@ -77,6 +77,7 @@ function achievementProgress(achievement) {
         </div>
 
         <template v-if="item.nextComic">
+          <!-- Native button: the comic preview is a full-card navigation target. -->
           <button
             class="dashboard-comic grid [grid-template-columns:56px_minmax(0,_1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
             type="button"

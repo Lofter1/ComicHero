@@ -137,9 +137,8 @@ function characterProgress(character) {
               </template>
               <template v-if="!readOnly" #actions>
                 <BaseButton
-                  class="collection-row-action text-xs whitespace-nowrap"
                   variant="neutral"
-                  size="compact"
+                  size="compact-label"
                   @click="$emit('add-to-collection', character)"
                 >
                   Add to collection

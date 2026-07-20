@@ -64,12 +64,7 @@ function achievementTimestampLabel(achievement) {
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Progress</p>
             <h3>Reading progress</h3>
           </div>
-          <BaseButton
-            class="compact-button"
-            size="compact"
-            :disabled="loading"
-            @click="emit('refresh')"
-          >
+          <BaseButton size="compact" :disabled="loading" @click="emit('refresh')">
             {{ loading ? 'Refreshing...' : 'Refresh' }}
           </BaseButton>
         </div>
