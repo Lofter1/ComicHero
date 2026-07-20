@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 
 const scopeOptions = [
   { value: 'search', label: 'Search' },
@@ -16,6 +16,14 @@ const props = defineProps({
   auditEvents: {
     type: Array,
     default: () => [],
+  },
+  auditPagination: {
+    type: Object,
+    default: () => ({ limit: 25, offset: 0, total: 0, hasMore: false }),
+  },
+  auditLoading: {
+    type: Boolean,
+    default: false,
   },
   savingUserID: {
     type: Number,
@@ -35,11 +43,20 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['save', 'save-admin', 'delete-user'])
+const emit = defineEmits(['save', 'save-admin', 'delete-user', 'load-audit'])
 const drafts = reactive({})
 const userQuery = ref('')
 const roleFilter = ref('all')
 const creationSort = ref('newest')
+const auditQuery = ref('')
+const auditUser = ref('all')
+const auditMethod = ref('all')
+const auditStatus = ref('all')
+const auditSort = ref('occurredAt')
+const auditDirection = ref('desc')
+const auditPageSize = ref(props.auditPagination.limit || 25)
+
+let auditSearchTimer
 
 const filteredUsers = computed(() => {
   const query = userQuery.value.trim().toLocaleLowerCase()
@@ -58,6 +75,24 @@ const filteredUsers = computed(() => {
     })
 })
 
+const auditRange = computed(() => {
+  if (!props.auditPagination.total || !props.auditEvents.length) return '0 results'
+  const start = props.auditPagination.offset + 1
+  const end = Math.min(
+    props.auditPagination.offset + props.auditEvents.length,
+    props.auditPagination.total,
+  )
+  return `${start}–${end} of ${props.auditPagination.total}`
+})
+
+const auditFiltersActive = computed(
+  () =>
+    auditQuery.value.trim() ||
+    auditUser.value !== 'all' ||
+    auditMethod.value !== 'all' ||
+    auditStatus.value !== 'all',
+)
+
 watch(
   () => props.users,
   (users) => {
@@ -74,6 +109,17 @@ watch(
   },
   { immediate: true },
 )
+
+watch([auditUser, auditMethod, auditStatus, auditSort, auditDirection, auditPageSize], () => {
+  requestAuditEvents(0)
+})
+
+watch(auditQuery, () => {
+  window.clearTimeout(auditSearchTimer)
+  auditSearchTimer = window.setTimeout(() => requestAuditEvents(0), 250)
+})
+
+onBeforeUnmount(() => window.clearTimeout(auditSearchTimer))
 
 function normalizeScopes(scopes = []) {
   if (!Array.isArray(scopes)) return []
@@ -120,6 +166,28 @@ function saveAdmin(entry) {
   emit('save-admin', entry.user.id, {
     isAdmin: Boolean(draftFor(entry.user.id).isAdmin),
   })
+}
+
+function auditParams(offset) {
+  const params = {
+    q: auditQuery.value.trim(),
+    method: auditMethod.value === 'all' ? '' : auditMethod.value,
+    status: auditStatus.value === 'all' ? '' : auditStatus.value,
+    sort: auditSort.value,
+    direction: auditDirection.value,
+    limit: auditPageSize.value,
+    offset,
+  }
+  if (auditUser.value === 'system') {
+    params.system = true
+  } else if (auditUser.value !== 'all') {
+    params.userId = auditUser.value
+  }
+  return params
+}
+
+function requestAuditEvents(offset) {
+  emit('load-audit', auditParams(Math.max(0, offset)))
 }
 
 function formatTimestamp(value) {
@@ -334,20 +402,104 @@ function formatTimestamp(value) {
 
     <section
       class="detail-panel min-w-0 max-w-full min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
+      :aria-busy="auditLoading"
     >
-      <header class="section-heading">
-        <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Audit log</p>
-        <h3>Recent changes</h3>
+      <header
+        class="section-heading flex items-end justify-between gap-3 down-mobile:items-start down-mobile:flex-col"
+      >
+        <div>
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Audit log</p>
+          <h3>Recent changes</h3>
+        </div>
+        <p class="m-0 text-sm font-bold text-muted">{{ auditRange }}</p>
       </header>
+
+      <div
+        class="audit-log-tools mt-4 grid min-w-0 [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_140px),_1fr))] gap-2 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_select]:w-full [&_select]:min-w-0 [&_select]:min-h-10"
+      >
+        <label class="audit-search-field col-span-2 down-compact:[grid-column:1_/_-1]">
+          <span class="sr-only">Search audit log</span>
+          <input
+            v-model="auditQuery"
+            type="search"
+            placeholder="Search user, action, path, or status"
+          />
+        </label>
+        <label>
+          <span class="sr-only">Filter audit log by user</span>
+          <select v-model="auditUser">
+            <option value="all">All users</option>
+            <option value="system">System / unauthenticated</option>
+            <option v-for="entry in users" :key="entry.user.id" :value="String(entry.user.id)">
+              {{ entry.user.name }}
+            </option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Filter audit log by method</span>
+          <select v-model="auditMethod">
+            <option value="all">All methods</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Filter audit log by status</span>
+          <select v-model="auditStatus">
+            <option value="all">All statuses</option>
+            <option value="1xx">1xx informational</option>
+            <option value="2xx">2xx success</option>
+            <option value="3xx">3xx redirect</option>
+            <option value="4xx">4xx client error</option>
+            <option value="5xx">5xx server error</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Sort audit log by</span>
+          <select v-model="auditSort">
+            <option value="occurredAt">Sort by date</option>
+            <option value="user">Sort by user</option>
+            <option value="action">Sort by action</option>
+            <option value="status">Sort by status</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Audit log sort direction</span>
+          <select v-model="auditDirection">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Audit log results per page</span>
+          <select v-model.number="auditPageSize">
+            <option :value="25">25 results</option>
+            <option :value="50">50 results</option>
+            <option :value="100">100 results</option>
+            <option :value="200">200 results</option>
+          </select>
+        </label>
+      </div>
+
+      <p v-if="auditLoading && auditEvents.length === 0" class="mt-4 text-muted font-bold">
+        Loading audit events...
+      </p>
       <p
-        v-if="auditEvents.length === 0"
+        v-else-if="auditEvents.length === 0"
         class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
       >
-        No state-changing actions recorded yet.
+        {{
+          auditFiltersActive
+            ? 'No audit events match the current filters.'
+            : 'No state-changing actions recorded yet.'
+        }}
       </p>
       <div
         v-else
         class="table-scroll mt-4 w-full max-w-full overflow-x-auto overscroll-x-contain rounded border border-line"
+        :class="{ 'opacity-60': auditLoading }"
       >
         <table class="w-full min-w-[640px] border-collapse text-left">
           <thead>
@@ -374,6 +526,30 @@ function formatTimestamp(value) {
           </tbody>
         </table>
       </div>
+      <footer
+        v-if="auditEvents.length || auditPagination.offset > 0"
+        class="audit-pagination mt-3 flex items-center justify-between gap-3 down-mobile:items-stretch down-mobile:flex-col"
+      >
+        <span class="text-sm font-bold text-muted">{{ auditRange }}</span>
+        <div class="flex items-center justify-end gap-2 down-mobile:grid down-mobile:grid-cols-2">
+          <button
+            type="button"
+            class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+            :disabled="auditLoading || auditPagination.offset === 0"
+            @click="requestAuditEvents(auditPagination.offset - auditPageSize)"
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+            :disabled="auditLoading || !auditPagination.hasMore"
+            @click="requestAuditEvents(auditPagination.offset + auditPageSize)"
+          >
+            Next
+          </button>
+        </div>
+      </footer>
     </section>
   </section>
 </template>

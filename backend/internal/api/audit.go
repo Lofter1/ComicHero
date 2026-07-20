@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5/middleware"
@@ -20,11 +21,21 @@ type AuditEvent struct {
 }
 
 type AuditEventListInput struct {
-	UserID int `query:"userId" minimum:"0"`
-	Limit  int `query:"limit" minimum:"1" maximum:"500" default:"100"`
+	Query     string `query:"q"         doc:"Case-insensitive search across users, methods, paths, and status codes."`
+	UserID    int    `query:"userId"    doc:"Filter by user identifier." minimum:"0"`
+	System    bool   `query:"system"    doc:"Only return events without an associated user."`
+	Method    string `query:"method"    doc:"Filter by HTTP method." enum:"POST,PUT,PATCH,DELETE"`
+	Status    string `query:"status"    doc:"Filter by HTTP status family." enum:"1xx,2xx,3xx,4xx,5xx"`
+	Sort      string `query:"sort"      doc:"Sort field." enum:"occurredAt,user,action,status"`
+	Direction string `query:"direction" doc:"Sort direction." enum:"asc,desc"`
+	Limit     int    `query:"limit"     doc:"Maximum rows to return, from 1 to 500." minimum:"1" maximum:"500" default:"100"`
+	Offset    int    `query:"offset"    doc:"Zero-based row offset for pagination." minimum:"0"`
 }
 
-type AuditEventListOutput struct{ Body []AuditEvent }
+type AuditEventListOutput struct {
+	PaginationHeaders
+	Body []AuditEvent
+}
 
 // AuditMiddleware records successful state-changing API requests. Reads and
 // failed mutations are intentionally excluded so the table represents changes
@@ -74,17 +85,62 @@ func listAuditEvents(ctx context.Context, db *sqlx.DB, input *AuditEventListInpu
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
-	query := `SELECT ae.id, ae.user_id, COALESCE(u.name, '') AS user_name, ae.method, ae.path, ae.status_code, ae.occurred_at FROM audit_events ae LEFT JOIN users u ON u.id = ae.user_id`
-	args := []any{}
-	if input.UserID > 0 {
-		query += ` WHERE ae.user_id = ?`
-		args = append(args, input.UserID)
+	offset := input.Offset
+	if offset < 0 {
+		offset = 0
 	}
-	query += ` ORDER BY ae.id DESC LIMIT ?`
-	args = append(args, limit)
+	query := newSelectQuery(`SELECT ae.id, ae.user_id, COALESCE(u.name, '') AS user_name, ae.method, ae.path, ae.status_code, ae.occurred_at FROM audit_events ae LEFT JOIN users u ON u.id = ae.user_id`)
+	if input.Query != "" {
+		search := "%" + strings.ToLower(input.Query) + "%"
+		query.where(`(
+			LOWER(COALESCE(u.name, '')) LIKE ?
+			OR LOWER(ae.method) LIKE ?
+			OR LOWER(ae.path) LIKE ?
+			OR CAST(ae.status_code AS TEXT) LIKE ?
+		)`, search, search, search, search)
+	}
+	if input.UserID > 0 {
+		query.where("ae.user_id = ?", input.UserID)
+	} else if input.System {
+		query.where("ae.user_id IS NULL")
+	}
+	if input.Method != "" {
+		query.where("ae.method = ?", strings.ToUpper(input.Method))
+	}
+	statusFamilies := map[string]int{"1xx": 100, "2xx": 200, "3xx": 300, "4xx": 400, "5xx": 500}
+	if statusMinimum, ok := statusFamilies[input.Status]; ok {
+		query.where("ae.status_code >= ? AND ae.status_code < ?", statusMinimum, statusMinimum+100)
+	}
+	query.orderBy(auditEventListOrder(input.Sort, input.Direction))
+
+	sql, args := query.build()
+	total, err := countRows(ctx, db, sql, args)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to count audit events")
+	}
+	sql += " LIMIT ? OFFSET ?"
+	args = append(args, limit+1, offset)
 	events := []AuditEvent{}
-	if err := db.SelectContext(ctx, &events, query, args...); err != nil {
+	if err := db.SelectContext(ctx, &events, sql, args...); err != nil {
 		return nil, huma.Error500InternalServerError("failed to fetch audit events")
 	}
-	return &AuditEventListOutput{Body: events}, nil
+	events, pagination := pageItems(events, limit, offset, total)
+	return &AuditEventListOutput{PaginationHeaders: pagination, Body: events}, nil
+}
+
+func auditEventListOrder(sort, direction string) string {
+	if direction == "" {
+		direction = "desc"
+	}
+	dir := sortDirection(direction)
+	switch sort {
+	case "user":
+		return "ORDER BY LOWER(COALESCE(u.name, '')) " + dir + ", ae.id DESC"
+	case "action":
+		return "ORDER BY ae.method " + dir + ", ae.path " + dir + ", ae.id DESC"
+	case "status":
+		return "ORDER BY ae.status_code " + dir + ", ae.id DESC"
+	default:
+		return "ORDER BY ae.occurred_at " + dir + ", ae.id " + dir
+	}
 }

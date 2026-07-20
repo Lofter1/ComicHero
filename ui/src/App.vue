@@ -110,10 +110,13 @@ const {
 const {
   users: userAdminRows,
   auditEvents,
+  auditPagination,
+  auditLoading,
   savingPermissionsUserId: savingUserID,
   savingAdminUserId: savingAdminUserID,
   deletingUserId: deletingUserID,
   loadUsers: loadUserAdminRows,
+  loadAuditEvents,
   savePermissions: saveUserMetronPermissions,
   saveAdmin: saveUserAdmin,
   removeUser,
@@ -885,6 +888,8 @@ onUnmounted(() => {
         v-else-if="activeView === 'users'"
         :users="userAdminRows"
         :audit-events="auditEvents"
+        :audit-pagination="auditPagination"
+        :audit-loading="auditLoading"
         :saving-user-id="savingUserID"
         :saving-admin-user-id="savingAdminUserID"
         :deleting-user-id="deletingUserID"
@@ -892,6 +897,7 @@ onUnmounted(() => {
         @save="saveUserMetronPermissions"
         @save-admin="saveUserAdmin"
         @delete-user="removeUser"
+        @load-audit="loadAuditEvents"
       />
 
       <AppSettingsView

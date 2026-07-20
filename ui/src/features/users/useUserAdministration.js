@@ -10,14 +10,44 @@ import {
 export function useUserAdministration({ error }) {
   const users = ref([])
   const auditEvents = ref([])
+  const auditPagination = ref({ limit: 25, offset: 0, total: 0, hasMore: false })
+  const auditLoading = ref(false)
   const savingPermissionsUserId = ref(null)
   const savingAdminUserId = ref(null)
   const deletingUserId = ref(null)
+  let auditRequestId = 0
 
   async function loadUsers() {
-    const [userRows, events] = await Promise.all([listUsers(), listAuditEvents({ limit: 200 })])
+    const [userRows, auditPage] = await Promise.all([
+      listUsers(),
+      listAuditEvents({ limit: auditPagination.value.limit }),
+    ])
     users.value = userRows
-    auditEvents.value = events
+    applyAuditPage(auditPage)
+  }
+
+  function applyAuditPage(page) {
+    auditEvents.value = page.items
+    auditPagination.value = {
+      limit: page.limit,
+      offset: page.offset,
+      total: page.total,
+      hasMore: page.hasMore,
+    }
+  }
+
+  async function loadAuditEvents(params = {}) {
+    const requestId = ++auditRequestId
+    auditLoading.value = true
+    error.value = ''
+    try {
+      const page = await listAuditEvents(params)
+      if (requestId === auditRequestId) applyAuditPage(page)
+    } catch (err) {
+      if (requestId === auditRequestId) error.value = err.message
+    } finally {
+      if (requestId === auditRequestId) auditLoading.value = false
+    }
   }
 
   async function savePermissions(userId, payload) {
@@ -74,10 +104,13 @@ export function useUserAdministration({ error }) {
   return {
     users,
     auditEvents,
+    auditPagination,
+    auditLoading,
     savingPermissionsUserId,
     savingAdminUserId,
     deletingUserId,
     loadUsers,
+    loadAuditEvents,
     savePermissions,
     saveAdmin,
     removeUser,
