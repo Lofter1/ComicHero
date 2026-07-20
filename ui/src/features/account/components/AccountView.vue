@@ -70,7 +70,7 @@ function deleteAccount() {
 </script>
 
 <template>
-  <section class="browse-view account-view [max-width:960px] min-w-0 w-full">
+  <section class="browse-view account-view max-w-[960px] min-w-0 w-full">
     <div
       v-if="!user"
       class="empty-panel border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold"
@@ -97,7 +97,7 @@ function deleteAccount() {
         </div>
 
         <div
-          class="metadata-grid account-metadata [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+          class="metadata-grid account-metadata grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
         >
           <span>
             <strong>{{ user.isAdmin ? 'Admin' : 'User' }}</strong>

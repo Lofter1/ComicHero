@@ -46,7 +46,7 @@ function monogram(name) {
     @click.self="$emit('close')"
   >
     <section
-      class="collection-dialog [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
+      class="collection-dialog w-[min(620px,calc(100%-28px))] max-h-[min(720px,calc(100dvh-28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-character-title"
@@ -74,7 +74,7 @@ function monogram(name) {
         </BaseButton>
       </header>
       <form
-        class="collection-search-form my-4 mx-0 grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 down-compact:grid-cols-1"
+        class="collection-search-form my-4 mx-0 grid grid-cols-[minmax(0,1fr)_max-content] gap-2.5 down-compact:grid-cols-1"
         @submit.prevent="search"
       >
         <BaseTextInput
@@ -103,7 +103,7 @@ function monogram(name) {
           @click="add(character)"
         >
           <span
-            class="collection-dialog-item-main grid [grid-template-columns:38px_minmax(0,_1fr)] items-center gap-2.5 min-w-0"
+            class="collection-dialog-item-main grid grid-cols-[38px_minmax(0,1fr)] items-center gap-2.5 min-w-0"
           >
             <span
               class="collection-dialog-avatar grid place-items-center w-10 h-10 overflow-hidden border border-line-strong rounded-md bg-surface-muted text-primary-strong font-black [&_img]:w-full [&_img]:h-full [&_img]:object-cover"

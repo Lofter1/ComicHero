@@ -106,10 +106,10 @@ function handleCBLFile(event) {
   <div class="browse-view min-w-0 w-full">
     <div class="list-pane grid gap-3">
       <div
-        class="browse-list-sticky max-w-none sticky [top:var(--comic-list-sticky-top)] z-18 grid gap-2.5 [margin-inline:calc(var(--sticky-toolbar-inline-offset)_*_-1)] [padding:12px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky-soft backdrop-blur-ui down-tablet:[&_.comic-list-header]:items-stretch down-tablet:[&_.comic-list-header]:flex-col down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
+        class="browse-list-sticky max-w-none sticky top-(--comic-list-sticky-top) z-18 grid gap-2.5 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[12px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky-soft backdrop-blur-ui down-tablet:[&_.comic-list-header]:items-stretch down-tablet:[&_.comic-list-header]:flex-col down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
       >
         <div
-          class="comic-list-header flex items-center justify-between gap-3 [&_>_*]:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
+          class="comic-list-header flex items-center justify-between gap-3 *:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
         >
           <BrowseListTools
             :search="search"
@@ -153,7 +153,7 @@ function handleCBLFile(event) {
                   @change="handleCBLFile"
                 />
                 <div
-                  class="order-actions-panel absolute [z-index:26] [top:calc(100%_+_8px)] right-0 hidden items-stretch gap-2 [width:max-content] [min-width:210px] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&.open]:grid"
+                  class="order-actions-panel absolute z-26 top-[calc(100%+8px)] right-0 hidden items-stretch gap-2 w-max min-w-[210px] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&.open]:grid"
                   :class="{ open: orderActionsOpen }"
                 >
                   <BaseButton
@@ -169,7 +169,7 @@ function handleCBLFile(event) {
                   >
                     <span
                       v-if="cblImporting"
-                      class="button-spinner w-3.5 min-w-3.5 h-3.5 [border:2px_solid_var(--spinner-track)] [border-top-color:currentColor] rounded-full [animation:loading-spin_780ms_linear_infinite]"
+                      class="button-spinner w-3.5 min-w-3.5 h-3.5 [border:2px_solid_var(--spinner-track)] border-t-[currentColor] rounded-full animate-[loading-spin_780ms_linear_infinite]"
                       aria-hidden="true"
                     ></span>
                     {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
@@ -188,7 +188,7 @@ function handleCBLFile(event) {
                       class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
                       >+</span
                     >
-                    <span class="order-action-label [display:inline]">New reading order</span>
+                    <span class="order-action-label inline">New reading order</span>
                   </BaseButton>
                 </div>
               </div>

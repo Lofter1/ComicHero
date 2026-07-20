@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import MarkdownIt from 'markdown-it'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
+import SafeMarkdown from '@/shared/components/content/SafeMarkdown.vue'
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
@@ -62,17 +62,6 @@ const emit = defineEmits([
 
 const ratingValues = [1, 2, 3, 4, 5]
 
-const markdown = new MarkdownIt({
-  html: false,
-  linkify: true,
-  breaks: true,
-})
-
-const renderedDescription = computed(() => {
-  const description = props.selectedOrder?.description?.trim()
-  return description ? markdown.render(description) : '<p>No description</p>'
-})
-
 const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrder))
 </script>
 
@@ -128,7 +117,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
         </header>
 
         <div
-          class="reading-order-summary grid [grid-template-columns:minmax(150px,_220px)_minmax(0,_1fr)] items-start gap-4 down-mobile:grid-cols-1 [&_.detail-description]:m-0"
+          class="reading-order-summary grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)] items-start gap-4 down-mobile:grid-cols-1 [&_.detail-description]:m-0"
         >
           <div
             v-if="readingOrderCover(selectedOrder)"
@@ -141,15 +130,15 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             />
           </div>
 
-          <!-- eslint-disable-next-line vue/no-v-html -- markdown-it renders with raw HTML disabled. -->
-          <div
-            class="detail-description markdown-content grid gap-2.5 text-body leading-normal [&_:where(p,_ul,_ol,_h3,_h4,_h5)]:m-0 [&_:where(ul,_ol)]:pl-6 [&_:where(h3,_h4,_h5)]:text-control [&_a]:text-accent [&_a]:font-extrabold"
-            v-html="renderedDescription"
-          ></div>
+          <SafeMarkdown
+            class="detail-description markdown-content grid gap-2.5 text-body leading-normal [&_:where(p,ul,ol,h3,h4,h5)]:m-0 [&_:where(ul,ol)]:pl-6 [&_:where(h3,h4,h5)]:text-control [&_a]:text-accent [&_a]:font-extrabold"
+            :source="selectedOrder.description"
+            fallback="No description"
+          />
         </div>
 
         <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
           aria-label="Reading order progress"
         >
           <span :style="{ width: formatProgress(selectedOrder.progress) }"></span>
@@ -212,7 +201,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
               v-for="value in ratingValues"
               :key="value"
               type="button"
-              class="rating-button inline-flex items-center justify-center w-10 h-10 border border-line-strong rounded bg-surface [color:var(--text)] font-extrabold cursor-pointer [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary [&:hover:not(:disabled)]:[color:var(--primary-contrast)] [&.active]:border-primary [&.active]:bg-primary [&.active]:[color:var(--primary-contrast)]"
+              class="rating-button inline-flex items-center justify-center w-10 h-10 border border-line-strong rounded bg-surface text-(--text) font-extrabold cursor-pointer [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary [&:hover:not(:disabled)]:text-(--primary-contrast) [&.active]:border-primary [&.active]:bg-primary [&.active]:text-(--primary-contrast)"
               :class="{ active: selectedOrder.myRating === value }"
               :aria-pressed="selectedOrder.myRating === value"
               :disabled="ratingSaving"

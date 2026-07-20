@@ -52,7 +52,7 @@ defineEmits([
 
   <main v-else-if="setupRequired" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
+      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
       @submit.prevent="$emit('submit-setup')"
     >
       <div>
@@ -61,7 +61,7 @@ defineEmits([
       </div>
 
       <fieldset
-        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:[grid-template-columns:auto_minmax(0,_1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
+        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:grid-cols-[auto_minmax(0,1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
       >
         <legend>User environment</legend>
         <label>
@@ -122,7 +122,7 @@ defineEmits([
     class="auth-shell min-h-screen grid place-items-center p-6"
   >
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
+      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
       @submit.prevent="$emit('submit-verification')"
     >
       <div>
@@ -167,7 +167,7 @@ defineEmits([
 
   <main v-else-if="passwordResetMode" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
+      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
       @submit.prevent="
         passwordResetForm.requested
           ? $emit('submit-password-reset')
@@ -247,7 +247,7 @@ defineEmits([
 
   <main v-else-if="authRequired" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
+      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
       @submit.prevent="$emit('submit-auth')"
     >
       <div>
@@ -344,7 +344,7 @@ defineEmits([
 
   <main v-else class="auth-shell min-h-screen grid place-items-center p-6">
     <section
-      class="auth-panel [width:min(100%,_460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
+      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
     >
       <div>
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Setup</p>

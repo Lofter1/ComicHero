@@ -9,7 +9,7 @@ defineProps({
 
 <template>
   <div
-    class="loading-state grid place-items-center w-full [min-height:min(520px,_calc(100dvh_-_180px))] text-label [&.compact]:min-h-40"
+    class="loading-state grid place-items-center w-full min-h-[min(520px,calc(100dvh-180px))] text-label [&.compact]:min-h-40"
     :class="{ compact }"
     role="status"
     aria-live="polite"

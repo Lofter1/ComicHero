@@ -434,9 +434,9 @@ function formatDate(value) {
 </script>
 
 <template>
-  <div class="metron-view grid gap-5 [padding-block-start:16px] down-mobile:gap-3.5">
+  <div class="metron-view grid gap-5 pbs-[16px] down-mobile:gap-3.5">
     <div
-      class="metron-modes inline-grid grid-cols-5 gap-1.5 [width:min(680px,_100%)] down-mobile:grid-cols-2 down-mobile:w-full"
+      class="metron-modes inline-grid grid-cols-5 gap-1.5 w-[min(680px,100%)] down-mobile:grid-cols-2 down-mobile:w-full"
       role="tablist"
       aria-label="Metron search type"
     >
@@ -511,7 +511,7 @@ function formatDate(value) {
     />
 
     <form
-      class="metron-search grid [grid-template-columns:repeat(auto-fit,_minmax(160px,_1fr))] gap-3.5 items-end [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold down-tablet:grid-cols-1 down-mobile:[&_button]:w-full"
+      class="metron-search grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3.5 items-end [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold down-tablet:grid-cols-1 down-mobile:[&_button]:w-full"
       @submit.prevent="search"
     >
       <label>
@@ -557,7 +557,7 @@ function formatDate(value) {
     </div>
 
     <section
-      class="metron-results single grid grid-cols-3 gap-5 items-start [&.single]:[grid-template-columns:minmax(0,_1fr)] [&_.row:disabled]:cursor-wait [&_.row:disabled]:[opacity:0.72] down-mobile:gap-3.5 down-mobile:[&_.detail-panel]:py-3.5 down-mobile:[&_.detail-panel]:px-3 down-tablet:grid-cols-1"
+      class="metron-results single grid grid-cols-3 gap-5 items-start [&.single]:grid-cols-[minmax(0,1fr)] [&_.row:disabled]:cursor-wait [&_.row:disabled]:opacity-[0.72] down-mobile:gap-3.5 down-mobile:[&_.detail-panel]:py-3.5 down-mobile:[&_.detail-panel]:px-3 down-tablet:grid-cols-1"
     >
       <article
         class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"

@@ -57,7 +57,7 @@ function achievementProgress(achievement) {
 
     <div
       v-else-if="items.length"
-      class="dashboard-grid grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-phone:!grid-cols-1 down-mobile:!grid-cols-1"
+      class="dashboard-grid grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-phone:grid-cols-1! down-mobile:grid-cols-1!"
     >
       <article
         v-for="item in items"
@@ -79,7 +79,7 @@ function achievementProgress(achievement) {
         <template v-if="item.nextComic">
           <!-- Native button: the comic preview is a full-card navigation target. -->
           <button
-            class="dashboard-comic grid [grid-template-columns:56px_minmax(0,_1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
+            class="dashboard-comic grid grid-cols-[56px_minmax(0,1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
             type="button"
             @click="$emit('open-comic', item.nextComic)"
           >
@@ -133,7 +133,7 @@ function achievementProgress(achievement) {
     </section>
 
     <div
-      class="dashboard-achievements grid [grid-template-columns:repeat(auto-fit,_minmax(260px,_1fr))] gap-3.5"
+      class="dashboard-achievements grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3.5"
     >
       <article
         class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
@@ -153,7 +153,7 @@ function achievementProgress(achievement) {
           <h3>{{ nextAchievement.name }}</h3>
           <p>{{ nextAchievement.description }}</p>
           <div
-            class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+            class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
             :aria-label="`${nextAchievement.name} progress`"
           >
             <span :style="{ width: formatProgress(nextAchievement.percent) }"></span>

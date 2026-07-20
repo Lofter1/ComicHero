@@ -225,7 +225,7 @@ function formatTimestamp(value) {
           <h3>{{ users.length }} {{ users.length === 1 ? 'user' : 'users' }}</h3>
         </div>
         <div
-          class="user-directory-filters grid w-full max-w-[680px] min-w-0 [grid-template-columns:minmax(220px,_1fr)_auto_auto] gap-2 down-tablet:max-w-none down-tablet:[grid-template-columns:1fr_1fr] down-mobile:[&_.user-search-field]:col-span-full"
+          class="user-directory-filters grid w-full max-w-[680px] min-w-0 grid-cols-[minmax(220px,1fr)_auto_auto] gap-2 down-tablet:max-w-none down-tablet:grid-cols-[1fr_1fr] down-mobile:[&_.user-search-field]:col-span-full"
         >
           <label
             class="user-search-field w-full min-w-0 max-w-[360px] down-tablet:col-span-2 down-tablet:max-w-none"
@@ -266,10 +266,10 @@ function formatTimestamp(value) {
         <details
           v-for="entry in filteredUsers"
           :key="entry.user.id"
-          class="user-permission-row border border-line rounded bg-surface-soft p-0 grid min-w-0 max-w-full overflow-hidden [&[open]_.user-permission-header]:border-b [&[open]_.user-permission-header]:border-line [&[open]_.user-permission-header::after]:[transform:translateY(-50%)_rotate(90deg)]"
+          class="user-permission-row border border-line rounded bg-surface-soft p-0 grid min-w-0 max-w-full overflow-hidden [&[open]_.user-permission-header]:border-b [&[open]_.user-permission-header]:border-line [&[open]_.user-permission-header::after]:transform-[translateY(-50%)_rotate(90deg)]"
         >
           <summary
-            class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap pt-3 pr-12 pb-3 pl-4 cursor-pointer [list-style:none] relative down-mobile:items-stretch down-mobile:flex-col [&::-webkit-details-marker]:hidden after:[content:'›'] after:absolute after:right-4 after:[top:50%] after:text-muted after:text-2xl after:leading-none after:[transform:translateY(-50%)] after:[transition:transform_140ms_ease] [&_h3]:mb-0.5 [&_p]:text-muted [&_p]:text-sm [&_p]:font-bold"
+            class="user-permission-header flex items-center justify-between gap-3.5 min-w-0 flex-wrap pt-3 pr-12 pb-3 pl-4 cursor-pointer [list-style:none] relative down-mobile:items-stretch down-mobile:flex-col [&::-webkit-details-marker]:hidden after:[content:'›'] after:absolute after:right-4 after:top-[50%] after:text-muted after:text-2xl after:leading-none after:transform-[translateY(-50%)] after:[transition:transform_140ms_ease] [&_h3]:mb-0.5 [&_p]:text-muted [&_p]:text-sm [&_p]:font-bold"
           >
             <div class="user-summary min-w-0">
               <h3>{{ entry.user.name }}</h3>
@@ -295,7 +295,7 @@ function formatTimestamp(value) {
           </summary>
 
           <div
-            class="user-card-sections grid min-w-0 [grid-template-columns:minmax(220px,_0.7fr)_minmax(420px,_1.3fr)] items-stretch [gap:0] down-tablet:grid-cols-1 down-mobile:grid-cols-1"
+            class="user-card-sections grid min-w-0 grid-cols-[minmax(220px,0.7fr)_minmax(420px,1.3fr)] items-stretch gap-0 down-tablet:grid-cols-1 down-mobile:grid-cols-1"
           >
             <section
               class="user-card-section account-section grid min-w-0 content-start gap-3 border-r border-line py-4 px-4 down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line"
@@ -373,7 +373,7 @@ function formatTimestamp(value) {
                 </div>
 
                 <fieldset
-                  class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
+                  class="permission-scopes border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
                   :disabled="!draftFor(entry.user.id).allowed"
                 >
                   <legend>Allowed endpoint scopes</legend>
@@ -420,9 +420,9 @@ function formatTimestamp(value) {
       </header>
 
       <div
-        class="audit-log-tools mt-4 grid min-w-0 [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_140px),_1fr))] gap-2"
+        class="audit-log-tools mt-4 grid min-w-0 grid-cols-[repeat(auto-fit,minmax(min(100%,140px),1fr))] gap-2"
       >
-        <label class="audit-search-field col-span-2 down-compact:[grid-column:1_/_-1]">
+        <label class="audit-search-field col-span-2 down-compact:col-span-full">
           <span class="sr-only">Search audit log</span>
           <BaseTextInput
             v-model="auditQuery"

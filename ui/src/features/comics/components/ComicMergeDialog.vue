@@ -24,7 +24,7 @@ function search() {
     @click.self="$emit('close')"
   >
     <section
-      class="comic-merge-dialog [width:min(680px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-lg bg-panel p-5 shadow-elevated"
+      class="comic-merge-dialog w-[min(680px,calc(100%-28px))] max-h-[min(720px,calc(100dvh-28px))] overflow-auto border border-line-strong rounded-lg bg-panel p-5 shadow-elevated"
       role="dialog"
       aria-modal="true"
       aria-labelledby="merge-title"
@@ -53,7 +53,7 @@ function search() {
       </p>
 
       <form
-        class="comic-merge-search grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 my-4 mx-0"
+        class="comic-merge-search grid grid-cols-[minmax(0,1fr)_max-content] gap-2.5 my-4 mx-0"
         @submit.prevent="search"
       >
         <BaseTextInput

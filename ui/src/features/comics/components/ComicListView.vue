@@ -522,10 +522,10 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 <template>
   <section class="comic-list-view grid w-full min-w-0 max-w-full gap-3">
     <div
-      class="comic-list-sticky grid w-full min-w-0 gap-2.5 pb-3 border-b border-sticky-border bg-sticky-bg [margin-top:2rem] max-w-none down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
+      class="comic-list-sticky grid w-full min-w-0 gap-2.5 pb-3 border-b border-sticky-border bg-sticky-bg mt-8 max-w-none down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
     >
       <header
-        class="comic-list-header flex items-center justify-between gap-3 [&_>_*]:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
+        class="comic-list-header flex items-center justify-between gap-3 *:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap"
       >
         <div>
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
@@ -541,11 +541,11 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
       <div
         v-if="sourceComics.length || serverSource || hasFilters"
-        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
+        class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:flex-[1_1_230px] [&_.inline-filter-tabs]:min-w-[min(230px,100%)] [&_.issue-status-tabs]:basis-[320px] [&_.issue-status-tabs]:min-w-[min(320px,100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
       >
         <BaseTextInput
           v-model="searchText"
-          class="[flex:1_1_280px] [min-width:min(280px,_100%)] down-mobile:[flex:1_1_280px]"
+          class="flex-[1_1_280px] min-w-[min(280px,100%)] down-mobile:flex-[1_1_280px]"
           type="search"
           placeholder="Search issues"
         />
@@ -553,7 +553,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
         <!-- Native button: this DOM ref anchors the bespoke mobile filter popover. -->
         <button
           ref="comicOptionsTrigger"
-          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:[transform:rotate(180deg)]"
+          class="mobile-comic-options-trigger down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:transform-[rotate(180deg)]"
           type="button"
           :aria-expanded="comicOptionsOpen"
           @click="comicOptionsOpen = !comicOptionsOpen"
@@ -564,7 +564,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
         <div
           ref="comicFilterControls"
-          class="comic-filter-controls contents down-mobile:hidden down-mobile:[width:min(360px,_calc(100vw_-_28px))] down-mobile:absolute down-mobile:z-25 down-mobile:[top:calc(100%_+_8px)] down-mobile:right-0 down-mobile:[left:auto] down-mobile:gap-2.5 down-mobile:border down-mobile:border-line-strong down-mobile:rounded-lg down-mobile:bg-surface down-mobile:p-3 down-mobile:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&.open]:grid"
+          class="comic-filter-controls contents down-mobile:hidden down-mobile:w-[min(360px,calc(100vw-28px))] down-mobile:absolute down-mobile:z-25 down-mobile:top-[calc(100%+8px)] down-mobile:right-0 down-mobile:left-auto down-mobile:gap-2.5 down-mobile:border down-mobile:border-line-strong down-mobile:rounded-lg down-mobile:bg-surface down-mobile:p-3 down-mobile:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&.open]:grid"
           :class="{ open: comicOptionsOpen }"
         >
           <div
@@ -614,7 +614,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <BaseSelect
             v-if="!effectiveServerMode && tagOptions.length"
             v-model="tag"
-            class="[flex:1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
+            class="flex-[1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
             variant="trailing"
             aria-label="Filter by tag"
           >
@@ -626,7 +626,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
           <BaseSelect
             v-model="sortModel"
-            class="[flex:1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
+            class="flex-[1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
             variant="trailing"
             aria-label="Sort issues"
           >
@@ -640,7 +640,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
           <BaseSelect
             v-model="directionModel"
-            class="[flex:1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
+            class="flex-[1_1_140px] min-w-32 max-w-44 down-mobile:block down-mobile:w-full down-mobile:max-w-none"
             variant="trailing"
             aria-label="Sort direction"
           >
@@ -657,7 +657,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <!-- Native button: section headings are expandable full-width content rows. -->
           <button
             v-if="showSectionBefore(comic, index)"
-            class="reading-order-section-heading grid [grid-template-columns:minmax(0,_1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,_var(--primary)_52%,_var(--line))] border-t-0 border-r-0 border-l-0 [border-radius:0] bg-transparent text-inherit text-left pt-4 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,_var(--primary)_5%,_transparent)] [&.nested-reading-order-heading]:[border-bottom-color:color-mix(in_srgb,_var(--accent)_52%,_var(--line))] [&_.section-description]:text-muted [&_.section-description]:[font-weight:500] [&[aria-expanded='false']_.section-collapse-icon]:[transform:rotate(-90deg)]"
+            class="reading-order-section-heading grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,var(--primary)_52%,var(--line))] border-t-0 border-r-0 border-l-0 rounded-none bg-transparent text-inherit text-left pt-4 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,var(--primary)_5%,transparent)] [&.nested-reading-order-heading]:border-b-[color-mix(in_srgb,var(--accent)_52%,var(--line))] [&_.section-description]:text-muted [&_.section-description]:font-medium [&[aria-expanded='false']_.section-collapse-icon]:transform-[rotate(-90deg)]"
             :class="{
               'nested-reading-order-heading': comic.section.kind === 'readingOrder',
             }"

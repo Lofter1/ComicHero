@@ -41,7 +41,7 @@ function formatDate(value) {
     @click.self="$emit('close')"
   >
     <section
-      class="metron-detail-dialog [width:min(760px,_100%)] [max-height:min(760px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_minmax(0,_1fr)_auto] border border-line-strong rounded bg-panel shadow-overlay overflow-hidden"
+      class="metron-detail-dialog w-[min(760px,100%)] max-h-[min(760px,calc(100vh-36px))] grid grid-rows-[auto_minmax(0,1fr)_auto] border border-line-strong rounded bg-panel shadow-overlay overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reading-list-detail-title"
@@ -64,7 +64,7 @@ function formatDate(value) {
         </BaseButton>
       </header>
       <div
-        class="metron-detail-body min-h-0 overflow-auto grid [grid-template-columns:minmax(140px,_210px)_minmax(0,_1fr)] gap-4 p-4 down-mobile:grid-cols-1"
+        class="metron-detail-body min-h-0 overflow-auto grid grid-cols-[minmax(140px,210px)_minmax(0,1fr)] gap-4 p-4 down-mobile:grid-cols-1"
       >
         <img
           v-if="readingList?.image"

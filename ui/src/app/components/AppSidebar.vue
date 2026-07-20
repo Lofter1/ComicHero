@@ -88,7 +88,7 @@ function toggleMobileMenu() {
 
 <template>
   <aside
-    class="sidebar sticky top-0 z-30 h-screen border-r border-line [background:var(--sidebar-bg)] p-7 flex flex-col gap-7 [backdrop-filter:blur(12px)] down-tablet:sticky down-tablet:top-0 down-tablet:z-30 down-tablet:h-auto down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line down-tablet:py-3 down-tablet:px-4 down-tablet:gap-3 down-tablet:[box-shadow:0_6px_18px_var(--shadow-soft)] down-tablet:[overflow:visible] down-mobile:p-3 down-phone:p-2.5 down-tablet:[&:not(.menu-open)_.nav-tabs]:hidden down-tablet:[&.menu-open_.nav-tabs]:grid down-tablet:[&.menu-open_.nav-tabs]:absolute down-tablet:[&.menu-open_.nav-tabs]:[top:calc(100%_+_8px)] down-tablet:[&.menu-open_.nav-tabs]:right-4 down-tablet:[&.menu-open_.nav-tabs]:[width:min(360px,_calc(100vw_-_36px))] down-tablet:[&.menu-open_.nav-tabs]:grid-cols-1 down-tablet:[&.menu-open_.nav-tabs]:gap-2 down-tablet:[&.menu-open_.nav-tabs]:border down-tablet:[&.menu-open_.nav-tabs]:border-line-strong down-tablet:[&.menu-open_.nav-tabs]:rounded-lg down-tablet:[&.menu-open_.nav-tabs]:z-40 down-tablet:[&.menu-open_.nav-tabs]:bg-surface down-tablet:[&.menu-open_.nav-tabs]:p-2.5 down-tablet:[&.menu-open_.nav-tabs]:[box-shadow:0_18px_40px_var(--shadow-panel)] down-tablet:[&.menu-open_.nav-tabs]:backdrop-filter-none down-tablet:[&.menu-open_.nav-tabs]:[isolation:isolate] down-mobile:[&_.eyebrow]:m-0 down-mobile:[&.menu-open_.nav-tabs]:right-3 down-mobile:[&.menu-open_.nav-tabs]:[width:min(360px,_calc(100vw_-_24px))] down-mobile:[&.menu-open_.sidebar-actions]:grid-cols-1"
+    class="sidebar sticky top-0 z-30 h-screen border-r border-line [background:var(--sidebar-bg)] p-7 flex flex-col gap-7 [backdrop-filter:blur(12px)] down-tablet:sticky down-tablet:top-0 down-tablet:z-30 down-tablet:h-auto down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line down-tablet:py-3 down-tablet:px-4 down-tablet:gap-3 down-tablet:[box-shadow:0_6px_18px_var(--shadow-soft)] down-tablet:overflow-visible down-mobile:p-3 down-phone:p-2.5 down-tablet:[&:not(.menu-open)_.nav-tabs]:hidden down-tablet:[&.menu-open_.nav-tabs]:grid down-tablet:[&.menu-open_.nav-tabs]:absolute down-tablet:[&.menu-open_.nav-tabs]:top-[calc(100%+8px)] down-tablet:[&.menu-open_.nav-tabs]:right-4 down-tablet:[&.menu-open_.nav-tabs]:w-[min(360px,calc(100vw-36px))] down-tablet:[&.menu-open_.nav-tabs]:grid-cols-1 down-tablet:[&.menu-open_.nav-tabs]:gap-2 down-tablet:[&.menu-open_.nav-tabs]:border down-tablet:[&.menu-open_.nav-tabs]:border-line-strong down-tablet:[&.menu-open_.nav-tabs]:rounded-lg down-tablet:[&.menu-open_.nav-tabs]:z-40 down-tablet:[&.menu-open_.nav-tabs]:bg-surface down-tablet:[&.menu-open_.nav-tabs]:p-2.5 down-tablet:[&.menu-open_.nav-tabs]:[box-shadow:0_18px_40px_var(--shadow-panel)] down-tablet:[&.menu-open_.nav-tabs]:backdrop-filter-none down-tablet:[&.menu-open_.nav-tabs]:isolate down-mobile:[&_.eyebrow]:m-0 down-mobile:[&.menu-open_.nav-tabs]:right-3 down-mobile:[&.menu-open_.nav-tabs]:w-[min(360px,calc(100vw-24px))] down-mobile:[&.menu-open_.sidebar-actions]:grid-cols-1"
     :class="{ 'menu-open': menuOpen }"
   >
     <div class="sidebar-header flex items-center justify-between gap-3">
@@ -124,7 +124,7 @@ function toggleMobileMenu() {
     <nav
       id="primary-navigation"
       ref="primaryNavigation"
-      class="nav-tabs grid gap-2 [&_:where(a,_button)]:min-h-10 [&_:where(a,_button)]:border [&_:where(a,_button)]:border-line-strong [&_:where(a,_button)]:rounded [&_:where(a,_button)]:bg-surface [&_:where(a,_button)]:text-control [&_:where(a,_button)]:py-2.5 [&_:where(a,_button)]:px-3.5 [&_:where(a,_button)]:flex [&_:where(a,_button)]:items-center [&_:where(a,_button)]:justify-between [&_:where(a,_button)]:gap-2.5 [&_:where(a,_button)]:text-left [&_:where(a,_button)]:no-underline [&_:where(a,_button).active]:border-primary [&_:where(a,_button).active]:bg-primary [&_:where(a,_button).active]:text-white down-tablet:[&_:where(a,_button)]:justify-start down-tablet:[&_:where(a,_button)]:text-left down-mobile:[&_:where(a,_button)]:min-h-10 down-mobile:[&_:where(a,_button)]:py-2 down-mobile:[&_:where(a,_button)]:px-1.5 down-mobile:[&_:where(a,_button)]:text-sm down-phone:[&_:where(a,_button)]:text-sm"
+      class="nav-tabs grid gap-2 [&_:where(a,button)]:min-h-10 [&_:where(a,button)]:border [&_:where(a,button)]:border-line-strong [&_:where(a,button)]:rounded [&_:where(a,button)]:bg-surface [&_:where(a,button)]:text-control [&_:where(a,button)]:py-2.5 [&_:where(a,button)]:px-3.5 [&_:where(a,button)]:flex [&_:where(a,button)]:items-center [&_:where(a,button)]:justify-between [&_:where(a,button)]:gap-2.5 [&_:where(a,button)]:text-left [&_:where(a,button)]:no-underline [&_:where(a,button).active]:border-primary [&_:where(a,button).active]:bg-primary [&_:where(a,button).active]:text-white down-tablet:[&_:where(a,button)]:justify-start down-tablet:[&_:where(a,button)]:text-left down-mobile:[&_:where(a,button)]:min-h-10 down-mobile:[&_:where(a,button)]:py-2 down-mobile:[&_:where(a,button)]:px-1.5 down-mobile:[&_:where(a,button)]:text-sm down-phone:[&_:where(a,button)]:text-sm"
       aria-label="Primary"
     >
       <router-link
@@ -172,7 +172,7 @@ function toggleMobileMenu() {
     </nav>
 
     <div
-      class="sidebar-actions grid gap-2.5 mt-auto down-tablet:absolute down-tablet:[top:50%] down-tablet:right-20 down-tablet:block down-tablet:mt-0 down-tablet:w-auto down-tablet:[transform:translateY(-50%)] down-mobile:[right:66px] down-phone:right-16"
+      class="sidebar-actions grid gap-2.5 mt-auto down-tablet:absolute down-tablet:top-[50%] down-tablet:right-20 down-tablet:block down-tablet:mt-0 down-tablet:w-auto down-tablet:transform-[translateY(-50%)] down-mobile:right-[66px] down-phone:right-16"
     >
       <div
         v-if="user"
@@ -183,7 +183,7 @@ function toggleMobileMenu() {
         <!-- Native button: the account trigger is a composite avatar/menu disclosure. -->
         <button
           type="button"
-          class="account-menu-trigger w-full min-h-14 grid [grid-template-columns:auto_minmax(0,_1fr)_auto] items-center gap-2.5 border border-line rounded bg-surface-soft text-control py-2 px-2.5 text-left down-tablet:w-10 down-tablet:h-10 down-tablet:min-h-10 down-tablet:inline-flex down-tablet:justify-center down-tablet:p-0 hover:border-primary hover:bg-surface hover:[box-shadow:0_8px_18px_var(--shadow-soft)] focus-visible:border-primary focus-visible:bg-surface focus-visible:[box-shadow:0_8px_18px_var(--shadow-soft)] down-tablet:[&_.account-avatar]:w-8 down-tablet:[&_.account-avatar]:min-w-8 down-tablet:[&_.account-avatar]:h-8"
+          class="account-menu-trigger w-full min-h-14 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 border border-line rounded bg-surface-soft text-control py-2 px-2.5 text-left down-tablet:w-10 down-tablet:h-10 down-tablet:min-h-10 down-tablet:inline-flex down-tablet:justify-center down-tablet:p-0 hover:border-primary hover:bg-surface hover:[box-shadow:0_8px_18px_var(--shadow-soft)] focus-visible:border-primary focus-visible:bg-surface focus-visible:[box-shadow:0_8px_18px_var(--shadow-soft)] down-tablet:[&_.account-avatar]:w-8 down-tablet:[&_.account-avatar]:min-w-8 down-tablet:[&_.account-avatar]:h-8"
           :aria-expanded="accountMenuOpen"
           aria-controls="account-menu-panel"
           @click="toggleAccountMenu"
@@ -206,10 +206,10 @@ function toggleMobileMenu() {
         <div
           v-if="accountMenuOpen"
           id="account-menu-panel"
-          class="account-menu-panel absolute left-0 [bottom:calc(100%_+_10px)] z-40 [width:min(320px,_calc(100vw_-_36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:[top:calc(100%_+_8px)] down-tablet:right-0 down-tablet:[bottom:auto] down-tablet:[left:auto] down-tablet:[width:min(320px,_calc(100vw_-_36px))]"
+          class="account-menu-panel absolute left-0 bottom-[calc(100%+10px)] z-40 w-[min(320px,calc(100vw-36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:top-[calc(100%+8px)] down-tablet:right-0 down-tablet:bottom-auto down-tablet:left-auto down-tablet:w-[min(320px,calc(100vw-36px))]"
         >
           <div
-            class="account-menu-profile grid [grid-template-columns:auto_minmax(0,_1fr)] gap-3 items-center p-2 [&_span]:min-w-0 [&_span]:grid [&_span]:gap-0.5 [&_strong]:break-anywhere [&_small]:text-muted [&_small]:font-bold"
+            class="account-menu-profile grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-center p-2 [&_span]:min-w-0 [&_span]:grid [&_span]:gap-0.5 [&_strong]:break-anywhere [&_small]:text-muted [&_small]:font-bold"
           >
             <span
               class="account-avatar large w-9 min-w-9 h-9 border border-primary rounded-full inline-flex items-center justify-center bg-primary-soft text-primary font-black leading-none [&.large]:w-12 [&.large]:min-w-12 [&.large]:h-12 [&.large]:text-lg"

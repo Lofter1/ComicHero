@@ -833,7 +833,7 @@ onUnmounted(() => {
 
   <main
     v-else
-    class="app-shell min-h-screen grid [grid-template-columns:260px_minmax(0,_1fr)] down-tablet:block down-tablet:grid-cols-1"
+    class="app-shell min-h-screen grid grid-cols-[260px_minmax(0,1fr)] down-tablet:block down-tablet:grid-cols-1"
   >
     <AppSidebar
       :active-view="activeView"
@@ -851,7 +851,7 @@ onUnmounted(() => {
     />
 
     <section
-      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] [padding:var(--content-padding)] min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:[padding:var(--content-padding)] down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:[padding:var(--content-padding)] down-phone:p-2.5 [&_>_*]:min-w-0 [&_>_*]:max-w-full [&_>_.sticky-toolbar]:max-w-none"
+      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] p-(--content-padding) min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:p-(--content-padding) down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:p-(--content-padding) down-phone:p-2.5 *:min-w-0 *:max-w-full [&_>_.sticky-toolbar]:max-w-none"
     >
       <AppToolbar
         v-if="!isEditing && !isDetail"
@@ -1213,7 +1213,7 @@ onUnmounted(() => {
 
       <div
         v-else
-        class="browse-view comic-browse-view [margin-top:-24px] down-mobile:[margin-top:-12px] min-w-0 w-full"
+        class="browse-view comic-browse-view mt-[-24px] down-mobile:mt-[-12px] min-w-0 w-full"
       >
         <ComicListView
           title="Comics"

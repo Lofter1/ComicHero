@@ -57,15 +57,15 @@ const variantClasses = {
   'primary-start': 'primary-button border-primary bg-primary text-white',
   'primary-strong': 'primary-button border-primary bg-primary text-white font-extrabold',
   secondary:
-    'secondary-button text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]',
+    'secondary-button text-control bg-primary-soft border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))]',
   'secondary-start':
-    'secondary-button text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]',
+    'secondary-button text-control bg-primary-soft border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))]',
   'secondary-stacked':
-    'secondary-button text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs',
+    'secondary-button text-control bg-primary-soft border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))] [&_small]:text-muted [&_small]:text-xs',
   neutral:
     'secondary-action border-line-strong bg-surface text-control font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft',
   danger:
-    'danger-button [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger',
+    'danger-button border-[color-mix(in_srgb,var(--danger)_42%,var(--line-strong))] bg-danger-soft text-danger',
   'danger-ghost':
     'danger-text-button border-danger-border bg-surface text-danger font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft',
 }

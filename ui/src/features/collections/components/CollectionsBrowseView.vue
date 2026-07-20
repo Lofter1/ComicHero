@@ -68,11 +68,11 @@ function countLabel(count, singular) {
 
     <form
       v-if="createOpen"
-      class="collection-create-panel grid [grid-template-columns:minmax(190px,_0.55fr)_minmax(300px,_1fr)] items-end gap-4 [border:1px_solid_color-mix(in_srgb,_var(--primary)_35%,_var(--line))] rounded-xl [background:var(--primary-soft),_var(--panel-bg)] p-4 [box-shadow:0_10px_26px_var(--shadow-soft)] down-narrow:grid-cols-1"
+      class="collection-create-panel grid grid-cols-[minmax(190px,0.55fr)_minmax(300px,1fr)] items-end gap-4 [border:1px_solid_color-mix(in_srgb,var(--primary)_35%,var(--line))] rounded-xl [background:var(--primary-soft),var(--panel-bg)] p-4 [box-shadow:0_10px_26px_var(--shadow-soft)] down-narrow:grid-cols-1"
       @submit.prevent="create"
     >
       <div
-        class="collection-create-heading flex items-start justify-between gap-3 [&_strong]:block [&_small]:block [&_strong]:text-control [&_strong]:text-base [&_small]:mt-1 [&_small]:text-muted [&_small]:[line-height:1.35]"
+        class="collection-create-heading flex items-start justify-between gap-3 [&_strong]:block [&_small]:block [&_strong]:text-control [&_strong]:text-base [&_small]:mt-1 [&_small]:text-muted [&_small]:leading-[1.35]"
       >
         <div>
           <strong>Create a collection</strong>
@@ -90,7 +90,7 @@ function countLabel(count, singular) {
         </button>
       </div>
       <div
-        class="collection-create-controls grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 down-compact:grid-cols-1"
+        class="collection-create-controls grid grid-cols-[minmax(0,1fr)_max-content] gap-2.5 down-compact:grid-cols-1"
       >
         <label class="sr-only" for="collection-name">Collection name</label>
         <BaseTextInput id="collection-name" ref="nameInput" v-model="name" maxlength="120" />
@@ -114,13 +114,13 @@ function countLabel(count, singular) {
         </div>
       </header>
       <div
-        class="collection-grid grid [grid-template-columns:repeat(auto-fill,_minmax(min(100%,_330px),_410px))] gap-3.5 items-stretch down-compact:grid-cols-1"
+        class="collection-grid grid grid-cols-[repeat(auto-fill,minmax(min(100%,330px),410px))] gap-3.5 items-stretch down-compact:grid-cols-1"
       >
         <!-- Native buttons: collections are full-card navigation targets. -->
         <button
           v-for="collection in collections"
           :key="collection.id"
-          class="collection-card relative grid [grid-template-columns:50px_minmax(0,_1fr)] gap-3.5 w-full min-h-36 overflow-hidden border border-line rounded-xl bg-surface text-control p-4 text-left shadow-soft down-compact:[grid-template-columns:44px_minmax(0,_1fr)] down-compact:min-h-36 down-compact:p-3.5 after:absolute after:inset-0 after:[border-radius:inherit] after:[box-shadow:inset_0_0_0_1px_transparent] after:[content:''] after:pointer-events-none hover:bg-surface-soft hover:[box-shadow:0_14px_32px_var(--shadow-panel)] hover:[transform:translateY(-2px)] focus-visible:bg-surface-soft focus-visible:[box-shadow:0_14px_32px_var(--shadow-panel)] focus-visible:[transform:translateY(-2px)] [&:hover:not(:disabled)]:border-line focus-visible:outline-3 focus-visible:outline-focus focus-visible:outline-offset-2 [&:hover_.collection-card-chevron]:[color:var(--surface-strong)] [&:hover_.collection-card-chevron]:[transform:translateX(3px)] [&:focus-visible_.collection-card-chevron]:[color:var(--surface-strong)] [&:focus-visible_.collection-card-chevron]:[transform:translateX(3px)] [&_.row-progress]:h-1.5 [&_.row-progress]:mt-1.5"
+          class="collection-card relative grid grid-cols-[50px_minmax(0,1fr)] gap-3.5 w-full min-h-36 overflow-hidden border border-line rounded-xl bg-surface text-control p-4 text-left shadow-soft down-compact:grid-cols-[44px_minmax(0,1fr)] down-compact:min-h-36 down-compact:p-3.5 after:absolute after:inset-0 after:rounded-[inherit] after:[box-shadow:inset_0_0_0_1px_transparent] after:[content:''] after:pointer-events-none hover:bg-surface-soft hover:[box-shadow:0_14px_32px_var(--shadow-panel)] hover:transform-[translateY(-2px)] focus-visible:bg-surface-soft focus-visible:[box-shadow:0_14px_32px_var(--shadow-panel)] focus-visible:transform-[translateY(-2px)] [&:hover:not(:disabled)]:border-line focus-visible:outline-3 focus-visible:outline-focus focus-visible:outline-offset-2 [&:hover_.collection-card-chevron]:text-(--surface-strong) [&:hover_.collection-card-chevron]:transform-[translateX(3px)] [&:focus-visible_.collection-card-chevron]:text-(--surface-strong) [&:focus-visible_.collection-card-chevron]:transform-[translateX(3px)] [&_.row-progress]:h-1.5 [&_.row-progress]:mt-1.5"
           type="button"
           @click="emit('open', collection)"
         >
@@ -136,13 +136,13 @@ function countLabel(count, singular) {
             >
               <strong>{{ collection.name }}</strong>
               <span
-                class="collection-card-chevron text-muted text-2xl [font-weight:400] [line-height:0.8] [transition:transform_140ms_ease]"
+                class="collection-card-chevron text-muted text-2xl font-normal leading-[0.8] [transition:transform_140ms_ease]"
                 aria-hidden="true"
                 >›</span
               >
             </span>
             <span
-              class="collection-card-meta flex flex-wrap gap-y-1 gap-x-3 mt-1.5 text-muted text-xs font-bold [&_span_+_span::before]:mr-3 [&_span_+_span::before]:[color:var(--line-strong)] [&_span_+_span::before]:[content:'•']"
+              class="collection-card-meta flex flex-wrap gap-y-1 gap-x-3 mt-1.5 text-muted text-xs font-bold [&_span+span::before]:mr-3 [&_span+span::before]:text-(--line-strong) [&_span+span::before]:[content:'•']"
             >
               <span>{{ countLabel(collection.characterCount, 'character') }}</span>
               <span>{{ countLabel(collection.appearanceCount, 'appearance') }}</span>
@@ -152,14 +152,14 @@ function countLabel(count, singular) {
             >
               <span
                 v-if="collection.startedAt"
-                class="collection-card-status inline-flex items-center w-fit border border-line rounded-full bg-surface text-primary-strong py-1 px-2 text-xs font-black [letter-spacing:0.04em] leading-none uppercase"
+                class="collection-card-status inline-flex items-center w-fit border border-line rounded-full bg-surface text-primary-strong py-1 px-2 text-xs font-black tracking-[0.04em] leading-none uppercase"
                 >Reading</span
               >
               <span v-else>Not started</span>
               <strong>{{ formatProgress(collection.progress) }}</strong>
             </span>
             <span
-              class="row-progress block flex-none w-full h-2 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+              class="row-progress block flex-none w-full h-2 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
               :aria-label="`${collection.name} progress`"
             >
               <span :style="{ width: formatProgress(collection.progress) }"></span>
@@ -170,7 +170,7 @@ function countLabel(count, singular) {
     </section>
     <section
       v-else
-      class="collection-empty-state grid [justify-items:center] [max-width:560px] border border-dashed border-line-strong rounded-xl bg-surface-soft py-8 px-6 text-center [&_h3]:m-0 [&_p]:mt-1.5 [&_p]:mx-0 [&_p]:mb-0 [&_p]:text-muted [&_p]:leading-ui"
+      class="collection-empty-state grid justify-items-center max-w-[560px] border border-dashed border-line-strong rounded-xl bg-surface-soft py-8 px-6 text-center [&_h3]:m-0 [&_p]:mt-1.5 [&_p]:mx-0 [&_p]:mb-0 [&_p]:text-muted [&_p]:leading-ui"
     >
       <span
         class="collection-empty-icon grid place-items-center w-12 h-12 mb-3 border border-line-strong rounded-2xl bg-surface text-primary-strong text-3xl"

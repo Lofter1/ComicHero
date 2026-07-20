@@ -150,7 +150,7 @@ function characterProgress(character) {
           >
         </div>
         <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
           aria-label="Character read progress"
         >
           <span :style="{ width: characterProgress(selectedCharacter) }"></span>
@@ -158,7 +158,7 @@ function characterProgress(character) {
 
         <div
           v-if="selectedCharacter.aliases?.length"
-          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
+          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,var(--primary)_32%,var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
         >
           <span v-for="alias in selectedCharacter.aliases" :key="alias">{{ alias }}</span>
         </div>
