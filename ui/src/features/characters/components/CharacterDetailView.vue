@@ -4,6 +4,7 @@ import ComicListView from '@/features/comics/components/ComicListView.vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
 import FavoriteToggle from '@/shared/components/feedback/FavoriteToggle.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 defineProps({
   selectedCharacter: {
@@ -55,15 +56,14 @@ function characterProgress(character) {
 <template>
   <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
-      <button
+      <BaseButton
         v-if="selectedCharacter && canDelete"
-        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
-        type="button"
+        variant="danger"
         :disabled="deleting"
         @click="$emit('delete')"
       >
         {{ deleting ? 'Deleting...' : 'Delete character' }}
-      </button>
+      </BaseButton>
       <FavoriteToggle
         v-if="selectedCharacter && !readOnly"
         class="detail-favorite-toggle self-center"
@@ -71,39 +71,30 @@ function characterProgress(character) {
         :disabled="quickSavingCharacterId === selectedCharacter.id"
         @toggle="$emit('toggle-favorite', selectedCharacter)"
       />
-      <button
+      <BaseButton
         v-if="selectedCharacter && !readOnly"
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
         @click="$emit('add-to-collection', selectedCharacter)"
       >
         Add to collection
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="selectedCharacter && !readOnly"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5"
-        :class="
-          selectedCharacter.startedAt
-            ? 'secondary-button bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]'
-            : 'primary-button border-primary bg-primary text-white'
-        "
-        type="button"
+        :variant="selectedCharacter.startedAt ? 'secondary' : 'primary'"
         :disabled="startSaving"
         @click="$emit('toggle-started')"
       >
         {{
           startSaving ? 'Saving...' : selectedCharacter.startedAt ? 'Stop reading' : 'Start reading'
         }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="selectedCharacter?.metronCharacterId && !readOnly"
-        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-        type="button"
+        variant="primary"
         :disabled="importRunning"
         @click="$emit('import-appearances')"
       >
         {{ importRunning ? 'Importing...' : 'Import from Metron' }}
-      </button>
+      </BaseButton>
     </DetailNavigation>
 
     <article

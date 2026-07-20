@@ -4,6 +4,7 @@ import BrowseListTools from '@/shared/components/browse/BrowseListTools.vue'
 import BrowseEntityRow from '@/shared/components/browse/BrowseEntityRow.vue'
 import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
 import { formatProgress, formatRating, readingOrderCover } from '@/features/reading-orders/model.js'
 import { useClickOutside } from '@/shared/composables/useClickOutside.js'
@@ -129,9 +130,10 @@ function handleCBLFile(event) {
                 ref="orderActions"
                 class="browse-header-actions order-actions relative ml-auto flex flex-none items-center flex-wrap gap-2 down-tablet:justify-start down-tablet:w-full down-mobile:justify-end [&_.icon-text-button]:w-11 [&_.icon-text-button]:min-w-11 [&_.icon-text-button]:h-11 [&_.icon-text-button]:p-0 [&_.cbl-import-button]:w-auto [&_.cbl-import-button]:[min-width:max-content] [&_.cbl-import-button]:py-0 [&_.cbl-import-button]:px-3.5 [&_.cbl-import-button]:whitespace-nowrap down-tablet:[&_.cbl-import-button]:min-w-0"
               >
-                <button
-                  class="secondary-button icon-text-button mobile-order-actions-trigger inline-flex w-11 min-w-11 h-11 p-0 min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] items-center justify-center gap-2"
-                  type="button"
+                <BaseButton
+                  class="icon-text-button mobile-order-actions-trigger gap-2"
+                  variant="secondary"
+                  size="icon"
                   :aria-expanded="orderActionsOpen"
                   aria-label="Actions"
                   title="Actions"
@@ -142,7 +144,7 @@ function handleCBLFile(event) {
                     class="vertical-ellipsis text-2xl font-extrabold leading-none"
                     >⋮</span
                   >
-                </button>
+                </BaseButton>
                 <input
                   ref="cblFileInput"
                   hidden
@@ -155,10 +157,10 @@ function handleCBLFile(event) {
                   class="order-actions-panel absolute [z-index:26] [top:calc(100%_+_8px)] right-0 hidden items-stretch gap-2 [width:max-content] [min-width:210px] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&.open]:grid [&_.icon-text-button]:w-full [&_.icon-text-button]:min-w-0 [&_.icon-text-button]:justify-start [&_.icon-text-button]:px-3"
                   :class="{ open: orderActionsOpen }"
                 >
-                  <button
-                    class="secondary-button icon-text-button cbl-import-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
+                  <BaseButton
+                    class="icon-text-button cbl-import-button inline-flex items-center justify-center gap-2"
+                    variant="secondary"
                     :class="{ loading: cblImporting }"
-                    type="button"
                     :disabled="cblImporting"
                     :aria-busy="cblImporting"
                     aria-label="Import CBL"
@@ -171,11 +173,11 @@ function handleCBLFile(event) {
                       aria-hidden="true"
                     ></span>
                     {{ cblImporting ? 'Importing CBL...' : 'Import CBL' }}
-                  </button>
+                  </BaseButton>
                   <span v-if="cblImporting" class="sr-only" aria-live="polite">Importing CBL</span>
-                  <button
-                    class="primary-button icon-text-button new-order-action min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
-                    type="button"
+                  <BaseButton
+                    class="icon-text-button new-order-action inline-flex items-center justify-center gap-2"
+                    variant="primary"
                     aria-label="New reading order"
                     title="New reading order"
                     @click="createReadingOrder"
@@ -186,7 +188,7 @@ function handleCBLFile(event) {
                       >+</span
                     >
                     <span class="order-action-label [display:inline]">New reading order</span>
-                  </button>
+                  </BaseButton>
                 </div>
               </div>
             </template>
@@ -242,9 +244,9 @@ function handleCBLFile(event) {
         class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
       >
         {{ hasFilters ? 'No reading orders match these filters.' : 'No reading orders yet.' }}
-        <button
+        <BaseButton
           v-if="!hasFilters && !readOnly"
-          class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          variant="secondary"
           type="button"
           @click="$emit('new-order')"
         >
@@ -254,7 +256,7 @@ function handleCBLFile(event) {
             >+</span
           >
           Create the first order
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>

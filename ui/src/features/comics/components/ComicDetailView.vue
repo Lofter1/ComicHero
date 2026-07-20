@@ -3,6 +3,7 @@ import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
 import ComicMergeDialog from '@/features/comics/components/ComicMergeDialog.vue'
 import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 const props = defineProps({
   selectedComic: {
@@ -94,24 +95,21 @@ function seriesLabel(comic) {
 <template>
   <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
-      <button
+      <BaseButton
         v-if="selectedComic && canDelete"
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
         :disabled="deleting || mergeSaving"
         @click="$emit('open-merge')"
       >
         Merge duplicate
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="selectedComic && canDelete"
-        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
-        type="button"
+        variant="danger"
         :disabled="deleting"
         @click="$emit('delete')"
       >
         {{ deleting ? 'Deleting...' : 'Delete comic' }}
-      </button>
+      </BaseButton>
       <button
         v-if="selectedComic && !readOnly"
         class="read-toggle-button large flex-none min-h-8 border border-line-strong rounded bg-surface text-label py-1.5 px-2.5 text-sm font-bold whitespace-nowrap [&.skipped]:border-muted [&.skipped]:text-muted [&.large]:min-h-10 [&.large]:py-2.5 [&.large]:px-3.5 [&.large]:text-base"
@@ -131,15 +129,13 @@ function seriesLabel(comic) {
       >
         {{ selectedComic.skipped ? 'Unskip' : 'Skip' }}
       </button>
-      <button
+      <BaseButton
         v-if="selectedComic && !readOnly"
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
         :disabled="metronActionDisabled"
         @click="runMetronAction"
       >
         {{ metronActionLabel }}
-      </button>
+      </BaseButton>
     </DetailNavigation>
 
     <article

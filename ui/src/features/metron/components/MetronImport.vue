@@ -16,6 +16,8 @@ import {
 } from '@/api/client.js'
 import MetronImportOptions from '@/features/metron/components/MetronImportOptions.vue'
 import MetronReadingListDialog from '@/features/metron/components/MetronReadingListDialog.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   importJobs: {
@@ -518,31 +520,27 @@ function formatDate(value) {
                   ? 'Series'
                   : 'Arc'
         }}
-        <input v-model="query" placeholder="Batman, X-Men, Civil War" />
+        <BaseTextInput v-model="query" placeholder="Batman, X-Men, Civil War" />
       </label>
       <label v-if="activeSearch === 'comics'">
         Series
-        <input v-model="series" placeholder="Optional series filter" />
+        <BaseTextInput v-model="series" placeholder="Optional series filter" />
       </label>
       <label v-if="activeSearch === 'comics'">
         Issue
-        <input v-model="issue" />
+        <BaseTextInput v-model="issue" />
       </label>
       <label v-if="activeSearch === 'series'">
         Year began
-        <input v-model="seriesYearBegan" inputmode="numeric" placeholder="Optional year" />
+        <BaseTextInput v-model="seriesYearBegan" inputmode="numeric" placeholder="Optional year" />
       </label>
       <label v-if="activeSearch === 'series'">
         Volume
-        <input v-model="seriesVolume" inputmode="numeric" placeholder="Optional volume" />
+        <BaseTextInput v-model="seriesVolume" inputmode="numeric" placeholder="Optional volume" />
       </label>
-      <button
-        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-        type="submit"
-        :disabled="busy"
-      >
+      <BaseButton variant="primary" type="submit" :disabled="busy">
         {{ searchLabel }}
-      </button>
+      </BaseButton>
     </form>
 
     <div
@@ -588,9 +586,8 @@ function formatDate(value) {
             class="section-title justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
           >
             <h3>Reading Lists</h3>
-            <button
-              type="button"
-              class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+            <BaseButton
+              variant="neutral"
               :disabled="importingAllReadingLists || rowImporting('readingLists', 0)"
               @click="importAllReadingLists"
             >
@@ -599,7 +596,7 @@ function formatDate(value) {
                   ? 'Pulling all...'
                   : 'Pull all'
               }}
-            </button>
+            </BaseButton>
           </div>
           <p v-if="searching" class="muted block text-muted">Searching Metron reading lists...</p>
           <p v-else-if="readingListResults.length === 0" class="muted block text-muted">

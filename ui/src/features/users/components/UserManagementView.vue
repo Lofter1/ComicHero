@@ -1,5 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseSelect from '@/shared/components/form/BaseSelect.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const scopeOptions = [
   { value: 'search', label: 'Search' },
@@ -228,22 +231,26 @@ function formatTimestamp(value) {
             class="user-search-field w-full min-w-0 max-w-[360px] down-tablet:col-span-2 down-tablet:max-w-none [&_input]:min-h-10"
           >
             <span class="sr-only">Search users</span>
-            <input v-model="userQuery" type="search" placeholder="Search by name or email" />
+            <BaseTextInput
+              v-model="userQuery"
+              type="search"
+              placeholder="Search by name or email"
+            />
           </label>
           <label>
             <span class="sr-only">Filter by role</span>
-            <select v-model="roleFilter">
+            <BaseSelect v-model="roleFilter">
               <option value="all">All roles</option>
               <option value="admin">Admins</option>
               <option value="user">Users</option>
-            </select>
+            </BaseSelect>
           </label>
           <label>
             <span class="sr-only">Sort by creation date</span>
-            <select v-model="creationSort">
+            <BaseSelect v-model="creationSort">
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
-            </select>
+            </BaseSelect>
           </label>
         </div>
       </header>
@@ -310,22 +317,20 @@ function formatTimestamp(value) {
                   />
                   <span>Admin user</span>
                 </label>
-                <button
-                  type="button"
-                  class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+                <BaseButton
+                  variant="neutral"
                   :disabled="savingAdminUserID === entry.user.id || entry.user.id === currentUserID"
                   @click="saveAdmin(entry)"
                 >
                   {{ savingAdminUserID === entry.user.id ? 'Saving...' : 'Save role' }}
-                </button>
-                <button
-                  type="button"
-                  class="danger-text-button min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
+                </BaseButton>
+                <BaseButton
+                  variant="danger-ghost"
                   :disabled="deletingUserID === entry.user.id || entry.user.id === currentUserID"
                   @click="$emit('delete-user', entry.user.id)"
                 >
                   {{ deletingUserID === entry.user.id ? 'Deleting...' : 'Delete user' }}
-                </button>
+                </BaseButton>
               </div>
             </section>
 
@@ -349,7 +354,7 @@ function formatTimestamp(value) {
                   </label>
                   <label class="hourly-limit-field grid gap-1 w-full text-label font-extrabold">
                     <span>Hourly endpoint limit</span>
-                    <input
+                    <BaseTextInput
                       v-model.number="draftFor(entry.user.id).hourlyLimit"
                       min="0"
                       step="1"
@@ -357,14 +362,13 @@ function formatTimestamp(value) {
                     />
                     <small>0 means unlimited.</small>
                   </label>
-                  <button
-                    type="button"
-                    class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+                  <BaseButton
+                    variant="neutral"
                     :disabled="savingUserID === entry.user.id"
                     @click="save(entry)"
                   >
                     {{ savingUserID === entry.user.id ? 'Saving...' : 'Save permissions' }}
-                  </button>
+                  </BaseButton>
                 </div>
 
                 <fieldset
@@ -419,7 +423,7 @@ function formatTimestamp(value) {
       >
         <label class="audit-search-field col-span-2 down-compact:[grid-column:1_/_-1]">
           <span class="sr-only">Search audit log</span>
-          <input
+          <BaseTextInput
             v-model="auditQuery"
             type="search"
             placeholder="Search user, action, path, or status"
@@ -427,59 +431,59 @@ function formatTimestamp(value) {
         </label>
         <label>
           <span class="sr-only">Filter audit log by user</span>
-          <select v-model="auditUser">
+          <BaseSelect v-model="auditUser">
             <option value="all">All users</option>
             <option value="system">System / unauthenticated</option>
             <option v-for="entry in users" :key="entry.user.id" :value="String(entry.user.id)">
               {{ entry.user.name }}
             </option>
-          </select>
+          </BaseSelect>
         </label>
         <label>
           <span class="sr-only">Filter audit log by method</span>
-          <select v-model="auditMethod">
+          <BaseSelect v-model="auditMethod">
             <option value="all">All methods</option>
             <option value="POST">POST</option>
             <option value="PUT">PUT</option>
             <option value="PATCH">PATCH</option>
             <option value="DELETE">DELETE</option>
-          </select>
+          </BaseSelect>
         </label>
         <label>
           <span class="sr-only">Filter audit log by status</span>
-          <select v-model="auditStatus">
+          <BaseSelect v-model="auditStatus">
             <option value="all">All statuses</option>
             <option value="1xx">1xx informational</option>
             <option value="2xx">2xx success</option>
             <option value="3xx">3xx redirect</option>
             <option value="4xx">4xx client error</option>
             <option value="5xx">5xx server error</option>
-          </select>
+          </BaseSelect>
         </label>
         <label>
           <span class="sr-only">Sort audit log by</span>
-          <select v-model="auditSort">
+          <BaseSelect v-model="auditSort">
             <option value="occurredAt">Sort by date</option>
             <option value="user">Sort by user</option>
             <option value="action">Sort by action</option>
             <option value="status">Sort by status</option>
-          </select>
+          </BaseSelect>
         </label>
         <label>
           <span class="sr-only">Audit log sort direction</span>
-          <select v-model="auditDirection">
+          <BaseSelect v-model="auditDirection">
             <option value="desc">Descending</option>
             <option value="asc">Ascending</option>
-          </select>
+          </BaseSelect>
         </label>
         <label>
           <span class="sr-only">Audit log results per page</span>
-          <select v-model.number="auditPageSize">
+          <BaseSelect v-model.number="auditPageSize">
             <option :value="25">25 results</option>
             <option :value="50">50 results</option>
             <option :value="100">100 results</option>
             <option :value="200">200 results</option>
-          </select>
+          </BaseSelect>
         </label>
       </div>
 
@@ -532,22 +536,18 @@ function formatTimestamp(value) {
       >
         <span class="text-sm font-bold text-muted">{{ auditRange }}</span>
         <div class="flex items-center justify-end gap-2 down-mobile:grid down-mobile:grid-cols-2">
-          <button
-            type="button"
-            class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          <BaseButton
             :disabled="auditLoading || auditPagination.offset === 0"
             @click="requestAuditEvents(auditPagination.offset - auditPageSize)"
           >
             Previous
-          </button>
-          <button
-            type="button"
-            class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+          </BaseButton>
+          <BaseButton
             :disabled="auditLoading || !auditPagination.hasMore"
             @click="requestAuditEvents(auditPagination.offset + auditPageSize)"
           >
             Next
-          </button>
+          </BaseButton>
         </div>
       </footer>
     </section>

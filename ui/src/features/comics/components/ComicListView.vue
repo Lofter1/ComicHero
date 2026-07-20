@@ -4,6 +4,9 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { listComics } from '@/api/client.js'
 import IssueListItem from '@/shared/components/browse/IssueListItem.vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseSelect from '@/shared/components/form/BaseSelect.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   comics: {
@@ -531,21 +534,16 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
           <small>{{ summaryText }}</small>
         </div>
 
-        <button
-          v-if="showNewButton && !readOnly"
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="button"
-          @click="$emit('new-comic')"
-        >
+        <BaseButton v-if="showNewButton && !readOnly" variant="primary" @click="$emit('new-comic')">
           New Comic
-        </button>
+        </BaseButton>
       </header>
 
       <div
         v-if="sourceComics.length || serverSource || hasFilters"
         class="comic-list-tools flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_>_input]:[flex:1_1_280px] [&_>_input]:[min-width:min(280px,_100%)] [&_input]:h-11 [&_input]:min-h-11 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:py-2 [&_input]:px-2.5 [&_select]:h-11 [&_select]:min-h-11 [&_select]:border [&_select]:border-line-strong [&_select]:rounded [&_select]:bg-surface [&_select]:py-2 [&_select]:px-2.5 [&_select]:[flex:1_1_140px] [&_select]:min-w-32 [&_select]:max-w-44 [&_select]:pr-8 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:[flex:1_1_230px] [&_.inline-filter-tabs]:[min-width:min(230px,_100%)] [&_.issue-status-tabs]:[flex-basis:320px] [&_.issue-status-tabs]:[min-width:min(320px,_100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&:has(>_.comic-filter-controls)_>_input]:[flex:1_1_280px] down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full"
       >
-        <input v-model="searchText" type="search" placeholder="Search issues" />
+        <BaseTextInput v-model="searchText" type="search" placeholder="Search issues" />
 
         <button
           ref="comicOptionsTrigger"
@@ -602,7 +600,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             </button>
           </div>
 
-          <select
+          <BaseSelect
             v-if="!effectiveServerMode && tagOptions.length"
             v-model="tag"
             aria-label="Filter by tag"
@@ -611,21 +609,21 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
             <option v-for="option in tagOptions" :key="option" :value="option.toLowerCase()">
               {{ option }}
             </option>
-          </select>
+          </BaseSelect>
 
-          <select v-model="sortModel" aria-label="Sort issues">
+          <BaseSelect v-model="sortModel" aria-label="Sort issues">
             <option v-if="showReadingOrderSort" value="readingOrder">Reading Order</option>
             <option value="series">Series</option>
             <option value="title">Title</option>
             <option value="date">Date</option>
             <option value="publisher">Publisher</option>
             <option value="read">Read Status</option>
-          </select>
+          </BaseSelect>
 
-          <select v-model="directionModel" aria-label="Sort direction">
+          <BaseSelect v-model="directionModel" aria-label="Sort direction">
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
-          </select>
+          </BaseSelect>
         </div>
       </div>
     </div>

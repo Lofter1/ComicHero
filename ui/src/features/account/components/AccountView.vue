@@ -1,5 +1,7 @@
 <script setup>
 import { reactive, watch } from 'vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   user: {
@@ -113,11 +115,11 @@ function deleteAccount() {
         </div>
 
         <div
-          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
         >
           <label>
             <span>Display name</span>
-            <input v-model.trim="form.name" type="text" autocomplete="name" required />
+            <BaseTextInput v-model.trim="form.name" type="text" autocomplete="name" required />
           </label>
         </div>
       </article>
@@ -132,15 +134,19 @@ function deleteAccount() {
         </div>
 
         <div
-          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
         >
           <label>
             <span>Current password</span>
-            <input v-model="form.currentPassword" type="password" autocomplete="current-password" />
+            <BaseTextInput
+              v-model="form.currentPassword"
+              type="password"
+              autocomplete="current-password"
+            />
           </label>
           <label>
             <span>New password</span>
-            <input
+            <BaseTextInput
               v-model="form.newPassword"
               type="password"
               autocomplete="new-password"
@@ -149,7 +155,7 @@ function deleteAccount() {
           </label>
           <label>
             <span>Confirm new password</span>
-            <input
+            <BaseTextInput
               v-model="form.confirmPassword"
               type="password"
               autocomplete="new-password"
@@ -159,13 +165,14 @@ function deleteAccount() {
         </div>
       </article>
 
-      <button
-        class="primary-button account-save-button justify-self-start min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+      <BaseButton
+        class="account-save-button justify-self-start"
+        variant="primary"
         type="submit"
         :disabled="saving"
       >
         {{ saving ? 'Saving...' : 'Save account' }}
-      </button>
+      </BaseButton>
 
       <article
         v-if="userMode === 'multi'"
@@ -181,11 +188,11 @@ function deleteAccount() {
         </div>
 
         <div
-          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+          class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
         >
           <label>
             <span>Current password</span>
-            <input
+            <BaseTextInput
               v-model="deleteForm.currentPassword"
               type="password"
               autocomplete="current-password"
@@ -194,14 +201,14 @@ function deleteAccount() {
           </label>
         </div>
 
-        <button
-          class="danger-button account-save-button justify-self-start min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
-          type="button"
+        <BaseButton
+          class="account-save-button justify-self-start"
+          variant="danger"
           :disabled="deleting"
           @click="deleteAccount"
         >
           {{ deleting ? 'Deleting...' : 'Delete account' }}
-        </button>
+        </BaseButton>
       </article>
     </form>
   </section>

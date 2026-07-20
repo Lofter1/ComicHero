@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({
   target: { type: Object, required: true },
@@ -53,14 +55,15 @@ function search() {
         class="comic-merge-search grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 my-4 mx-0"
         @submit.prevent="search"
       >
-        <input v-model="query" type="search" placeholder="Search duplicate comics" autofocus />
-        <button
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="submit"
-          :disabled="searching || saving"
-        >
+        <BaseTextInput
+          v-model="query"
+          type="search"
+          placeholder="Search duplicate comics"
+          autofocus
+        />
+        <BaseButton variant="primary" type="submit" :disabled="searching || saving">
           {{ searching ? 'Searching...' : 'Search' }}
-        </button>
+        </BaseButton>
       </form>
 
       <div v-if="candidates.length" class="comic-merge-results grid gap-2">

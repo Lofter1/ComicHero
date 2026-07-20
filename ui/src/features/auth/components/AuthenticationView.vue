@@ -1,6 +1,8 @@
 <script setup>
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({
   loading: Boolean,
@@ -80,19 +82,24 @@ defineEmits([
 
       <div
         v-if="setupForm.mode === 'multi'"
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label>
           <span>Name</span>
-          <input v-model.trim="setupForm.name" type="text" autocomplete="name" required />
+          <BaseTextInput v-model.trim="setupForm.name" type="text" autocomplete="name" required />
         </label>
         <label>
           <span>Email</span>
-          <input v-model.trim="setupForm.email" type="email" autocomplete="email" required />
+          <BaseTextInput
+            v-model.trim="setupForm.email"
+            type="email"
+            autocomplete="email"
+            required
+          />
         </label>
         <label>
           <span>Password</span>
-          <input
+          <BaseTextInput
             v-model="setupForm.password"
             type="password"
             autocomplete="new-password"
@@ -104,13 +111,14 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+      <BaseButton
+        class="primary-action font-extrabold"
+        variant="primary"
         type="submit"
         :disabled="saving"
       >
         {{ saving ? 'Saving...' : 'Continue' }}
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -129,11 +137,11 @@ defineEmits([
       </div>
 
       <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label>
           <span>Verification token</span>
-          <input
+          <BaseTextInput
             v-model.trim="verificationForm.token"
             type="text"
             autocomplete="one-time-code"
@@ -142,7 +150,7 @@ defineEmits([
         </label>
         <label>
           <span>Password</span>
-          <input
+          <BaseTextInput
             v-model="verificationForm.password"
             type="password"
             autocomplete="current-password"
@@ -153,21 +161,17 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+      <BaseButton
+        class="primary-action font-extrabold"
+        variant="primary"
         type="submit"
         :disabled="saving"
       >
         {{ saving ? 'Verifying...' : 'Verify email' }}
-      </button>
-      <button
-        class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-        type="button"
-        :disabled="saving"
-        @click="$emit('resend-verification')"
-      >
+      </BaseButton>
+      <BaseButton variant="neutral" :disabled="saving" @click="$emit('resend-verification')">
         Resend email
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -190,11 +194,11 @@ defineEmits([
       </div>
 
       <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label v-if="!passwordResetForm.requested">
           <span>Email</span>
-          <input
+          <BaseTextInput
             v-model.trim="passwordResetForm.email"
             type="email"
             autocomplete="email"
@@ -204,7 +208,7 @@ defineEmits([
         <template v-else>
           <label>
             <span>Reset token</span>
-            <input
+            <BaseTextInput
               v-model.trim="passwordResetForm.token"
               type="text"
               autocomplete="one-time-code"
@@ -213,7 +217,7 @@ defineEmits([
           </label>
           <label>
             <span>New password</span>
-            <input
+            <BaseTextInput
               v-model="passwordResetForm.password"
               type="password"
               autocomplete="new-password"
@@ -223,7 +227,7 @@ defineEmits([
           </label>
           <label>
             <span>Confirm new password</span>
-            <input
+            <BaseTextInput
               v-model="passwordResetForm.passwordConfirmation"
               type="password"
               autocomplete="new-password"
@@ -236,8 +240,9 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+      <BaseButton
+        class="primary-action font-extrabold"
+        variant="primary"
         type="submit"
         :disabled="saving"
       >
@@ -248,15 +253,10 @@ defineEmits([
               ? 'Reset password'
               : 'Send reset email'
         }}
-      </button>
-      <button
-        class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-        type="button"
-        :disabled="saving"
-        @click="$emit('show-login')"
-      >
+      </BaseButton>
+      <BaseButton variant="neutral" :disabled="saving" @click="$emit('show-login')">
         Back to login
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -288,19 +288,19 @@ defineEmits([
       </div>
 
       <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label v-if="authMode === 'register'">
           <span>Name</span>
-          <input v-model.trim="authForm.name" type="text" autocomplete="name" required />
+          <BaseTextInput v-model.trim="authForm.name" type="text" autocomplete="name" required />
         </label>
         <label>
           <span>Email</span>
-          <input v-model.trim="authForm.email" type="email" autocomplete="email" required />
+          <BaseTextInput v-model.trim="authForm.email" type="email" autocomplete="email" required />
         </label>
         <label v-if="authMode === 'register'">
           <span>Confirm email</span>
-          <input
+          <BaseTextInput
             v-model.trim="authForm.emailConfirmation"
             type="email"
             autocomplete="email"
@@ -309,7 +309,7 @@ defineEmits([
         </label>
         <label>
           <span>Password</span>
-          <input
+          <BaseTextInput
             v-model="authForm.password"
             type="password"
             :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
@@ -319,7 +319,7 @@ defineEmits([
         </label>
         <label v-if="authMode === 'register'">
           <span>Confirm password</span>
-          <input
+          <BaseTextInput
             v-model="authForm.passwordConfirmation"
             type="password"
             autocomplete="new-password"
@@ -329,7 +329,7 @@ defineEmits([
         </label>
         <label v-if="authMode === 'register' && registrationMode === 'invite_only'">
           <span>Invite token</span>
-          <input
+          <BaseTextInput
             v-model.trim="authForm.inviteToken"
             type="text"
             autocomplete="one-time-code"
@@ -340,22 +340,22 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
+      <BaseButton
+        class="primary-action font-extrabold"
+        variant="primary"
         type="submit"
         :disabled="saving"
       >
         {{ saving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="authMode === 'login'"
-        class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-        type="button"
+        variant="neutral"
         :disabled="saving"
         @click="$emit('show-forgot-password')"
       >
         Forgot password?
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -368,14 +368,14 @@ defineEmits([
         <h1>Could not load user setup</h1>
       </div>
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
-        type="button"
+      <BaseButton
+        class="primary-action font-extrabold"
+        variant="primary"
         :disabled="loading"
         @click="$emit('retry')"
       >
         Retry
-      </button>
+      </BaseButton>
     </section>
   </main>
 </template>

@@ -1,6 +1,8 @@
 <script setup>
 import { nextTick, ref } from 'vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   collections: { type: Array, default: () => [] },
@@ -48,10 +50,10 @@ function countLabel(count, singular) {
           Group related characters and follow all of their appearances in one release-date order.
         </p>
       </div>
-      <button
+      <BaseButton
         v-if="!createOpen"
-        class="primary-button icon-text-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white inline-flex items-center justify-center gap-2"
-        type="button"
+        class="icon-text-button inline-flex items-center justify-center gap-2"
+        variant="primary"
         @click="openCreate"
       >
         <span
@@ -60,7 +62,7 @@ function countLabel(count, singular) {
           >+</span
         >
         New collection
-      </button>
+      </BaseButton>
     </header>
 
     <form
@@ -89,14 +91,10 @@ function countLabel(count, singular) {
         class="collection-create-controls grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-control [&_input]:py-2 [&_input]:px-3 [&_input:focus]:outline-3 [&_input:focus]:outline-focus down-compact:grid-cols-1"
       >
         <label class="sr-only" for="collection-name">Collection name</label>
-        <input id="collection-name" ref="nameInput" v-model="name" maxlength="120" />
-        <button
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="submit"
-          :disabled="saving || !name.trim()"
-        >
+        <BaseTextInput id="collection-name" ref="nameInput" v-model="name" maxlength="120" />
+        <BaseButton variant="primary" type="submit" :disabled="saving || !name.trim()">
           {{ saving ? 'Creating...' : 'Create' }}
-        </button>
+        </BaseButton>
       </div>
     </form>
 

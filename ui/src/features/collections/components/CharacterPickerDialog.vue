@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { assetURL, listCharacters } from '@/api/client.js'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({ saving: { type: Boolean, default: false } })
 const emit = defineEmits(['close', 'add'])
@@ -74,14 +76,15 @@ function monogram(name) {
         class="collection-search-form my-4 mx-0 grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 [&_input]:w-full [&_input]:min-w-0 [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-control [&_input]:py-2 [&_input]:px-3 [&_input:focus]:outline-3 [&_input:focus]:outline-focus down-compact:grid-cols-1"
         @submit.prevent="search"
       >
-        <input v-model="query" type="search" placeholder="Search characters or aliases" autofocus />
-        <button
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="submit"
-          :disabled="searching || !query.trim()"
-        >
+        <BaseTextInput
+          v-model="query"
+          type="search"
+          placeholder="Search characters or aliases"
+          autofocus
+        />
+        <BaseButton variant="primary" type="submit" :disabled="searching || !query.trim()">
           {{ searching ? 'Searching...' : 'Search' }}
-        </button>
+        </BaseButton>
       </form>
       <LoadingState v-if="searching" compact />
       <p v-else-if="searchError" class="error-text text-danger font-bold">{{ searchError }}</p>

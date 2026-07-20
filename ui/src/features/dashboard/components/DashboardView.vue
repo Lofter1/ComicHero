@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 const props = defineProps({
   dashboard: {
@@ -99,22 +100,19 @@ function achievementProgress(achievement) {
           </button>
 
           <div v-if="!readOnly" class="dashboard-card-actions grid grid-cols-2 gap-2.5">
-            <button
-              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-              type="button"
+            <BaseButton
+              variant="primary"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-read', item.nextComic)"
             >
               Read
-            </button>
-            <button
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-              type="button"
+            </BaseButton>
+            <BaseButton
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-skipped', item.nextComic)"
             >
               Skipped
-            </button>
+            </BaseButton>
           </div>
         </template>
 

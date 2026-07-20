@@ -8,6 +8,8 @@ import {
   readingOrderEditorPageSize,
   reorderReadingOrderEntry,
 } from '@/features/reading-orders/model.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -379,7 +381,11 @@ function endDrag() {
   >
     <label>
       Name
-      <input :value="form.name" required @input="updateForm({ name: $event.target.value })" />
+      <BaseTextInput
+        :model-value="form.name"
+        required
+        @update:model-value="updateForm({ name: $event })"
+      />
     </label>
 
     <label>
@@ -481,7 +487,7 @@ function endDrag() {
             <div
               class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0 [&_input]:border-0 [&_input]:min-h-9 [&_input]:bg-transparent"
             >
-              <input
+              <BaseTextInput
                 v-model="comicSearch"
                 type="search"
                 placeholder="Search title, series, issue, publisher, status"
@@ -542,7 +548,7 @@ function endDrag() {
             <div
               class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0 [&_input]:border-0 [&_input]:min-h-9 [&_input]:bg-transparent"
             >
-              <input
+              <BaseTextInput
                 v-model="readingOrderSearch"
                 type="search"
                 placeholder="Search reading orders"
@@ -603,7 +609,7 @@ function endDrag() {
           >
             <label>
               Section title
-              <input
+              <BaseTextInput
                 v-model="sectionTitle"
                 placeholder="Main story"
                 @keydown.enter.prevent="addSection"
@@ -617,14 +623,14 @@ function endDrag() {
                 placeholder="Optional context for this section"
               />
             </label>
-            <button
+            <BaseButton
               type="button"
-              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+              variant="primary"
               :disabled="!sectionTitle.trim()"
               @click="addSection"
             >
               Add Section
-            </button>
+            </BaseButton>
           </div>
         </section>
       </div>
@@ -649,39 +655,39 @@ function endDrag() {
             {{ orderEntries.length }}
           </span>
           <div>
-            <button
+            <BaseButton
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(0)"
             >
               First
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(entryPageState.page - 1)"
             >
               Previous
-            </button>
+            </BaseButton>
             <strong>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</strong>
-            <button
+            <BaseButton
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.page + 1)"
             >
               Next
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.pageCount - 1)"
             >
               Last
-            </button>
+            </BaseButton>
           </div>
         </nav>
 
@@ -797,25 +803,25 @@ function endDrag() {
                 "
                 class="entry-page-move flex col-span-full justify-end gap-2 [&_button]:min-h-9 [&_button]:py-2 [&_button]:px-3 [&_button]:text-sm"
               >
-                <button
+                <BaseButton
                   v-if="index === entryPageState.start && entryPageState.page > 0"
                   type="button"
-                  class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+                  variant="secondary"
                   @click="moveEntryAcrossPage(index, -1)"
                 >
                   Move to previous page
-                </button>
-                <button
+                </BaseButton>
+                <BaseButton
                   v-if="
                     index === entryPageState.end - 1 &&
                     entryPageState.page < entryPageState.pageCount - 1
                   "
                   type="button"
-                  class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+                  variant="secondary"
                   @click="moveEntryAcrossPage(index, 1)"
                 >
                   Move to next page
-                </button>
+                </BaseButton>
               </div>
 
               <div
@@ -827,11 +833,11 @@ function endDrag() {
                     class="comment-input-label self-stretch [&_input]:h-full [&_input]:min-h-0 [&_textarea]:h-full [&_textarea]:min-h-0"
                   >
                     Section title
-                    <input
-                      :value="entry.title"
+                    <BaseTextInput
+                      :model-value="entry.title"
                       required
                       aria-label="Section title"
-                      @input="updateEntry(index, { title: $event.target.value })"
+                      @update:model-value="updateEntry(index, { title: $event })"
                     />
                   </label>
                   <label
@@ -871,11 +877,11 @@ function endDrag() {
                     class="comment-input-label self-stretch [&_input]:h-full [&_input]:min-h-0 [&_textarea]:h-full [&_textarea]:min-h-0"
                   >
                     Tags
-                    <input
-                      :value="entry.tags"
+                    <BaseTextInput
+                      :model-value="entry.tags"
                       aria-label="Entry tags"
                       placeholder="Tags"
-                      @input="updateEntry(index, { tags: $event.target.value })"
+                      @update:model-value="updateEntry(index, { tags: $event })"
                     />
                   </label>
                 </template>
@@ -899,22 +905,22 @@ function endDrag() {
         >
           <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>
           <div>
-            <button
+            <BaseButton
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(entryPageState.page - 1)"
             >
               Previous
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.page + 1)"
             >
               Next
-            </button>
+            </BaseButton>
           </div>
         </nav>
       </section>

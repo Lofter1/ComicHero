@@ -4,6 +4,7 @@ import BrowseListTools from '@/shared/components/browse/BrowseListTools.vue'
 import BrowseEntityRow from '@/shared/components/browse/BrowseEntityRow.vue'
 import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
 
@@ -135,13 +136,14 @@ function characterProgress(character) {
                 />
               </template>
               <template v-if="!readOnly" #actions>
-                <button
-                  class="secondary-action collection-row-action min-h-8 py-1.5 px-2.5 text-xs whitespace-nowrap border border-line-strong rounded bg-surface text-control font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-                  type="button"
+                <BaseButton
+                  class="collection-row-action text-xs whitespace-nowrap"
+                  variant="neutral"
+                  size="compact"
                   @click="$emit('add-to-collection', character)"
                 >
                   Add to collection
-                </button>
+                </BaseButton>
               </template>
             </BrowseEntityRow>
           </template>

@@ -1,6 +1,7 @@
 <script setup>
 import { assetURL } from '@/api/client.js'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 defineProps({
   readingList: {
@@ -107,21 +108,14 @@ function formatDate(value) {
       <footer
         class="metron-detail-actions justify-end border-t border-line flex items-start gap-3 py-3.5 px-4"
       >
-        <button
-          class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-          type="button"
-          @click="$emit('close')"
-        >
-          Close
-        </button>
-        <button
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="button"
+        <BaseButton @click="$emit('close')"> Close </BaseButton>
+        <BaseButton
+          variant="primary"
           :disabled="!readingList || importing"
           @click="$emit('import')"
         >
           {{ importing ? 'Importing...' : 'Import' }}
-        </button>
+        </BaseButton>
       </footer>
     </section>
   </div>

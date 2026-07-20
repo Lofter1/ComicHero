@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({
   character: { type: Object, required: true },
@@ -98,14 +100,10 @@ function monogram(name) {
       >
         <label for="new-character-collection">Create a new collection</label>
         <div>
-          <input id="new-character-collection" v-model="newName" maxlength="120" />
-          <button
-            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-            type="submit"
-            :disabled="saving || !newName.trim()"
-          >
+          <BaseTextInput id="new-character-collection" v-model="newName" maxlength="120" />
+          <BaseButton variant="primary" type="submit" :disabled="saving || !newName.trim()">
             {{ saving ? 'Saving...' : 'Create and add' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
     </section>

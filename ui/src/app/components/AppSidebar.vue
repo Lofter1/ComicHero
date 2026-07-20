@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 const props = defineProps({
   activeView: {
@@ -337,13 +338,7 @@ function toggleMobileMenu() {
       >
         <strong>Public access</strong>
         <span>Read-only access</span>
-        <button
-          type="button"
-          class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-          @click="login"
-        >
-          Log in
-        </button>
+        <BaseButton variant="neutral" @click="login"> Log in </BaseButton>
       </div>
     </div>
   </aside>
