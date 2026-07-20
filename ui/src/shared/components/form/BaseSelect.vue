@@ -52,8 +52,8 @@ const sizeClasses = {
 }
 
 const variantClasses = {
-  default: 'pr-3',
-  nowrap: 'pr-3 whitespace-nowrap',
+  default: 'pr-8',
+  nowrap: 'pr-8 whitespace-nowrap',
   trailing: 'pr-8',
 }
 </script>
