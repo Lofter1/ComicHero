@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useClickOutside } from '@/shared/composables/useClickOutside.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 const props = defineProps({
   activeView: {
@@ -99,6 +100,7 @@ function toggleMobileMenu() {
           >{{ version }}</span
         >
       </div>
+      <!-- Native button: this measured DOM trigger controls the responsive navigation panel. -->
       <button
         ref="mobileMenuButton"
         type="button"
@@ -178,6 +180,7 @@ function toggleMobileMenu() {
         class="account-menu relative min-w-0 [&.open_.account-menu-trigger]:border-primary [&.open_.account-menu-trigger]:bg-surface [&.open_.account-menu-trigger]:[box-shadow:0_8px_18px_var(--shadow-soft)]"
         :class="{ open: accountMenuOpen }"
       >
+        <!-- Native button: the account trigger is a composite avatar/menu disclosure. -->
         <button
           type="button"
           class="account-menu-trigger w-full min-h-14 grid [grid-template-columns:auto_minmax(0,_1fr)_auto] items-center gap-2.5 border border-line rounded bg-surface-soft text-control py-2 px-2.5 text-left down-tablet:w-10 down-tablet:h-10 down-tablet:min-h-10 down-tablet:inline-flex down-tablet:justify-center down-tablet:p-0 hover:border-primary hover:bg-surface hover:[box-shadow:0_8px_18px_var(--shadow-soft)] focus-visible:border-primary focus-visible:bg-surface focus-visible:[box-shadow:0_8px_18px_var(--shadow-soft)] down-tablet:[&_.account-avatar]:w-8 down-tablet:[&_.account-avatar]:min-w-8 down-tablet:[&_.account-avatar]:h-8"
@@ -226,12 +229,14 @@ function toggleMobileMenu() {
               <strong>Display Mode</strong>
             </div>
             <div
-              class="theme-selector account-theme-selector my-0 mx-2 grid grid-cols-3 gap-1 border border-line-strong rounded bg-panel-soft p-1 [&_button]:min-h-8 [&_button]:border-0 [&_button]:rounded-[6px] [&_button]:bg-transparent [&_button]:text-label [&_button]:p-1.5 [&_button]:text-sm [&_button]:font-extrabold [&_button.active]:bg-primary [&_button.active]:text-white down-phone:[&_button]:text-xs down-phone:[&_button]:px-1"
+              class="theme-selector account-theme-selector my-0 mx-2 grid grid-cols-3 gap-1 border border-line-strong rounded bg-panel-soft p-1"
               role="group"
               aria-label="Theme"
             >
+              <!-- Native buttons: theme choices are a stateful segmented control. -->
               <button
                 type="button"
+                class="min-h-8 border-0 rounded-[6px] bg-transparent text-label p-1.5 text-sm font-extrabold [&.active]:bg-primary [&.active]:text-white down-phone:text-xs down-phone:px-1"
                 :class="{ active: themePreference === 'light' }"
                 :aria-pressed="themePreference === 'light'"
                 @click="setTheme('light')"
@@ -240,6 +245,7 @@ function toggleMobileMenu() {
               </button>
               <button
                 type="button"
+                class="min-h-8 border-0 rounded-[6px] bg-transparent text-label p-1.5 text-sm font-extrabold [&.active]:bg-primary [&.active]:text-white down-phone:text-xs down-phone:px-1"
                 :class="{ active: themePreference === 'dark' }"
                 :aria-pressed="themePreference === 'dark'"
                 @click="setTheme('dark')"
@@ -248,6 +254,7 @@ function toggleMobileMenu() {
               </button>
               <button
                 type="button"
+                class="min-h-8 border-0 rounded-[6px] bg-transparent text-label p-1.5 text-sm font-extrabold [&.active]:bg-primary [&.active]:text-white down-phone:text-xs down-phone:px-1"
                 :class="{ active: themePreference === 'system' }"
                 :aria-pressed="themePreference === 'system'"
                 @click="setTheme('system')"
@@ -319,6 +326,7 @@ function toggleMobileMenu() {
             <span aria-hidden="true">!</span>
             <span>Report a bug</span>
           </a>
+          <!-- Native button: logout is styled as an inline account-menu item. -->
           <button
             v-if="userMode === 'multi'"
             type="button"
@@ -333,17 +341,13 @@ function toggleMobileMenu() {
       </div>
       <div
         v-else-if="readOnlyGuest"
-        class="public-session-card grid gap-1 border border-line rounded bg-surface-soft p-3 down-tablet:block down-tablet:border-0 down-tablet:bg-transparent down-tablet:p-0 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_.secondary-action]:mt-1.5 down-tablet:[&_strong]:hidden down-tablet:[&_span]:hidden down-tablet:[&_.secondary-action]:min-h-10 down-tablet:[&_.secondary-action]:mt-0 down-tablet:[&_.secondary-action]:py-0 down-tablet:[&_.secondary-action]:px-4"
+        class="public-session-card grid gap-1 border border-line rounded bg-surface-soft p-3 down-tablet:block down-tablet:border-0 down-tablet:bg-transparent down-tablet:p-0 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold down-tablet:[&_strong]:hidden down-tablet:[&_span]:hidden"
       >
         <strong>Public access</strong>
         <span>Read-only access</span>
-        <button
-          type="button"
-          class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-          @click="login"
-        >
+        <BaseButton class="mt-1.5 down-tablet:mt-0" variant="neutral" size="sidebar" @click="login">
           Log in
-        </button>
+        </BaseButton>
       </div>
     </div>
   </aside>

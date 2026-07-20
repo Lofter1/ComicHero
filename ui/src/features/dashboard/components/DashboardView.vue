@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 const props = defineProps({
   dashboard: {
@@ -76,6 +77,7 @@ function achievementProgress(achievement) {
         </div>
 
         <template v-if="item.nextComic">
+          <!-- Native button: the comic preview is a full-card navigation target. -->
           <button
             class="dashboard-comic grid [grid-template-columns:56px_minmax(0,_1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
             type="button"
@@ -99,22 +101,19 @@ function achievementProgress(achievement) {
           </button>
 
           <div v-if="!readOnly" class="dashboard-card-actions grid grid-cols-2 gap-2.5">
-            <button
-              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-              type="button"
+            <BaseButton
+              variant="primary"
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-read', item.nextComic)"
             >
               Read
-            </button>
-            <button
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-              type="button"
+            </BaseButton>
+            <BaseButton
               :disabled="quickSavingComicId === item.nextComic.id"
               @click="$emit('mark-skipped', item.nextComic)"
             >
               Skipped
-            </button>
+            </BaseButton>
           </div>
         </template>
 

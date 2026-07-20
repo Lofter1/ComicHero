@@ -8,6 +8,8 @@ import {
   readingOrderEditorPageSize,
   reorderReadingOrderEntry,
 } from '@/features/reading-orders/model.js'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -379,7 +381,11 @@ function endDrag() {
   >
     <label>
       Name
-      <input :value="form.name" required @input="updateForm({ name: $event.target.value })" />
+      <BaseTextInput
+        :model-value="form.name"
+        required
+        @update:model-value="updateForm({ name: $event })"
+      />
     </label>
 
     <label>
@@ -421,7 +427,7 @@ function endDrag() {
 
     <label class="cover-image-field">
       Cover image
-      <span class="reading-order-cover-editor flex items-center gap-3 min-w-0 [&_input]:min-w-0">
+      <span class="reading-order-cover-editor flex items-center gap-3 min-w-0">
         <span
           v-if="coverPreview"
           class="reading-order-cover-preview [width:76px] [min-width:76px] [height:76px] overflow-hidden border border-line rounded bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover"
@@ -429,7 +435,7 @@ function endDrag() {
         >
           <img :src="coverPreview" alt="" />
         </span>
-        <input type="file" accept="image/*" @change="chooseCoverImage" />
+        <input class="min-w-0" type="file" accept="image/*" @change="chooseCoverImage" />
       </span>
     </label>
 
@@ -447,12 +453,14 @@ function endDrag() {
           </div>
 
           <div
-            class="add-entry-tabs grid grid-cols-3 gap-2 [&_button]:min-h-10 [&_button]:border [&_button]:border-line [&_button]:rounded [&_button]:bg-surface [&_button]:text-muted [&_button]:font-black [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white"
+            class="add-entry-tabs grid grid-cols-3 gap-2"
             role="tablist"
             aria-label="Entry source"
           >
+            <!-- Native buttons: entry sources are a stateful tablist. -->
             <button
               type="button"
+              class="min-h-10 border border-line rounded bg-surface text-muted font-black [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
               :class="{ active: activeAddType === 'comic' }"
               @click="activeAddType = 'comic'"
             >
@@ -460,6 +468,7 @@ function endDrag() {
             </button>
             <button
               type="button"
+              class="min-h-10 border border-line rounded bg-surface text-muted font-black [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
               :class="{ active: activeAddType === 'readingOrder' }"
               @click="activeAddType = 'readingOrder'"
             >
@@ -467,6 +476,7 @@ function endDrag() {
             </button>
             <button
               type="button"
+              class="min-h-10 border border-line rounded bg-surface text-muted font-black [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
               :class="{ active: activeAddType === 'section' }"
               @click="activeAddType = 'section'"
             >
@@ -479,14 +489,17 @@ function endDrag() {
             class="comic-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5"
           >
             <div
-              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0 [&_input]:border-0 [&_input]:min-h-9 [&_input]:bg-transparent"
+              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0"
             >
-              <input
+              <BaseTextInput
                 v-model="comicSearch"
+                variant="embedded"
+                size="compact"
                 type="search"
                 placeholder="Search title, series, issue, publisher, status"
                 @keydown.enter.prevent
               />
+              <!-- Native button: Clear is embedded inside the compound search field. -->
               <button
                 v-if="comicSearch"
                 class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
@@ -506,6 +519,7 @@ function endDrag() {
               v-else-if="comicSearchResults.length"
               class="comic-add-results grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] gap-2"
             >
+              <!-- Native buttons: search results are draggable full-card targets. -->
               <button
                 v-for="comic in comicSearchResults"
                 :key="comic.id"
@@ -540,14 +554,17 @@ function endDrag() {
             class="comic-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5"
           >
             <div
-              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0 [&_input]:border-0 [&_input]:min-h-9 [&_input]:bg-transparent"
+              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0"
             >
-              <input
+              <BaseTextInput
                 v-model="readingOrderSearch"
+                variant="embedded"
+                size="compact"
                 type="search"
                 placeholder="Search reading orders"
                 @keydown.enter.prevent
               />
+              <!-- Native button: Clear is embedded inside the compound search field. -->
               <button
                 v-if="readingOrderSearch"
                 class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
@@ -562,6 +579,7 @@ function endDrag() {
               v-if="childOrderChoices.length"
               class="comic-add-results grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] gap-2"
             >
+              <!-- Native buttons: reading-order results are draggable full-card targets. -->
               <button
                 v-for="order in childOrderChoices"
                 :key="order.id"
@@ -599,11 +617,11 @@ function endDrag() {
 
           <div
             v-if="activeAddType === 'section'"
-            class="section-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-3 [&_.primary-button]:justify-self-start"
+            class="section-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-3"
           >
             <label>
               Section title
-              <input
+              <BaseTextInput
                 v-model="sectionTitle"
                 placeholder="Main story"
                 @keydown.enter.prevent="addSection"
@@ -617,14 +635,15 @@ function endDrag() {
                 placeholder="Optional context for this section"
               />
             </label>
-            <button
+            <BaseButton
+              class="justify-self-start"
               type="button"
-              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+              variant="primary"
               :disabled="!sectionTitle.trim()"
               @click="addSection"
             >
               Add Section
-            </button>
+            </BaseButton>
           </div>
         </section>
       </div>
@@ -641,7 +660,7 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_.secondary-button]:min-h-9 [&_.secondary-button]:py-2 [&_.secondary-button]:px-2.5 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1 down-mobile:[&_.secondary-button]:w-full"
+          class="reading-order-entry-pages flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1"
           aria-label="Reading order entry pages"
         >
           <span>
@@ -649,39 +668,47 @@ function endDrag() {
             {{ orderEntries.length }}
           </span>
           <div>
-            <button
+            <BaseButton
+              class="down-mobile:w-full"
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
+              size="compact"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(0)"
             >
               First
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
+              class="down-mobile:w-full"
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
+              size="compact"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(entryPageState.page - 1)"
             >
               Previous
-            </button>
+            </BaseButton>
             <strong>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</strong>
-            <button
+            <BaseButton
+              class="down-mobile:w-full"
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
+              size="compact"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.page + 1)"
             >
               Next
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
+              class="down-mobile:w-full"
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
+              size="compact"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.pageCount - 1)"
             >
               Last
-            </button>
+            </BaseButton>
           </div>
         </nav>
 
@@ -718,6 +745,7 @@ function endDrag() {
                 expanded: isEntryExpanded(entry, index),
               }"
             >
+              <!-- Native button: entry rows use a bespoke expand/collapse control. -->
               <button
                 type="button"
                 class="selected-order-comic entry-summary-button justify-center min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid [grid-template-columns:34px_minmax(0,_1fr)_34px] items-center gap-3 w-full min-h-20 h-20 text-ink text-left down-mobile:[grid-template-columns:30px_minmax(0,_1fr)_30px] down-mobile:h-auto down-mobile:min-h-20 down-mobile:py-2 down-mobile:px-2.5 hover:[border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-1"
@@ -763,13 +791,20 @@ function endDrag() {
                 </span>
 
                 <span
-                  class="mobile-reorder hidden down-mobile:grid down-mobile:col-span-full down-mobile:grid-cols-2 down-mobile:gap-2 down-mobile:w-full down-mobile:[&_button]:min-h-10 down-mobile:[&_button]:border down-mobile:[&_button]:border-line-strong down-mobile:[&_button]:rounded down-mobile:[&_button]:bg-surface"
+                  class="mobile-reorder hidden down-mobile:grid down-mobile:col-span-full down-mobile:grid-cols-2 down-mobile:gap-2 down-mobile:w-full"
                   @click.stop
                 >
-                  <button type="button" :disabled="index === 0" @click="moveEntry(index, -1)">
+                  <!-- Native buttons: compact reorder arrows use editor-specific styling. -->
+                  <button
+                    class="min-h-10 border border-line-strong rounded bg-surface"
+                    type="button"
+                    :disabled="index === 0"
+                    @click="moveEntry(index, -1)"
+                  >
                     Up
                   </button>
                   <button
+                    class="min-h-10 border border-line-strong rounded bg-surface"
                     type="button"
                     :disabled="index === orderEntries.length - 1"
                     @click="moveEntry(index, 1)"
@@ -779,6 +814,7 @@ function endDrag() {
                 </span>
               </button>
 
+              <!-- Native button: removal spans the full row height and has bespoke danger styling. -->
               <button
                 type="button"
                 class="remove-entry-button grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 text-2xl font-extrabold leading-none hover:[border-color:var(--danger)] hover:[background:color-mix(in_srgb,_var(--danger-soft)_72%,_var(--danger))] hover:text-danger"
@@ -795,27 +831,29 @@ function endDrag() {
                   (index === entryPageState.end - 1 &&
                     entryPageState.page < entryPageState.pageCount - 1)
                 "
-                class="entry-page-move flex col-span-full justify-end gap-2 [&_button]:min-h-9 [&_button]:py-2 [&_button]:px-3 [&_button]:text-sm"
+                class="entry-page-move flex col-span-full justify-end gap-2"
               >
-                <button
+                <BaseButton
                   v-if="index === entryPageState.start && entryPageState.page > 0"
                   type="button"
-                  class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+                  variant="secondary"
+                  size="compact-wide"
                   @click="moveEntryAcrossPage(index, -1)"
                 >
                   Move to previous page
-                </button>
-                <button
+                </BaseButton>
+                <BaseButton
                   v-if="
                     index === entryPageState.end - 1 &&
                     entryPageState.page < entryPageState.pageCount - 1
                   "
                   type="button"
-                  class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+                  variant="secondary"
+                  size="compact-wide"
                   @click="moveEntryAcrossPage(index, 1)"
                 >
                   Move to next page
-                </button>
+                </BaseButton>
               </div>
 
               <div
@@ -824,18 +862,19 @@ function endDrag() {
               >
                 <template v-if="entry.type === 'section'">
                   <label
-                    class="comment-input-label self-stretch [&_input]:h-full [&_input]:min-h-0 [&_textarea]:h-full [&_textarea]:min-h-0"
+                    class="comment-input-label self-stretch [&_textarea]:h-full [&_textarea]:min-h-0"
                   >
                     Section title
-                    <input
-                      :value="entry.title"
+                    <BaseTextInput
+                      :model-value="entry.title"
+                      size="fill"
                       required
                       aria-label="Section title"
-                      @input="updateEntry(index, { title: $event.target.value })"
+                      @update:model-value="updateEntry(index, { title: $event })"
                     />
                   </label>
                   <label
-                    class="comment-input-label self-stretch [&_input]:h-full [&_input]:min-h-0 [&_textarea]:h-full [&_textarea]:min-h-0"
+                    class="comment-input-label self-stretch [&_textarea]:h-full [&_textarea]:min-h-0"
                   >
                     Description
                     <textarea
@@ -850,7 +889,7 @@ function endDrag() {
 
                 <template v-else>
                   <label
-                    class="comment-input-label self-stretch [&_input]:h-full [&_input]:min-h-0 [&_textarea]:h-full [&_textarea]:min-h-0"
+                    class="comment-input-label self-stretch [&_textarea]:h-full [&_textarea]:min-h-0"
                   >
                     Note
                     <textarea
@@ -868,14 +907,15 @@ function endDrag() {
 
                   <label
                     v-if="entry.type !== 'readingOrder'"
-                    class="comment-input-label self-stretch [&_input]:h-full [&_input]:min-h-0 [&_textarea]:h-full [&_textarea]:min-h-0"
+                    class="comment-input-label self-stretch [&_textarea]:h-full [&_textarea]:min-h-0"
                   >
                     Tags
-                    <input
-                      :value="entry.tags"
+                    <BaseTextInput
+                      :model-value="entry.tags"
+                      size="fill"
                       aria-label="Entry tags"
                       placeholder="Tags"
-                      @input="updateEntry(index, { tags: $event.target.value })"
+                      @update:model-value="updateEntry(index, { tags: $event })"
                     />
                   </label>
                 </template>
@@ -894,27 +934,31 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 mb-0 flex items-center justify-between gap-3 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_.secondary-button]:min-h-9 [&_.secondary-button]:py-2 [&_.secondary-button]:px-2.5 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1 down-mobile:[&_.secondary-button]:w-full"
+          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 mb-0 flex items-center justify-between gap-3 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1"
           aria-label="Reading order entry pages"
         >
           <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>
           <div>
-            <button
+            <BaseButton
+              class="down-mobile:w-full"
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
+              size="compact"
               :disabled="entryPageState.page === 0"
               @click="goToEntryPage(entryPageState.page - 1)"
             >
               Previous
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
+              class="down-mobile:w-full"
               type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              variant="secondary"
+              size="compact"
               :disabled="entryPageState.page === entryPageState.pageCount - 1"
               @click="goToEntryPage(entryPageState.page + 1)"
             >
               Next
-            </button>
+            </BaseButton>
           </div>
         </nav>
       </section>

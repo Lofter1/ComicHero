@@ -4,6 +4,7 @@ import BrowseListTools from '@/shared/components/browse/BrowseListTools.vue'
 import BrowseEntityRow from '@/shared/components/browse/BrowseEntityRow.vue'
 import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
@@ -145,19 +146,14 @@ function seriesPublisherLabel(series) {
         class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
       >
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
-        <button
-          v-if="!hasFilters && !readOnly"
-          class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-          type="button"
-          @click="$emit('new-comic')"
-        >
+        <BaseButton v-if="!hasFilters && !readOnly" @click="$emit('new-comic')">
           <span
             aria-hidden="true"
             class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
             >+</span
           >
           Add the first comic
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>

@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({
   target: { type: Object, required: true },
@@ -34,14 +36,15 @@ function search() {
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Admin</p>
           <h3 id="merge-title">Merge a duplicate into {{ target.title }}</h3>
         </div>
-        <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
-          type="button"
+        <BaseButton
+          class="self-end down-mobile:self-stretch down-mobile:w-full"
+          variant="neutral"
+          size="icon"
           aria-label="Close comic merge"
           @click="$emit('close')"
         >
           ×
-        </button>
+        </BaseButton>
       </header>
 
       <p class="muted block text-muted">
@@ -53,17 +56,19 @@ function search() {
         class="comic-merge-search grid [grid-template-columns:minmax(0,_1fr)_max-content] gap-2.5 my-4 mx-0"
         @submit.prevent="search"
       >
-        <input v-model="query" type="search" placeholder="Search duplicate comics" autofocus />
-        <button
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="submit"
-          :disabled="searching || saving"
-        >
+        <BaseTextInput
+          v-model="query"
+          type="search"
+          placeholder="Search duplicate comics"
+          autofocus
+        />
+        <BaseButton variant="primary" type="submit" :disabled="searching || saving">
           {{ searching ? 'Searching...' : 'Search' }}
-        </button>
+        </BaseButton>
       </form>
 
       <div v-if="candidates.length" class="comic-merge-results grid gap-2">
+        <!-- Native buttons: merge candidates are full-card selection targets. -->
         <button
           v-for="comic in candidates"
           :key="comic.id"

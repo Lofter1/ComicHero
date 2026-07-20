@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({
   character: { type: Object, required: true },
@@ -29,7 +31,7 @@ function monogram(name) {
     @click.self="$emit('close')"
   >
     <section
-      class="collection-dialog [&_.collection-create-form_input]:w-full [&_.collection-create-form_input]:min-w-0 [&_.collection-create-form_input]:min-h-10 [&_.collection-create-form_input]:border [&_.collection-create-form_input]:border-line-strong [&_.collection-create-form_input]:rounded [&_.collection-create-form_input]:bg-surface [&_.collection-create-form_input]:text-control [&_.collection-create-form_input]:py-2 [&_.collection-create-form_input]:px-3 [&_.collection-create-form_input:focus]:outline-3 [&_.collection-create-form_input:focus]:outline-focus [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
+      class="collection-dialog [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-to-collection-title"
@@ -44,14 +46,15 @@ function monogram(name) {
             Choose an existing collection or create one below.
           </p>
         </div>
-        <button
-          class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
-          type="button"
+        <BaseButton
+          class="self-end down-mobile:self-stretch down-mobile:w-full"
+          variant="neutral"
+          size="icon"
           aria-label="Close"
           @click="$emit('close')"
         >
           ×
-        </button>
+        </BaseButton>
       </header>
 
       <LoadingState v-if="loading" compact />
@@ -59,6 +62,7 @@ function monogram(name) {
         v-else-if="collections.length"
         class="collection-dialog-list grid gap-2 my-3.5 mx-4 [&_.row]:items-center [&_.row]:rounded-lg [&_.row]:py-3 [&_.row]:px-3 [&_.row_strong]:block [&_.row_small]:block [&_.row_small]:mt-1 [&_.row:disabled_.status-pill]:bg-surface-muted [&_.row:disabled_.status-pill]:text-muted"
       >
+        <!-- Native button: collection rows are full-card selection targets. -->
         <button
           v-for="collection in collections"
           :key="collection.id"
@@ -98,14 +102,10 @@ function monogram(name) {
       >
         <label for="new-character-collection">Create a new collection</label>
         <div>
-          <input id="new-character-collection" v-model="newName" maxlength="120" />
-          <button
-            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-            type="submit"
-            :disabled="saving || !newName.trim()"
-          >
+          <BaseTextInput id="new-character-collection" v-model="newName" maxlength="120" />
+          <BaseButton variant="primary" type="submit" :disabled="saving || !newName.trim()">
             {{ saving ? 'Saving...' : 'Create and add' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
     </section>

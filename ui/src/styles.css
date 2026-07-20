@@ -14,16 +14,21 @@
     font: inherit;
   }
 
-  select,
-  button {
+  select:not(.base-select),
+  button:not(.base-button) {
     @apply cursor-pointer;
   }
 
-  button {
+  button:not(.base-button) {
     @apply transition-interactive duration-140;
   }
 
-  button:disabled {
+  button:not(.base-button):disabled {
+    @apply cursor-wait opacity-65;
+  }
+
+  input:not(.base-text-input):disabled,
+  select:not(.base-select):disabled {
     @apply cursor-wait opacity-65;
   }
 
@@ -48,8 +53,8 @@
     @apply mb-1.5;
   }
 
-  input,
-  select,
+  input:not(.base-text-input),
+  select:not(.base-select),
   textarea {
     @apply w-full rounded border border-line-strong bg-surface px-3 py-2.5 text-ink;
   }
@@ -59,14 +64,14 @@
     @apply min-w-4 w-auto p-0 accent-primary;
   }
 
-  button:hover:not(:disabled) {
+  button:not(.base-button):hover:not(:disabled) {
     @apply -translate-y-px border-primary shadow-interactive;
   }
 
-  input:focus,
-  select:focus,
+  input:not(.base-text-input):focus,
+  select:not(.base-select):focus,
   textarea:focus,
-  button:focus-visible {
+  button:not(.base-button):focus-visible {
     @apply outline-3 outline-offset-2 outline-focus;
   }
 
@@ -87,8 +92,8 @@
       @apply text-lg;
     }
 
-    input,
-    select,
+    input:not(.base-text-input),
+    select:not(.base-select),
     textarea {
       @apply min-h-11 px-3 py-3;
     }

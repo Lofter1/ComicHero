@@ -4,6 +4,7 @@ import ComicListView from '@/features/comics/components/ComicListView.vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
 import FavoriteToggle from '@/shared/components/feedback/FavoriteToggle.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 defineProps({
   selectedArc: {
@@ -45,15 +46,14 @@ defineEmits([
 <template>
   <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
-      <button
+      <BaseButton
         v-if="selectedArc && canDelete"
-        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
-        type="button"
+        variant="danger"
         :disabled="deleting"
         @click="$emit('delete')"
       >
         {{ deleting ? 'Deleting...' : 'Delete arc' }}
-      </button>
+      </BaseButton>
       <FavoriteToggle
         v-if="selectedArc && !readOnly"
         class="detail-favorite-toggle self-center"
@@ -61,20 +61,14 @@ defineEmits([
         :disabled="quickSavingArcId === selectedArc.id"
         @toggle="$emit('toggle-favorite', selectedArc)"
       />
-      <button
+      <BaseButton
         v-if="selectedArc && !readOnly"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5"
-        :class="
-          selectedArc.startedAt
-            ? 'secondary-button bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]'
-            : 'primary-button border-primary bg-primary text-white'
-        "
-        type="button"
+        :variant="selectedArc.startedAt ? 'secondary' : 'primary'"
         :disabled="startSaving"
         @click="$emit('toggle-started')"
       >
         {{ startSaving ? 'Saving...' : selectedArc.startedAt ? 'Stop reading' : 'Start reading' }}
-      </button>
+      </BaseButton>
     </DetailNavigation>
 
     <article

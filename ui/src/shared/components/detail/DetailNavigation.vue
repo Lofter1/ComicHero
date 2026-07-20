@@ -113,6 +113,7 @@ onBeforeUnmount(() => {
     ref="navigation"
     class="detail-nav sticky-toolbar relative sticky [top:var(--sticky-toolbar-top)] z-20 [margin-inline:calc(var(--sticky-toolbar-inline-offset)_*_-1)] [padding:14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:[margin-top:calc(var(--content-padding)_*_-1)] max-w-none flex flex-nowrap items-center justify-between gap-2.5 [&_>_*]:min-w-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:[margin-top:calc(var(--content-padding)_*_-1)]"
   >
+    <!-- Native button: measurement logic requires direct access to this DOM element's width. -->
     <button
       ref="backButton"
       class="secondary-button flex-none min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
@@ -122,6 +123,7 @@ onBeforeUnmount(() => {
       Back
     </button>
     <div ref="actionRoot" class="detail-nav-action-root relative ml-auto flex-none">
+      <!-- Native button: this trigger is part of the measured overflow-navigation structure. -->
       <button
         v-if="actionsCollapsed"
         class="secondary-button inline-flex size-11 min-h-10 items-center justify-center border rounded bg-primary-soft text-control p-0 [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
@@ -136,7 +138,7 @@ onBeforeUnmount(() => {
       <div
         v-show="!actionsCollapsed || actionsOpen"
         ref="actionList"
-        class="detail-nav-actions gap-2.5 [&_>_button]:min-w-0 [&_>_button]:whitespace-normal [&_>_*]:min-w-0"
+        class="detail-nav-actions gap-2.5 [&_>_button]:min-w-0 [&_>_*]:min-w-0"
         :class="
           actionsCollapsed
             ? 'absolute [z-index:26] [top:calc(100%_+_8px)] right-0 grid items-stretch [width:max-content] [min-width:210px] [max-width:calc(100vw_-_24px)] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&_>_button]:w-full'

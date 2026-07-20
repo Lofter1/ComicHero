@@ -4,6 +4,7 @@ import MarkdownIt from 'markdown-it'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 import {
   formatProgress,
   formatRating,
@@ -78,54 +79,37 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
 <template>
   <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
-      <button
+      <BaseButton
         v-if="selectedOrder && !readOnly && !selectedOrder.startedAt"
-        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-        type="button"
+        variant="primary"
         :disabled="startSaving"
         @click="$emit('start')"
       >
         {{ startSaving ? 'Starting...' : 'Start reading order' }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="selectedOrder && !readOnly && selectedOrder.startedAt"
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
         :disabled="startSaving"
         @click="$emit('stop')"
       >
         {{ startSaving ? 'Stopping...' : 'Stop reading' }}
-      </button>
-      <button
-        v-if="selectedOrder?.canEdit"
-        class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-        type="button"
-        @click="$emit('edit')"
-      >
+      </BaseButton>
+      <BaseButton v-if="selectedOrder?.canEdit" variant="primary" @click="$emit('edit')">
         Edit
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="
           selectedOrder &&
           !readOnly &&
           selectedOrder.authorUserId &&
           selectedOrder.authorUserId !== currentUserId
         "
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
         :disabled="saving"
         @click="$emit('copy')"
       >
         {{ saving ? 'Copying...' : 'Copy' }}
-      </button>
-      <button
-        v-if="selectedOrder"
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
-        @click="$emit('export-cbl')"
-      >
-        Export CBL
-      </button>
+      </BaseButton>
+      <BaseButton v-if="selectedOrder" @click="$emit('export-cbl')"> Export CBL </BaseButton>
     </DetailNavigation>
 
     <article
@@ -223,6 +207,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             role="group"
             aria-label="Rate reading order"
           >
+            <!-- Native buttons: rating choices are a stateful numeric segmented control. -->
             <button
               v-for="value in ratingValues"
               :key="value"
@@ -235,14 +220,16 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             >
               {{ value }}
             </button>
-            <button
+            <BaseButton
               type="button"
-              class="secondary-button compact-rating-clear w-auto min-h-10 py-2 border rounded text-control px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+              class="w-auto"
+              variant="secondary"
+              size="compact"
               :disabled="ratingSaving || !selectedOrder.myRating"
               @click="emit('rate', 0)"
             >
               Clear
-            </button>
+            </BaseButton>
           </div>
         </section>
 

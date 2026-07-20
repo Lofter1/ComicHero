@@ -1,5 +1,6 @@
 <script setup>
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 defineProps({
   statisticsView: {
@@ -63,14 +64,9 @@ function achievementTimestampLabel(achievement) {
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Progress</p>
             <h3>Reading progress</h3>
           </div>
-          <button
-            class="secondary-button compact-button min-h-9 py-2 px-2.5 border rounded text-control bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-            type="button"
-            :disabled="loading"
-            @click="emit('refresh')"
-          >
+          <BaseButton size="compact" :disabled="loading" @click="emit('refresh')">
             {{ loading ? 'Refreshing...' : 'Refresh' }}
-          </button>
+          </BaseButton>
         </div>
 
         <div

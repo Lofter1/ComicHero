@@ -2,6 +2,9 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseSelect from '@/shared/components/form/BaseSelect.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 const props = defineProps({
   metronComicScan: { type: Object, default: null },
@@ -461,15 +464,17 @@ function selectSettingsTab(tab) {
 <template>
   <section class="browse-view app-settings-view grid gap-5 max-w-content pt-4 min-w-0 w-full">
     <nav
-      class="settings-tabs grid grid-cols-3 gap-1.5 border border-line-strong rounded-lg bg-panel-soft p-1.5 [&_button]:min-w-0 [&_button]:min-h-10 [&_button]:border-0 [&_button]:rounded-[7px] [&_button]:bg-transparent [&_button]:text-label [&_button]:py-2 [&_button]:px-3 [&_button]:font-extrabold [&_button.active]:bg-primary [&_button.active]:text-white"
+      class="settings-tabs grid grid-cols-3 gap-1.5 border border-line-strong rounded-lg bg-panel-soft p-1.5"
       role="tablist"
       aria-label="App settings sections"
     >
+      <!-- Native buttons: these are stateful tabs, not standard form actions. -->
       <button
         v-for="tab in settingsTabs"
         :id="`settings-tab-${tab.value}`"
         :key="tab.value"
         type="button"
+        class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-label py-2 px-3 font-extrabold [&.active]:bg-primary [&.active]:text-white"
         role="tab"
         :class="{ active: activeSettingsTab === tab.value }"
         :aria-selected="activeSettingsTab === tab.value"
@@ -503,12 +508,14 @@ function selectSettingsTab(tab) {
         </div>
 
         <div
-          class="registration-mode-toggle grid grid-cols-2 gap-1 border border-line rounded bg-surface p-1 [&_button]:min-w-0 [&_button]:min-h-10 [&_button]:border-0 [&_button]:rounded-[7px] [&_button]:bg-transparent [&_button]:text-control [&_button]:py-2 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-black [&_button]:leading-tight [&_button]:whitespace-normal [&_button]:break-anywhere [&_button.active]:bg-primary [&_button.active]:[color:var(--primary-ink)]"
+          class="registration-mode-toggle grid grid-cols-2 gap-1 border border-line rounded bg-surface p-1"
           role="group"
           aria-label="Registration mode"
         >
+          <!-- Native buttons: this segmented control has its own selected-state treatment. -->
           <button
             type="button"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
             :class="{ active: registrationMode === 'invite_only' }"
             :disabled="savingRegistrationMode"
             @click="$emit('update-registration-mode', 'invite_only')"
@@ -517,6 +524,7 @@ function selectSettingsTab(tab) {
           </button>
           <button
             type="button"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
             :class="{ active: registrationMode === 'open' }"
             :disabled="savingRegistrationMode"
             @click="$emit('update-registration-mode', 'open')"
@@ -534,7 +542,7 @@ function selectSettingsTab(tab) {
       </div>
 
       <div
-        class="user-invite-panel grid gap-4 content-start border border-line rounded-xl bg-surface-soft p-5 shadow-float [&_>_.primary-button]:mt-auto [&_.primary-button]:justify-self-start [&_.primary-button]:min-h-10 [&_.primary-button]:py-2 [&_.primary-button]:px-3.5"
+        class="user-invite-panel grid gap-4 content-start border border-line rounded-xl bg-surface-soft p-5 shadow-float"
       >
         <div>
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Invites</p>
@@ -547,14 +555,15 @@ function selectSettingsTab(tab) {
             }}
           </p>
         </div>
-        <button
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          type="button"
+        <BaseButton
+          class="mt-auto justify-self-start"
+          variant="primary"
+          size="dense"
           :disabled="generatingInvite"
           @click="$emit('generate-invite')"
         >
           {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
-        </button>
+        </BaseButton>
         <div
           v-if="invite?.token"
           class="invite-token-box grid gap-1 border border-line rounded bg-surface p-3 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_code]:break-anywhere [&_code]:[color:var(--heading)] [&_code]:font-extrabold"
@@ -580,12 +589,14 @@ function selectSettingsTab(tab) {
           </p>
         </div>
         <div
-          class="registration-mode-toggle grid grid-cols-2 gap-1 border border-line rounded bg-surface p-1 [&_button]:min-w-0 [&_button]:min-h-10 [&_button]:border-0 [&_button]:rounded-[7px] [&_button]:bg-transparent [&_button]:text-control [&_button]:py-2 [&_button]:px-2.5 [&_button]:text-sm [&_button]:font-black [&_button]:leading-tight [&_button]:whitespace-normal [&_button]:break-anywhere [&_button.active]:bg-primary [&_button.active]:[color:var(--primary-ink)]"
+          class="registration-mode-toggle grid grid-cols-2 gap-1 border border-line rounded bg-surface p-1"
           role="group"
           aria-label="Public access"
         >
+          <!-- Native buttons: this segmented control has its own selected-state treatment. -->
           <button
             type="button"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
             :class="{ active: !publicAccess }"
             :disabled="savingPublicAccess"
             @click="$emit('update-public-access', false)"
@@ -594,6 +605,7 @@ function selectSettingsTab(tab) {
           </button>
           <button
             type="button"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
             :class="{ active: publicAccess }"
             :disabled="savingPublicAccess"
             @click="$emit('update-public-access', true)"
@@ -663,14 +675,13 @@ function selectSettingsTab(tab) {
             are downloaded.
           </small>
         </div>
-        <button
-          type="button"
-          class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+        <BaseButton
+          variant="neutral"
           :disabled="loadingCblRepositoryFiles || !repositoryText.trim()"
           @click="openCBLFolderPicker"
         >
           {{ loadingCblRepositoryFiles ? 'Loading folders...' : 'Choose folders' }}
-        </button>
+        </BaseButton>
       </div>
 
       <label
@@ -685,14 +696,19 @@ function selectSettingsTab(tab) {
       >
         <label class="metron-scan-field grid gap-2 text-label font-extrabold">
           <span>Schedule</span>
-          <select v-model="cblDraft.schedule" :disabled="!cblDraft.autoSync">
+          <BaseSelect v-model="cblDraft.schedule" size="large" :disabled="!cblDraft.autoSync">
             <option value="daily">Daily</option>
             <option value="weekly">Specific weekdays</option>
-          </select>
+          </BaseSelect>
         </label>
         <label class="metron-scan-field grid gap-2 text-label font-extrabold">
           <span>Start time (server time)</span>
-          <input v-model="cblDraft.startTime" type="time" :disabled="!cblDraft.autoSync" />
+          <BaseTextInput
+            v-model="cblDraft.startTime"
+            size="large"
+            type="time"
+            :disabled="!cblDraft.autoSync"
+          />
         </label>
       </div>
 
@@ -774,29 +790,29 @@ function selectSettingsTab(tab) {
       </div>
 
       <div
-        class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 [&_>_button]:min-h-11 down-mobile:[&_>_button]:w-full"
+        class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 down-mobile:[&_>_button]:w-full"
       >
-        <button
-          type="button"
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+        <BaseButton
+          variant="primary"
+          size="large"
           :disabled="savingCblRepositorySync || !repositoryText.trim()"
           @click="saveCBLRepositorySync"
         >
           {{ savingCblRepositorySync ? 'Saving...' : 'Save settings' }}
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-if="!cblRepositorySync.running"
-          type="button"
-          class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+          variant="neutral"
+          size="large"
           :disabled="savingCblRepositorySync || !cblDraft.enabled || !repositoryText.trim()"
           @click="startCBLRepositorySync"
         >
           {{ savingCblRepositorySync ? 'Saving and starting...' : 'Import now' }}
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-if="!cblRepositorySync.running"
-          type="button"
-          class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+          variant="neutral"
+          size="large"
           :disabled="
             savingCblRepositorySync ||
             loadingCblRepositoryFiles ||
@@ -806,15 +822,15 @@ function selectSettingsTab(tab) {
           @click="openCBLFilePicker"
         >
           {{ loadingCblRepositoryFiles ? 'Loading files...' : 'Choose files' }}
-        </button>
-        <button
+        </BaseButton>
+        <BaseButton
           v-else
-          type="button"
-          class="danger-text-button min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
+          variant="danger-ghost"
+          size="large"
           @click="$emit('stop-cbl-repository-sync')"
         >
           Stop import
-        </button>
+        </BaseButton>
       </div>
 
       <div
@@ -837,28 +853,33 @@ function selectSettingsTab(tab) {
                 Choose one or more folders. Clear the selection to use the entire repository.
               </small>
             </div>
-            <button
-              class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
-              type="button"
+            <BaseButton
+              class="self-end down-mobile:self-stretch down-mobile:w-full"
+              variant="neutral"
+              size="icon"
               aria-label="Close CBL folder picker"
               @click="closeCBLFolderPicker"
             >
               ×
-            </button>
+            </BaseButton>
           </header>
 
           <div
-            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1 [&_input]:w-full [&_input]:min-h-10 down-mobile:[&_input]:[grid-column:auto]"
+            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1"
           >
-            <input v-model="cblFolderSearch" type="search" placeholder="Search folders..." />
-            <button
-              type="button"
-              class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+            <BaseTextInput
+              v-model="cblFolderSearch"
+              class="down-mobile:[grid-column:auto]"
+              type="search"
+              placeholder="Search folders..."
+            />
+            <BaseButton
+              variant="neutral"
               :disabled="!selectedCBLFolderKeys.size"
               @click="clearSelectedCBLFolders"
             >
               Use all folders
-            </button>
+            </BaseButton>
           </div>
 
           <LoadingState v-if="loadingCblRepositoryFiles" compact />
@@ -870,7 +891,7 @@ function selectSettingsTab(tab) {
           </p>
           <div
             v-else
-            class="cbl-file-picker-list min-h-0 overflow-auto grid content-start py-1.5 px-4 [&_>_div]:min-w-0 [&_>_div]:flex [&_>_div]:items-center [&_>_div]:gap-2.5 [&_>_div]:border-b [&_>_div]:border-line [&_>_div]:py-2.5 [&_>_div]:px-0.5 [&_>_div_>_label]:min-w-0 [&_>_div_>_label]:flex-auto [&_>_div_>_label]:flex [&_>_div_>_label]:items-start [&_>_div_>_label]:gap-2.5 [&_>_div_>_label]:cursor-pointer [&_>_div:last-of-type]:border-b-0 [&_input]:mt-1 down-mobile:[&_>_div]:items-stretch down-mobile:[&_>_div]:flex-col"
+            class="cbl-file-picker-list min-h-0 overflow-auto grid content-start py-1.5 px-4 [&_>_div]:min-w-0 [&_>_div]:flex [&_>_div]:items-center [&_>_div]:gap-2.5 [&_>_div]:border-b [&_>_div]:border-line [&_>_div]:py-2.5 [&_>_div]:px-0.5 [&_>_div_>_label]:min-w-0 [&_>_div_>_label]:flex-auto [&_>_div_>_label]:flex [&_>_div_>_label]:items-start [&_>_div_>_label]:gap-2.5 [&_>_div_>_label]:cursor-pointer [&_>_div:last-of-type]:border-b-0 down-mobile:[&_>_div]:items-stretch down-mobile:[&_>_div]:flex-col"
           >
             <div
               v-for="folder in visibleCBLRepositoryFolders"
@@ -879,6 +900,7 @@ function selectSettingsTab(tab) {
             >
               <label>
                 <input
+                  class="mt-1"
                   type="checkbox"
                   :checked="selectedCBLFolderKeys.has(cblFolderKey(folder))"
                   @change="toggleCBLFolder(folder, $event.target.checked)"
@@ -892,15 +914,15 @@ function selectSettingsTab(tab) {
                 </span>
               </label>
             </div>
-            <button
+            <BaseButton
               v-if="remainingCBLRepositoryFolderCount"
-              type="button"
-              class="secondary-button cbl-file-picker-more justify-self-center grid gap-0.5 [min-width:min(280px,_100%)] my-3 mx-2 min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs"
+              class="justify-self-center [min-width:min(280px,_100%)] my-3 mx-2"
+              variant="secondary-stacked"
               @click="showMoreCBLRepositoryFolders"
             >
               Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFolderCount) }} more
               <small>{{ remainingCBLRepositoryFolderCount }} matches not shown</small>
-            </button>
+            </BaseButton>
           </div>
 
           <footer
@@ -913,21 +935,14 @@ function selectSettingsTab(tab) {
                   : 'Entire repositories selected'
               }}
             </span>
-            <button
-              type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-              @click="closeCBLFolderPicker"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+            <BaseButton variant="secondary" @click="closeCBLFolderPicker"> Cancel </BaseButton>
+            <BaseButton
+              variant="primary"
               :disabled="loadingCblRepositoryFiles"
               @click="applySelectedCBLRepositoryFolders"
             >
               Apply scope
-            </button>
+            </BaseButton>
           </footer>
         </section>
       </div>
@@ -952,28 +967,33 @@ function selectSettingsTab(tab) {
                 >Select one part on its own, or use “Select all parts” for the full list.</small
               >
             </div>
-            <button
-              class="icon-button min-h-10 border border-line-strong rounded bg-surface text-control self-end py-0 px-3 down-mobile:self-stretch down-mobile:w-full"
-              type="button"
+            <BaseButton
+              class="self-end down-mobile:self-stretch down-mobile:w-full"
+              variant="neutral"
+              size="icon"
               aria-label="Close CBL file picker"
               @click="closeCBLFilePicker"
             >
               ×
-            </button>
+            </BaseButton>
           </header>
 
           <div
-            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1 [&_input]:w-full [&_input]:min-h-10 down-mobile:[&_input]:[grid-column:auto]"
+            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1"
           >
-            <input v-model="cblFileSearch" type="search" placeholder="Search paths..." />
-            <button
-              type="button"
-              class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+            <BaseTextInput
+              v-model="cblFileSearch"
+              class="down-mobile:[grid-column:auto]"
+              type="search"
+              placeholder="Search paths..."
+            />
+            <BaseButton
+              variant="neutral"
               :disabled="!selectedCBLFileKeys.size"
               @click="clearSelectedCBLFiles"
             >
               Clear
-            </button>
+            </BaseButton>
           </div>
 
           <LoadingState v-if="loadingCblRepositoryFiles" compact />
@@ -982,7 +1002,7 @@ function selectSettingsTab(tab) {
           </p>
           <div
             v-else
-            class="cbl-file-picker-list min-h-0 overflow-auto grid content-start py-1.5 px-4 [&_>_div]:min-w-0 [&_>_div]:flex [&_>_div]:items-center [&_>_div]:gap-2.5 [&_>_div]:border-b [&_>_div]:border-line [&_>_div]:py-2.5 [&_>_div]:px-0.5 [&_>_div_>_label]:min-w-0 [&_>_div_>_label]:flex-auto [&_>_div_>_label]:flex [&_>_div_>_label]:items-start [&_>_div_>_label]:gap-2.5 [&_>_div_>_label]:cursor-pointer [&_>_div:last-of-type]:border-b-0 [&_input]:mt-1 down-mobile:[&_>_div]:items-stretch down-mobile:[&_>_div]:flex-col"
+            class="cbl-file-picker-list min-h-0 overflow-auto grid content-start py-1.5 px-4 [&_>_div]:min-w-0 [&_>_div]:flex [&_>_div]:items-center [&_>_div]:gap-2.5 [&_>_div]:border-b [&_>_div]:border-line [&_>_div]:py-2.5 [&_>_div]:px-0.5 [&_>_div_>_label]:min-w-0 [&_>_div_>_label]:flex-auto [&_>_div_>_label]:flex [&_>_div_>_label]:items-start [&_>_div_>_label]:gap-2.5 [&_>_div_>_label]:cursor-pointer [&_>_div:last-of-type]:border-b-0 down-mobile:[&_>_div]:items-stretch down-mobile:[&_>_div]:flex-col"
           >
             <div
               v-for="file in visibleCBLRepositoryFiles"
@@ -994,6 +1014,7 @@ function selectSettingsTab(tab) {
             >
               <label>
                 <input
+                  class="mt-1"
                   type="checkbox"
                   :checked="selectedCBLFileKeys.has(cblFileKey(file))"
                   @change="toggleCBLFile(file, $event.target.checked)"
@@ -1008,6 +1029,7 @@ function selectSettingsTab(tab) {
                   </small>
                 </span>
               </label>
+              <!-- Native button: multipart selection is an inline text command, not a form action. -->
               <button
                 v-if="file.multipartGroup"
                 type="button"
@@ -1022,36 +1044,29 @@ function selectSettingsTab(tab) {
                 }}
               </button>
             </div>
-            <button
+            <BaseButton
               v-if="remainingCBLRepositoryFileCount"
-              type="button"
-              class="secondary-button cbl-file-picker-more justify-self-center grid gap-0.5 [min-width:min(280px,_100%)] my-3 mx-2 min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] [&_small]:text-muted [&_small]:text-xs"
+              class="justify-self-center [min-width:min(280px,_100%)] my-3 mx-2"
+              variant="secondary-stacked"
               @click="showMoreCBLRepositoryFiles"
             >
               Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFileCount) }} more
               <small>{{ remainingCBLRepositoryFileCount }} matches not shown</small>
-            </button>
+            </BaseButton>
           </div>
 
           <footer
             class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center gap-3 py-3.5 px-4"
           >
             <span>{{ selectedCBLRepositoryFiles.length }} files selected</span>
-            <button
-              type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-              @click="closeCBLFilePicker"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+            <BaseButton variant="secondary" @click="closeCBLFilePicker"> Cancel </BaseButton>
+            <BaseButton
+              variant="primary"
               :disabled="!selectedCBLRepositoryFiles.length || savingCblRepositorySync"
               @click="startSelectedCBLRepositoryFiles"
             >
               Import selected
-            </button>
+            </BaseButton>
           </footer>
         </section>
       </div>
@@ -1087,6 +1102,7 @@ function selectSettingsTab(tab) {
           <div
             class="cbl-metron-candidate-list min-h-0 overflow-auto grid content-start gap-2.5 p-4"
           >
+            <!-- Native button: each result row is a full-card selection target. -->
             <button
               v-for="candidate in cblRepositorySync.pendingResolution.candidates"
               :key="candidate.id"
@@ -1121,13 +1137,9 @@ function selectSettingsTab(tab) {
             class="cbl-file-picker-actions justify-end border-t border-line down-mobile:items-stretch down-mobile:flex-col flex items-center gap-3 py-3.5 px-4"
           >
             <span>Select the issue that should be added to this reading order.</span>
-            <button
-              type="button"
-              class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-              @click="chooseCBLMetronIssue(0)"
-            >
+            <BaseButton variant="secondary" @click="chooseCBLMetronIssue(0)">
               Use CBL data only
-            </button>
+            </BaseButton>
           </footer>
         </section>
       </div>
@@ -1185,20 +1197,21 @@ function selectSettingsTab(tab) {
         >
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Schedule</span>
-            <select v-model="discoveryDraft.schedule">
+            <BaseSelect v-model="discoveryDraft.schedule" size="large">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
-            </select>
+            </BaseSelect>
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Start time (server time)</span>
-            <input v-model="discoveryDraft.startTime" type="time" />
+            <BaseTextInput v-model="discoveryDraft.startTime" size="large" type="time" />
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Publisher name filter</span>
-            <input
+            <BaseTextInput
               v-model="discoveryDraft.publisherName"
+              size="large"
               type="text"
               placeholder="All publishers"
               :disabled="!discoveryDraft.pullComics"
@@ -1206,8 +1219,9 @@ function selectSettingsTab(tab) {
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Series name filter</span>
-            <input
+            <BaseTextInput
               v-model="discoveryDraft.seriesName"
+              size="large"
               type="text"
               placeholder="All series"
               :disabled="!discoveryDraft.pullComics"
@@ -1218,7 +1232,13 @@ function selectSettingsTab(tab) {
             class="metron-scan-field grid gap-2 text-label font-extrabold"
           >
             <span>Day of month</span>
-            <input v-model.number="discoveryDraft.monthDay" type="number" min="1" max="31" />
+            <BaseTextInput
+              v-model.number="discoveryDraft.monthDay"
+              size="large"
+              type="number"
+              min="1"
+              max="31"
+            />
           </label>
         </div>
 
@@ -1262,22 +1282,22 @@ function selectSettingsTab(tab) {
           </p>
         </div>
         <div
-          class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 [&_>_button]:min-h-11 down-mobile:[&_>_button]:w-full"
+          class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 down-mobile:[&_>_button]:w-full"
         >
-          <button
-            type="button"
-            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+          <BaseButton
+            variant="primary"
+            size="large"
             :disabled="
               savingDiscovery || (!discoveryDraft.pullComics && !discoveryDraft.pullReadingLists)
             "
             @click="saveDiscovery"
           >
             {{ savingDiscovery ? 'Saving...' : 'Save settings' }}
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
             v-if="!metronComicDiscovery.running"
-            type="button"
-            class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+            variant="neutral"
+            size="large"
             :disabled="
               savingDiscovery ||
               !discoveryDraft.enabled ||
@@ -1286,15 +1306,10 @@ function selectSettingsTab(tab) {
             @click="startComicDiscovery"
           >
             {{ savingDiscovery ? 'Saving and starting...' : 'Pull now' }}
-          </button>
-          <button
-            v-else
-            type="button"
-            class="danger-text-button min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
-            @click="$emit('stop-discovery')"
-          >
+          </BaseButton>
+          <BaseButton v-else variant="danger-ghost" size="large" @click="$emit('stop-discovery')">
             Stop pull
-          </button>
+          </BaseButton>
         </div>
       </section>
 
@@ -1348,26 +1363,44 @@ function selectSettingsTab(tab) {
         >
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Schedule</span>
-            <select v-model="draft.schedule">
+            <BaseSelect v-model="draft.schedule" size="large">
               <option value="daily">Daily</option>
               <option value="weekly">Specific weekdays</option>
-            </select>
+            </BaseSelect>
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Start time (server time)</span>
-            <input v-model="draft.startTime" type="time" />
+            <BaseTextInput v-model="draft.startTime" size="large" type="time" />
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Calls per day</span>
-            <input v-model.number="draft.dailyCallLimit" min="1" step="1" type="number" />
+            <BaseTextInput
+              v-model.number="draft.dailyCallLimit"
+              size="large"
+              min="1"
+              step="1"
+              type="number"
+            />
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Minimum Metron interval (seconds)</span>
-            <input v-model.number="draft.minIntervalSeconds" min="0" step="1" type="number" />
+            <BaseTextInput
+              v-model.number="draft.minIntervalSeconds"
+              size="large"
+              min="0"
+              step="1"
+              type="number"
+            />
           </label>
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Re-check cooldown (days)</span>
-            <input v-model.number="draft.recheckCooldownDays" min="0" step="1" type="number" />
+            <BaseTextInput
+              v-model.number="draft.recheckCooldownDays"
+              size="large"
+              min="0"
+              step="1"
+              type="number"
+            />
           </label>
         </div>
         <p class="muted metron-scan-hint block text-muted">
@@ -1420,33 +1453,28 @@ function selectSettingsTab(tab) {
         </p>
 
         <div
-          class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 [&_>_button]:min-h-11 down-mobile:[&_>_button]:w-full"
+          class="metron-scan-actions flex items-center flex-wrap gap-2.5 down-mobile:items-stretch down-mobile:flex-col [&_>_button]:w-40 down-mobile:[&_>_button]:w-full"
         >
-          <button
-            type="button"
-            class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
+          <BaseButton
+            variant="primary"
+            size="large"
             :disabled="saving || !(draft.incompleteFields || []).length"
             @click="save"
           >
             {{ saving ? 'Saving...' : 'Save settings' }}
-          </button>
-          <button
+          </BaseButton>
+          <BaseButton
             v-if="!metronComicScan.running"
-            type="button"
-            class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
+            variant="neutral"
+            size="large"
             :disabled="saving || !draft.enabled || !(draft.incompleteFields || []).length"
             @click="startComicScan"
           >
             {{ saving ? 'Saving and starting...' : 'Scan now' }}
-          </button>
-          <button
-            v-else
-            type="button"
-            class="danger-text-button min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
-            @click="$emit('stop')"
-          >
+          </BaseButton>
+          <BaseButton v-else variant="danger-ghost" size="large" @click="$emit('stop')">
             Stop scan
-          </button>
+          </BaseButton>
         </div>
       </section>
       <LoadingState v-else />
@@ -1457,10 +1485,6 @@ function selectSettingsTab(tab) {
 <style scoped>
 .metron-scan-field :is(input, select, textarea) {
   @apply w-full;
-}
-
-.metron-scan-field :is(input, select) {
-  @apply h-11 min-h-11 py-0 leading-tight;
 }
 
 .cbl-repository-list-field textarea {

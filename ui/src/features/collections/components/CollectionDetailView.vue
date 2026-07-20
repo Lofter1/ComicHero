@@ -5,6 +5,7 @@ import ComicListView from '@/features/comics/components/ComicListView.vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
 import CharacterPickerDialog from './CharacterPickerDialog.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 defineProps({
   collection: { type: Object, default: null },
@@ -34,28 +35,17 @@ function monogram(name) {
 <template>
   <div class="detail-view grid gap-4 w-full">
     <DetailNavigation @back="$emit('back')">
-      <button
+      <BaseButton
         v-if="collection"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5"
-        :class="
-          collection.startedAt
-            ? 'secondary-button bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]'
-            : 'primary-button border-primary bg-primary text-white'
-        "
-        type="button"
+        :variant="collection.startedAt ? 'secondary' : 'primary'"
         :disabled="startSaving"
         @click="$emit('toggle-started')"
       >
         {{ startSaving ? 'Saving...' : collection.startedAt ? 'Stop reading' : 'Start reading' }}
-      </button>
-      <button
-        class="danger-button min-h-10 border rounded py-2.5 px-3.5 [border-color:color-mix(in_srgb,_var(--danger)_42%,_var(--line-strong))] bg-danger-soft text-danger"
-        type="button"
-        :disabled="saving"
-        @click="$emit('delete')"
-      >
+      </BaseButton>
+      <BaseButton variant="danger" :disabled="saving" @click="$emit('delete')">
         {{ saving ? 'Saving...' : 'Delete collection' }}
-      </button>
+      </BaseButton>
     </DetailNavigation>
 
     <article
@@ -118,19 +108,14 @@ function monogram(name) {
               <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Members</p>
               <h3>Characters</h3>
             </div>
-            <button
-              class="secondary-button icon-text-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))] inline-flex items-center justify-center gap-2"
-              type="button"
-              :disabled="saving"
-              @click="pickerOpen = true"
-            >
+            <BaseButton :disabled="saving" @click="pickerOpen = true">
               <span
                 class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
                 aria-hidden="true"
                 >+</span
               >
               Add character
-            </button>
+            </BaseButton>
           </header>
           <div
             v-if="collection.characters?.length"
@@ -141,6 +126,7 @@ function monogram(name) {
               :key="character.id"
               class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
             >
+              <!-- Native button: the member body is a full-row navigation target. -->
               <button
                 type="button"
                 class="collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-1 [&_small]:text-muted"
@@ -163,14 +149,14 @@ function monogram(name) {
                   <small>{{ character.appearanceCount }} appearances</small>
                 </span>
               </button>
-              <button
-                class="danger-text-button collection-member-remove flex-none min-h-10 border border-danger-border rounded bg-surface text-danger py-2 px-3 font-black [&:hover:not(:disabled)]:border-danger-border [&:hover:not(:disabled)]:bg-danger-soft focus-visible:border-danger-border focus-visible:bg-danger-soft"
-                type="button"
+              <BaseButton
+                class="flex-none"
+                variant="danger-ghost"
                 :disabled="saving"
                 @click="$emit('remove-character', character)"
               >
                 Remove
-              </button>
+              </BaseButton>
             </div>
           </div>
           <div

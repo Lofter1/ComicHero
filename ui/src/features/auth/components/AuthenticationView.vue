@@ -1,6 +1,8 @@
 <script setup>
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 
 defineProps({
   loading: Boolean,
@@ -59,18 +61,18 @@ defineEmits([
       </div>
 
       <fieldset
-        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:[grid-template-columns:auto_minmax(0,_1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_input]:mt-1 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
+        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:[grid-template-columns:auto_minmax(0,_1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
       >
         <legend>User environment</legend>
         <label>
-          <input v-model="setupForm.mode" type="radio" value="single" />
+          <input v-model="setupForm.mode" class="mt-1" type="radio" value="single" />
           <span>
             <strong>Single user</strong>
             <small>No login. Existing read status stays with the default user.</small>
           </span>
         </label>
         <label>
-          <input v-model="setupForm.mode" type="radio" value="multi" />
+          <input v-model="setupForm.mode" class="mt-1" type="radio" value="multi" />
           <span>
             <strong>Multi user</strong>
             <small>Register and log in. Existing read status becomes the first account.</small>
@@ -80,19 +82,24 @@ defineEmits([
 
       <div
         v-if="setupForm.mode === 'multi'"
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label>
           <span>Name</span>
-          <input v-model.trim="setupForm.name" type="text" autocomplete="name" required />
+          <BaseTextInput v-model.trim="setupForm.name" type="text" autocomplete="name" required />
         </label>
         <label>
           <span>Email</span>
-          <input v-model.trim="setupForm.email" type="email" autocomplete="email" required />
+          <BaseTextInput
+            v-model.trim="setupForm.email"
+            type="email"
+            autocomplete="email"
+            required
+          />
         </label>
         <label>
           <span>Password</span>
-          <input
+          <BaseTextInput
             v-model="setupForm.password"
             type="password"
             autocomplete="new-password"
@@ -104,13 +111,9 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{ saving ? 'Saving...' : 'Continue' }}
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -129,11 +132,11 @@ defineEmits([
       </div>
 
       <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label>
           <span>Verification token</span>
-          <input
+          <BaseTextInput
             v-model.trim="verificationForm.token"
             type="text"
             autocomplete="one-time-code"
@@ -142,7 +145,7 @@ defineEmits([
         </label>
         <label>
           <span>Password</span>
-          <input
+          <BaseTextInput
             v-model="verificationForm.password"
             type="password"
             autocomplete="current-password"
@@ -153,21 +156,12 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{ saving ? 'Verifying...' : 'Verify email' }}
-      </button>
-      <button
-        class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-        type="button"
-        :disabled="saving"
-        @click="$emit('resend-verification')"
-      >
+      </BaseButton>
+      <BaseButton variant="neutral" :disabled="saving" @click="$emit('resend-verification')">
         Resend email
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -190,11 +184,11 @@ defineEmits([
       </div>
 
       <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label v-if="!passwordResetForm.requested">
           <span>Email</span>
-          <input
+          <BaseTextInput
             v-model.trim="passwordResetForm.email"
             type="email"
             autocomplete="email"
@@ -204,7 +198,7 @@ defineEmits([
         <template v-else>
           <label>
             <span>Reset token</span>
-            <input
+            <BaseTextInput
               v-model.trim="passwordResetForm.token"
               type="text"
               autocomplete="one-time-code"
@@ -213,7 +207,7 @@ defineEmits([
           </label>
           <label>
             <span>New password</span>
-            <input
+            <BaseTextInput
               v-model="passwordResetForm.password"
               type="password"
               autocomplete="new-password"
@@ -223,7 +217,7 @@ defineEmits([
           </label>
           <label>
             <span>Confirm new password</span>
-            <input
+            <BaseTextInput
               v-model="passwordResetForm.passwordConfirmation"
               type="password"
               autocomplete="new-password"
@@ -236,11 +230,7 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{
           saving
             ? 'Working...'
@@ -248,15 +238,10 @@ defineEmits([
               ? 'Reset password'
               : 'Send reset email'
         }}
-      </button>
-      <button
-        class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-        type="button"
-        :disabled="saving"
-        @click="$emit('show-login')"
-      >
+      </BaseButton>
+      <BaseButton variant="neutral" :disabled="saving" @click="$emit('show-login')">
         Back to login
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -270,15 +255,18 @@ defineEmits([
         <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
       </div>
 
-      <div
-        class="auth-tabs grid grid-cols-2 gap-2 [&_button]:min-h-10 [&_button]:border [&_button]:border-line-strong [&_button]:rounded [&_button]:bg-surface [&_button]:text-control [&_button]:py-2.5 [&_button]:px-3.5 [&_button]:font-extrabold [&_button.active]:border-primary [&_button.active]:bg-primary [&_button.active]:text-white"
-        role="group"
-        aria-label="Authentication mode"
-      >
-        <button type="button" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">
+      <div class="auth-tabs grid grid-cols-2 gap-2" role="group" aria-label="Authentication mode">
+        <!-- Native buttons: authentication modes are a stateful segmented control. -->
+        <button
+          class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+          type="button"
+          :class="{ active: authMode === 'login' }"
+          @click="authMode = 'login'"
+        >
           Log in
         </button>
         <button
+          class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
           type="button"
           :class="{ active: authMode === 'register' }"
           @click="authMode = 'register'"
@@ -288,19 +276,19 @@ defineEmits([
       </div>
 
       <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold [&_input]:min-h-10 [&_input]:border [&_input]:border-line-strong [&_input]:rounded [&_input]:bg-surface [&_input]:text-ink [&_input]:py-2.5 [&_input]:px-3"
+        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
       >
         <label v-if="authMode === 'register'">
           <span>Name</span>
-          <input v-model.trim="authForm.name" type="text" autocomplete="name" required />
+          <BaseTextInput v-model.trim="authForm.name" type="text" autocomplete="name" required />
         </label>
         <label>
           <span>Email</span>
-          <input v-model.trim="authForm.email" type="email" autocomplete="email" required />
+          <BaseTextInput v-model.trim="authForm.email" type="email" autocomplete="email" required />
         </label>
         <label v-if="authMode === 'register'">
           <span>Confirm email</span>
-          <input
+          <BaseTextInput
             v-model.trim="authForm.emailConfirmation"
             type="email"
             autocomplete="email"
@@ -309,7 +297,7 @@ defineEmits([
         </label>
         <label>
           <span>Password</span>
-          <input
+          <BaseTextInput
             v-model="authForm.password"
             type="password"
             :autocomplete="authMode === 'register' ? 'new-password' : 'current-password'"
@@ -319,7 +307,7 @@ defineEmits([
         </label>
         <label v-if="authMode === 'register'">
           <span>Confirm password</span>
-          <input
+          <BaseTextInput
             v-model="authForm.passwordConfirmation"
             type="password"
             autocomplete="new-password"
@@ -329,7 +317,7 @@ defineEmits([
         </label>
         <label v-if="authMode === 'register' && registrationMode === 'invite_only'">
           <span>Invite token</span>
-          <input
+          <BaseTextInput
             v-model.trim="authForm.inviteToken"
             type="text"
             autocomplete="one-time-code"
@@ -340,22 +328,17 @@ defineEmits([
 
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
 
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
-        type="submit"
-        :disabled="saving"
-      >
+      <BaseButton variant="primary-strong" type="submit" :disabled="saving">
         {{ saving ? 'Working...' : authMode === 'register' ? 'Register' : 'Log in' }}
-      </button>
-      <button
+      </BaseButton>
+      <BaseButton
         v-if="authMode === 'login'"
-        class="secondary-action min-h-10 border border-line-strong rounded bg-surface text-control py-2 px-3 font-extrabold [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary-soft focus-visible:border-primary focus-visible:bg-primary-soft"
-        type="button"
+        variant="neutral"
         :disabled="saving"
         @click="$emit('show-forgot-password')"
       >
         Forgot password?
-      </button>
+      </BaseButton>
     </form>
   </main>
 
@@ -368,14 +351,9 @@ defineEmits([
         <h1>Could not load user setup</h1>
       </div>
       <ErrorToast :message="error" @dismiss="$emit('clear-error')" />
-      <button
-        class="primary-action min-h-10 border rounded py-2.5 px-3.5 font-extrabold border-primary bg-primary text-white"
-        type="button"
-        :disabled="loading"
-        @click="$emit('retry')"
-      >
+      <BaseButton variant="primary-strong" :disabled="loading" @click="$emit('retry')">
         Retry
-      </button>
+      </BaseButton>
     </section>
   </main>
 </template>

@@ -54,6 +54,7 @@ defineEmits(['open', 'toggle-favorite'])
     :class="{ selected }"
   >
     <span class="row-heading flex w-full min-w-0 items-start justify-between gap-3">
+      <!-- Native button: the entity body is a full-row navigation target. -->
       <button
         class="row-main min-w-0 flex-auto border-0 bg-transparent p-0 text-left text-inherit"
         :class="mainClass"
