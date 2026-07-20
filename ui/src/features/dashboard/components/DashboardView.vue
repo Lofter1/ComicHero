@@ -23,7 +23,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['refresh', 'open-comic', 'mark-read', 'mark-skipped'])
+defineEmits(['open-comic', 'mark-read', 'mark-skipped'])
 
 const items = computed(() => props.dashboard?.items || [])
 const recentAchievement = computed(() => props.dashboard?.achievements?.recent || null)
@@ -50,21 +50,13 @@ function achievementProgress(achievement) {
       <div>
         <h2>Continue reading</h2>
       </div>
-      <button
-        class="secondary-button min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
-        type="button"
-        :disabled="loading"
-        @click="$emit('refresh')"
-      >
-        {{ loading ? 'Refreshing...' : 'Refresh' }}
-      </button>
     </header>
 
     <LoadingState v-if="loading && !dashboard" />
 
     <div
       v-else-if="items.length"
-      class="dashboard-grid grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-mobile:grid-cols-1"
+      class="dashboard-grid grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-phone:!grid-cols-1 down-mobile:!grid-cols-1"
     >
       <article
         v-for="item in items"
