@@ -280,13 +280,13 @@ function seriesLabel(comic) {
         >
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Characters</p>
           <div
-            class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
+            class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,var(--primary)_32%,var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
           >
             <!-- Native buttons: character chips use pill-shaped navigation styling. -->
             <button
               v-for="character in selectedComic.characters"
               :key="character.id"
-              class="min-h-8 [border:1px_solid_color-mix(in_srgb,_var(--primary)_32%,_var(--line-strong))] rounded-full bg-primary-soft text-primary-strong py-1 px-2.5 text-sm font-extrabold cursor-pointer"
+              class="min-h-8 [border:1px_solid_color-mix(in_srgb,var(--primary)_32%,var(--line-strong))] rounded-full bg-primary-soft text-primary-strong py-1 px-2.5 text-sm font-extrabold cursor-pointer"
               type="button"
               @click="$emit('open-character', character)"
             >

@@ -12,7 +12,7 @@ defineEmits(['dismiss'])
 <template>
   <div
     v-if="message"
-    class="toast error-toast fixed right-6 bottom-6 [z-index:50] flex items-start gap-3 [width:min(420px,_calc(100vw_-_32px))] border border-danger-border rounded bg-danger-soft text-danger shadow-monitor py-3 px-3.5 [&_span]:flex-auto [&_span]:min-w-0 [&_span]:break-anywhere"
+    class="toast error-toast fixed right-6 bottom-6 z-50 flex items-start gap-3 w-[min(420px,calc(100vw-32px))] border border-danger-border rounded bg-danger-soft text-danger shadow-monitor py-3 px-3.5 [&_span]:flex-auto [&_span]:min-w-0 [&_span]:break-anywhere"
     role="alert"
     aria-live="assertive"
   >

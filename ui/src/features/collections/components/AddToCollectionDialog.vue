@@ -31,7 +31,7 @@ function monogram(name) {
     @click.self="$emit('close')"
   >
     <section
-      class="collection-dialog [width:min(620px,_calc(100%_-_28px))] [max-height:min(720px,_calc(100dvh_-_28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
+      class="collection-dialog w-[min(620px,calc(100%-28px))] max-h-[min(720px,calc(100dvh-28px))] overflow-auto border border-line-strong rounded-xl bg-panel p-5 shadow-elevated [&_>_.panel-header]:items-start [&_>_.panel-header]:mb-4 [&_>_.panel-header]:pb-3.5 [&_>_.panel-header]:border-b [&_>_.panel-header]:border-line [&_>_.panel-header_h3]:mt-1 [&_>_.panel-header_h3]:mx-0 [&_>_.panel-header_h3]:mb-0"
       role="dialog"
       aria-modal="true"
       aria-labelledby="add-to-collection-title"
@@ -72,7 +72,7 @@ function monogram(name) {
           @click="emit('add', collection)"
         >
           <span
-            class="collection-dialog-item-main grid [grid-template-columns:38px_minmax(0,_1fr)] items-center gap-2.5 min-w-0"
+            class="collection-dialog-item-main grid grid-cols-[38px_minmax(0,1fr)] items-center gap-2.5 min-w-0"
           >
             <span
               class="collection-dialog-monogram bg-primary-soft grid place-items-center w-10 h-10 overflow-hidden border border-line-strong rounded-md text-primary-strong font-black"
@@ -97,7 +97,7 @@ function monogram(name) {
       </p>
 
       <form
-        class="collection-create-form grid gap-2 mt-4 pt-4 border-t border-line [&_>_label]:text-label [&_>_label]:text-sm [&_>_label]:font-extrabold [&_>_div]:grid [&_>_div]:[grid-template-columns:minmax(0,_1fr)_max-content] [&_>_div]:gap-2.5 down-compact:[&_>_div]:grid-cols-1"
+        class="collection-create-form grid gap-2 mt-4 pt-4 border-t border-line [&_>_label]:text-label [&_>_label]:text-sm [&_>_label]:font-extrabold [&_>_div]:grid [&_>_div]:grid-cols-[minmax(0,1fr)_max-content] [&_>_div]:gap-2.5 down-compact:[&_>_div]:grid-cols-1"
         @submit.prevent="createCollection"
       >
         <label for="new-character-collection">Create a new collection</label>

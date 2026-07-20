@@ -25,7 +25,7 @@ const DATA_OPTIONS = [
     class="metron-import-options inline-flex items-center gap-3 justify-self-start w-fit max-w-full flex-wrap border border-line-strong rounded bg-surface-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col"
   >
     <div
-      class="metron-modes compact inline-grid grid-cols-2 gap-1.5 [width:min(260px,_100%)] down-mobile:w-full"
+      class="metron-modes compact inline-grid grid-cols-2 gap-1.5 w-[min(260px,100%)] down-mobile:w-full"
       role="tablist"
       aria-label="Metron import depth"
     >

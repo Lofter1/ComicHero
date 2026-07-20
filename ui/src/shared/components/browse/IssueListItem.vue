@@ -45,7 +45,7 @@ function entryTags() {
   >
     <!-- Native button: the issue body is a full-row navigation target. -->
     <button
-      class="issue-list-main flex max-w-full min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit [flex:1_1_280px]"
+      class="issue-list-main flex max-w-full min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit flex-[1_1_280px]"
       type="button"
       @click="$emit('open', comic)"
     >

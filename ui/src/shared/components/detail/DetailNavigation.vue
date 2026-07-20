@@ -111,12 +111,12 @@ onBeforeUnmount(() => {
 <template>
   <header
     ref="navigation"
-    class="detail-nav sticky-toolbar sticky [top:var(--sticky-toolbar-top)] z-20 [margin-inline:calc(var(--sticky-toolbar-inline-offset)_*_-1)] [padding:14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:[margin-top:calc(var(--content-padding)_*_-1)] max-w-none flex flex-nowrap items-center justify-between gap-2.5 [&_>_*]:min-w-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:[margin-top:calc(var(--content-padding)_*_-1)]"
+    class="detail-nav sticky-toolbar sticky top-(--sticky-toolbar-top) z-20 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)] max-w-none flex flex-nowrap items-center justify-between gap-2.5 *:min-w-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)]"
   >
     <!-- Native button: measurement logic requires direct access to this DOM element's width. -->
     <button
       ref="backButton"
-      class="secondary-button flex-none min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+      class="secondary-button flex-none min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))]"
       type="button"
       @click="$emit('back')"
     >
@@ -126,7 +126,7 @@ onBeforeUnmount(() => {
       <!-- Native button: this trigger is part of the measured overflow-navigation structure. -->
       <button
         v-if="actionsCollapsed"
-        class="secondary-button inline-flex size-11 min-h-10 items-center justify-center border rounded bg-primary-soft text-control p-0 [border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line-strong))]"
+        class="secondary-button inline-flex size-11 min-h-10 items-center justify-center border rounded bg-primary-soft text-control p-0 border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))]"
         type="button"
         :aria-expanded="actionsOpen"
         aria-label="More actions"
@@ -138,10 +138,10 @@ onBeforeUnmount(() => {
       <div
         v-show="!actionsCollapsed || actionsOpen"
         ref="actionList"
-        class="detail-nav-actions gap-2.5 [&_>_button]:min-w-0 [&_>_*]:min-w-0"
+        class="detail-nav-actions gap-2.5 [&_>_button]:min-w-0 *:min-w-0"
         :class="
           actionsCollapsed
-            ? 'absolute [z-index:26] [top:calc(100%_+_8px)] right-0 grid items-stretch [width:max-content] [min-width:210px] [max-width:calc(100vw_-_24px)] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&_>_button]:w-full'
+            ? 'absolute z-26 top-[calc(100%+8px)] right-0 grid items-stretch w-max min-w-[210px] max-w-[calc(100vw-24px)] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&_>_button]:w-full'
             : 'flex flex-nowrap items-center justify-end'
         "
         @click="closeActionsAfterClick"

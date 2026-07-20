@@ -53,7 +53,7 @@ function monogram(name) {
     >
       <div v-if="collection" class="read-only-detail grid gap-4">
         <header
-          class="collection-detail-hero grid [grid-template-columns:72px_minmax(0,_1fr)_auto] items-center gap-4 border border-line rounded-xl [background:var(--primary-soft),_var(--surface-soft)] p-4 down-narrow:[grid-template-columns:58px_minmax(0,_1fr)]"
+          class="collection-detail-hero grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-4 border border-line rounded-xl [background:var(--primary-soft),var(--surface-soft)] p-4 down-narrow:grid-cols-[58px_minmax(0,1fr)]"
         >
           <span
             class="collection-detail-monogram w-20 h-20 text-3xl down-narrow:w-14 down-narrow:h-14 down-narrow:text-2xl inline-flex items-center justify-center flex-none border border-line-strong rounded-xl bg-primary text-white font-black shadow-control"
@@ -94,7 +94,7 @@ function monogram(name) {
           </span>
         </div>
         <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
           aria-label="Collection read progress"
         >
           <span :style="{ width: formatProgress(collection.progress) }"></span>
@@ -119,7 +119,7 @@ function monogram(name) {
           </header>
           <div
             v-if="collection.characters?.length"
-            class="collection-member-list grid [grid-template-columns:minmax(0,_1fr)] gap-2 down-compact:grid-cols-1 [&_.row]:items-center [&_.row]:[min-height:70px] [&_.row]:p-2.5"
+            class="collection-member-list grid grid-cols-[minmax(0,1fr)] gap-2 down-compact:grid-cols-1 [&_.row]:items-center [&_.row]:min-h-[70px] [&_.row]:p-2.5"
           >
             <div
               v-for="character in collection.characters"
@@ -129,7 +129,7 @@ function monogram(name) {
               <!-- Native button: the member body is a full-row navigation target. -->
               <button
                 type="button"
-                class="collection-member-main grid [grid-template-columns:42px_minmax(0,_1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:[border-color:transparent] [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere [&_>_*]:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-1 [&_small]:text-muted"
+                class="collection-member-main grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2.5 flex-auto min-w-0 border-0 bg-transparent text-inherit p-0 text-left [&:hover:not(:disabled)]:border-transparent [&:hover:not(:disabled)]:shadow-none [&:hover:not(:disabled)]:transform-none [&_span]:break-anywhere *:min-w-0 [&_strong]:block [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:block [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap [&_small]:mt-1 [&_small]:text-muted"
                 @click="$emit('open-character', character)"
               >
                 <span

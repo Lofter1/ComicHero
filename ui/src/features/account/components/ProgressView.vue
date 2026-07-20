@@ -70,7 +70,7 @@ function achievementTimestampLabel(achievement) {
         </div>
 
         <div
-          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+          class="metadata-grid progress-stat-grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
         >
           <span>
             <strong>{{ statisticsView.statistics.readComics }}</strong>
@@ -95,7 +95,7 @@ function achievementTimestampLabel(achievement) {
         class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4"
       >
         <div
-          class="metadata-grid progress-stat-grid [grid-template-columns:repeat(auto-fit,_minmax(150px,_1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
+          class="metadata-grid progress-stat-grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
         >
           <span>
             <strong>{{ statisticsView.statistics.distinctReadSeries }}</strong>
@@ -152,16 +152,16 @@ function achievementTimestampLabel(achievement) {
 
         <div
           v-if="statisticsView.achievements?.length"
-          class="achievement-grid grid [grid-template-columns:repeat(auto-fit,_minmax(220px,_1fr))] gap-2.5"
+          class="achievement-grid grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2.5"
         >
           <article
             v-for="achievement in statisticsView.achievements"
             :key="achievement.id"
-            class="achievement-card grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted [&.earned]:[border-color:color-mix(in_srgb,_var(--accent)_45%,_var(--line))] [&.earned]:[background:color-mix(in_srgb,_var(--accent)_12%,_var(--surface))] [&.earned]:text-ink [&.earned_.achievement-badge]:[border-color:var(--accent)] [&.earned_.achievement-badge]:[background:var(--accent)] [&.earned_.achievement-badge]:[color:var(--surface)] [&_p]:m-0"
+            class="achievement-card grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted [&.earned]:border-[color-mix(in_srgb,var(--accent)_45%,var(--line))] [&.earned]:[background:color-mix(in_srgb,var(--accent)_12%,var(--surface))] [&.earned]:text-ink [&.earned_.achievement-badge]:border-(--accent) [&.earned_.achievement-badge]:[background:var(--accent)] [&.earned_.achievement-badge]:text-(--surface) [&_p]:m-0"
             :class="{ earned: achievement.earned }"
           >
             <div
-              class="achievement-card-heading grid [grid-template-columns:auto_minmax(0,_1fr)] gap-2.5 items-center [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.5"
+              class="achievement-card-heading grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 items-center [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.5"
             >
               <span
                 class="achievement-badge grid place-items-center w-8 h-8 border border-line rounded-full bg-surface-soft text-muted text-xs font-black"
@@ -182,7 +182,7 @@ function achievementTimestampLabel(achievement) {
                 {{ achievement.target }}</span
               >
               <div
-                class="progress-track overflow-hidden h-2 rounded-full bg-surface-muted [&_span]:block [&_span]:[width:0] [&_span]:h-full [&_span]:[border-radius:inherit] [&_span]:[background:var(--accent)] [&_span]:[transition:width_0.2s_ease]"
+                class="progress-track overflow-hidden h-2 rounded-full bg-surface-muted [&_span]:block [&_span]:w-0 [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:[background:var(--accent)] [&_span]:[transition:width_0.2s_ease]"
                 aria-hidden="true"
               >
                 <span :style="{ width: percentLabel(achievement.percent) }"></span>

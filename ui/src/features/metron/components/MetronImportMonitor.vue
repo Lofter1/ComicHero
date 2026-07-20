@@ -87,7 +87,7 @@ function jobMessage(job) {
 <template>
   <div
     v-if="jobs.length"
-    class="import-monitor fixed right-6 bottom-6 z-45 grid gap-2.5 [width:min(440px,_calc(100vw_-_32px))] border border-line-strong rounded bg-panel shadow-monitor p-3 down-tablet:right-4 down-tablet:bottom-4 down-mobile:right-2.5 down-mobile:bottom-2.5 down-mobile:[width:calc(100vw_-_20px)] down-mobile:[max-height:42vh] down-mobile:overflow-auto [&.collapsed]:w-auto [&.collapsed]:[max-width:min(300px,_calc(100vw_-_32px))] [&.collapsed]:py-2 [&.collapsed]:px-2.5 [&_header]:flex [&_header]:items-baseline [&_header]:justify-between [&_header]:gap-3 [&_header_small]:text-muted [&_header_small]:font-bold down-mobile:[&.collapsed]:w-auto down-mobile:[&.collapsed]:[max-width:calc(100vw_-_20px)]"
+    class="import-monitor fixed right-6 bottom-6 z-45 grid gap-2.5 w-[min(440px,calc(100vw-32px))] border border-line-strong rounded bg-panel shadow-monitor p-3 down-tablet:right-4 down-tablet:bottom-4 down-mobile:right-2.5 down-mobile:bottom-2.5 down-mobile:w-[calc(100vw-20px)] down-mobile:max-h-[42vh] down-mobile:overflow-auto [&.collapsed]:w-auto [&.collapsed]:max-w-[min(300px,calc(100vw-32px))] [&.collapsed]:py-2 [&.collapsed]:px-2.5 [&_header]:flex [&_header]:items-baseline [&_header]:justify-between [&_header]:gap-3 [&_header_small]:text-muted [&_header_small]:font-bold down-mobile:[&.collapsed]:w-auto down-mobile:[&.collapsed]:max-w-[calc(100vw-20px)]"
     :class="{ collapsed: !open }"
     aria-live="polite"
   >
@@ -106,12 +106,12 @@ function jobMessage(job) {
     </header>
     <div
       v-if="open"
-      class="metron-jobs grid gap-2 [max-height:min(54vh,_420px)] overflow-auto pr-0.5"
+      class="metron-jobs grid gap-2 max-h-[min(54vh,420px)] overflow-auto pr-0.5"
     >
       <div
         v-for="job in jobs"
         :key="job.id"
-        class="metron-job flex items-start justify-between gap-3 border border-line-strong rounded bg-surface-soft py-2.5 px-3 [&.failed]:border-danger-border [&.failed]:bg-danger-soft [&.canceled]:[border-color:#d8c38a] [&.canceled]:bg-warning-soft [&.succeeded]:[border-color:color-mix(in_srgb,_var(--primary)_35%,_var(--line-strong))] [&_span:first-child]:min-w-0 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-mobile:items-stretch down-mobile:flex-col"
+        class="metron-job flex items-start justify-between gap-3 border border-line-strong rounded bg-surface-soft py-2.5 px-3 [&.failed]:border-danger-border [&.failed]:bg-danger-soft [&.canceled]:border-[#d8c38a] [&.canceled]:bg-warning-soft [&.succeeded]:border-[color-mix(in_srgb,var(--primary)_35%,var(--line-strong))] [&_span:first-child]:min-w-0 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-mobile:items-stretch down-mobile:flex-col"
         :class="job.status"
       >
         <span>
@@ -119,7 +119,7 @@ function jobMessage(job) {
           <small>{{ jobMessage(job) }}</small>
           <small>{{ progressLabel(job) }}</small>
           <span
-            class="job-progress block [width:min(260px,_100%)] h-2 rounded-full bg-read-progress overflow-hidden mt-2 [&_span]:block [&_span]:h-full [&_span]:[border-radius:inherit] [&_span]:bg-primary [&_span]:[transition:width_180ms_ease] [&.indeterminate_span]:![width:42%] [&.indeterminate_span]:[min-width:42%] [&.indeterminate_span]:animate-job-progress-sweep"
+            class="job-progress block w-[min(260px,100%)] h-2 rounded-full bg-read-progress overflow-hidden mt-2 [&_span]:block [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:bg-primary [&_span]:[transition:width_180ms_ease] [&.indeterminate_span]:w-[42%]! [&.indeterminate_span]:min-w-[42%] [&.indeterminate_span]:animate-job-progress-sweep"
             :class="{ indeterminate: progressIndeterminate(job) }"
             aria-hidden="true"
           >

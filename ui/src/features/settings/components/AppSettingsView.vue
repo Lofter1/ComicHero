@@ -515,7 +515,7 @@ function selectSettingsTab(tab) {
           <!-- Native buttons: this segmented control has its own selected-state treatment. -->
           <button
             type="button"
-            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:text-(--primary-ink)"
             :class="{ active: registrationMode === 'invite_only' }"
             :disabled="savingRegistrationMode"
             @click="$emit('update-registration-mode', 'invite_only')"
@@ -524,7 +524,7 @@ function selectSettingsTab(tab) {
           </button>
           <button
             type="button"
-            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:text-(--primary-ink)"
             :class="{ active: registrationMode === 'open' }"
             :disabled="savingRegistrationMode"
             @click="$emit('update-registration-mode', 'open')"
@@ -566,7 +566,7 @@ function selectSettingsTab(tab) {
         </BaseButton>
         <div
           v-if="invite?.token"
-          class="invite-token-box grid gap-1 border border-line rounded bg-surface p-3 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_code]:break-anywhere [&_code]:[color:var(--heading)] [&_code]:font-extrabold"
+          class="invite-token-box grid gap-1 border border-line rounded bg-surface p-3 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_code]:break-anywhere [&_code]:text-(--heading) [&_code]:font-extrabold"
         >
           <span>Invite token</span>
           <code>{{ invite.token }}</code>
@@ -596,7 +596,7 @@ function selectSettingsTab(tab) {
           <!-- Native buttons: this segmented control has its own selected-state treatment. -->
           <button
             type="button"
-            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:text-(--primary-ink)"
             :class="{ active: !publicAccess }"
             :disabled="savingPublicAccess"
             @click="$emit('update-public-access', false)"
@@ -605,7 +605,7 @@ function selectSettingsTab(tab) {
           </button>
           <button
             type="button"
-            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:[color:var(--primary-ink)]"
+            class="min-w-0 min-h-10 border-0 rounded-[7px] bg-transparent text-control py-2 px-2.5 text-sm font-black leading-tight whitespace-normal break-anywhere [&.active]:bg-primary [&.active]:text-(--primary-ink)"
             :class="{ active: publicAccess }"
             :disabled="savingPublicAccess"
             @click="$emit('update-public-access', true)"
@@ -692,7 +692,7 @@ function selectSettingsTab(tab) {
       </label>
 
       <div
-        class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
+        class="metron-scan-fields grid grid-cols-[repeat(2,minmax(220px,360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
       >
         <label class="metron-scan-field grid gap-2 text-label font-extrabold">
           <span>Schedule</span>
@@ -714,7 +714,7 @@ function selectSettingsTab(tab) {
 
       <fieldset
         v-if="cblDraft.autoSync && cblDraft.schedule === 'weekly'"
-        class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
+        class="permission-scopes border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
       >
         <legend>Run on</legend>
         <label v-for="day in weekdays" :key="`cbl-${day}`">
@@ -839,7 +839,7 @@ function selectSettingsTab(tab) {
         @click.self="closeCBLFolderPicker"
       >
         <section
-          class="cbl-file-picker [width:min(920px,_100%)] [max-height:min(820px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_auto_minmax(0,_1fr)_auto] border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden"
+          class="cbl-file-picker w-[min(920px,100%)] max-h-[min(820px,calc(100vh-36px))] grid grid-rows-[auto_auto_minmax(0,1fr)_auto] border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cbl-folder-picker-title"
@@ -865,11 +865,11 @@ function selectSettingsTab(tab) {
           </header>
 
           <div
-            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1"
+            class="cbl-file-picker-tools grid grid-cols-[minmax(180px,1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1"
           >
             <BaseTextInput
               v-model="cblFolderSearch"
-              class="down-mobile:[grid-column:auto]"
+              class="down-mobile:col-auto"
               type="search"
               placeholder="Search folders..."
             />
@@ -916,7 +916,7 @@ function selectSettingsTab(tab) {
             </div>
             <BaseButton
               v-if="remainingCBLRepositoryFolderCount"
-              class="justify-self-center [min-width:min(280px,_100%)] my-3 mx-2"
+              class="justify-self-center min-w-[min(280px,100%)] my-3 mx-2"
               variant="secondary-stacked"
               @click="showMoreCBLRepositoryFolders"
             >
@@ -953,7 +953,7 @@ function selectSettingsTab(tab) {
         @click.self="closeCBLFilePicker"
       >
         <section
-          class="cbl-file-picker [width:min(920px,_100%)] [max-height:min(820px,_calc(100vh_-_36px))] grid [grid-template-rows:auto_auto_minmax(0,_1fr)_auto] border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden"
+          class="cbl-file-picker w-[min(920px,100%)] max-h-[min(820px,calc(100vh-36px))] grid grid-rows-[auto_auto_minmax(0,1fr)_auto] border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cbl-file-picker-title"
@@ -979,11 +979,11 @@ function selectSettingsTab(tab) {
           </header>
 
           <div
-            class="cbl-file-picker-tools grid [grid-template-columns:minmax(180px,_1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1"
+            class="cbl-file-picker-tools grid grid-cols-[minmax(180px,1fr)_auto] gap-2.5 border-b border-line py-3 px-4 down-mobile:grid-cols-1"
           >
             <BaseTextInput
               v-model="cblFileSearch"
-              class="down-mobile:[grid-column:auto]"
+              class="down-mobile:col-auto"
               type="search"
               placeholder="Search paths..."
             />
@@ -1046,7 +1046,7 @@ function selectSettingsTab(tab) {
             </div>
             <BaseButton
               v-if="remainingCBLRepositoryFileCount"
-              class="justify-self-center [min-width:min(280px,_100%)] my-3 mx-2"
+              class="justify-self-center min-w-[min(280px,100%)] my-3 mx-2"
               variant="secondary-stacked"
               @click="showMoreCBLRepositoryFiles"
             >
@@ -1076,7 +1076,7 @@ function selectSettingsTab(tab) {
         class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
       >
         <section
-          class="cbl-file-picker cbl-metron-issue-picker [max-height:min(820px,_calc(100vh_-_36px))] grid border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden [width:min(760px,_100%)] [grid-template-rows:auto_minmax(0,_1fr)_auto]"
+          class="cbl-file-picker cbl-metron-issue-picker max-h-[min(820px,calc(100vh-36px))] grid border border-line-strong rounded-lg bg-panel shadow-overlay overflow-hidden w-[min(760px,100%)] grid-rows-[auto_minmax(0,1fr)_auto]"
           role="dialog"
           aria-modal="true"
           aria-labelledby="cbl-metron-issue-picker-title"
@@ -1107,7 +1107,7 @@ function selectSettingsTab(tab) {
               v-for="candidate in cblRepositorySync.pendingResolution.candidates"
               :key="candidate.id"
               type="button"
-              class="cbl-metron-candidate w-full flex items-center gap-3.5 border border-line rounded bg-surface p-2.5 text-inherit text-left down-mobile:items-start hover:[border-color:var(--accent)] focus-visible:[border-color:var(--accent)] [&_img]:w-14 [&_img]:h-20 [&_img]:flex-none [&_img]:rounded-sm [&_img]:object-cover"
+              class="cbl-metron-candidate w-full flex items-center gap-3.5 border border-line rounded bg-surface p-2.5 text-inherit text-left down-mobile:items-start hover:border-(--accent) focus-visible:border-(--accent) [&_img]:w-14 [&_img]:h-20 [&_img]:flex-none [&_img]:rounded-sm [&_img]:object-cover"
               @click="chooseCBLMetronIssue(candidate.id)"
             >
               <img v-if="candidate.coverImage" :src="candidate.coverImage" alt="" />
@@ -1179,7 +1179,7 @@ function selectSettingsTab(tab) {
         </header>
 
         <fieldset
-          class="permission-scopes metron-discovery-types border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes metron-discovery-types border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Pull content</legend>
           <label>
@@ -1193,7 +1193,7 @@ function selectSettingsTab(tab) {
         </fieldset>
 
         <div
-          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
+          class="metron-scan-fields grid grid-cols-[repeat(2,minmax(220px,360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
         >
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Schedule</span>
@@ -1244,7 +1244,7 @@ function selectSettingsTab(tab) {
 
         <fieldset
           v-if="discoveryDraft.schedule === 'weekly'"
-          class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Run on</legend>
           <label v-for="day in weekdays" :key="`discovery-${day}`">
@@ -1339,7 +1339,7 @@ function selectSettingsTab(tab) {
         </header>
 
         <fieldset
-          class="permission-scopes metron-incomplete-fields border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes metron-incomplete-fields border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Consider a comic incomplete when it has no</legend>
           <label v-for="option in incompleteFieldOptions" :key="option.value">
@@ -1359,7 +1359,7 @@ function selectSettingsTab(tab) {
         </p>
 
         <div
-          class="metron-scan-fields grid [grid-template-columns:repeat(2,_minmax(220px,_360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
+          class="metron-scan-fields grid grid-cols-[repeat(2,minmax(220px,360px))] gap-y-4 gap-x-6 down-mobile:grid-cols-1"
         >
           <label class="metron-scan-field grid gap-2 text-label font-extrabold">
             <span>Schedule</span>
@@ -1412,7 +1412,7 @@ function selectSettingsTab(tab) {
 
         <fieldset
           v-if="draft.schedule === 'weekly'"
-          class="permission-scopes border-0 p-0 m-0 grid [grid-template-columns:repeat(auto-fit,_minmax(126px,_1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
+          class="permission-scopes border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1"
         >
           <legend>Run on</legend>
           <label v-for="day in weekdays" :key="day">

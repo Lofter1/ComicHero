@@ -398,7 +398,7 @@ function endDrag() {
     </label>
 
     <fieldset
-      class="visibility-field grid [grid-template-columns:max-content_1fr] gap-y-1.5 gap-x-3 m-0 p-3 border border-line rounded [&_legend]:py-0 [&_legend]:px-1 [&_legend]:text-label [&_legend]:text-sm [&_legend]:font-bold [&_.muted]:m-0 [&_.muted]:self-center"
+      class="visibility-field grid grid-cols-[max-content_1fr] gap-y-1.5 gap-x-3 m-0 p-3 border border-line rounded [&_legend]:py-0 [&_legend]:px-1 [&_legend]:text-label [&_legend]:text-sm [&_legend]:font-bold [&_.muted]:m-0 [&_.muted]:self-center"
     >
       <legend>Visibility</legend>
       <label>
@@ -430,7 +430,7 @@ function endDrag() {
       <span class="reading-order-cover-editor flex items-center gap-3 min-w-0">
         <span
           v-if="coverPreview"
-          class="reading-order-cover-preview [width:76px] [min-width:76px] [height:76px] overflow-hidden border border-line rounded bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover"
+          class="reading-order-cover-preview w-[76px] min-w-[76px] h-[76px] overflow-hidden border border-line rounded bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover"
           aria-hidden="true"
         >
           <img :src="coverPreview" alt="" />
@@ -440,10 +440,10 @@ function endDrag() {
     </label>
 
     <div
-      class="reading-order-editor-layout grid [grid-template-columns:minmax(320px,_420px)_minmax(620px,_1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:[padding-top:0]"
+      class="reading-order-editor-layout grid grid-cols-[minmax(320px,420px)_minmax(620px,1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:pt-0"
     >
       <div
-        class="reading-order-search-column grid self-start gap-4 min-w-0 sticky [top:calc(var(--sticky-toolbar-top,_0px)_+_14px)] down-laptop:static"
+        class="reading-order-search-column grid self-start gap-4 min-w-0 sticky top-[calc(var(--sticky-toolbar-top,0px)+14px)] down-laptop:static"
       >
         <section class="entry-section add-entry-panel grid gap-2.5 border-t border-line pt-3.5">
           <div
@@ -517,21 +517,21 @@ function endDrag() {
 
             <div
               v-else-if="comicSearchResults.length"
-              class="comic-add-results grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] gap-2"
+              class="comic-add-results grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-2"
             >
               <!-- Native buttons: search results are draggable full-card targets. -->
               <button
                 v-for="comic in comicSearchResults"
                 :key="comic.id"
                 type="button"
-                class="comic-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [&[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:[border-color:color-mix(in_srgb,_var(--primary)_46%,_var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
+                class="comic-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
                 draggable="true"
                 @click="addNewEntryToEnd(newComicEntry(comic))"
                 @dragstart="startAddDrag($event, newComicEntry(comic))"
               >
                 <span>
                   <span
-                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
+                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
                     >Issue</span
                   >
                   <strong>{{ comic.title }}</strong>
@@ -577,21 +577,21 @@ function endDrag() {
 
             <div
               v-if="childOrderChoices.length"
-              class="comic-add-results grid [grid-template-columns:repeat(auto-fit,_minmax(min(100%,_280px),_1fr))] gap-2"
+              class="comic-add-results grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-2"
             >
               <!-- Native buttons: reading-order results are draggable full-card targets. -->
               <button
                 v-for="order in childOrderChoices"
                 :key="order.id"
                 type="button"
-                class="comic-add-result reading-order-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [&[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:[border-color:color-mix(in_srgb,_var(--primary)_46%,_var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
+                class="comic-add-result reading-order-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
                 draggable="true"
                 @click="addNewEntryToEnd(newChildOrderEntry(order))"
                 @dragstart="startAddDrag($event, newChildOrderEntry(order))"
               >
                 <span>
                   <span
-                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
+                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
                     >Reading order</span
                   >
                   <strong>{{ order.name }}</strong>
@@ -714,7 +714,7 @@ function endDrag() {
 
         <div
           v-if="orderEntries.length === 0"
-          class="empty-state empty-entry-drop-zone [transition:background-color_120ms_ease,_border-color_120ms_ease,_color_120ms_ease] [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-ink grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+          class="empty-state empty-entry-drop-zone [transition:background-color_120ms_ease,border-color_120ms_ease,color_120ms_ease] [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-ink grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
           :class="{ active: dragOverIndex === 0 }"
           @dragover="overDropZone($event, 0)"
           @dragleave="dragOverIndex = null"
@@ -729,7 +729,7 @@ function endDrag() {
             :key="entryKey(entry, index)"
           >
             <div
-              class="entry-drop-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
+              class="entry-drop-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
               :class="{ active: dragOverIndex === index }"
               @dragover="overDropZone($event, index)"
               @dragleave="dragOverIndex = null"
@@ -737,7 +737,7 @@ function endDrag() {
             />
 
             <div
-              class="order-entry grid [grid-template-columns:minmax(280px,_1fr)_44px] items-stretch gap-3 rounded p-0 [transition:background-color_120ms_ease,_box-shadow_120ms_ease,_opacity_120ms_ease] down-mobile:grid-cols-1 down-mobile:border down-mobile:border-line down-mobile:bg-surface-soft down-mobile:p-2.5 [&.dragging]:opacity-55 [&.drag-over]:bg-primary-soft [&.drag-over]:[box-shadow:inset_0_0_0_2px_var(--primary)] [&.nested-order-entry]:[grid-template-columns:minmax(280px,_1fr)_44px] [&.nested-order-entry_.selected-order-comic]:[border-color:color-mix(in_srgb,_var(--accent)_42%,_var(--line))] [&.nested-order-entry_.selected-order-comic]:[background:color-mix(in_srgb,_var(--surface-soft)_82%,_var(--accent))] [&.section-order-entry_.selected-order-comic]:[border-color:color-mix(in_srgb,_var(--primary)_54%,_var(--line))] [&.section-order-entry_.selected-order-comic]:[background:color-mix(in_srgb,_var(--surface-soft)_78%,_var(--primary))] [&.nested-order-entry_.entry-edit-panel]:grid-cols-1 [&.section-order-entry_.entry-edit-panel]:grid-cols-[minmax(180px,0.6fr)_minmax(0,1fr)] [&.nested-order-entry_.entry-type-pill]:[border-color:color-mix(in_srgb,_var(--accent)_48%,_var(--line))] [&.nested-order-entry_.entry-type-pill]:[background:color-mix(in_srgb,_var(--surface-soft)_76%,_var(--accent))] [&.nested-order-entry_.entry-type-pill]:text-accent [&.section-order-entry_.entry-type-pill]:[border-color:color-mix(in_srgb,_var(--primary)_58%,_var(--line))] [&.section-order-entry_.entry-type-pill]:bg-primary [&.section-order-entry_.entry-type-pill]:text-white down-mobile:[&.nested-order-entry]:grid-cols-1 down-mobile:[&.section-order-entry_.entry-edit-panel]:grid-cols-1 down-tablet:grid-cols-1"
+              class="order-entry grid grid-cols-[minmax(280px,1fr)_44px] items-stretch gap-3 rounded p-0 [transition:background-color_120ms_ease,box-shadow_120ms_ease,opacity_120ms_ease] down-mobile:grid-cols-1 down-mobile:border down-mobile:border-line down-mobile:bg-surface-soft down-mobile:p-2.5 [&.dragging]:opacity-55 [&.drag-over]:bg-primary-soft [&.drag-over]:[box-shadow:inset_0_0_0_2px_var(--primary)] [&.nested-order-entry]:grid-cols-[minmax(280px,1fr)_44px] [&.nested-order-entry_.selected-order-comic]:border-[color-mix(in_srgb,var(--accent)_42%,var(--line))] [&.nested-order-entry_.selected-order-comic]:[background:color-mix(in_srgb,var(--surface-soft)_82%,var(--accent))] [&.section-order-entry_.selected-order-comic]:border-[color-mix(in_srgb,var(--primary)_54%,var(--line))] [&.section-order-entry_.selected-order-comic]:[background:color-mix(in_srgb,var(--surface-soft)_78%,var(--primary))] [&.nested-order-entry_.entry-edit-panel]:grid-cols-1 [&.section-order-entry_.entry-edit-panel]:grid-cols-[minmax(180px,0.6fr)_minmax(0,1fr)] [&.nested-order-entry_.entry-type-pill]:border-[color-mix(in_srgb,var(--accent)_48%,var(--line))] [&.nested-order-entry_.entry-type-pill]:[background:color-mix(in_srgb,var(--surface-soft)_76%,var(--accent))] [&.nested-order-entry_.entry-type-pill]:text-accent [&.section-order-entry_.entry-type-pill]:border-[color-mix(in_srgb,var(--primary)_58%,var(--line))] [&.section-order-entry_.entry-type-pill]:bg-primary [&.section-order-entry_.entry-type-pill]:text-white down-mobile:[&.nested-order-entry]:grid-cols-1 down-mobile:[&.section-order-entry_.entry-edit-panel]:grid-cols-1 down-tablet:grid-cols-1"
               :class="{
                 dragging: draggedIndex === index,
                 'nested-order-entry': entry.type === 'readingOrder',
@@ -748,7 +748,7 @@ function endDrag() {
               <!-- Native button: entry rows use a bespoke expand/collapse control. -->
               <button
                 type="button"
-                class="selected-order-comic entry-summary-button justify-center min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid [grid-template-columns:34px_minmax(0,_1fr)_34px] items-center gap-3 w-full min-h-20 h-20 text-ink text-left down-mobile:[grid-template-columns:30px_minmax(0,_1fr)_30px] down-mobile:h-auto down-mobile:min-h-20 down-mobile:py-2 down-mobile:px-2.5 hover:[border-color:color-mix(in_srgb,_var(--primary)_42%,_var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-1"
+                class="selected-order-comic entry-summary-button justify-center min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid grid-cols-[34px_minmax(0,1fr)_34px] items-center gap-3 w-full min-h-20 h-20 text-ink text-left down-mobile:grid-cols-[30px_minmax(0,1fr)_30px] down-mobile:h-auto down-mobile:min-h-20 down-mobile:py-2 down-mobile:px-2.5 hover:border-[color-mix(in_srgb,var(--primary)_42%,var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-1"
                 @click="toggleEntry(entry, index)"
               >
                 <span
@@ -766,7 +766,7 @@ function endDrag() {
                   >
                     <span
                       aria-hidden="true"
-                      class="drag-icon [letter-spacing:-4px] [transform:rotate(90deg)]"
+                      class="drag-icon tracking-[-4px] transform-[rotate(90deg)]"
                       >⋮⋮</span
                     >
                   </span>
@@ -776,7 +776,7 @@ function endDrag() {
                   class="entry-summary-copy grid min-w-0 justify-items-start [&_strong]:[line-clamp:1] [&_strong]:[-webkit-line-clamp:1]"
                 >
                   <span
-                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,_var(--primary)_42%,_var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
+                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
                     >{{ entryTypeLabel(entry) }}</span
                   >
                   <strong>{{ entryLabel(entry) }}</strong>
@@ -784,7 +784,7 @@ function endDrag() {
 
                 <span
                   aria-hidden="true"
-                  class="button-icon entry-expand-icon grid place-items-center justify-self-end w-8 h-8 rounded-full text-control text-lg [transition:background-color_120ms_ease,_color_120ms_ease] font-extrabold leading-none"
+                  class="button-icon entry-expand-icon grid place-items-center justify-self-end w-8 h-8 rounded-full text-control text-lg [transition:background-color_120ms_ease,color_120ms_ease] font-extrabold leading-none"
                   :title="isEntryExpanded(entry, index) ? 'Collapse' : 'Expand'"
                 >
                   {{ isEntryExpanded(entry, index) ? '▴' : '▾' }}
@@ -817,7 +817,7 @@ function endDrag() {
               <!-- Native button: removal spans the full row height and has bespoke danger styling. -->
               <button
                 type="button"
-                class="remove-entry-button grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 text-2xl font-extrabold leading-none hover:[border-color:var(--danger)] hover:[background:color-mix(in_srgb,_var(--danger-soft)_72%,_var(--danger))] hover:text-danger"
+                class="remove-entry-button grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 text-2xl font-extrabold leading-none hover:border-(--danger) hover:[background:color-mix(in_srgb,var(--danger-soft)_72%,var(--danger))] hover:text-danger"
                 :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`"
                 title="Remove"
                 @click="removeEntry(index)"
@@ -858,7 +858,7 @@ function endDrag() {
 
               <div
                 v-if="isEntryExpanded(entry, index)"
-                class="entry-edit-panel grid col-span-full [grid-template-columns:minmax(0,_1fr)_minmax(180px,_0.55fr)] gap-3 border border-line rounded bg-surface-soft p-3 down-mobile:col-start-1 down-mobile:grid-cols-1"
+                class="entry-edit-panel grid col-span-full grid-cols-[minmax(0,1fr)_minmax(180px,0.55fr)] gap-3 border border-line rounded bg-surface-soft p-3 down-mobile:col-start-1 down-mobile:grid-cols-1"
               >
                 <template v-if="entry.type === 'section'">
                   <label
@@ -924,7 +924,7 @@ function endDrag() {
           </template>
 
           <div
-            class="entry-drop-zone end-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,_border-color_120ms_ease,_min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
+            class="entry-drop-zone end-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
             :class="{ active: dragOverIndex === entryPageState.end }"
             @dragover="overDropZone($event, entryPageState.end)"
             @dragleave="dragOverIndex = null"

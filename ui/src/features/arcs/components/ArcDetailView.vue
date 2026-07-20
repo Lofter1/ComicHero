@@ -99,7 +99,7 @@ defineEmits([
           {{ selectedArc.description || 'No description' }}
         </p>
         <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:[border-radius:inherit] [&_span]:bg-progress"
+          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
           aria-label="Arc progress"
         >
           <span :style="{ width: formatProgress(selectedArc.progress) }"></span>

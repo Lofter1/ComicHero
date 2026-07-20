@@ -37,7 +37,7 @@ const formModel = computed({
 <template>
   <div class="editor-view grid gap-4 w-full">
     <header
-      class="editor-header sticky-toolbar flex items-center gap-3.5 justify-between flex-wrap sticky [top:var(--sticky-toolbar-top)] z-20 [margin-inline:calc(var(--sticky-toolbar-inline-offset)_*_-1)] [padding:14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:[margin-top:calc(var(--content-padding)_*_-1)] max-w-none [&_>_div:not(.editor-actions)]:min-w-0 [&_h2]:m-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&_button]:w-full"
+      class="editor-header sticky-toolbar flex items-center gap-3.5 justify-between flex-wrap sticky top-(--sticky-toolbar-top) z-20 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)] max-w-none [&_>_div:not(.editor-actions)]:min-w-0 [&_h2]:m-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&_button]:w-full"
     >
       <BaseButton @click="$emit('back')"> Back </BaseButton>
       <div>
