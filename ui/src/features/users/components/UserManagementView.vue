@@ -556,6 +556,8 @@ function formatTimestamp(value) {
 </template>
 
 <style scoped>
+@reference '../../../styles.css';
+
 .user-summary :is(h3, p) {
   overflow-wrap: anywhere;
 }

@@ -1483,6 +1483,8 @@ function selectSettingsTab(tab) {
 </template>
 
 <style scoped>
+@reference '../../../styles.css';
+
 .metron-scan-field :is(input, select, textarea) {
   @apply w-full;
 }
@@ -1534,7 +1536,7 @@ function selectSettingsTab(tab) {
   @apply mr-auto;
 }
 
-@screen down-mobile {
+@media (width <= 720px) {
   .metron-scan-status p,
   .cbl-file-picker-actions span {
     @apply ml-0 mr-0;
