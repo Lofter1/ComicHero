@@ -81,10 +81,21 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 		return nil, huma.Error500InternalServerError("failed to create session")
 	}
 	expiresAt := time.Now().UTC().Add(sessionTTL)
-	if _, err := db.ExecContext(ctx, `
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to create session")
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO user_sessions (token, user_id, expires_at)
 		VALUES (?, ?, ?)
 	`, token, userID, expiresAt.Format(time.RFC3339)); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save session")
+	}
+	if _, err := tx.ExecContext(ctx, `UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`, userID); err != nil {
+		return nil, huma.Error500InternalServerError("failed to record login")
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, huma.Error500InternalServerError("failed to save session")
 	}
 	return &http.Cookie{Name: sessionCookieName, Value: token, Path: "/", Expires: expiresAt, HttpOnly: true, Secure: secureSessionCookies(ctx), SameSite: http.SameSiteLaxMode}, nil

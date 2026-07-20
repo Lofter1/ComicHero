@@ -34,7 +34,10 @@ func ensureDefaultUser(ctx context.Context, db sqlx.ExtContext) (int, error) {
 func getUserByID(ctx context.Context, db *sqlx.DB, id int) (User, error) {
 	var user User
 	if err := db.GetContext(ctx, &user, `
-		SELECT id, name, email, email_verified_at <> '' AS email_verified, is_admin, created_at FROM users WHERE id = ?
+		SELECT id, name, email, email_verified_at <> '' AS email_verified, email_verified_at,
+			is_admin, created_at, last_login_at
+		FROM users
+		WHERE id = ?
 	`, id); err != nil {
 		if err == sql.ErrNoRows {
 			return User{}, huma.Error401Unauthorized("login required")

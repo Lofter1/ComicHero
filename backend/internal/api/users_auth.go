@@ -48,9 +48,6 @@ func loginUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := db.ExecContext(ctx, `UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?`, row.ID); err != nil {
-		return nil, huma.Error500InternalServerError("failed to record login")
-	}
 	return userStatusForUser(ctx, db, mode, row.ID, cookie)
 }
 
