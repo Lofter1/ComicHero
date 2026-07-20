@@ -52,15 +52,19 @@ func TestRegisterUserRequiresValidInvite(t *testing.T) {
 	}); err == nil {
 		t.Fatal("registerUser accepted mismatched password confirmation")
 	}
-	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
+	registered, err := registerUser(context.Background(), db, UserCredentialsPayload{
 		Name:                 "Invited",
 		Email:                "invited@example.com",
 		EmailConfirmation:    "invited@example.com",
 		Password:             "secret1",
 		PasswordConfirmation: "secret1",
 		InviteToken:          invite.Body.Token,
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("registerUser with invite: %v", err)
+	}
+	if registered.Body.User == nil || registered.Body.User.LastLoginAt == "" {
+		t.Fatalf("registered user = %#v; want last login set with initial session", registered.Body.User)
 	}
 	if _, err := registerUser(context.Background(), db, UserCredentialsPayload{
 		Name:                 "Reuse",
@@ -200,12 +204,16 @@ func TestOpenRegistrationRequiresEmailVerificationBeforeAccess(t *testing.T) {
 	var row struct {
 		ID              int    `db:"id"`
 		EmailVerifiedAt string `db:"email_verified_at"`
+		LastLoginAt     string `db:"last_login_at"`
 	}
-	if err := db.Get(&row, `SELECT id, email_verified_at FROM users WHERE email = 'open-pending@example.com'`); err != nil {
+	if err := db.Get(&row, `SELECT id, email_verified_at, last_login_at FROM users WHERE email = 'open-pending@example.com'`); err != nil {
 		t.Fatalf("fetch registered user: %v", err)
 	}
 	if row.EmailVerifiedAt != "" {
 		t.Fatalf("email_verified_at = %q; want empty before verification", row.EmailVerifiedAt)
+	}
+	if row.LastLoginAt != "" {
+		t.Fatalf("last_login_at = %q; want empty before the first session", row.LastLoginAt)
 	}
 	var tokenCount int
 	if err := db.Get(&tokenCount, `SELECT COUNT(*) FROM user_email_verifications WHERE user_id = ? AND used_at = ''`, row.ID); err != nil {
@@ -234,7 +242,7 @@ func TestOpenRegistrationRequiresEmailVerificationBeforeAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("verifyEmail: %v", err)
 	}
-	if verified.Body.User == nil || !verified.Body.User.EmailVerified {
+	if verified.Body.User == nil || !verified.Body.User.EmailVerified || verified.Body.User.LastLoginAt == "" {
 		t.Fatalf("verified user = %#v; want verified session user", verified.Body.User)
 	}
 	if len(verified.SetCookie) != 1 || verified.SetCookie[0].Value == "" {
