@@ -144,6 +144,8 @@ const searchModel = computed({
 </template>
 
 <style scoped>
+@reference '../../../styles.css';
+
 .browse-list-tools > * {
   @apply min-w-0;
 }
@@ -182,7 +184,7 @@ const searchModel = computed({
   @apply bg-primary text-white;
 }
 
-@screen down-mobile {
+@media (width <= 720px) {
   .browse-list-tools > :is(.inline-filter-tabs, .list-sort-select, .list-direction-select) {
     @apply hidden;
   }
@@ -225,7 +227,7 @@ const searchModel = computed({
   }
 }
 
-@screen down-phone {
+@media (width <= 420px) {
   .inline-filter-tabs button {
     @apply px-1.5 text-xs;
   }

@@ -97,6 +97,8 @@ defineEmits(['open', 'toggle-favorite'])
 </template>
 
 <style scoped>
+@reference '../../../styles.css';
+
 .row > span:first-child,
 .row-heading > span:first-child,
 .row-main > * {

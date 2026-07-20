@@ -106,6 +106,8 @@ function entryTags() {
 </template>
 
 <style scoped>
+@reference '../../../styles.css';
+
 .issue-list-item.read {
   border-bottom-color: var(--primary);
 }
@@ -163,7 +165,7 @@ function entryTags() {
   @apply min-h-10 px-3.5 py-2.5 text-base;
 }
 
-@screen down-mobile {
+@media (width <= 720px) {
   .issue-list-main {
     @apply w-full;
     flex-basis: 100%;

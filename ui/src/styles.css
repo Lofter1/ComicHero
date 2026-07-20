@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.js';
 
 @layer base {
   body {
@@ -79,7 +78,7 @@
     @apply resize-y;
   }
 
-  @screen down-mobile {
+  @media (width <= 720px) {
     h1 {
       @apply text-lg;
     }
