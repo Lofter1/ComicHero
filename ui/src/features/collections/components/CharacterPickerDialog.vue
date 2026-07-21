@@ -44,22 +44,19 @@ function monogram(name) {
 </script>
 
 <template>
-  <ModalShell aria-labelledby="add-character-title" @close="$emit('close')">
+  <ModalShell v-slot="{ titleId }" @close="$emit('close')">
     <PanelHeader
       eyebrow="Collection members"
       title="Add a character"
-      title-id="add-character-title"
+      :title-id="titleId"
       divided
+      closable
+      @close="$emit('close')"
     >
       <template #description>
         <p class="collection-dialog-description mt-1 mx-0 mb-0 text-muted text-sm leading-snug">
           Search names and aliases in your character library.
         </p>
-      </template>
-      <template #actions>
-        <BaseButton variant="neutral" size="icon" aria-label="Close" @click="$emit('close')">
-          ×
-        </BaseButton>
       </template>
     </PanelHeader>
     <form class="collection-search-form" @submit.prevent="search">

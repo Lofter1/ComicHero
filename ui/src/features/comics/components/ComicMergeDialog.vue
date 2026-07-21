@@ -22,23 +22,15 @@ function search() {
 </script>
 
 <template>
-  <ModalShell size="large" aria-labelledby="merge-title" @close="$emit('close')">
+  <ModalShell v-slot="{ titleId }" size="large" @close="$emit('close')">
     <PanelHeader
       eyebrow="Admin"
       :title="`Merge a duplicate into ${target.title}`"
-      title-id="merge-title"
-    >
-      <template #actions>
-        <BaseButton
-          variant="neutral"
-          size="icon"
-          aria-label="Close comic merge"
-          @click="$emit('close')"
-        >
-          ×
-        </BaseButton>
-      </template>
-    </PanelHeader>
+      :title-id="titleId"
+      closable
+      close-label="Close comic merge"
+      @close="$emit('close')"
+    />
 
     <p class="muted block text-muted">
       The selected duplicate will be deleted after its reading progress, list positions, arcs,

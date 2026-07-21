@@ -29,22 +29,19 @@ function monogram(name) {
 </script>
 
 <template>
-  <ModalShell aria-labelledby="add-to-collection-title" @close="$emit('close')">
+  <ModalShell v-slot="{ titleId }" @close="$emit('close')">
     <PanelHeader
       eyebrow="My collections"
       :title="`Add ${character.name} to a collection`"
-      title-id="add-to-collection-title"
+      :title-id="titleId"
       divided
+      closable
+      @close="$emit('close')"
     >
       <template #description>
         <p class="collection-dialog-description mt-1 mx-0 mb-0 text-muted text-sm leading-snug">
           Choose an existing collection or create one below.
         </p>
-      </template>
-      <template #actions>
-        <BaseButton variant="neutral" size="icon" aria-label="Close" @click="$emit('close')">
-          ×
-        </BaseButton>
       </template>
     </PanelHeader>
 

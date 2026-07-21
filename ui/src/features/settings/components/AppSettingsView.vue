@@ -5,6 +5,8 @@ import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseSelect from '@/shared/components/form/BaseSelect.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
+import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
+import ModalShell from '@/shared/components/overlay/ModalShell.vue'
 
 const props = defineProps({
   metronComicScan: { type: Object, default: null },
@@ -782,292 +784,276 @@ function selectSettingsTab(tab) {
         </BaseButton>
       </div>
 
-      <div
+      <ModalShell
         v-if="cblFolderPickerOpen"
-        class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
-        @click.self="closeCBLFolderPicker"
+        v-slot="{ titleId }"
+        class="cbl-file-picker"
+        size="extra-wide"
+        structured
+        @close="closeCBLFolderPicker"
       >
-        <section
-          class="cbl-file-picker"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cbl-folder-picker-title"
+        <PanelHeader
+          class="cbl-file-picker-header"
+          title="Choose repository folders"
+          :title-id="titleId"
+          divided
+          closable
+          close-label="Close CBL folder picker"
+          @close="closeCBLFolderPicker"
         >
-          <header class="cbl-file-picker-header">
-            <div>
-              <strong id="cbl-folder-picker-title">Choose repository folders</strong>
-              <small>
-                Choose one or more folders. Clear the selection to use the entire repository.
-              </small>
-            </div>
-            <BaseButton
-              class="self-end down-mobile:self-stretch down-mobile:w-full"
-              variant="neutral"
-              size="icon"
-              aria-label="Close CBL folder picker"
-              @click="closeCBLFolderPicker"
-            >
-              ×
-            </BaseButton>
-          </header>
+          <template #description>
+            <small>
+              Choose one or more folders. Clear the selection to use the entire repository.
+            </small>
+          </template>
+        </PanelHeader>
 
-          <div class="cbl-file-picker-tools">
-            <BaseTextInput
-              v-model="cblFolderSearch"
-              class="down-mobile:col-auto"
-              type="search"
-              placeholder="Search folders..."
-            />
-            <BaseButton
-              variant="neutral"
-              :disabled="!selectedCBLFolderKeys.size"
-              @click="clearSelectedCBLFolders"
-            >
-              Use all folders
-            </BaseButton>
-          </div>
-
-          <LoadingState v-if="loadingCblRepositoryFiles" compact />
-          <p
-            v-else-if="!filteredCBLRepositoryFolders.length"
-            class="muted cbl-picker-empty p-4 text-muted font-ui-semibold block"
+        <div class="cbl-file-picker-tools">
+          <BaseTextInput
+            v-model="cblFolderSearch"
+            class="down-mobile:col-auto"
+            type="search"
+            placeholder="Search folders..."
+          />
+          <BaseButton
+            variant="neutral"
+            :disabled="!selectedCBLFolderKeys.size"
+            @click="clearSelectedCBLFolders"
           >
-            No folders containing CBL files match this search.
-          </p>
-          <div v-else class="cbl-file-picker-list">
-            <div
-              v-for="folder in visibleCBLRepositoryFolders"
-              :key="cblFolderKey(folder)"
-              v-memo="[selectedCBLFolderKeys.has(cblFolderKey(folder))]"
-            >
-              <label>
-                <input
-                  class="mt-1"
-                  type="checkbox"
-                  :checked="selectedCBLFolderKeys.has(cblFolderKey(folder))"
-                  @change="toggleCBLFolder(folder, $event.target.checked)"
-                />
-                <span class="cbl-file-picker-path min-w-0 grid gap-1">
-                  <strong>{{ folder.path }}</strong>
-                  <small>
-                    {{ repositoryLabel(folder.repositoryUrl) }} · {{ folder.fileCount }}
-                    {{ folder.fileCount === 1 ? 'CBL file' : 'CBL files' }}
-                  </small>
-                </span>
-              </label>
-            </div>
-            <BaseButton
-              v-if="remainingCBLRepositoryFolderCount"
-              class="justify-self-center min-w-[min(280px,100%)] my-3 mx-2"
-              variant="secondary-stacked"
-              @click="showMoreCBLRepositoryFolders"
-            >
-              Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFolderCount) }} more
-              <small>{{ remainingCBLRepositoryFolderCount }} matches not shown</small>
-            </BaseButton>
-          </div>
+            Use all folders
+          </BaseButton>
+        </div>
 
-          <footer class="cbl-file-picker-actions">
-            <span>
-              {{
-                selectedCBLRepositoryFolders.length
-                  ? `${selectedCBLRepositoryFolders.length} folders selected`
-                  : 'Entire repositories selected'
-              }}
-            </span>
-            <BaseButton variant="secondary" @click="closeCBLFolderPicker"> Cancel </BaseButton>
-            <BaseButton
-              variant="primary"
-              :disabled="loadingCblRepositoryFiles"
-              @click="applySelectedCBLRepositoryFolders"
-            >
-              Apply scope
-            </BaseButton>
-          </footer>
-        </section>
-      </div>
-
-      <div
-        v-if="cblFilePickerOpen"
-        class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
-        @click.self="closeCBLFilePicker"
-      >
-        <section
-          class="cbl-file-picker"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cbl-file-picker-title"
+        <LoadingState v-if="loadingCblRepositoryFiles" compact />
+        <p
+          v-else-if="!filteredCBLRepositoryFolders.length"
+          class="muted cbl-picker-empty p-4 text-muted font-ui-semibold block"
         >
-          <header class="cbl-file-picker-header">
-            <div>
-              <strong id="cbl-file-picker-title">Choose CBL files</strong>
-              <small
-                >Select one part on its own, or use “Select all parts” for the full list.</small
-              >
-            </div>
-            <BaseButton
-              class="self-end down-mobile:self-stretch down-mobile:w-full"
-              variant="neutral"
-              size="icon"
-              aria-label="Close CBL file picker"
-              @click="closeCBLFilePicker"
-            >
-              ×
-            </BaseButton>
-          </header>
-
-          <div class="cbl-file-picker-tools">
-            <BaseTextInput
-              v-model="cblFileSearch"
-              class="down-mobile:col-auto"
-              type="search"
-              placeholder="Search paths..."
-            />
-            <BaseButton
-              variant="neutral"
-              :disabled="!selectedCBLFileKeys.size"
-              @click="clearSelectedCBLFiles"
-            >
-              Clear
-            </BaseButton>
-          </div>
-
-          <LoadingState v-if="loadingCblRepositoryFiles" compact />
-          <p v-else-if="!filteredCBLRepositoryFiles.length" class="muted block text-muted">
-            No CBL files match this search.
-          </p>
-          <div v-else class="cbl-file-picker-list">
-            <div
-              v-for="file in visibleCBLRepositoryFiles"
-              :key="cblFileKey(file)"
-              v-memo="[
-                selectedCBLFileKeys.has(cblFileKey(file)),
-                file.multipartGroup ? allMultipartPartsSelected(file) : false,
-              ]"
-            >
-              <label>
-                <input
-                  class="mt-1"
-                  type="checkbox"
-                  :checked="selectedCBLFileKeys.has(cblFileKey(file))"
-                  @change="toggleCBLFile(file, $event.target.checked)"
-                />
-                <span class="cbl-file-picker-path min-w-0 grid gap-1">
-                  <strong>{{ file.path }}</strong>
-                  <small>
-                    {{ repositoryLabel(file.repositoryUrl) }} · {{ fileSizeLabel(file.size) }}
-                    <template v-if="file.multipartGroup">
-                      · {{ file.multipartGroup }}, part {{ file.part }}
-                    </template>
-                  </small>
-                </span>
-              </label>
-              <!-- Native button: multipart selection is an inline text command, not a form action. -->
-              <button
-                v-if="file.multipartGroup"
-                type="button"
-                class="cbl-select-parts-button"
-                :disabled="allMultipartPartsSelected(file)"
-                @click="selectAllCBLParts(file)"
-              >
-                {{
-                  allMultipartPartsSelected(file)
-                    ? `All ${multipartPartCount(file)} parts selected`
-                    : `Select all ${multipartPartCount(file)} parts`
-                }}
-              </button>
-            </div>
-            <BaseButton
-              v-if="remainingCBLRepositoryFileCount"
-              class="justify-self-center min-w-[min(280px,100%)] my-3 mx-2"
-              variant="secondary-stacked"
-              @click="showMoreCBLRepositoryFiles"
-            >
-              Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFileCount) }} more
-              <small>{{ remainingCBLRepositoryFileCount }} matches not shown</small>
-            </BaseButton>
-          </div>
-
-          <footer class="cbl-file-picker-actions">
-            <span>{{ selectedCBLRepositoryFiles.length }} files selected</span>
-            <BaseButton variant="secondary" @click="closeCBLFilePicker"> Cancel </BaseButton>
-            <BaseButton
-              variant="primary"
-              :disabled="!selectedCBLRepositoryFiles.length || savingCblRepositorySync"
-              @click="startSelectedCBLRepositoryFiles"
-            >
-              Import selected
-            </BaseButton>
-          </footer>
-        </section>
-      </div>
-
-      <div
-        v-if="cblRepositorySync.pendingResolution"
-        class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
-      >
-        <section
-          class="cbl-file-picker cbl-metron-issue-picker"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cbl-metron-issue-picker-title"
-        >
-          <header class="cbl-file-picker-header">
-            <div>
-              <strong id="cbl-metron-issue-picker-title">Choose the matching Metron issue</strong>
-              <small>
-                {{ cblRepositorySync.pendingResolution.series }}
-                #{{ cblRepositorySync.pendingResolution.number }}
-                <template v-if="cblRepositorySync.pendingResolution.volume">
-                  · volume {{ cblRepositorySync.pendingResolution.volume }}
-                </template>
-                <template v-if="cblRepositorySync.pendingResolution.year">
-                  · {{ cblRepositorySync.pendingResolution.year }}
-                </template>
-              </small>
-            </div>
-          </header>
-
+          No folders containing CBL files match this search.
+        </p>
+        <div v-else class="cbl-file-picker-list">
           <div
-            class="cbl-metron-candidate-list min-h-0 overflow-auto grid content-start gap-2.5 p-4"
+            v-for="folder in visibleCBLRepositoryFolders"
+            :key="cblFolderKey(folder)"
+            v-memo="[selectedCBLFolderKeys.has(cblFolderKey(folder))]"
           >
-            <!-- Native button: each result row is a full-card selection target. -->
-            <button
-              v-for="candidate in cblRepositorySync.pendingResolution.candidates"
-              :key="candidate.id"
-              type="button"
-              class="cbl-metron-candidate"
-              @click="chooseCBLMetronIssue(candidate.id)"
-            >
-              <img v-if="candidate.coverImage" :src="candidate.coverImage" alt="" />
-              <span class="cbl-metron-candidate-copy">
-                <strong>
-                  {{ candidate.series }}
-                  <template v-if="candidate.seriesYear">({{ candidate.seriesYear }})</template>
-                  #{{ candidate.number }}
-                </strong>
+            <label>
+              <input
+                class="mt-1"
+                type="checkbox"
+                :checked="selectedCBLFolderKeys.has(cblFolderKey(folder))"
+                @change="toggleCBLFolder(folder, $event.target.checked)"
+              />
+              <span class="cbl-file-picker-path min-w-0 grid gap-1">
+                <strong>{{ folder.path }}</strong>
                 <small>
-                  {{ candidate.publisher || 'Unknown publisher' }}
-                  <template v-if="candidate.coverDate"> · {{ candidate.coverDate }}</template>
+                  {{ repositoryLabel(folder.repositoryUrl) }} · {{ folder.fileCount }}
+                  {{ folder.fileCount === 1 ? 'CBL file' : 'CBL files' }}
                 </small>
+              </span>
+            </label>
+          </div>
+          <BaseButton
+            v-if="remainingCBLRepositoryFolderCount"
+            class="justify-self-center min-w-[min(280px,100%)] my-3 mx-2"
+            variant="secondary-stacked"
+            @click="showMoreCBLRepositoryFolders"
+          >
+            Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFolderCount) }} more
+            <small>{{ remainingCBLRepositoryFolderCount }} matches not shown</small>
+          </BaseButton>
+        </div>
+
+        <footer class="cbl-file-picker-actions">
+          <span>
+            {{
+              selectedCBLRepositoryFolders.length
+                ? `${selectedCBLRepositoryFolders.length} folders selected`
+                : 'Entire repositories selected'
+            }}
+          </span>
+          <BaseButton variant="secondary" @click="closeCBLFolderPicker"> Cancel </BaseButton>
+          <BaseButton
+            variant="primary"
+            :disabled="loadingCblRepositoryFiles"
+            @click="applySelectedCBLRepositoryFolders"
+          >
+            Apply scope
+          </BaseButton>
+        </footer>
+      </ModalShell>
+
+      <ModalShell
+        v-if="cblFilePickerOpen"
+        v-slot="{ titleId }"
+        class="cbl-file-picker"
+        size="extra-wide"
+        structured
+        @close="closeCBLFilePicker"
+      >
+        <PanelHeader
+          class="cbl-file-picker-header"
+          title="Choose CBL files"
+          :title-id="titleId"
+          divided
+          closable
+          close-label="Close CBL file picker"
+          @close="closeCBLFilePicker"
+        >
+          <template #description>
+            <small>Select one part on its own, or use “Select all parts” for the full list.</small>
+          </template>
+        </PanelHeader>
+
+        <div class="cbl-file-picker-tools">
+          <BaseTextInput
+            v-model="cblFileSearch"
+            class="down-mobile:col-auto"
+            type="search"
+            placeholder="Search paths..."
+          />
+          <BaseButton
+            variant="neutral"
+            :disabled="!selectedCBLFileKeys.size"
+            @click="clearSelectedCBLFiles"
+          >
+            Clear
+          </BaseButton>
+        </div>
+
+        <LoadingState v-if="loadingCblRepositoryFiles" compact />
+        <p v-else-if="!filteredCBLRepositoryFiles.length" class="muted block text-muted">
+          No CBL files match this search.
+        </p>
+        <div v-else class="cbl-file-picker-list">
+          <div
+            v-for="file in visibleCBLRepositoryFiles"
+            :key="cblFileKey(file)"
+            v-memo="[
+              selectedCBLFileKeys.has(cblFileKey(file)),
+              file.multipartGroup ? allMultipartPartsSelected(file) : false,
+            ]"
+          >
+            <label>
+              <input
+                class="mt-1"
+                type="checkbox"
+                :checked="selectedCBLFileKeys.has(cblFileKey(file))"
+                @change="toggleCBLFile(file, $event.target.checked)"
+              />
+              <span class="cbl-file-picker-path min-w-0 grid gap-1">
+                <strong>{{ file.path }}</strong>
                 <small>
-                  Metron #{{ candidate.id }}
-                  <template v-if="candidate.comicVineId">
-                    · Comic Vine #{{ candidate.comicVineId }}
+                  {{ repositoryLabel(file.repositoryUrl) }} · {{ fileSizeLabel(file.size) }}
+                  <template v-if="file.multipartGroup">
+                    · {{ file.multipartGroup }}, part {{ file.part }}
                   </template>
                 </small>
               </span>
+            </label>
+            <!-- Native button: multipart selection is an inline text command, not a form action. -->
+            <button
+              v-if="file.multipartGroup"
+              type="button"
+              class="cbl-select-parts-button"
+              :disabled="allMultipartPartsSelected(file)"
+              @click="selectAllCBLParts(file)"
+            >
+              {{
+                allMultipartPartsSelected(file)
+                  ? `All ${multipartPartCount(file)} parts selected`
+                  : `Select all ${multipartPartCount(file)} parts`
+              }}
             </button>
           </div>
+          <BaseButton
+            v-if="remainingCBLRepositoryFileCount"
+            class="justify-self-center min-w-[min(280px,100%)] my-3 mx-2"
+            variant="secondary-stacked"
+            @click="showMoreCBLRepositoryFiles"
+          >
+            Show {{ Math.min(cblFileBatchSize, remainingCBLRepositoryFileCount) }} more
+            <small>{{ remainingCBLRepositoryFileCount }} matches not shown</small>
+          </BaseButton>
+        </div>
 
-          <footer class="cbl-file-picker-actions">
-            <span>Select the issue that should be added to this reading order.</span>
-            <BaseButton variant="secondary" @click="chooseCBLMetronIssue(0)">
-              Use CBL data only
-            </BaseButton>
-          </footer>
-        </section>
-      </div>
+        <footer class="cbl-file-picker-actions">
+          <span>{{ selectedCBLRepositoryFiles.length }} files selected</span>
+          <BaseButton variant="secondary" @click="closeCBLFilePicker"> Cancel </BaseButton>
+          <BaseButton
+            variant="primary"
+            :disabled="!selectedCBLRepositoryFiles.length || savingCblRepositorySync"
+            @click="startSelectedCBLRepositoryFiles"
+          >
+            Import selected
+          </BaseButton>
+        </footer>
+      </ModalShell>
+
+      <ModalShell
+        v-if="cblRepositorySync.pendingResolution"
+        v-slot="{ titleId }"
+        class="cbl-file-picker cbl-metron-issue-picker"
+        size="wide"
+        structured
+      >
+        <PanelHeader
+          class="cbl-file-picker-header"
+          title="Choose the matching Metron issue"
+          :title-id="titleId"
+          divided
+        >
+          <template #description>
+            <small>
+              {{ cblRepositorySync.pendingResolution.series }}
+              #{{ cblRepositorySync.pendingResolution.number }}
+              <template v-if="cblRepositorySync.pendingResolution.volume">
+                · volume {{ cblRepositorySync.pendingResolution.volume }}
+              </template>
+              <template v-if="cblRepositorySync.pendingResolution.year">
+                · {{ cblRepositorySync.pendingResolution.year }}
+              </template>
+            </small>
+          </template>
+        </PanelHeader>
+
+        <div class="cbl-metron-candidate-list min-h-0 overflow-auto grid content-start gap-2.5 p-4">
+          <!-- Native button: each result row is a full-card selection target. -->
+          <button
+            v-for="candidate in cblRepositorySync.pendingResolution.candidates"
+            :key="candidate.id"
+            type="button"
+            class="cbl-metron-candidate"
+            @click="chooseCBLMetronIssue(candidate.id)"
+          >
+            <img v-if="candidate.coverImage" :src="candidate.coverImage" alt="" />
+            <span class="cbl-metron-candidate-copy">
+              <strong>
+                {{ candidate.series }}
+                <template v-if="candidate.seriesYear">({{ candidate.seriesYear }})</template>
+                #{{ candidate.number }}
+              </strong>
+              <small>
+                {{ candidate.publisher || 'Unknown publisher' }}
+                <template v-if="candidate.coverDate"> · {{ candidate.coverDate }}</template>
+              </small>
+              <small>
+                Metron #{{ candidate.id }}
+                <template v-if="candidate.comicVineId">
+                  · Comic Vine #{{ candidate.comicVineId }}
+                </template>
+              </small>
+            </span>
+          </button>
+        </div>
+
+        <footer class="cbl-file-picker-actions">
+          <span>Select the issue that should be added to this reading order.</span>
+          <BaseButton variant="secondary" @click="chooseCBLMetronIssue(0)">
+            Use CBL data only
+          </BaseButton>
+        </footer>
+      </ModalShell>
     </section>
 
     <div

@@ -1,10 +1,20 @@
 <script setup>
-defineProps({
+import { computed, useId } from 'vue'
+import BaseButton from '@/shared/components/form/BaseButton.vue'
+
+const props = defineProps({
   eyebrow: { type: String, default: '' },
   title: { type: String, default: '' },
   titleId: { type: String, default: undefined },
   divided: { type: Boolean, default: false },
+  closable: { type: Boolean, default: false },
+  closeLabel: { type: String, default: 'Close' },
 })
+
+defineEmits(['close'])
+
+const generatedTitleId = useId()
+const resolvedTitleId = computed(() => props.titleId || generatedTitleId)
 </script>
 
 <template>
@@ -12,12 +22,21 @@ defineProps({
     <div class="panel-heading">
       <p v-if="eyebrow" class="eyebrow">{{ eyebrow }}</p>
       <slot name="title">
-        <h3 :id="titleId">{{ title }}</h3>
+        <h3 :id="resolvedTitleId">{{ title }}</h3>
       </slot>
       <slot name="description" />
     </div>
-    <div v-if="$slots.actions" class="panel-actions">
-      <slot name="actions" />
+    <div v-if="$slots.actions || closable" class="panel-actions">
+      <slot v-if="$slots.actions" name="actions" />
+      <BaseButton
+        v-else
+        variant="neutral"
+        size="icon"
+        :aria-label="closeLabel"
+        @click="$emit('close')"
+      >
+        ×
+      </BaseButton>
     </div>
   </header>
 </template>
