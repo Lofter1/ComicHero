@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 
 const props = defineProps({
@@ -30,6 +31,24 @@ const props = defineProps({
 
 defineEmits(['open', 'toggle-read', 'toggle-skipped'])
 
+const readingState = computed(() => {
+  if (props.comic.skipped) return 'skipped'
+  if (props.comic.read) return 'read'
+  return 'none'
+})
+
+const stateLabel = computed(() => {
+  if (readingState.value === 'skipped') return 'Skipped'
+  if (readingState.value === 'read') return 'Read'
+  return 'Not read'
+})
+
+const stateIcon = computed(() => {
+  if (readingState.value === 'skipped') return '–'
+  if (readingState.value === 'read') return '✓'
+  return '○'
+})
+
 function entryTags() {
   return String(props.comic.tags || '')
     .split(',')
@@ -39,10 +58,7 @@ function entryTags() {
 </script>
 
 <template>
-  <div
-    class="issue-list-item read-accent"
-    :class="{ read: comic.read, unread: !comic.read, skipped: comic.skipped, selected }"
-  >
+  <div class="issue-list-item read-accent" :class="[readingState, { selected }]">
     <!-- Native button: the issue body is a full-row navigation target. -->
     <button class="issue-list-main" type="button" @click="$emit('open', comic)">
       <span v-if="showCover && comic.coverImage" class="issue-cover" aria-hidden="true">
@@ -62,10 +78,14 @@ function entryTags() {
     </button>
 
     <span class="read-state-actions flex items-center justify-end flex-none flex-wrap gap-2">
-      <span class="read-state-pill" :class="{ read: comic.read, unread: !comic.read }">
-        {{ comic.read ? 'Read' : 'Unread' }}
+      <span
+        class="read-state-pill"
+        :class="readingState"
+        :aria-label="`Reading status: ${stateLabel}`"
+      >
+        <span class="read-state-icon" aria-hidden="true">{{ stateIcon }}</span>
+        {{ stateLabel }}
       </span>
-      <span v-if="comic.skipped" class="read-state-pill skipped">Skipped</span>
       <!-- Native buttons: read/skip controls expose persistent state-specific styling. -->
       <button
         v-if="!readOnly"
@@ -93,18 +113,6 @@ function entryTags() {
 <style scoped>
 @reference '../../../styles.css';
 
-.issue-list-item.read {
-  border-bottom-color: var(--primary);
-}
-
-.issue-list-item.unread {
-  border-bottom-color: #e2c46a;
-}
-
-.issue-list-item.skipped {
-  border-bottom-color: var(--muted);
-}
-
 .issue-list-item > span,
 .issue-list-main > span:last-child {
   @apply min-w-0;
@@ -129,17 +137,22 @@ function entryTags() {
 }
 
 .read-state-pill.read {
-  @apply bg-primary-soft text-primary;
+  @apply bg-success-soft text-success;
+  box-shadow: inset 0 0 0 1px var(--success-border);
 }
 
-.read-state-pill.unread {
+.read-state-pill.none {
+  @apply bg-surface-muted text-muted;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.read-state-pill.skipped {
   @apply bg-warning-soft text-warning;
   box-shadow: inset 0 0 0 1px var(--warning-border);
 }
 
-.read-state-pill.skipped {
-  @apply bg-surface-muted text-muted;
-  box-shadow: inset 0 0 0 1px var(--line-strong);
+.read-state-icon {
+  @apply grid size-4 place-items-center text-sm leading-none font-black;
 }
 
 .read-toggle-button.skipped {
@@ -166,6 +179,18 @@ function entryTags() {
   @apply flex w-full min-w-0 max-w-full flex-wrap items-start justify-between gap-3 rounded border border-b-4 border-line bg-surface-soft px-3 py-2.5;
 }
 
+.issue-list-item.read {
+  border-bottom-color: var(--success);
+}
+
+.issue-list-item.none {
+  border-bottom-color: var(--muted);
+}
+
+.issue-list-item.skipped {
+  border-bottom-color: var(--warning-border);
+}
+
 .issue-list-main {
   @apply flex max-w-full min-w-0 items-center gap-2.5 border-0 bg-transparent p-0 text-left text-inherit flex-[1_1_280px];
 }
@@ -175,11 +200,7 @@ function entryTags() {
 }
 
 .read-state-pill {
-  @apply inline-flex min-h-7 items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none;
-}
-
-.read-state-pill.skipped {
-  @apply inline-flex min-h-7 items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none;
+  @apply inline-flex min-h-7 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold leading-none;
 }
 
 .read-toggle-button {
