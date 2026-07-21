@@ -877,6 +877,7 @@ onUnmounted(() => {
         :read-only="isReadOnlyGuest"
         @refresh="loadDashboard"
         @open-comic="openComic"
+        @open-reading-order="openReadingOrder"
         @mark-read="markDashboardComicRead"
         @mark-skipped="markDashboardComicSkipped"
       />

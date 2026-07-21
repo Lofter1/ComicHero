@@ -25,7 +25,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['open-comic', 'mark-read', 'mark-skipped'])
+defineEmits(['open-comic', 'open-reading-order', 'mark-read', 'mark-skipped'])
 
 const items = computed(() => props.dashboard?.items || [])
 const recentAchievement = computed(() => props.dashboard?.achievements?.recent || null)
@@ -65,7 +65,18 @@ function achievementProgress(achievement) {
             </p>
             <h3>{{ item.name }}</h3>
           </div>
-          <strong>{{ formatProgress(item.progress) }}</strong>
+          <div class="dashboard-card-summary">
+            <strong>{{ formatProgress(item.progress) }}</strong>
+            <BaseButton
+              v-if="item.type === 'readingOrder'"
+              variant="neutral"
+              size="compact-label"
+              :aria-label="`Open reading order ${item.name}`"
+              @click="$emit('open-reading-order', item)"
+            >
+              Open order
+            </BaseButton>
+          </div>
         </div>
 
         <template v-if="item.nextComic">
@@ -156,6 +167,10 @@ function achievementProgress(achievement) {
 
 .dashboard-card-header {
   @apply flex items-start justify-between gap-4 [&_strong]:text-accent [&_strong]:whitespace-nowrap;
+}
+
+.dashboard-card-summary {
+  @apply grid justify-items-end gap-2;
 }
 
 .dashboard-comic {
