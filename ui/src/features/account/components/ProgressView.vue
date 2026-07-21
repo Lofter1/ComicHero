@@ -1,5 +1,6 @@
 <script setup>
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 defineProps({
@@ -47,19 +48,12 @@ function achievementTimestampLabel(achievement) {
 <template>
   <section class="browse-view progress-view grid gap-4 max-w-content min-w-0 w-full">
     <LoadingState v-if="loading && !statisticsView" />
-    <div
-      v-else-if="error"
-      class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-    >
+    <EmptyState v-else-if="error">
       {{ error }}
-    </div>
+    </EmptyState>
     <template v-else-if="statisticsView">
-      <article
-        class="progress-summary-panel grid-cols-1 grid gap-4 border border-line rounded bg-surface-soft p-4 down-tablet:grid-cols-1"
-      >
-        <div
-          class="progress-section-heading flex items-center justify-between gap-3 min-w-0 [&_h3]:break-anywhere"
-        >
+      <article class="progress-summary-panel">
+        <div class="progress-section-heading">
           <div>
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Progress</p>
             <h3>Reading progress</h3>
@@ -69,9 +63,7 @@ function achievementTimestampLabel(achievement) {
           </BaseButton>
         </div>
 
-        <div
-          class="metadata-grid progress-stat-grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
-        >
+        <div class="metadata-grid progress-stat-grid">
           <span>
             <strong>{{ statisticsView.statistics.readComics }}</strong>
             <small>Read comics</small>
@@ -91,12 +83,8 @@ function achievementTimestampLabel(achievement) {
         </div>
       </article>
 
-      <article
-        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4"
-      >
-        <div
-          class="metadata-grid progress-stat-grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
-        >
+      <article class="progress-section-panel">
+        <div class="metadata-grid progress-stat-grid">
           <span>
             <strong>{{ statisticsView.statistics.distinctReadSeries }}</strong>
             <small>Series read</small>
@@ -140,12 +128,8 @@ function achievementTimestampLabel(achievement) {
         </div>
       </article>
 
-      <article
-        class="progress-section-panel grid gap-4 border border-line rounded bg-surface-soft p-4"
-      >
-        <div
-          class="progress-section-heading flex items-center justify-between gap-3 min-w-0 [&_h3]:break-anywhere"
-        >
+      <article class="progress-section-panel">
+        <div class="progress-section-heading">
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Achievements</p>
           <h3>Milestones</h3>
         </div>
@@ -157,47 +141,81 @@ function achievementTimestampLabel(achievement) {
           <article
             v-for="achievement in statisticsView.achievements"
             :key="achievement.id"
-            class="achievement-card grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted [&.earned]:border-[color-mix(in_srgb,var(--accent)_45%,var(--line))] [&.earned]:[background:color-mix(in_srgb,var(--accent)_12%,var(--surface))] [&.earned]:text-ink [&.earned_.achievement-badge]:border-(--accent) [&.earned_.achievement-badge]:[background:var(--accent)] [&.earned_.achievement-badge]:text-(--surface) [&_p]:m-0"
+            class="achievement-card"
             :class="{ earned: achievement.earned }"
           >
-            <div
-              class="achievement-card-heading grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 items-center [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.5"
-            >
-              <span
-                class="achievement-badge grid place-items-center w-8 h-8 border border-line rounded-full bg-surface-soft text-muted text-xs font-black"
-                aria-hidden="true"
-                >{{ achievement.earned ? 'OK' : '--' }}</span
-              >
+            <div class="achievement-card-heading">
+              <span class="achievement-badge" aria-hidden="true">{{
+                achievement.earned ? 'OK' : '--'
+              }}</span>
               <div>
                 <strong>{{ achievement.name }}</strong>
                 <small>{{ achievement.category }}</small>
               </div>
             </div>
             <p>{{ achievement.description }}</p>
-            <div
-              class="achievement-progress grid gap-1.5 text-sm font-extrabold [&_small]:block [&_small]:text-muted [&_small]:mt-1"
-            >
+            <div class="achievement-progress">
               <span
                 >{{ Math.min(achievement.progress, achievement.target) }} /
                 {{ achievement.target }}</span
               >
-              <div
-                class="progress-track overflow-hidden h-2 rounded-full bg-surface-muted [&_span]:block [&_span]:w-0 [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:[background:var(--accent)] [&_span]:[transition:width_0.2s_ease]"
-                aria-hidden="true"
-              >
+              <div class="progress-track" aria-hidden="true">
                 <span :style="{ width: percentLabel(achievement.percent) }"></span>
               </div>
               <small>{{ achievementTimestampLabel(achievement) }}</small>
             </div>
           </article>
         </div>
-        <div
-          v-else
-          class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-        >
-          No achievements yet.
-        </div>
+        <EmptyState v-else> No achievements yet. </EmptyState>
       </article>
     </template>
   </section>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.progress-summary-panel {
+  @apply grid-cols-1 grid gap-4 border border-line rounded bg-surface-soft p-4 down-tablet:grid-cols-1;
+}
+
+.progress-section-heading {
+  @apply flex items-center justify-between gap-3 min-w-0;
+}
+
+.metadata-grid.progress-stat-grid {
+  @apply grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1;
+}
+
+.achievement-card {
+  @apply grid gap-2.5 content-start border border-line rounded bg-surface p-3 text-muted [&.earned]:border-[color-mix(in_srgb,var(--accent)_45%,var(--line))] [&.earned]:[background:color-mix(in_srgb,var(--accent)_12%,var(--surface))] [&.earned]:text-ink [&.earned_.achievement-badge]:border-(--accent) [&.earned_.achievement-badge]:[background:var(--accent)] [&.earned_.achievement-badge]:text-(--surface) [&_p]:m-0;
+}
+
+.achievement-card-heading {
+  @apply grid grid-cols-[auto_minmax(0,1fr)] gap-2.5 items-center [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-0.5;
+}
+
+.achievement-badge {
+  @apply grid place-items-center w-8 h-8 border border-line rounded-full bg-surface-soft text-muted text-xs font-black;
+}
+
+.achievement-progress {
+  @apply grid gap-1.5 text-sm font-extrabold [&_small]:block [&_small]:text-muted [&_small]:mt-1;
+}
+
+.progress-track {
+  @apply overflow-hidden h-2 rounded-full bg-surface-muted [&_span]:block [&_span]:w-0 [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:[background:var(--accent)] [&_span]:[transition:width_0.2s_ease];
+}
+
+.progress-section-heading h3 {
+  overflow-wrap: anywhere;
+}
+
+.metadata-grid.progress-stat-grid strong {
+  overflow-wrap: anywhere;
+}
+
+.progress-section-panel {
+  @apply grid gap-4 rounded border border-line bg-surface-soft p-4;
+}
+</style>

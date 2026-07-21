@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { assetURL } from '@/api/client.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import ProgressBar from '@/shared/components/feedback/ProgressBar.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 
 const props = defineProps({
@@ -55,18 +56,9 @@ function achievementProgress(achievement) {
 
     <LoadingState v-if="loading && !dashboard" />
 
-    <div
-      v-else-if="items.length"
-      class="dashboard-grid grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-phone:grid-cols-1! down-mobile:grid-cols-1!"
-    >
-      <article
-        v-for="item in items"
-        :key="`${item.type}:${item.id}`"
-        class="dashboard-card grid gap-3.5 border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
-      >
-        <div
-          class="dashboard-card-header flex items-start justify-between gap-4 [&_strong]:text-accent [&_strong]:whitespace-nowrap"
-        >
+    <div v-else-if="items.length" class="dashboard-grid">
+      <article v-for="item in items" :key="`${item.type}:${item.id}`" class="dashboard-card">
+        <div class="dashboard-card-header">
           <div>
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
               {{ itemTypeLabel(item.type) }}
@@ -79,7 +71,7 @@ function achievementProgress(achievement) {
         <template v-if="item.nextComic">
           <!-- Native button: the comic preview is a full-card navigation target. -->
           <button
-            class="dashboard-comic grid grid-cols-[56px_minmax(0,1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block [&_strong]:break-anywhere"
+            class="dashboard-comic"
             type="button"
             @click="$emit('open-comic', item.nextComic)"
           >
@@ -89,11 +81,7 @@ function achievementProgress(achievement) {
               :alt="`${item.nextComic.title} cover`"
               loading="lazy"
             />
-            <span
-              v-else
-              class="dashboard-cover-placeholder w-14 h-20 rounded-[6px] object-cover bg-surface-muted"
-              aria-hidden="true"
-            ></span>
+            <span v-else class="dashboard-cover-placeholder" aria-hidden="true"></span>
             <span>
               <strong>{{ item.nextComic.title }}</strong>
               <small>{{ item.nextComic.publisher || 'No publisher saved' }}</small>
@@ -121,10 +109,7 @@ function achievementProgress(achievement) {
       </article>
     </div>
 
-    <section
-      v-else
-      class="empty-panel border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold"
-    >
+    <section v-else class="empty-panel">
       <h2>No started reading yet</h2>
       <p>
         Start a reading order, arc, character, character collection, or series and it will appear
@@ -132,12 +117,8 @@ function achievementProgress(achievement) {
       </p>
     </section>
 
-    <div
-      class="dashboard-achievements grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3.5"
-    >
-      <article
-        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
-      >
+    <div class="dashboard-achievements">
+      <article class="achievement-summary-card">
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Recently earned</p>
         <template v-if="recentAchievement">
           <h3>{{ recentAchievement.name }}</h3>
@@ -145,19 +126,15 @@ function achievementProgress(achievement) {
         </template>
         <p v-else class="muted block text-muted">No achievements earned yet.</p>
       </article>
-      <article
-        class="achievement-summary-card border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0"
-      >
+      <article class="achievement-summary-card">
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Next achievement</p>
         <template v-if="nextAchievement">
           <h3>{{ nextAchievement.name }}</h3>
           <p>{{ nextAchievement.description }}</p>
-          <div
-            class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
-            :aria-label="`${nextAchievement.name} progress`"
-          >
-            <span :style="{ width: formatProgress(nextAchievement.percent) }"></span>
-          </div>
+          <ProgressBar
+            :value="formatProgress(nextAchievement.percent)"
+            :label="`${nextAchievement.name} progress`"
+          />
           <small>{{ achievementProgress(nextAchievement) }}</small>
         </template>
         <p v-else class="muted block text-muted">All achievements earned.</p>
@@ -165,3 +142,43 @@ function achievementProgress(achievement) {
     </div>
   </section>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.dashboard-grid {
+  @apply grid grid-cols-3 gap-4 down-laptop:grid-cols-2 down-phone:grid-cols-1! down-mobile:grid-cols-1!;
+}
+
+.dashboard-card {
+  @apply grid gap-3.5 border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0;
+}
+
+.dashboard-card-header {
+  @apply flex items-start justify-between gap-4 [&_strong]:text-accent [&_strong]:whitespace-nowrap;
+}
+
+.dashboard-comic {
+  @apply grid grid-cols-[56px_minmax(0,1fr)] gap-3 items-center w-full min-h-20 border border-line rounded [background:var(--surface-strong)] text-inherit p-2.5 text-left [&_img]:w-14 [&_img]:h-20 [&_img]:rounded-[6px] [&_img]:object-cover [&_img]:bg-surface-muted [&_strong]:block [&_small]:block;
+}
+
+.dashboard-cover-placeholder {
+  @apply w-14 h-20 rounded-[6px] object-cover bg-surface-muted;
+}
+
+.empty-panel {
+  @apply border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold;
+}
+
+.dashboard-achievements {
+  @apply grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3.5;
+}
+
+.achievement-summary-card {
+  @apply border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0;
+}
+
+.dashboard-comic strong {
+  overflow-wrap: anywhere;
+}
+</style>

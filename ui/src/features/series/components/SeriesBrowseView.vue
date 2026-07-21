@@ -6,6 +6,7 @@ import BrowseListSection from '@/shared/components/browse/BrowseListSection.vue'
 import BrowseRowStats from '@/shared/components/browse/BrowseRowStats.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import { ENGAGEMENT_FILTER_OPTIONS } from '@/shared/browseOptions.js'
 import { formatProgress } from '@/features/reading-orders/model.js'
 
@@ -88,9 +89,7 @@ function seriesPublisherLabel(series) {
 <template>
   <div class="browse-view min-w-0 w-full">
     <div class="list-pane grid gap-3">
-      <div
-        class="browse-list-sticky max-w-none sticky top-(--comic-list-sticky-top) z-18 grid gap-2.5 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[12px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky-soft backdrop-blur-ui down-tablet:[&_.comic-list-header]:items-stretch down-tablet:[&_.comic-list-header]:flex-col down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none"
-      >
+      <div class="browse-list-sticky">
         <BrowseListTools
           :search="search"
           search-placeholder="Search series"
@@ -123,11 +122,7 @@ function seriesPublisherLabel(series) {
               @toggle-favorite="$emit('toggle-favorite', item)"
             >
               <template #byline>
-                <span
-                  v-if="item.startedAt"
-                  class="started-pill inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2 text-xs font-extrabold leading-tight"
-                  >Started</span
-                >
+                <span v-if="item.startedAt" class="started-pill">Started</span>
                 <BrowseRowStats
                   :items="[
                     `${item.entryCount} entries`,
@@ -141,20 +136,29 @@ function seriesPublisherLabel(series) {
           </template>
         </BrowseListSection>
       </div>
-      <div
-        v-else
-        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-      >
+      <EmptyState v-else>
         {{ hasFilters ? 'No series match these filters.' : 'No series available yet.' }}
         <BaseButton v-if="!hasFilters && !readOnly" @click="$emit('new-comic')">
-          <span
-            aria-hidden="true"
-            class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
-            >+</span
-          >
+          <span aria-hidden="true" class="button-icon">+</span>
           Add the first comic
         </BaseButton>
-      </div>
+      </EmptyState>
     </div>
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.browse-list-sticky {
+  @apply max-w-none sticky top-(--comic-list-sticky-top) z-18 grid gap-2.5 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[12px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky-soft backdrop-blur-ui down-tablet:[&_.comic-list-header]:items-stretch down-tablet:[&_.comic-list-header]:flex-col down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none;
+}
+
+.started-pill {
+  @apply inline-flex items-center w-fit mt-2 border border-primary rounded-full bg-primary-soft text-primary-strong py-1 px-2 text-xs font-extrabold leading-tight;
+}
+
+.button-icon {
+  @apply inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none;
+}
+</style>

@@ -18,6 +18,8 @@ import MetronImportOptions from '@/features/metron/components/MetronImportOption
 import MetronReadingListDialog from '@/features/metron/components/MetronReadingListDialog.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
+import StatusPill from '@/shared/components/feedback/StatusPill.vue'
+import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
 
 const props = defineProps({
   importJobs: {
@@ -435,15 +437,11 @@ function formatDate(value) {
 
 <template>
   <div class="metron-view grid gap-5 pbs-[16px] down-mobile:gap-3.5">
-    <div
-      class="metron-modes inline-grid grid-cols-5 gap-1.5 w-[min(680px,100%)] down-mobile:grid-cols-2 down-mobile:w-full"
-      role="tablist"
-      aria-label="Metron search type"
-    >
+    <div class="metron-modes" role="tablist" aria-label="Metron search type">
       <!-- Native buttons: search modes are a stateful tablist rather than form actions. -->
       <button
         type="button"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+        class="search-mode-button"
         :class="{ active: activeSearch === 'comics' }"
         role="tab"
         :aria-selected="activeSearch === 'comics'"
@@ -453,7 +451,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+        class="search-mode-button"
         :class="{ active: activeSearch === 'readingLists' }"
         role="tab"
         :aria-selected="activeSearch === 'readingLists'"
@@ -463,7 +461,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+        class="search-mode-button"
         :class="{ active: activeSearch === 'series' }"
         role="tab"
         :aria-selected="activeSearch === 'series'"
@@ -473,7 +471,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+        class="search-mode-button"
         :class="{ active: activeSearch === 'characters' }"
         role="tab"
         :aria-selected="activeSearch === 'characters'"
@@ -483,7 +481,7 @@ function formatDate(value) {
       </button>
       <button
         type="button"
-        class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+        class="search-mode-button"
         :class="{ active: activeSearch === 'arcs' }"
         role="tab"
         :aria-selected="activeSearch === 'arcs'"
@@ -493,9 +491,7 @@ function formatDate(value) {
       </button>
     </div>
 
-    <div
-      class="metron-quota-strip flex items-baseline justify-between gap-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-sm font-bold [&_span]:flex [&_span]:items-baseline [&_span]:gap-2.5 [&_span]:min-w-0 [&_small]:text-muted [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap down-mobile:items-stretch down-mobile:flex-col down-mobile:[&_span]:flex-wrap"
-    >
+    <div class="metron-quota-strip">
       <span>
         <strong>Metron quota</strong>
         <small>{{ quotaSummary }}</small>
@@ -510,10 +506,7 @@ function formatDate(value) {
       @toggle-data="toggleFullImportData"
     />
 
-    <form
-      class="metron-search grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3.5 items-end [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold down-tablet:grid-cols-1 down-mobile:[&_button]:w-full"
-      @submit.prevent="search"
-    >
+    <form class="metron-search" @submit.prevent="search">
       <label>
         {{
           activeSearch === 'comics'
@@ -549,19 +542,12 @@ function formatDate(value) {
       </BaseButton>
     </form>
 
-    <div
-      v-if="importStatus"
-      class="metron-status flex items-center flex-wrap gap-y-2 gap-x-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-sm font-bold"
-    >
+    <div v-if="importStatus" class="metron-status">
       <span>{{ importStatus }}</span>
     </div>
 
-    <section
-      class="metron-results single grid grid-cols-3 gap-5 items-start [&.single]:grid-cols-[minmax(0,1fr)] [&_.row:disabled]:cursor-wait [&_.row:disabled]:opacity-[0.72] down-mobile:gap-3.5 down-mobile:[&_.detail-panel]:py-3.5 down-mobile:[&_.detail-panel]:px-3 down-tablet:grid-cols-1"
-    >
-      <article
-        class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
-      >
+    <section class="metron-results single">
+      <DetailPanel>
         <!-- Native buttons below are full-card result selection targets. -->
         <template v-if="activeSearch === 'comics'">
           <h3>Comics</h3>
@@ -573,7 +559,7 @@ function formatDate(value) {
           <button
             v-for="comic in comicResults"
             :key="comic.id"
-            class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+            class="row"
             :disabled="rowImporting('comic', comic.id)"
             @click="importComic(comic)"
           >
@@ -582,17 +568,14 @@ function formatDate(value) {
               <small v-if="comicMeta(comic)">{{ comicMeta(comic) }}</small>
               <small v-if="comicStoryLine(comic)">{{ comicStoryLine(comic) }}</small>
             </span>
-            <span
-              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-              >{{ rowImporting('comic', comic.id) ? 'Importing...' : 'Import' }}</span
-            >
+            <StatusPill>{{
+              rowImporting('comic', comic.id) ? 'Importing...' : 'Import'
+            }}</StatusPill>
           </button>
         </template>
 
         <template v-else-if="activeSearch === 'readingLists'">
-          <div
-            class="section-title justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-          >
+          <div class="section-title">
             <h3>Reading Lists</h3>
             <BaseButton
               variant="neutral"
@@ -614,7 +597,7 @@ function formatDate(value) {
           <button
             v-for="list in readingListResults"
             :key="list.id"
-            class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+            class="row"
             :disabled="rowImporting('readingList', list.id)"
             @click="openReadingList(list)"
           >
@@ -622,10 +605,9 @@ function formatDate(value) {
               <strong>{{ list.name || 'Untitled reading list' }}</strong>
               <small>{{ readingListSummary(list) }}</small>
             </span>
-            <span
-              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-              >{{ rowImporting('readingList', list.id) ? 'Importing...' : 'Details' }}</span
-            >
+            <StatusPill>
+              {{ rowImporting('readingList', list.id) ? 'Importing...' : 'Details' }}
+            </StatusPill>
           </button>
         </template>
 
@@ -639,7 +621,7 @@ function formatDate(value) {
           <button
             v-for="item in seriesResults"
             :key="item.id"
-            class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+            class="row"
             :disabled="rowImporting('series', item.id)"
             @click="importSeries(item)"
           >
@@ -650,10 +632,9 @@ function formatDate(value) {
                 {{ item.issueCount }} issues
               </small>
             </span>
-            <span
-              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-              >{{ rowImporting('series', item.id) ? 'Importing...' : 'Import' }}</span
-            >
+            <StatusPill>{{
+              rowImporting('series', item.id) ? 'Importing...' : 'Import'
+            }}</StatusPill>
           </button>
         </template>
 
@@ -667,7 +648,7 @@ function formatDate(value) {
           <button
             v-for="item in arcResults"
             :key="item.id"
-            class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+            class="row"
             :disabled="rowImporting('arc', item.id)"
             @click="importArc(item)"
           >
@@ -675,10 +656,7 @@ function formatDate(value) {
               <strong>{{ item.name || 'Untitled arc' }}</strong>
               <small>{{ arcSummary(item) }}</small>
             </span>
-            <span
-              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-              >{{ rowImporting('arc', item.id) ? 'Importing...' : 'Import' }}</span
-            >
+            <StatusPill>{{ rowImporting('arc', item.id) ? 'Importing...' : 'Import' }}</StatusPill>
           </button>
         </template>
 
@@ -692,7 +670,7 @@ function formatDate(value) {
           <button
             v-for="character in characterResults"
             :key="character.id"
-            class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
+            class="row"
             :disabled="rowImporting('character', character.id)"
             @click="importCharacter(character)"
           >
@@ -700,14 +678,12 @@ function formatDate(value) {
               <strong>{{ character.name }}</strong>
               <small>Metron ID {{ character.id }}</small>
             </span>
-            <span
-              class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-            >
+            <StatusPill>
               {{ rowImporting('character', character.id) ? 'Importing...' : 'Import' }}
-            </span>
+            </StatusPill>
           </button>
         </template>
-      </article>
+      </DetailPanel>
     </section>
 
     <MetronReadingListDialog
@@ -722,3 +698,51 @@ function formatDate(value) {
     />
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.metron-modes {
+  @apply inline-grid grid-cols-5 gap-1.5 w-[min(680px,100%)] down-mobile:grid-cols-2 down-mobile:w-full;
+}
+
+.metron-quota-strip {
+  @apply flex items-baseline justify-between gap-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-sm font-bold [&_span]:flex [&_span]:items-baseline [&_span]:gap-2.5 [&_span]:min-w-0 [&_small]:text-muted [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap down-mobile:items-stretch down-mobile:flex-col down-mobile:[&_span]:flex-wrap;
+}
+
+.metron-search {
+  @apply grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3.5 items-end [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold down-tablet:grid-cols-1 down-mobile:[&_button]:w-full;
+}
+
+.metron-status {
+  @apply flex items-center flex-wrap gap-y-2 gap-x-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-sm font-bold;
+}
+
+.metron-results.single {
+  @apply grid grid-cols-3 gap-5 items-start [&.single]:grid-cols-[minmax(0,1fr)] [&_.row:disabled]:cursor-wait [&_.row:disabled]:opacity-[0.72] down-mobile:gap-3.5 down-mobile:[&_.detail-panel]:py-3.5 down-mobile:[&_.detail-panel]:px-3 down-tablet:grid-cols-1;
+}
+
+.row {
+  @apply min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1;
+}
+
+.section-title {
+  @apply justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5;
+}
+
+.row strong {
+  overflow-wrap: anywhere;
+}
+
+.row small {
+  overflow-wrap: anywhere;
+}
+
+.search-mode-button {
+  @apply min-h-10 rounded border border-line-strong bg-surface px-3 py-2.5 text-control;
+}
+
+.search-mode-button.active {
+  @apply border-primary bg-primary text-white;
+}
+</style>

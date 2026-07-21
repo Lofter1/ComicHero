@@ -23,20 +23,31 @@ const showSummary = computed(() => Boolean(route.meta.showCount))
 </script>
 
 <template>
-  <header
-    class="toolbar sticky-toolbar justify-between down-tablet:items-center down-mobile:gap-1.5 down-mobile:pb-2.5 flex items-center gap-3.5 [&_>_div]:min-w-0 [&_h2]:min-w-0 [&_h2]:break-anywhere sticky top-(--sticky-toolbar-top) z-20 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)] max-w-none down-tablet:[&.sticky-toolbar]:mb-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:mt-0 down-mobile:[&_.eyebrow]:hidden down-mobile:[&_h2]:text-xl"
-  >
+  <header class="toolbar sticky-toolbar">
     <div>
       <p v-if="showEyebrow" class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
         {{ eyebrow }}
       </p>
       <h2>{{ title }}</h2>
-      <p
-        v-if="showSummary"
-        class="toolbar-summary mt-1.5 mx-0 mb-0 text-muted text-sm down-mobile:mt-1 down-mobile:text-sm"
-      >
+      <p v-if="showSummary" class="toolbar-summary">
         Showing {{ resultCount }} of {{ totalCount }}
       </p>
     </div>
   </header>
 </template>
+
+<style scoped>
+@reference '../../styles.css';
+
+.toolbar.sticky-toolbar {
+  @apply justify-between down-tablet:items-center down-mobile:gap-1.5 down-mobile:pb-2.5 flex items-center gap-3.5 [&_>_div]:min-w-0 [&_h2]:min-w-0 sticky top-(--sticky-toolbar-top) z-20 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)] max-w-none down-tablet:[&.sticky-toolbar]:mb-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:mt-0 down-mobile:[&_.eyebrow]:hidden down-mobile:[&_h2]:text-xl;
+}
+
+.toolbar-summary {
+  @apply mt-1.5 mx-0 mb-0 text-muted text-sm down-mobile:mt-1 down-mobile:text-sm;
+}
+
+.toolbar.sticky-toolbar h2 {
+  overflow-wrap: anywhere;
+}
+</style>

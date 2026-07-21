@@ -49,10 +49,7 @@ defineEmits(['open', 'toggle-favorite'])
 </script>
 
 <template>
-  <div
-    class="row flex min-h-10 w-full flex-col items-start justify-between gap-3 rounded border border-line-strong bg-surface p-3.5 text-left text-control hover:bg-surface-soft down-mobile:min-h-12 down-mobile:flex-wrap down-mobile:p-3 down-phone:grid down-phone:grid-cols-1"
-    :class="{ selected }"
-  >
+  <div class="row" :class="{ selected }">
     <span class="row-heading flex w-full min-w-0 items-start justify-between gap-3">
       <!-- Native button: the entity body is a full-row navigation target. -->
       <button
@@ -61,11 +58,7 @@ defineEmits(['open', 'toggle-favorite'])
         type="button"
         @click="$emit('open')"
       >
-        <span
-          v-if="image"
-          class="row-cover h-16 w-11 flex-none overflow-hidden rounded-ui-sm border border-line bg-surface-muted down-phone:h-12 down-phone:w-10"
-          aria-hidden="true"
-        >
+        <span v-if="image" class="row-cover" aria-hidden="true">
           <img :src="assetURL(image)" alt="" loading="lazy" />
         </span>
         <span>
@@ -87,10 +80,7 @@ defineEmits(['open', 'toggle-favorite'])
       />
       <slot name="actions" />
     </span>
-    <span
-      class="row-progress block h-2 w-full flex-none overflow-hidden rounded-full bg-read-progress"
-      :aria-label="progressLabel"
-    >
+    <span class="row-progress" :aria-label="progressLabel">
       <span :style="{ width: progress }"></span>
     </span>
   </div>
@@ -127,6 +117,14 @@ defineEmits(['open', 'toggle-favorite'])
   @apply block h-full w-full object-cover;
 }
 
+.row-cover {
+  @apply h-16 w-11 flex-none overflow-hidden rounded-ui-sm border border-line bg-surface-muted;
+}
+
+.row-progress {
+  @apply block h-2 w-full flex-none overflow-hidden rounded-full bg-read-progress;
+}
+
 .row-byline :is(.author-pill, .started-pill) {
   @apply mt-0;
 }
@@ -134,5 +132,15 @@ defineEmits(['open', 'toggle-favorite'])
 .row-progress span {
   @apply block h-full min-w-0.5 bg-progress;
   border-radius: inherit;
+}
+
+.row {
+  @apply flex min-h-10 w-full flex-col items-start justify-between gap-3 rounded border border-line-strong bg-surface p-3.5 text-left text-control hover:bg-surface-soft down-mobile:min-h-12 down-mobile:flex-wrap down-mobile:p-3 down-phone:grid down-phone:grid-cols-1;
+}
+
+@media (width <= 420px) {
+  .row-cover {
+    @apply h-12 w-10;
+  }
 }
 </style>
