@@ -1,10 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
+import ProgressBar from '@/shared/components/feedback/ProgressBar.vue'
 import SafeMarkdown from '@/shared/components/content/SafeMarkdown.vue'
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
+import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
+import MetadataGrid from '@/shared/components/layout/MetadataGrid.vue'
+import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
 import {
   formatProgress,
   formatRating,
@@ -101,28 +106,12 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
       <BaseButton v-if="selectedOrder" @click="$emit('export-cbl')"> Export CBL </BaseButton>
     </DetailNavigation>
 
-    <article
-      class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
-    >
+    <DetailPanel>
       <div v-if="selectedOrder" class="read-only-detail grid gap-4">
-        <header
-          class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-        >
-          <div>
-            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
-              Reading Order
-            </p>
-            <h3>{{ selectedOrder.name }}</h3>
-          </div>
-        </header>
+        <PanelHeader eyebrow="Reading order" :title="selectedOrder.name" />
 
-        <div
-          class="reading-order-summary grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)] items-start gap-4 down-mobile:grid-cols-1 [&_.detail-description]:m-0"
-        >
-          <div
-            v-if="readingOrderCover(selectedOrder)"
-            class="reading-order-thumbnail w-full overflow-hidden border border-line rounded bg-surface-muted down-mobile:max-w-56 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
-          >
+        <div class="reading-order-summary">
+          <div v-if="readingOrderCover(selectedOrder)" class="reading-order-thumbnail">
             <img
               :src="assetURL(readingOrderCover(selectedOrder))"
               :alt="`${selectedOrder.name} thumbnail`"
@@ -131,22 +120,18 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           </div>
 
           <SafeMarkdown
-            class="detail-description markdown-content grid gap-2.5 text-body leading-normal [&_:where(p,ul,ol,h3,h4,h5)]:m-0 [&_:where(ul,ol)]:pl-6 [&_:where(h3,h4,h5)]:text-control [&_a]:text-accent [&_a]:font-extrabold"
+            class="detail-description"
             :source="selectedOrder.description"
             fallback="No description"
           />
         </div>
 
-        <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
-          aria-label="Reading order progress"
-        >
-          <span :style="{ width: formatProgress(selectedOrder.progress) }"></span>
-        </div>
+        <ProgressBar
+          :value="formatProgress(selectedOrder.progress)"
+          label="Reading order progress"
+        />
 
-        <div
-          class="metadata-grid grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
-        >
+        <MetadataGrid>
           <span>
             <strong>{{ formatProgress(selectedOrder.progress) }}</strong>
             <small>Progress</small>
@@ -179,12 +164,9 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
             <strong>Started</strong>
             <small>{{ new Date(selectedOrder.startedAt).toLocaleDateString() }}</small>
           </span>
-        </div>
+        </MetadataGrid>
 
-        <section
-          v-if="!readOnly"
-          class="reading-order-rating-panel flex items-center justify-between gap-3 border border-line rounded bg-surface-soft p-3 [&_strong]:block"
-        >
+        <section v-if="!readOnly" class="reading-order-rating-panel">
           <div>
             <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Your rating</p>
             <strong>{{
@@ -201,7 +183,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
               v-for="value in ratingValues"
               :key="value"
               type="button"
-              class="rating-button inline-flex items-center justify-center w-10 h-10 border border-line-strong rounded bg-surface text-(--text) font-extrabold cursor-pointer [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary [&:hover:not(:disabled)]:text-(--primary-contrast) [&.active]:border-primary [&.active]:bg-primary [&.active]:text-(--primary-contrast)"
+              class="rating-button"
               :class="{ active: selectedOrder.myRating === value }"
               :aria-pressed="selectedOrder.myRating === value"
               :disabled="ratingSaving"
@@ -223,7 +205,7 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
         </section>
 
         <ComicListView
-          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-6 [&_ul]:mb-0 [&_ul]:pl-6 [&_li]:mb-2.5"
+          embedded
           title="Comics"
           :comics="displayComics"
           :selected-comic-id="selectedComicId"
@@ -243,12 +225,27 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
         />
       </div>
 
-      <div
-        v-else
-        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-      >
-        Select a reading order to view details.
-      </div>
-    </article>
+      <EmptyState v-else> Select a reading order to view details. </EmptyState>
+    </DetailPanel>
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.reading-order-summary {
+  @apply grid grid-cols-[minmax(150px,220px)_minmax(0,1fr)] items-start gap-4 down-mobile:grid-cols-1 [&_.detail-description]:m-0;
+}
+
+.reading-order-thumbnail {
+  @apply w-full overflow-hidden border border-line rounded bg-surface-muted down-mobile:max-w-56 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover;
+}
+
+.reading-order-rating-panel {
+  @apply flex items-center justify-between gap-3 border border-line rounded bg-surface-soft p-3 [&_strong]:block;
+}
+
+.rating-button {
+  @apply inline-flex items-center justify-center w-10 h-10 border border-line-strong rounded bg-surface text-(--text) font-extrabold cursor-pointer [&:hover:not(:disabled)]:border-primary [&:hover:not(:disabled)]:bg-primary [&:hover:not(:disabled)]:text-(--primary-contrast) [&.active]:border-primary [&.active]:bg-primary [&.active]:text-(--primary-contrast);
+}
+</style>

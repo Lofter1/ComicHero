@@ -13,9 +13,7 @@ defineProps({
 
 <template>
   <section class="grid gap-2">
-    <div
-      class="flex items-center justify-between gap-2.5 py-0 px-0.5 [&_.eyebrow]:m-0 [&_small]:text-muted [&_small]:font-bold"
-    >
+    <div class="browse-section-header">
       <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
         {{ title }}
       </p>
@@ -26,3 +24,19 @@ defineProps({
     </div>
   </section>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.browse-section-header {
+  @apply flex items-center justify-between gap-2.5 px-0.5 py-0;
+}
+
+.browse-section-header .eyebrow {
+  @apply m-0;
+}
+
+.browse-section-header small {
+  @apply font-bold text-muted;
+}
+</style>

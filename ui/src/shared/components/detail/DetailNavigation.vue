@@ -109,24 +109,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <header
-    ref="navigation"
-    class="detail-nav sticky-toolbar sticky top-(--sticky-toolbar-top) z-20 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)] max-w-none flex flex-nowrap items-center justify-between gap-2.5 *:min-w-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)]"
-  >
+  <header ref="navigation" class="detail-nav sticky-toolbar">
     <!-- Native button: measurement logic requires direct access to this DOM element's width. -->
-    <button
-      ref="backButton"
-      class="secondary-button flex-none min-h-10 border rounded text-control py-2.5 px-3.5 bg-primary-soft border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))]"
-      type="button"
-      @click="$emit('back')"
-    >
-      Back
-    </button>
+    <button ref="backButton" class="back-button" type="button" @click="$emit('back')">Back</button>
     <div ref="actionRoot" class="detail-nav-action-root relative ml-auto flex-none">
       <!-- Native button: this trigger is part of the measured overflow-navigation structure. -->
       <button
         v-if="actionsCollapsed"
-        class="secondary-button inline-flex size-11 min-h-10 items-center justify-center border rounded bg-primary-soft text-control p-0 border-[color-mix(in_srgb,var(--primary)_42%,var(--line-strong))]"
+        class="more-button"
         type="button"
         :aria-expanded="actionsOpen"
         aria-label="More actions"
@@ -138,12 +128,11 @@ onBeforeUnmount(() => {
       <div
         v-show="!actionsCollapsed || actionsOpen"
         ref="actionList"
-        class="detail-nav-actions gap-2.5 [&_>_button]:min-w-0 *:min-w-0"
-        :class="
-          actionsCollapsed
-            ? 'absolute z-26 top-[calc(100%+8px)] right-0 grid items-stretch w-max min-w-[210px] max-w-[calc(100vw-24px)] border border-line-strong rounded-lg bg-surface p-2.5 [box-shadow:0_18px_40px_var(--shadow-panel)] [&_>_button]:w-full'
-            : 'flex flex-nowrap items-center justify-end'
-        "
+        class="detail-nav-actions"
+        :class="{
+          'detail-nav-actions--collapsed': actionsCollapsed,
+          'detail-nav-actions--expanded': !actionsCollapsed,
+        }"
         @click="closeActionsAfterClick"
       >
         <slot />
@@ -151,3 +140,45 @@ onBeforeUnmount(() => {
     </div>
   </header>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.detail-nav.sticky-toolbar {
+  @apply sticky top-(--sticky-toolbar-top) z-20 mx-[calc(var(--sticky-toolbar-inline-offset)*-1)] p-[14px_var(--sticky-toolbar-inline-offset)] border-b border-sticky-border bg-sticky-bg shadow-sticky backdrop-blur-ui [&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)] max-w-none flex flex-nowrap items-center justify-between gap-2.5 *:min-w-0 down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none down-mobile:[&.sticky-toolbar]:mt-[calc(var(--content-padding)*-1)];
+}
+
+.back-button,
+.more-button {
+  @apply flex-none rounded border bg-primary-soft text-control;
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--line-strong));
+}
+
+.back-button {
+  @apply min-h-10 px-3.5 py-2.5;
+}
+
+.more-button {
+  @apply inline-flex size-11 min-h-10 items-center justify-center p-0;
+}
+
+.detail-nav-actions {
+  @apply gap-2.5;
+}
+
+.detail-nav-actions :deep(> *) {
+  @apply min-w-0;
+}
+
+.detail-nav-actions--expanded {
+  @apply flex flex-nowrap items-center justify-end;
+}
+
+.detail-nav-actions--collapsed {
+  @apply absolute top-[calc(100%+8px)] right-0 z-26 grid w-max min-w-[210px] max-w-[calc(100vw-24px)] items-stretch rounded-lg border border-line-strong bg-surface p-2.5 shadow-monitor;
+}
+
+.detail-nav-actions--collapsed :deep(> button) {
+  @apply w-full;
+}
+</style>

@@ -17,6 +17,7 @@ import ComicDetailView from '@/features/comics/components/ComicDetailView.vue'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import DashboardView from '@/features/dashboard/components/DashboardView.vue'
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import MetronImport from '@/features/metron/components/MetronImport.vue'
 import MetronImportMonitor from '@/features/metron/components/MetronImportMonitor.vue'
@@ -831,10 +832,7 @@ onUnmounted(() => {
     @show-login="showLogin"
   />
 
-  <main
-    v-else
-    class="app-shell min-h-screen grid grid-cols-[260px_minmax(0,1fr)] down-tablet:block down-tablet:grid-cols-1"
-  >
+  <main v-else class="app-shell">
     <AppSidebar
       :active-view="activeView"
       :theme-preference="themePreference"
@@ -850,9 +848,7 @@ onUnmounted(() => {
       @logout="signOut"
     />
 
-    <section
-      class="content [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] p-(--content-padding) min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:p-(--content-padding) down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:p-(--content-padding) down-phone:p-2.5 *:min-w-0 *:max-w-full [&_>_.sticky-toolbar]:max-w-none"
-    >
+    <section class="content">
       <AppToolbar
         v-if="!isEditing && !isDetail"
         :result-count="toolbarResultCount"
@@ -961,19 +957,13 @@ onUnmounted(() => {
         @refresh="loadAccountStatistics"
       />
 
-      <section
-        v-else-if="activeView === 'notFound'"
-        class="empty-panel border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold"
-      >
+      <EmptyState v-else-if="activeView === 'notFound'" tag="section" roomy>
         <h2>Page not found</h2>
         <p>This route does not match a ComicHero view.</p>
-        <router-link
-          class="primary-button min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white"
-          :to="{ name: 'readingOrders' }"
-        >
+        <router-link class="primary-button" :to="{ name: 'readingOrders' }">
           Go to reading orders
         </router-link>
-      </section>
+      </EmptyState>
 
       <ReadingOrderEditView
         v-else-if="activeView === 'readingOrders' && isEditing"
@@ -1243,14 +1233,10 @@ onUnmounted(() => {
       <div
         v-if="showInfiniteScrollSentinel"
         ref="loadMoreSentinel"
-        class="load-more-sentinel flex items-center gap-2 w-full min-h-10 text-muted text-sm font-bold"
+        class="load-more-sentinel"
         aria-live="polite"
       >
-        <span
-          v-if="activeListLoadingMore"
-          class="loading-spinner small w-4 h-4 border-3 border-spinner-track border-t-primary rounded-full animate-loading-spin flex-none [&.small]:w-3.5 [&.small]:h-3.5 [&.small]:[border-width:2px]"
-          aria-hidden="true"
-        ></span>
+        <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
         <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
       </div>
 
@@ -1267,3 +1253,27 @@ onUnmounted(() => {
     </section>
   </main>
 </template>
+
+<style scoped>
+@reference 'styles.css';
+
+.app-shell {
+  @apply min-h-screen grid grid-cols-[260px_minmax(0,1fr)] down-tablet:block down-tablet:grid-cols-1;
+}
+
+.content {
+  @apply [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] p-(--content-padding) min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:p-(--content-padding) down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:p-(--content-padding) down-phone:p-2.5 *:min-w-0 *:max-w-full [&_>_.sticky-toolbar]:max-w-none;
+}
+
+.primary-button {
+  @apply min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white;
+}
+
+.load-more-sentinel {
+  @apply flex items-center gap-2 w-full min-h-10 text-muted text-sm font-bold;
+}
+
+.loading-spinner.small {
+  @apply w-4 h-4 border-3 border-spinner-track border-t-primary rounded-full animate-loading-spin flex-none [&.small]:w-3.5 [&.small]:h-3.5 [&.small]:[border-width:2px];
+}
+</style>

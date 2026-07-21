@@ -3,8 +3,13 @@ import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import FavoriteToggle from '@/shared/components/feedback/FavoriteToggle.vue'
+import ProgressBar from '@/shared/components/feedback/ProgressBar.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
+import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
+import MetadataGrid from '@/shared/components/layout/MetadataGrid.vue'
+import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
 
 defineProps({
   selectedCharacter: {
@@ -97,23 +102,11 @@ function characterProgress(character) {
       </BaseButton>
     </DetailNavigation>
 
-    <article
-      class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
-    >
+    <DetailPanel>
       <div v-if="selectedCharacter" class="read-only-detail grid gap-4">
-        <header
-          class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-        >
-          <div>
-            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Character</p>
-            <h3>{{ selectedCharacter.name }}</h3>
-          </div>
-        </header>
+        <PanelHeader eyebrow="Character" :title="selectedCharacter.name" />
 
-        <div
-          v-if="selectedCharacter.image"
-          class="character-portrait overflow-hidden border border-line rounded bg-surface-muted max-w-44 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
-        >
+        <div v-if="selectedCharacter.image" class="character-portrait">
           <img
             :src="assetURL(selectedCharacter.image)"
             :alt="`${selectedCharacter.name} portrait`"
@@ -121,9 +114,7 @@ function characterProgress(character) {
           />
         </div>
 
-        <div
-          class="metadata-grid grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
-        >
+        <MetadataGrid>
           <span>
             <strong>{{ characterProgress(selectedCharacter) }}</strong>
             <small>Progress</small>
@@ -148,18 +139,13 @@ function characterProgress(character) {
             ><strong>Started</strong
             ><small>{{ new Date(selectedCharacter.startedAt).toLocaleDateString() }}</small></span
           >
-        </div>
-        <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
-          aria-label="Character read progress"
-        >
-          <span :style="{ width: characterProgress(selectedCharacter) }"></span>
-        </div>
+        </MetadataGrid>
+        <ProgressBar
+          :value="characterProgress(selectedCharacter)"
+          label="Character read progress"
+        />
 
-        <div
-          v-if="selectedCharacter.aliases?.length"
-          class="alias-list flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,var(--primary)_32%,var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold"
-        >
+        <div v-if="selectedCharacter.aliases?.length" class="alias-list">
           <span v-for="alias in selectedCharacter.aliases" :key="alias">{{ alias }}</span>
         </div>
 
@@ -168,7 +154,7 @@ function characterProgress(character) {
         </p>
 
         <ComicListView
-          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-6 [&_ul]:mb-0 [&_ul]:pl-6 [&_li]:mb-2.5"
+          embedded
           title="Appearances"
           :comics="selectedCharacter.comics || []"
           :source-params="{ characterId: selectedCharacter.id }"
@@ -185,12 +171,19 @@ function characterProgress(character) {
           @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
-      <p
-        v-else
-        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-      >
-        Select a character to view appearances.
-      </p>
-    </article>
+      <EmptyState v-else tag="p"> Select a character to view appearances. </EmptyState>
+    </DetailPanel>
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.character-portrait {
+  @apply overflow-hidden border border-line rounded bg-surface-muted max-w-44 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover;
+}
+
+.alias-list {
+  @apply flex flex-wrap gap-2 [&_span]:min-h-8 [&_span]:[border:1px_solid_color-mix(in_srgb,var(--primary)_32%,var(--line-strong))] [&_span]:rounded-full [&_span]:bg-primary-soft [&_span]:text-primary-strong [&_span]:py-1 [&_span]:px-2.5 [&_span]:text-sm [&_span]:font-extrabold;
+}
+</style>

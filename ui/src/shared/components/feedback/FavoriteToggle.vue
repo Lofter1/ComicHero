@@ -17,7 +17,7 @@ defineEmits(['toggle'])
   <!-- Native button: this reusable control has a unique circular pressed-state design. -->
   <button
     type="button"
-    class="favorite-toggle flex-none inline-flex items-center justify-center w-8 min-w-8 min-h-8 border border-warning-border rounded-full bg-warning-soft text-warning p-0 text-lg font-bold leading-none [&.active]:border-warning-border [&.active]:[background:color-mix(in_srgb,var(--warning-soft)_40%,#f6d56b)] [&.active]:text-warning"
+    class="favorite-toggle"
     :class="{ active: favorite }"
     :disabled="disabled"
     :aria-label="favorite ? 'Remove from favorites' : 'Add to favorites'"
@@ -27,3 +27,16 @@ defineEmits(['toggle'])
     <span aria-hidden="true">{{ favorite ? '★' : '☆' }}</span>
   </button>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.favorite-toggle {
+  @apply inline-flex min-h-8 w-8 min-w-8 flex-none items-center justify-center rounded-full border border-warning-border bg-warning-soft p-0 text-lg leading-none font-bold text-warning;
+}
+
+.favorite-toggle.active {
+  @apply border-warning-border text-warning;
+  background: color-mix(in srgb, var(--warning-soft) 40%, #f6d56b);
+}
+</style>

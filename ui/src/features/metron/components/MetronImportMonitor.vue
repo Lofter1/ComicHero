@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import StatusPill from '@/shared/components/feedback/StatusPill.vue'
 
 const props = defineProps({
   jobs: {
@@ -85,16 +86,11 @@ function jobMessage(job) {
 </script>
 
 <template>
-  <div
-    v-if="jobs.length"
-    class="import-monitor fixed right-6 bottom-6 z-45 grid gap-2.5 w-[min(440px,calc(100vw-32px))] border border-line-strong rounded bg-panel shadow-monitor p-3 down-tablet:right-4 down-tablet:bottom-4 down-mobile:right-2.5 down-mobile:bottom-2.5 down-mobile:w-[calc(100vw-20px)] down-mobile:max-h-[42vh] down-mobile:overflow-auto [&.collapsed]:w-auto [&.collapsed]:max-w-[min(300px,calc(100vw-32px))] [&.collapsed]:py-2 [&.collapsed]:px-2.5 [&_header]:flex [&_header]:items-baseline [&_header]:justify-between [&_header]:gap-3 [&_header_small]:text-muted [&_header_small]:font-bold down-mobile:[&.collapsed]:w-auto down-mobile:[&.collapsed]:max-w-[calc(100vw-20px)]"
-    :class="{ collapsed: !open }"
-    aria-live="polite"
-  >
+  <div v-if="jobs.length" class="import-monitor" :class="{ collapsed: !open }" aria-live="polite">
     <header>
       <!-- Native button: the monitor heading is a borderless disclosure control. -->
       <button
-        class="import-monitor-toggle flex items-baseline gap-2.5 min-h-0 border-0 bg-transparent text-inherit p-0 text-left [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap"
+        class="import-monitor-toggle"
         type="button"
         :aria-expanded="open"
         @click="updateOpen(!open)"
@@ -104,22 +100,14 @@ function jobMessage(job) {
       </button>
       <small v-if="inProgress && open">Running in background</small>
     </header>
-    <div
-      v-if="open"
-      class="metron-jobs grid gap-2 max-h-[min(54vh,420px)] overflow-auto pr-0.5"
-    >
-      <div
-        v-for="job in jobs"
-        :key="job.id"
-        class="metron-job flex items-start justify-between gap-3 border border-line-strong rounded bg-surface-soft py-2.5 px-3 [&.failed]:border-danger-border [&.failed]:bg-danger-soft [&.canceled]:border-[#d8c38a] [&.canceled]:bg-warning-soft [&.succeeded]:border-[color-mix(in_srgb,var(--primary)_35%,var(--line-strong))] [&_span:first-child]:min-w-0 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-mobile:items-stretch down-mobile:flex-col"
-        :class="job.status"
-      >
+    <div v-if="open" class="metron-jobs grid gap-2 max-h-[min(54vh,420px)] overflow-auto pr-0.5">
+      <div v-for="job in jobs" :key="job.id" class="metron-job" :class="job.status">
         <span>
           <strong>{{ jobTitle(job) }}</strong>
           <small>{{ jobMessage(job) }}</small>
           <small>{{ progressLabel(job) }}</small>
           <span
-            class="job-progress block w-[min(260px,100%)] h-2 rounded-full bg-read-progress overflow-hidden mt-2 [&_span]:block [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:bg-primary [&_span]:[transition:width_180ms_ease] [&.indeterminate_span]:w-[42%]! [&.indeterminate_span]:min-w-[42%] [&.indeterminate_span]:animate-job-progress-sweep"
+            class="job-progress"
             :class="{ indeterminate: progressIndeterminate(job) }"
             aria-hidden="true"
           >
@@ -127,28 +115,21 @@ function jobMessage(job) {
           </span>
         </span>
         <span class="job-actions flex items-center gap-2 flex-none down-mobile:flex-wrap">
-          <span
-            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-            >{{ job.status }}</span
-          >
+          <StatusPill>{{ job.status }}</StatusPill>
           <!-- Native buttons: monitor actions use compact icon and inline-link treatments. -->
           <button
             v-if="job.status === 'failed'"
-            class="icon-button compact-icon-button self-center inline-flex size-10 min-w-10 items-center justify-center border border-line-strong rounded bg-surface text-control p-0 down-mobile:self-stretch down-mobile:w-full"
+            class="icon-button compact-icon-button"
             type="button"
             aria-label="Retry import"
             title="Retry import"
             @click="$emit('retry', job)"
           >
-            <span
-              aria-hidden="true"
-              class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
-              >↻</span
-            >
+            <span aria-hidden="true" class="button-icon">↻</span>
           </button>
           <button
             v-if="canContinue(job)"
-            class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+            class="ghost-button"
             type="button"
             @click="$emit('continue', job)"
           >
@@ -156,7 +137,7 @@ function jobMessage(job) {
           </button>
           <button
             v-if="canCancel(job)"
-            class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+            class="ghost-button"
             type="button"
             @click="$emit('cancel', job.id)"
           >
@@ -164,20 +145,48 @@ function jobMessage(job) {
           </button>
           <button
             v-if="canDismiss(job)"
-            class="icon-button compact-icon-button self-center inline-flex size-10 min-w-10 items-center justify-center border border-line-strong rounded bg-surface text-control p-0 down-mobile:self-stretch down-mobile:w-full"
+            class="icon-button compact-icon-button"
             type="button"
             aria-label="Dismiss import"
             title="Dismiss import"
             @click="$emit('dismiss', job.id)"
           >
-            <span
-              aria-hidden="true"
-              class="button-icon inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none"
-              >×</span
-            >
+            <span aria-hidden="true" class="button-icon">×</span>
           </button>
         </span>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.import-monitor {
+  @apply fixed right-6 bottom-6 z-45 grid gap-2.5 w-[min(440px,calc(100vw-32px))] border border-line-strong rounded bg-panel shadow-monitor p-3 down-tablet:right-4 down-tablet:bottom-4 down-mobile:right-2.5 down-mobile:bottom-2.5 down-mobile:w-[calc(100vw-20px)] down-mobile:max-h-[42vh] down-mobile:overflow-auto [&.collapsed]:w-auto [&.collapsed]:max-w-[min(300px,calc(100vw-32px))] [&.collapsed]:py-2 [&.collapsed]:px-2.5 [&_header]:flex [&_header]:items-baseline [&_header]:justify-between [&_header]:gap-3 [&_header_small]:text-muted [&_header_small]:font-bold down-mobile:[&.collapsed]:w-auto down-mobile:[&.collapsed]:max-w-[calc(100vw-20px)];
+}
+
+.import-monitor-toggle {
+  @apply flex items-baseline gap-2.5 min-h-0 border-0 bg-transparent text-inherit p-0 text-left [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-nowrap [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-nowrap;
+}
+
+.metron-job {
+  @apply flex items-start justify-between gap-3 border border-line-strong rounded bg-surface-soft py-2.5 px-3 [&.failed]:border-danger-border [&.failed]:bg-danger-soft [&.canceled]:border-[#d8c38a] [&.canceled]:bg-warning-soft [&.succeeded]:border-[color-mix(in_srgb,var(--primary)_35%,var(--line-strong))] [&_span:first-child]:min-w-0 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-mobile:items-stretch down-mobile:flex-col;
+}
+
+.job-progress {
+  @apply block w-[min(260px,100%)] h-2 rounded-full bg-read-progress overflow-hidden mt-2 [&_span]:block [&_span]:h-full [&_span]:rounded-[inherit] [&_span]:bg-primary [&_span]:[transition:width_180ms_ease] [&.indeterminate_span]:w-[42%]! [&.indeterminate_span]:min-w-[42%] [&.indeterminate_span]:animate-job-progress-sweep;
+}
+
+.icon-button.compact-icon-button {
+  @apply self-center inline-flex size-10 min-w-10 items-center justify-center border border-line-strong rounded bg-surface text-control p-0 down-mobile:self-stretch down-mobile:w-full;
+}
+
+.button-icon {
+  @apply inline-flex items-center justify-center size-5 text-xl font-extrabold leading-none;
+}
+
+.ghost-button {
+  @apply min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold;
+}
+</style>

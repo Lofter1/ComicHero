@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
+import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
+import ModalShell from '@/shared/components/overlay/ModalShell.vue'
+import StatusPill from '@/shared/components/feedback/StatusPill.vue'
 
 defineProps({
   target: { type: Object, required: true },
@@ -19,25 +22,14 @@ function search() {
 </script>
 
 <template>
-  <div
-    class="modal-backdrop fixed inset-0 z-60 grid place-items-center bg-backdrop p-4"
-    @click.self="$emit('close')"
-  >
-    <section
-      class="comic-merge-dialog w-[min(680px,calc(100%-28px))] max-h-[min(720px,calc(100dvh-28px))] overflow-auto border border-line-strong rounded-lg bg-panel p-5 shadow-elevated"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="merge-title"
+  <ModalShell size="large" aria-labelledby="merge-title" @close="$emit('close')">
+    <PanelHeader
+      eyebrow="Admin"
+      :title="`Merge a duplicate into ${target.title}`"
+      title-id="merge-title"
     >
-      <header
-        class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-      >
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Admin</p>
-          <h3 id="merge-title">Merge a duplicate into {{ target.title }}</h3>
-        </div>
+      <template #actions>
         <BaseButton
-          class="self-end down-mobile:self-stretch down-mobile:w-full"
           variant="neutral"
           size="icon"
           aria-label="Close comic merge"
@@ -45,51 +37,64 @@ function search() {
         >
           ×
         </BaseButton>
-      </header>
+      </template>
+    </PanelHeader>
 
-      <p class="muted block text-muted">
-        The selected duplicate will be deleted after its reading progress, list positions, arcs,
-        characters, and missing metadata are moved to this comic.
-      </p>
+    <p class="muted block text-muted">
+      The selected duplicate will be deleted after its reading progress, list positions, arcs,
+      characters, and missing metadata are moved to this comic.
+    </p>
 
-      <form
-        class="comic-merge-search grid grid-cols-[minmax(0,1fr)_max-content] gap-2.5 my-4 mx-0"
-        @submit.prevent="search"
+    <form
+      class="comic-merge-search grid grid-cols-[minmax(0,1fr)_max-content] gap-2.5 my-4 mx-0"
+      @submit.prevent="search"
+    >
+      <BaseTextInput
+        v-model="query"
+        type="search"
+        placeholder="Search duplicate comics"
+        autofocus
+      />
+      <BaseButton variant="primary" type="submit" :disabled="searching || saving">
+        {{ searching ? 'Searching...' : 'Search' }}
+      </BaseButton>
+    </form>
+
+    <div v-if="candidates.length" class="comic-merge-results grid gap-2">
+      <!-- Native buttons: merge candidates are full-card selection targets. -->
+      <button
+        v-for="comic in candidates"
+        :key="comic.id"
+        class="row"
+        type="button"
+        :disabled="saving"
+        @click="emit('merge', comic)"
       >
-        <BaseTextInput
-          v-model="query"
-          type="search"
-          placeholder="Search duplicate comics"
-          autofocus
-        />
-        <BaseButton variant="primary" type="submit" :disabled="searching || saving">
-          {{ searching ? 'Searching...' : 'Search' }}
-        </BaseButton>
-      </form>
-
-      <div v-if="candidates.length" class="comic-merge-results grid gap-2">
-        <!-- Native buttons: merge candidates are full-card selection targets. -->
-        <button
-          v-for="comic in candidates"
-          :key="comic.id"
-          class="row min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1"
-          type="button"
-          :disabled="saving"
-          @click="emit('merge', comic)"
-        >
-          <span>
-            <strong>{{ comic.title }}</strong>
-            <small>{{ comic.publisher || 'Unknown publisher' }}</small>
-          </span>
-          <span
-            class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-            >Merge</span
-          >
-        </button>
-      </div>
-      <p v-else-if="!searching" class="muted block text-muted">
-        Search for the duplicate comic to merge.
-      </p>
-    </section>
-  </div>
+        <span>
+          <strong>{{ comic.title }}</strong>
+          <small>{{ comic.publisher || 'Unknown publisher' }}</small>
+        </span>
+        <StatusPill>Merge</StatusPill>
+      </button>
+    </div>
+    <p v-else-if="!searching" class="muted block text-muted">
+      Search for the duplicate comic to merge.
+    </p>
+  </ModalShell>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.row {
+  @apply min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1;
+}
+
+.row strong {
+  overflow-wrap: anywhere;
+}
+
+.row small {
+  overflow-wrap: anywhere;
+}
+</style>

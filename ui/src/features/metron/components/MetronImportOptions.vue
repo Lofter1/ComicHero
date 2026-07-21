@@ -21,20 +21,14 @@ const DATA_OPTIONS = [
 </script>
 
 <template>
-  <div
-    class="metron-import-options inline-flex items-center gap-3 justify-self-start w-fit max-w-full flex-wrap border border-line-strong rounded bg-surface-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col"
-  >
-    <div
-      class="metron-modes compact inline-grid grid-cols-2 gap-1.5 w-[min(260px,100%)] down-mobile:w-full"
-      role="tablist"
-      aria-label="Metron import depth"
-    >
+  <div class="metron-import-options">
+    <div class="metron-modes compact" role="tablist" aria-label="Metron import depth">
       <!-- Native buttons: import depth is a stateful tablist. -->
       <button
         v-for="mode in ['quick', 'full']"
         :key="mode"
         type="button"
-        class="min-h-8 border border-line-strong rounded bg-surface text-control py-2 px-2.5 [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+        class="mode-button"
         :class="{ active: importMode === mode }"
         role="tab"
         :aria-selected="importMode === mode"
@@ -43,15 +37,8 @@ const DATA_OPTIONS = [
         {{ mode === 'quick' ? 'Quick' : 'Full' }}
       </button>
     </div>
-    <fieldset
-      v-if="importMode === 'full'"
-      class="metron-data-options inline-flex items-center gap-2.5 flex-wrap min-w-0 m-0 p-0 border-0"
-    >
-      <label
-        v-for="option in DATA_OPTIONS"
-        :key="option.value"
-        class="inline-toggle inline-flex items-center gap-2 text-label text-sm font-bold whitespace-nowrap"
-      >
+    <fieldset v-if="importMode === 'full'" class="metron-data-options">
+      <label v-for="option in DATA_OPTIONS" :key="option.value" class="inline-toggle">
         <input
           class="w-4 h-4 m-0"
           type="checkbox"
@@ -63,3 +50,31 @@ const DATA_OPTIONS = [
     </fieldset>
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.metron-import-options {
+  @apply inline-flex items-center gap-3 justify-self-start w-fit max-w-full flex-wrap border border-line-strong rounded bg-surface-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col;
+}
+
+.metron-modes.compact {
+  @apply inline-grid grid-cols-2 gap-1.5 w-[min(260px,100%)] down-mobile:w-full;
+}
+
+.metron-data-options {
+  @apply inline-flex items-center gap-2.5 flex-wrap min-w-0 m-0 p-0 border-0;
+}
+
+.inline-toggle {
+  @apply inline-flex items-center gap-2 text-label text-sm font-bold whitespace-nowrap;
+}
+
+.mode-button {
+  @apply min-h-8 rounded border border-line-strong bg-surface px-2.5 py-2 text-control;
+}
+
+.mode-button.active {
+  @apply border-primary bg-primary text-white;
+}
+</style>

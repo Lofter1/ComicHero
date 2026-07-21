@@ -51,18 +51,13 @@ defineEmits([
   </main>
 
   <main v-else-if="setupRequired" class="auth-shell min-h-screen grid place-items-center p-6">
-    <form
-      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
-      @submit.prevent="$emit('submit-setup')"
-    >
+    <form class="auth-panel" @submit.prevent="$emit('submit-setup')">
       <div>
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">First Run</p>
         <h1>Choose user mode</h1>
       </div>
 
-      <fieldset
-        class="mode-options border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:grid-cols-[auto_minmax(0,1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_strong]:break-anywhere [&_small]:break-anywhere [&_small]:text-muted"
-      >
+      <fieldset class="mode-options">
         <legend>User environment</legend>
         <label>
           <input v-model="setupForm.mode" class="mt-1" type="radio" value="single" />
@@ -80,10 +75,7 @@ defineEmits([
         </label>
       </fieldset>
 
-      <div
-        v-if="setupForm.mode === 'multi'"
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
-      >
+      <div v-if="setupForm.mode === 'multi'" class="auth-fields">
         <label>
           <span>Name</span>
           <BaseTextInput v-model.trim="setupForm.name" type="text" autocomplete="name" required />
@@ -121,19 +113,14 @@ defineEmits([
     v-else-if="verificationRequired"
     class="auth-shell min-h-screen grid place-items-center p-6"
   >
-    <form
-      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
-      @submit.prevent="$emit('submit-verification')"
-    >
+    <form class="auth-panel" @submit.prevent="$emit('submit-verification')">
       <div>
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Verify Email</p>
         <h1>Check your email</h1>
         <p>Enter the verification token sent to {{ verificationEmail }}.</p>
       </div>
 
-      <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
-      >
+      <div class="auth-fields">
         <label>
           <span>Verification token</span>
           <BaseTextInput
@@ -167,7 +154,7 @@ defineEmits([
 
   <main v-else-if="passwordResetMode" class="auth-shell min-h-screen grid place-items-center p-6">
     <form
-      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
+      class="auth-panel"
       @submit.prevent="
         passwordResetForm.requested
           ? $emit('submit-password-reset')
@@ -183,9 +170,7 @@ defineEmits([
         <p v-else>Enter the token from your email and choose a new password.</p>
       </div>
 
-      <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
-      >
+      <div class="auth-fields">
         <label v-if="!passwordResetForm.requested">
           <span>Email</span>
           <BaseTextInput
@@ -246,10 +231,7 @@ defineEmits([
   </main>
 
   <main v-else-if="authRequired" class="auth-shell min-h-screen grid place-items-center p-6">
-    <form
-      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
-      @submit.prevent="$emit('submit-auth')"
-    >
+    <form class="auth-panel" @submit.prevent="$emit('submit-auth')">
       <div>
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Multi User</p>
         <h1>{{ authMode === 'register' ? 'Register' : 'Log in' }}</h1>
@@ -258,7 +240,7 @@ defineEmits([
       <div class="auth-tabs grid grid-cols-2 gap-2" role="group" aria-label="Authentication mode">
         <!-- Native buttons: authentication modes are a stateful segmented control. -->
         <button
-          class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+          class="auth-mode-button"
           type="button"
           :class="{ active: authMode === 'login' }"
           @click="authMode = 'login'"
@@ -266,7 +248,7 @@ defineEmits([
           Log in
         </button>
         <button
-          class="min-h-10 border border-line-strong rounded bg-surface text-control py-2.5 px-3.5 font-extrabold [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+          class="auth-mode-button"
           type="button"
           :class="{ active: authMode === 'register' }"
           @click="authMode = 'register'"
@@ -275,9 +257,7 @@ defineEmits([
         </button>
       </div>
 
-      <div
-        class="auth-fields grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold"
-      >
+      <div class="auth-fields">
         <label v-if="authMode === 'register'">
           <span>Name</span>
           <BaseTextInput v-model.trim="authForm.name" type="text" autocomplete="name" required />
@@ -343,9 +323,7 @@ defineEmits([
   </main>
 
   <main v-else class="auth-shell min-h-screen grid place-items-center p-6">
-    <section
-      class="auth-panel w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl"
-    >
+    <section class="auth-panel">
       <div>
         <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Setup</p>
         <h1>Could not load user setup</h1>
@@ -357,3 +335,35 @@ defineEmits([
     </section>
   </main>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.auth-panel {
+  @apply w-[min(100%,460px)] border border-line rounded bg-panel shadow-dialog p-7 grid gap-5 [&_h1]:text-3xl;
+}
+
+.mode-options {
+  @apply border-0 p-0 m-0 grid gap-2.5 [&_legend]:mb-2 [&_legend]:text-label [&_legend]:font-extrabold [&_label]:grid [&_label]:grid-cols-[auto_minmax(0,1fr)] [&_label]:gap-3 [&_label]:items-start [&_label]:border [&_label]:border-line-strong [&_label]:rounded [&_label]:bg-surface [&_label]:p-3.5 [&_label]:min-w-0 [&_span]:grid [&_span]:gap-1.5 [&_span]:min-w-0 [&_small]:text-muted;
+}
+
+.auth-fields {
+  @apply grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold;
+}
+
+.mode-options strong {
+  overflow-wrap: anywhere;
+}
+
+.mode-options small {
+  overflow-wrap: anywhere;
+}
+
+.auth-mode-button {
+  @apply min-h-10 rounded border border-line-strong bg-surface px-3.5 py-2.5 font-extrabold text-control;
+}
+
+.auth-mode-button.active {
+  @apply border-primary bg-primary text-white;
+}
+</style>

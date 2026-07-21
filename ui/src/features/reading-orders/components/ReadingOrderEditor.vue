@@ -10,6 +10,8 @@ import {
 } from '@/features/reading-orders/model.js'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
+import StatusPill from '@/shared/components/feedback/StatusPill.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -374,11 +376,7 @@ function endDrag() {
 </script>
 
 <template>
-  <form
-    :id="formId"
-    class="edit-form grid gap-3.5 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold [&_.visibility-field_label]:flex [&_.visibility-field_label]:items-center [&_.visibility-field_label]:gap-2"
-    @submit.prevent="$emit('save')"
-  >
+  <form :id="formId" class="edit-form" @submit.prevent="$emit('save')">
     <label>
       Name
       <BaseTextInput
@@ -397,9 +395,7 @@ function endDrag() {
       />
     </label>
 
-    <fieldset
-      class="visibility-field grid grid-cols-[max-content_1fr] gap-y-1.5 gap-x-3 m-0 p-3 border border-line rounded [&_legend]:py-0 [&_legend]:px-1 [&_legend]:text-label [&_legend]:text-sm [&_legend]:font-bold [&_.muted]:m-0 [&_.muted]:self-center"
-    >
+    <fieldset class="visibility-field">
       <legend>Visibility</legend>
       <label>
         <input
@@ -428,27 +424,17 @@ function endDrag() {
     <label class="cover-image-field">
       Cover image
       <span class="reading-order-cover-editor flex items-center gap-3 min-w-0">
-        <span
-          v-if="coverPreview"
-          class="reading-order-cover-preview w-[76px] min-w-[76px] h-[76px] overflow-hidden border border-line rounded bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover"
-          aria-hidden="true"
-        >
+        <span v-if="coverPreview" class="reading-order-cover-preview" aria-hidden="true">
           <img :src="coverPreview" alt="" />
         </span>
         <input class="min-w-0" type="file" accept="image/*" @change="chooseCoverImage" />
       </span>
     </label>
 
-    <div
-      class="reading-order-editor-layout grid grid-cols-[minmax(320px,420px)_minmax(620px,1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:pt-0"
-    >
-      <div
-        class="reading-order-search-column grid self-start gap-4 min-w-0 sticky top-[calc(var(--sticky-toolbar-top,0px)+14px)] down-laptop:static"
-      >
+    <div class="reading-order-editor-layout">
+      <div class="reading-order-search-column">
         <section class="entry-section add-entry-panel grid gap-2.5 border-t border-line pt-3.5">
-          <div
-            class="section-title justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-          >
+          <div class="section-title">
             <h4>Add Entries</h4>
           </div>
 
@@ -460,7 +446,7 @@ function endDrag() {
             <!-- Native buttons: entry sources are a stateful tablist. -->
             <button
               type="button"
-              class="min-h-10 border border-line rounded bg-surface text-muted font-black [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+              class="entry-source-button"
               :class="{ active: activeAddType === 'comic' }"
               @click="activeAddType = 'comic'"
             >
@@ -468,7 +454,7 @@ function endDrag() {
             </button>
             <button
               type="button"
-              class="min-h-10 border border-line rounded bg-surface text-muted font-black [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+              class="entry-source-button"
               :class="{ active: activeAddType === 'readingOrder' }"
               @click="activeAddType = 'readingOrder'"
             >
@@ -476,7 +462,7 @@ function endDrag() {
             </button>
             <button
               type="button"
-              class="min-h-10 border border-line rounded bg-surface text-muted font-black [&.active]:border-primary [&.active]:bg-primary [&.active]:text-white"
+              class="entry-source-button"
               :class="{ active: activeAddType === 'section' }"
               @click="activeAddType = 'section'"
             >
@@ -484,13 +470,8 @@ function endDrag() {
             </button>
           </div>
 
-          <div
-            v-if="activeAddType === 'comic'"
-            class="comic-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5"
-          >
-            <div
-              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0"
-            >
+          <div v-if="activeAddType === 'comic'" class="comic-add-panel">
+            <div class="comic-add-search">
               <BaseTextInput
                 v-model="comicSearch"
                 variant="embedded"
@@ -502,7 +483,7 @@ function endDrag() {
               <!-- Native button: Clear is embedded inside the compound search field. -->
               <button
                 v-if="comicSearch"
-                class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+                class="ghost-button"
                 type="button"
                 @click="clearComicSearch"
               >
@@ -515,34 +496,25 @@ function endDrag() {
               {{ comicSearchError }}
             </p>
 
-            <div
-              v-else-if="comicSearchResults.length"
-              class="comic-add-results grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-2"
-            >
+            <div v-else-if="comicSearchResults.length" class="comic-add-results">
               <!-- Native buttons: search results are draggable full-card targets. -->
               <button
                 v-for="comic in comicSearchResults"
                 :key="comic.id"
                 type="button"
-                class="comic-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
+                class="comic-add-result"
                 draggable="true"
                 @click="addNewEntryToEnd(newComicEntry(comic))"
                 @dragstart="startAddDrag($event, newComicEntry(comic))"
               >
                 <span>
-                  <span
-                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
-                    >Issue</span
-                  >
+                  <span class="entry-type-pill">Issue</span>
                   <strong>{{ comic.title }}</strong>
                   <small>{{ comicSeriesLine(comic) }}</small>
                   <small>{{ comicMetaLine(comic) }}</small>
                 </span>
 
-                <span
-                  class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-                  >Add</span
-                >
+                <StatusPill>Add</StatusPill>
               </button>
             </div>
 
@@ -551,11 +523,9 @@ function endDrag() {
 
           <div
             v-if="activeAddType === 'readingOrder' && readingOrders.length"
-            class="comic-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5"
+            class="comic-add-panel"
           >
-            <div
-              class="comic-add-search flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0"
-            >
+            <div class="comic-add-search">
               <BaseTextInput
                 v-model="readingOrderSearch"
                 variant="embedded"
@@ -567,7 +537,7 @@ function endDrag() {
               <!-- Native button: Clear is embedded inside the compound search field. -->
               <button
                 v-if="readingOrderSearch"
-                class="ghost-button min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold"
+                class="ghost-button"
                 type="button"
                 @click="readingOrderSearch = ''"
               >
@@ -575,50 +545,35 @@ function endDrag() {
               </button>
             </div>
 
-            <div
-              v-if="childOrderChoices.length"
-              class="comic-add-results grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-2"
-            >
+            <div v-if="childOrderChoices.length" class="comic-add-results">
               <!-- Native buttons: reading-order results are draggable full-card targets. -->
               <button
                 v-for="order in childOrderChoices"
                 :key="order.id"
                 type="button"
-                class="comic-add-result reading-order-add-result flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5"
+                class="comic-add-result reading-order-add-result"
                 draggable="true"
                 @click="addNewEntryToEnd(newChildOrderEntry(order))"
                 @dragstart="startAddDrag($event, newChildOrderEntry(order))"
               >
                 <span>
-                  <span
-                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
-                    >Reading order</span
-                  >
+                  <span class="entry-type-pill">Reading order</span>
                   <strong>{{ order.name }}</strong>
                   <small>{{ order.description || 'No description' }}</small>
                 </span>
 
-                <span
-                  class="status-pill border-0 rounded-full bg-primary-soft text-primary py-1 px-2 text-xs flex-none font-bold down-mobile:ml-auto down-phone:justify-self-start down-phone:ml-0"
-                  >Add</span
-                >
+                <StatusPill>Add</StatusPill>
               </button>
             </div>
 
             <p v-else class="muted block text-muted">No reading orders match that search.</p>
           </div>
 
-          <div
-            v-else-if="activeAddType === 'readingOrder'"
-            class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-          >
+          <EmptyState v-else-if="activeAddType === 'readingOrder'">
             No reading orders available to include.
-          </div>
+          </EmptyState>
 
-          <div
-            v-if="activeAddType === 'section'"
-            class="section-add-panel grid gap-2.5 border border-line-strong rounded bg-surface-soft p-3"
-          >
+          <div v-if="activeAddType === 'section'" class="section-add-panel">
             <label>
               Section title
               <BaseTextInput
@@ -648,19 +603,15 @@ function endDrag() {
         </section>
       </div>
 
-      <section
-        class="entry-section reading-order-list-edit min-w-0 border-t border-line pt-3.5 [&_.section-title_>_span]:text-muted [&_.section-title_>_span]:text-sm [&_.section-title_>_span]:font-ui-bold"
-      >
-        <div
-          class="section-title justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-        >
+      <section class="entry-section reading-order-list-edit">
+        <div class="section-title">
           <h4>List Order</h4>
           <span>{{ orderEntries.length }} entries</span>
         </div>
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1"
+          class="reading-order-entry-pages"
           aria-label="Reading order entry pages"
         >
           <span>
@@ -714,7 +665,7 @@ function endDrag() {
 
         <div
           v-if="orderEntries.length === 0"
-          class="empty-state empty-entry-drop-zone [transition:background-color_120ms_ease,border-color_120ms_ease,color_120ms_ease] [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-ink grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
+          class="empty-state empty-entry-drop-zone"
           :class="{ active: dragOverIndex === 0 }"
           @dragover="overDropZone($event, 0)"
           @dragleave="dragOverIndex = null"
@@ -729,7 +680,7 @@ function endDrag() {
             :key="entryKey(entry, index)"
           >
             <div
-              class="entry-drop-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
+              class="entry-drop-zone"
               :class="{ active: dragOverIndex === index }"
               @dragover="overDropZone($event, index)"
               @dragleave="dragOverIndex = null"
@@ -737,7 +688,7 @@ function endDrag() {
             />
 
             <div
-              class="order-entry grid grid-cols-[minmax(280px,1fr)_44px] items-stretch gap-3 rounded p-0 [transition:background-color_120ms_ease,box-shadow_120ms_ease,opacity_120ms_ease] down-mobile:grid-cols-1 down-mobile:border down-mobile:border-line down-mobile:bg-surface-soft down-mobile:p-2.5 [&.dragging]:opacity-55 [&.drag-over]:bg-primary-soft [&.drag-over]:[box-shadow:inset_0_0_0_2px_var(--primary)] [&.nested-order-entry]:grid-cols-[minmax(280px,1fr)_44px] [&.nested-order-entry_.selected-order-comic]:border-[color-mix(in_srgb,var(--accent)_42%,var(--line))] [&.nested-order-entry_.selected-order-comic]:[background:color-mix(in_srgb,var(--surface-soft)_82%,var(--accent))] [&.section-order-entry_.selected-order-comic]:border-[color-mix(in_srgb,var(--primary)_54%,var(--line))] [&.section-order-entry_.selected-order-comic]:[background:color-mix(in_srgb,var(--surface-soft)_78%,var(--primary))] [&.nested-order-entry_.entry-edit-panel]:grid-cols-1 [&.section-order-entry_.entry-edit-panel]:grid-cols-[minmax(180px,0.6fr)_minmax(0,1fr)] [&.nested-order-entry_.entry-type-pill]:border-[color-mix(in_srgb,var(--accent)_48%,var(--line))] [&.nested-order-entry_.entry-type-pill]:[background:color-mix(in_srgb,var(--surface-soft)_76%,var(--accent))] [&.nested-order-entry_.entry-type-pill]:text-accent [&.section-order-entry_.entry-type-pill]:border-[color-mix(in_srgb,var(--primary)_58%,var(--line))] [&.section-order-entry_.entry-type-pill]:bg-primary [&.section-order-entry_.entry-type-pill]:text-white down-mobile:[&.nested-order-entry]:grid-cols-1 down-mobile:[&.section-order-entry_.entry-edit-panel]:grid-cols-1 down-tablet:grid-cols-1"
+              class="order-entry sortable-order-entry"
               :class="{
                 dragging: draggedIndex === index,
                 'nested-order-entry': entry.type === 'readingOrder',
@@ -748,12 +699,10 @@ function endDrag() {
               <!-- Native button: entry rows use a bespoke expand/collapse control. -->
               <button
                 type="button"
-                class="selected-order-comic entry-summary-button justify-center min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid grid-cols-[34px_minmax(0,1fr)_34px] items-center gap-3 w-full min-h-20 h-20 text-ink text-left down-mobile:grid-cols-[30px_minmax(0,1fr)_30px] down-mobile:h-auto down-mobile:min-h-20 down-mobile:py-2 down-mobile:px-2.5 hover:border-[color-mix(in_srgb,var(--primary)_42%,var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-1"
+                class="selected-order-comic entry-summary-button"
                 @click="toggleEntry(entry, index)"
               >
-                <span
-                  class="entry-drag-cell grid place-items-center self-stretch [&_.drag-handle]:grid [&_.drag-handle]:place-items-center [&_.drag-handle]:w-7 [&_.drag-handle]:h-11 [&_.drag-handle]:rounded [&_.drag-handle]:cursor-grab [&_.drag-handle]:text-muted [&_.drag-handle]:text-lg [&_.drag-handle]:font-black [&_.drag-handle]:leading-none [&_.drag-handle:hover]:bg-surface [&_.drag-handle:hover]:text-primary [&_.drag-handle:active]:cursor-grabbing"
-                >
+                <span class="entry-drag-cell">
                   <span
                     class="drag-handle"
                     draggable="true"
@@ -772,28 +721,20 @@ function endDrag() {
                   </span>
                 </span>
 
-                <span
-                  class="entry-summary-copy grid min-w-0 justify-items-start [&_strong]:[line-clamp:1] [&_strong]:[-webkit-line-clamp:1]"
-                >
-                  <span
-                    class="entry-type-pill inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase"
-                    >{{ entryTypeLabel(entry) }}</span
-                  >
+                <span class="entry-summary-copy">
+                  <span class="entry-type-pill">{{ entryTypeLabel(entry) }}</span>
                   <strong>{{ entryLabel(entry) }}</strong>
                 </span>
 
                 <span
                   aria-hidden="true"
-                  class="button-icon entry-expand-icon grid place-items-center justify-self-end w-8 h-8 rounded-full text-control text-lg [transition:background-color_120ms_ease,color_120ms_ease] font-extrabold leading-none"
+                  class="button-icon entry-expand-icon"
                   :title="isEntryExpanded(entry, index) ? 'Collapse' : 'Expand'"
                 >
                   {{ isEntryExpanded(entry, index) ? '▴' : '▾' }}
                 </span>
 
-                <span
-                  class="mobile-reorder hidden down-mobile:grid down-mobile:col-span-full down-mobile:grid-cols-2 down-mobile:gap-2 down-mobile:w-full"
-                  @click.stop
-                >
+                <span class="mobile-reorder" @click.stop>
                   <!-- Native buttons: compact reorder arrows use editor-specific styling. -->
                   <button
                     class="min-h-10 border border-line-strong rounded bg-surface"
@@ -817,7 +758,7 @@ function endDrag() {
               <!-- Native button: removal spans the full row height and has bespoke danger styling. -->
               <button
                 type="button"
-                class="remove-entry-button grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 text-2xl font-extrabold leading-none hover:border-(--danger) hover:[background:color-mix(in_srgb,var(--danger-soft)_72%,var(--danger))] hover:text-danger"
+                class="remove-entry-button"
                 :aria-label="`Remove ${entryLabel(entry)} from ${itemLabel}`"
                 title="Remove"
                 @click="removeEntry(index)"
@@ -856,10 +797,7 @@ function endDrag() {
                 </BaseButton>
               </div>
 
-              <div
-                v-if="isEntryExpanded(entry, index)"
-                class="entry-edit-panel grid col-span-full grid-cols-[minmax(0,1fr)_minmax(180px,0.55fr)] gap-3 border border-line rounded bg-surface-soft p-3 down-mobile:col-start-1 down-mobile:grid-cols-1"
-              >
+              <div v-if="isEntryExpanded(entry, index)" class="entry-edit-panel">
                 <template v-if="entry.type === 'section'">
                   <label
                     class="comment-input-label self-stretch [&_textarea]:h-full [&_textarea]:min-h-0"
@@ -924,7 +862,7 @@ function endDrag() {
           </template>
 
           <div
-            class="entry-drop-zone end-zone min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft"
+            class="entry-drop-zone end-zone"
             :class="{ active: dragOverIndex === entryPageState.end }"
             @dragover="overDropZone($event, entryPageState.end)"
             @dragleave="dragOverIndex = null"
@@ -934,7 +872,7 @@ function endDrag() {
 
         <nav
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages reading-order-entry-pages-bottom mt-2.5 mb-0 flex items-center justify-between gap-3 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1"
+          class="reading-order-entry-pages reading-order-entry-pages-bottom"
           aria-label="Reading order entry pages"
         >
           <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>
@@ -965,3 +903,175 @@ function endDrag() {
     </div>
   </form>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.edit-form {
+  @apply grid gap-3.5 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:text-sm [&_label]:font-bold [&_.visibility-field_label]:flex [&_.visibility-field_label]:items-center [&_.visibility-field_label]:gap-2;
+}
+
+.visibility-field {
+  @apply grid grid-cols-[max-content_1fr] gap-y-1.5 gap-x-3 m-0 p-3 border border-line rounded [&_legend]:py-0 [&_legend]:px-1 [&_legend]:text-label [&_legend]:text-sm [&_legend]:font-bold [&_.muted]:m-0 [&_.muted]:self-center;
+}
+
+.reading-order-cover-preview {
+  @apply w-[76px] min-w-[76px] h-[76px] overflow-hidden border border-line rounded bg-surface-muted [&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover;
+}
+
+.reading-order-editor-layout {
+  @apply grid grid-cols-[minmax(320px,420px)_minmax(620px,1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:pt-0;
+}
+
+.reading-order-search-column {
+  @apply grid self-start gap-4 min-w-0 sticky top-[calc(var(--sticky-toolbar-top,0px)+14px)] down-laptop:static;
+}
+
+.section-title {
+  @apply justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5;
+}
+
+.comic-add-panel {
+  @apply grid gap-2.5 border border-line-strong rounded bg-surface-soft p-2.5 mb-2.5;
+}
+
+.comic-add-search {
+  @apply flex items-center gap-2 border border-line-strong rounded bg-surface pt-1 pr-1.5 pb-1 pl-0;
+}
+
+.ghost-button {
+  @apply min-h-8 border-0 rounded-[7px] bg-transparent text-accent py-1.5 px-2 font-bold;
+}
+
+.comic-add-results {
+  @apply grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-2;
+}
+
+.comic-add-result {
+  @apply flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5;
+}
+
+.entry-type-pill {
+  @apply inline-grid self-start mb-1 [border:1px_solid_color-mix(in_srgb,var(--primary)_42%,var(--line))] rounded-full bg-primary-soft text-eyebrow py-0.5 px-2 text-xs font-black leading-tight uppercase;
+}
+
+.comic-add-result.reading-order-add-result {
+  @apply flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5;
+}
+
+.section-add-panel {
+  @apply grid gap-2.5 border border-line-strong rounded bg-surface-soft p-3;
+}
+
+.entry-section.reading-order-list-edit {
+  @apply min-w-0 border-t border-line pt-3.5 [&_.section-title_>_span]:text-muted [&_.section-title_>_span]:text-sm [&_.section-title_>_span]:font-ui-bold;
+}
+
+.reading-order-entry-pages {
+  @apply flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1;
+}
+
+.empty-state.empty-entry-drop-zone {
+  @apply [transition:background-color_120ms_ease,border-color_120ms_ease,color_120ms_ease] [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-ink grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4;
+}
+
+.entry-drop-zone {
+  @apply min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft;
+}
+
+.selected-order-comic.entry-summary-button {
+  @apply justify-center min-w-0 border border-line rounded bg-surface-soft py-2 px-3 grid grid-cols-[34px_minmax(0,1fr)_34px] items-center gap-3 w-full min-h-20 h-20 text-ink text-left down-mobile:grid-cols-[30px_minmax(0,1fr)_30px] down-mobile:h-auto down-mobile:min-h-20 down-mobile:py-2 down-mobile:px-2.5 hover:border-[color-mix(in_srgb,var(--primary)_42%,var(--line))] hover:bg-primary-soft [&:hover_.entry-expand-icon]:bg-surface [&:hover_.entry-expand-icon]:text-accent [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:2] [&_small]:text-muted [&_small]:mt-1;
+}
+
+.entry-drag-cell {
+  @apply grid place-items-center self-stretch [&_.drag-handle]:grid [&_.drag-handle]:place-items-center [&_.drag-handle]:w-7 [&_.drag-handle]:h-11 [&_.drag-handle]:rounded [&_.drag-handle]:cursor-grab [&_.drag-handle]:text-muted [&_.drag-handle]:text-lg [&_.drag-handle]:font-black [&_.drag-handle]:leading-none [&_.drag-handle:hover]:bg-surface [&_.drag-handle:hover]:text-primary [&_.drag-handle:active]:cursor-grabbing;
+}
+
+.entry-summary-copy {
+  @apply grid min-w-0 justify-items-start [&_strong]:[line-clamp:1] [&_strong]:[-webkit-line-clamp:1];
+}
+
+.button-icon.entry-expand-icon {
+  @apply grid place-items-center justify-self-end w-8 h-8 rounded-full text-control text-lg [transition:background-color_120ms_ease,color_120ms_ease] font-extrabold leading-none;
+}
+
+.mobile-reorder {
+  @apply hidden down-mobile:grid down-mobile:col-span-full down-mobile:grid-cols-2 down-mobile:gap-2 down-mobile:w-full;
+}
+
+.remove-entry-button {
+  @apply grid place-items-center self-stretch w-10 h-full min-h-0 border border-danger-border rounded bg-danger-soft text-danger p-0 text-2xl font-extrabold leading-none hover:border-(--danger) hover:[background:color-mix(in_srgb,var(--danger-soft)_72%,var(--danger))] hover:text-danger;
+}
+
+.entry-edit-panel {
+  @apply grid col-span-full grid-cols-[minmax(0,1fr)_minmax(180px,0.55fr)] gap-3 border border-line rounded bg-surface-soft p-3 down-mobile:col-start-1 down-mobile:grid-cols-1;
+}
+
+.entry-drop-zone.end-zone {
+  @apply min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft;
+}
+
+.reading-order-entry-pages.reading-order-entry-pages-bottom {
+  @apply mt-2.5 mb-0 flex items-center justify-between gap-3 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1;
+}
+
+.entry-source-button {
+  @apply min-h-10 rounded border border-line bg-surface font-black text-muted;
+}
+
+.entry-source-button.active {
+  @apply border-primary bg-primary text-white;
+}
+
+.sortable-order-entry {
+  @apply grid grid-cols-[minmax(280px,1fr)_44px] items-stretch gap-3 rounded p-0 [transition:background-color_120ms_ease,box-shadow_120ms_ease,opacity_120ms_ease] down-tablet:grid-cols-1 down-mobile:grid-cols-1 down-mobile:border down-mobile:border-line down-mobile:bg-surface-soft down-mobile:p-2.5;
+}
+
+.sortable-order-entry.dragging {
+  @apply opacity-55;
+}
+
+.sortable-order-entry.drag-over {
+  @apply bg-primary-soft shadow-[inset_0_0_0_2px_var(--primary)];
+}
+
+.sortable-order-entry.nested-order-entry {
+  @apply grid-cols-[minmax(280px,1fr)_44px];
+}
+
+.sortable-order-entry.nested-order-entry .selected-order-comic {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--surface-soft) 82%, var(--accent));
+}
+
+.sortable-order-entry.section-order-entry .selected-order-comic {
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--line));
+  background: color-mix(in srgb, var(--surface-soft) 78%, var(--primary));
+}
+
+.sortable-order-entry.nested-order-entry .entry-edit-panel {
+  @apply grid-cols-1;
+}
+
+.sortable-order-entry.section-order-entry .entry-edit-panel {
+  @apply grid-cols-[minmax(180px,0.6fr)_minmax(0,1fr)];
+}
+
+.sortable-order-entry.nested-order-entry .entry-type-pill {
+  @apply text-accent;
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+  background: color-mix(in srgb, var(--surface-soft) 76%, var(--accent));
+}
+
+.sortable-order-entry.section-order-entry .entry-type-pill {
+  @apply bg-primary text-white;
+  border-color: color-mix(in srgb, var(--primary) 58%, var(--line));
+}
+
+@media (width <= 720px) {
+  .sortable-order-entry.nested-order-entry,
+  .sortable-order-entry.section-order-entry .entry-edit-panel {
+    @apply grid-cols-1;
+  }
+}
+</style>

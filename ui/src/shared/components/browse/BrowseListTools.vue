@@ -47,9 +47,7 @@ const searchModel = computed({
 </script>
 
 <template>
-  <div
-    class="comic-list-tools browse-list-tools flex w-full flex-auto flex-wrap items-center gap-2 down-mobile:w-full"
-  >
+  <div class="comic-list-tools browse-list-tools">
     <BaseTextInput
       v-model="searchModel"
       size="toolbar"
@@ -57,7 +55,7 @@ const searchModel = computed({
       :placeholder="searchPlaceholder"
     />
     <div
-      class="inline-filter-tabs inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full"
+      class="inline-filter-tabs"
       :class="{ 'grid-cols-4': filterOptions.length === 4 }"
       role="tablist"
       aria-label="List filter"
@@ -102,7 +100,7 @@ const searchModel = computed({
       <summary>Filter &amp; sort</summary>
       <div>
         <div
-          class="inline-filter-tabs inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full"
+          class="inline-filter-tabs"
           :class="{ 'grid-cols-4': filterOptions.length === 4 }"
           role="tablist"
           aria-label="List filter"
@@ -231,5 +229,13 @@ const searchModel = computed({
   .inline-filter-tabs button {
     @apply px-1.5 text-xs;
   }
+}
+
+.comic-list-tools.browse-list-tools {
+  @apply flex w-full flex-auto flex-wrap items-center gap-2 down-mobile:w-full;
+}
+
+.inline-filter-tabs {
+  @apply inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full;
 }
 </style>

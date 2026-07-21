@@ -3,8 +3,13 @@ import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
 import DetailNavigation from '@/shared/components/detail/DetailNavigation.vue'
+import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import FavoriteToggle from '@/shared/components/feedback/FavoriteToggle.vue'
+import ProgressBar from '@/shared/components/feedback/ProgressBar.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
+import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
+import MetadataGrid from '@/shared/components/layout/MetadataGrid.vue'
+import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
 
 defineProps({
   selectedArc: {
@@ -71,23 +76,11 @@ defineEmits([
       </BaseButton>
     </DetailNavigation>
 
-    <article
-      class="detail-panel min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5"
-    >
+    <DetailPanel>
       <div v-if="selectedArc" class="read-only-detail grid gap-4">
-        <header
-          class="panel-header justify-between mb-4 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5"
-        >
-          <div>
-            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Arc</p>
-            <h3>{{ selectedArc.name }}</h3>
-          </div>
-        </header>
+        <PanelHeader eyebrow="Arc" :title="selectedArc.name" />
 
-        <div
-          v-if="selectedArc.image"
-          class="character-portrait overflow-hidden border border-line rounded bg-surface-muted max-w-44 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover"
-        >
+        <div v-if="selectedArc.image" class="character-portrait">
           <img
             :src="assetURL(selectedArc.image)"
             :alt="`${selectedArc.name} arc artwork`"
@@ -98,15 +91,8 @@ defineEmits([
         <p class="detail-description text-body leading-normal">
           {{ selectedArc.description || 'No description' }}
         </p>
-        <div
-          class="progress-meter h-2.5 overflow-hidden rounded-full bg-read-progress [&_span]:block [&_span]:h-full [&_span]:min-w-0.5 [&_span]:rounded-[inherit] [&_span]:bg-progress"
-          aria-label="Arc progress"
-        >
-          <span :style="{ width: formatProgress(selectedArc.progress) }"></span>
-        </div>
-        <div
-          class="metadata-grid grid grid-cols-3 gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_strong]:break-anywhere [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1"
-        >
+        <ProgressBar :value="formatProgress(selectedArc.progress)" label="Arc progress" />
+        <MetadataGrid>
           <span>
             <strong>{{ formatProgress(selectedArc.progress) }}</strong>
             <small>Progress</small>
@@ -127,10 +113,10 @@ defineEmits([
             ><strong>Started</strong
             ><small>{{ new Date(selectedArc.startedAt).toLocaleDateString() }}</small></span
           >
-        </div>
+        </MetadataGrid>
 
         <ComicListView
-          class="[&_small]:block [&_small]:text-muted border-t border-line pt-3.5 [&_ol]:mb-0 [&_ol]:pl-6 [&_ul]:mb-0 [&_ul]:pl-6 [&_li]:mb-2.5"
+          embedded
           title="Comics"
           :comics="selectedArc.comics"
           :source-params="{ arcId: selectedArc.id }"
@@ -147,12 +133,15 @@ defineEmits([
           @toggle-skipped="$emit('toggle-skipped', $event)"
         />
       </div>
-      <p
-        v-else
-        class="empty-state grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4"
-      >
-        Select an arc to view it.
-      </p>
-    </article>
+      <EmptyState v-else tag="p"> Select an arc to view it. </EmptyState>
+    </DetailPanel>
   </div>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.character-portrait {
+  @apply overflow-hidden border border-line rounded bg-surface-muted max-w-44 [&_img]:block [&_img]:w-full [&_img]:aspect-square [&_img]:object-cover;
+}
+</style>

@@ -128,8 +128,32 @@ export default defineComponent({
       const content = source
         ? renderNodes(tokenTree(markdown.parse(source, {})))
         : [h('p', props.fallback)]
-      return h('div', attrs, content)
+      return h('div', { ...attrs, class: ['safe-markdown', attrs.class] }, content)
     }
   },
 })
 </script>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.safe-markdown {
+  @apply grid gap-2.5 leading-normal text-body;
+}
+
+.safe-markdown :where(p, ul, ol, h3, h4, h5) {
+  @apply m-0;
+}
+
+.safe-markdown :where(ul, ol) {
+  @apply pl-6;
+}
+
+.safe-markdown :where(h3, h4, h5) {
+  @apply text-control;
+}
+
+.safe-markdown a {
+  @apply font-extrabold text-accent;
+}
+</style>

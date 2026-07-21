@@ -17,7 +17,7 @@ src/
 ├── shared/              # Reusable UI and behavior with no feature ownership
 │   ├── components/
 │   └── composables/
-├── styles/              # Styles grouped by responsibility and breakpoint
+├── styles.css           # Tailwind entry point, theme tokens, and element defaults
 ├── App.vue              # Cross-feature composition only
 └── main.js              # Vue bootstrap
 ```
@@ -38,6 +38,7 @@ src/
 - Prefer named slots for the small parts of a repeated layout that vary. `BrowseEntityRow` and `BrowseListSection` are the reference pattern.
 - Use `v-model` only when a component is explicitly editing caller-owned form state.
 - Avoid creating a shared abstraction for a single caller; local, obvious code is easier to maintain than a generic component with many switches.
+- Shared visual building blocks live under `shared/components`: form controls own their variants and sizes, feedback components own status presentation, layout components own repeated panel structure, and overlay components own modal framing.
 
 ## State and API workflow
 
@@ -51,12 +52,14 @@ Global browser concerns live in shared composables:
 
 ## Styling
 
-`styles.css` is the ordered entry point. Each imported file has one documented responsibility. Responsive overrides are separated by breakpoint. When adding a style:
+`styles.css` is the Tailwind entry point and owns theme tokens plus application-wide element defaults. Component appearance stays with the component. When adding a style:
 
-1. Prefer an existing semantic class over element-specific selectors.
-2. Put the base rule in the responsibility module.
-3. Put only the changed properties in the relevant responsive module.
-4. Do not add page-specific overrides to a shared component unless every caller should receive them.
+1. Use short, semantic classes in the template.
+2. Put their Tailwind utilities in a scoped style block with `@reference` and `@apply`.
+3. Add a prop or variant to a shared component when every caller should receive the appearance; parent classes should control only layout and placement.
+4. Keep responsive changes beside the component, preferably in a media query when it makes the state easier to read.
+
+The shared visual primitives currently include `BaseButton`, `BaseSelect`, `BaseTextInput`, `DetailPanel`, `MetadataGrid`, `PanelHeader`, `EmptyState`, `ProgressBar`, `StatusPill`, and `ModalShell`.
 
 ## Verification
 
