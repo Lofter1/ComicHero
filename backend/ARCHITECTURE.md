@@ -74,6 +74,16 @@ be exported without producing a useful domain boundary. Introduce a new package
 only when it has a small public contract and can be tested independently, as
 with `config`, `db`, and `metron`.
 
+The CBL repository importer is the reference split for a stateful background
+workflow. `readingorders_repository_sync.go` owns orchestration,
+`readingorders_repository_settings.go` owns persisted configuration and
+validation, `readingorders_repository_github.go` owns remote repository access,
+`readingorders_repository_metron.go` owns ambiguous issue resolution,
+`readingorders_repository_status.go` owns snapshots/subscriptions, and
+`readingorders_repository_routes.go` owns the HTTP/SSE contract. Keep new sync
+behavior with the responsibility it changes rather than growing the
+orchestrator again.
+
 ### Adding an endpoint
 
 1. Put request and response types in `models_<feature>.go`.
@@ -128,8 +138,8 @@ From `backend/`:
 
 ```sh
 gofmt -w .
+golangci-lint run ./...
 go test ./...
-go vet ./...
 go build ./...
 ```
 

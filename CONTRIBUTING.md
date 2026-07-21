@@ -34,6 +34,8 @@ Thanks for considering a contribution to ComicHero.
 - Read [the backend architecture guide](backend/ARCHITECTURE.md) before adding Go packages, routes, or database migrations.
 - VS Code users get frontend ESLint validation, Prettier formatting, and ESLint fixes on save from the shared workspace settings.
 - Prefer small, direct UI improvements over broad redesigns.
+- A component owns its appearance: keep semantic classes and scoped `@apply` styles in that component. Parents may control placement and layout, but must not reach into a child to restyle its internals. Add a documented prop or variant when callers need a supported visual difference.
+- Keep one-caller UI in its feature directory. Move it to `ui/src/shared` only after at least two features share the same clear contract.
 - Keep self-hosted data private by default.
 
 ## Metron
