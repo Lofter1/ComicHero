@@ -164,7 +164,7 @@ func deleteUserData(ctx context.Context, db *sqlx.DB, userID int) error {
 	if err != nil {
 		return huma.Error500InternalServerError("failed to start account deletion")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM user_sessions WHERE user_id = ?`, userID); err != nil {
 		return huma.Error500InternalServerError("failed to delete sessions")

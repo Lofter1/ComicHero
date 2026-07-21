@@ -493,7 +493,7 @@ func claimMetronComicScanCall(ctx context.Context, db *sqlx.DB, limit int, now t
 	if err != nil {
 		return false, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	date := now.Format("2006-01-02")
 	usage := metronComicScanUsage{Date: date}
 	var value string

@@ -107,7 +107,7 @@ func TestReadingOrderEntriesCanNestOrdersBetweenComics(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`
@@ -678,7 +678,7 @@ func assertCoverMaxDimension(t *testing.T, path string, want int) {
 	if err != nil {
 		t.Fatalf("open cover: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	img, _, err := image.Decode(file)
 	if err != nil {
 		t.Fatalf("decode cover: %v", err)
@@ -744,7 +744,7 @@ func setupReadingOrderCBLTestDB(t *testing.T) *sqlx.DB {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`

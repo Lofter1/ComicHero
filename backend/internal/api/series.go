@@ -103,7 +103,7 @@ func deleteSeries(ctx context.Context, db *sqlx.DB, id int) (*struct{}, error) {
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start series deletion")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	var series struct {
 		Name string `db:"name"`
 		Year int    `db:"series_year"`
@@ -447,7 +447,7 @@ func updateSeriesMetronMetadataFull(ctx context.Context, db *sqlx.DB, id int, me
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	var previous struct {
 		Name       string `db:"name"`

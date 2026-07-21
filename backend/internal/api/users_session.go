@@ -85,7 +85,7 @@ func createSession(ctx context.Context, db *sqlx.DB, userID int) (*http.Cookie, 
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to create session")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 	if _, err := tx.ExecContext(ctx, `
 		INSERT INTO user_sessions (token, user_id, expires_at)
 		VALUES (?, ?, ?)

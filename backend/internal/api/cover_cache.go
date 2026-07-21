@@ -91,7 +91,7 @@ func (c *CoverCache) LocalURL(ctx context.Context, source string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("download cover: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return "", fmt.Errorf("download cover: %s", resp.Status)
@@ -116,10 +116,10 @@ func (c *CoverCache) LocalURL(ctx context.Context, source string) (string, error
 		return "", fmt.Errorf("create cover file: %w", err)
 	}
 	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath)
+	defer func() { _ = os.Remove(tmpPath) }()
 
 	if _, err := tmp.Write(optimized); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return "", fmt.Errorf("save cover: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
@@ -163,10 +163,10 @@ func (c *CoverCache) StoreImage(source []byte) (string, error) {
 		return "", fmt.Errorf("create cover file: %w", err)
 	}
 	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath)
+	defer func() { _ = os.Remove(tmpPath) }()
 
 	if _, err := tmp.Write(optimized); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return "", fmt.Errorf("save cover: %w", err)
 	}
 	if err := tmp.Close(); err != nil {

@@ -31,7 +31,7 @@ func TestAccessLoggerPersistsRequestsWithoutQueryStrings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	var entry accessLogEntry
 	if !bufio.NewScanner(file).Scan() {
 		t.Fatal("access log is empty")

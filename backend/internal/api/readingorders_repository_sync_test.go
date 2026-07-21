@@ -155,15 +155,15 @@ func TestCBLRepositorySyncUpdatesChangedMultipartFileInOneOrder(t *testing.T) {
 		mu.Unlock()
 		switch request.URL.Path {
 		case "/repos/owner/lists":
-			fmt.Fprint(response, `{"default_branch":"main"}`)
+			_, _ = fmt.Fprint(response, `{"default_branch":"main"}`)
 		case "/repos/owner/lists/git/trees/main":
-			fmt.Fprintf(response, `{"truncated":false,"tree":[`+
+			_, _ = fmt.Fprintf(response, `{"truncated":false,"tree":[`+
 				`{"path":%q,"type":"blob","sha":%q,"size":300},`+
 				`{"path":%q,"type":"blob","sha":"sha-two","size":300}]}`, partOnePath, sha, partTwoPath)
 		case "/owner/lists/main/" + partOnePath:
-			fmt.Fprintf(response, `<ReadingList><Name>Test Saga - Part 01 Beginning</Name><Books><Book Series="Series" Number="%s" Volume="2020" /></Books></ReadingList>`, issue)
+			_, _ = fmt.Fprintf(response, `<ReadingList><Name>Test Saga - Part 01 Beginning</Name><Books><Book Series="Series" Number="%s" Volume="2020" /></Books></ReadingList>`, issue)
 		case "/owner/lists/main/" + partTwoPath:
-			fmt.Fprint(response, `<ReadingList><Name>Test Saga - Part 02 Finale</Name><Books><Book Series="Series" Number="2" Volume="2020" /></Books></ReadingList>`)
+			_, _ = fmt.Fprint(response, `<ReadingList><Name>Test Saga - Part 02 Finale</Name><Books><Book Series="Series" Number="2" Volume="2020" /></Books></ReadingList>`)
 		default:
 			http.NotFound(response, request)
 		}
@@ -245,9 +245,9 @@ func TestCBLRepositoryMetronResolverPrefersComicVineID(t *testing.T) {
 		response.Header().Set("Content-Type", "application/json")
 		switch request.URL.Path {
 		case "/issue/":
-			fmt.Fprint(response, `{"results":[{"id":55,"cv_id":987654,"series":{"name":"Saga","year_began":2012},"number":"1","publisher":{"name":"Image"}}]}`)
+			_, _ = fmt.Fprint(response, `{"results":[{"id":55,"cv_id":987654,"series":{"name":"Saga","year_began":2012},"number":"1","publisher":{"name":"Image"}}]}`)
 		case "/issue/55/":
-			fmt.Fprint(response, `{"id":55,"cv_id":987654,"series":{"name":"Saga","year_began":2012},"number":"1","publisher":{"name":"Image"},"cover_date":"2012-03-01"}`)
+			_, _ = fmt.Fprint(response, `{"id":55,"cv_id":987654,"series":{"name":"Saga","year_began":2012},"number":"1","publisher":{"name":"Image"},"cover_date":"2012-03-01"}`)
 		default:
 			http.NotFound(response, request)
 		}
@@ -282,13 +282,13 @@ func TestCBLRepositoryMetronResolverFallsBackToNameAndWaitsForSelection(t *testi
 		response.Header().Set("Content-Type", "application/json")
 		switch {
 		case request.URL.Path == "/issue/" && request.URL.Query().Get("cv_id") != "":
-			fmt.Fprint(response, `{"results":[]}`)
+			_, _ = fmt.Fprint(response, `{"results":[]}`)
 		case request.URL.Path == "/issue/":
-			fmt.Fprint(response, `{"results":[`+
+			_, _ = fmt.Fprint(response, `{"results":[`+
 				`{"id":71,"series":{"name":"The Example","year_began":2001},"number":"4","publisher":{"name":"First"}},`+
 				`{"id":72,"series":{"name":"The Example","year_began":2020},"number":"4","publisher":{"name":"Second"}}]}`)
 		case request.URL.Path == "/issue/72/":
-			fmt.Fprint(response, `{"id":72,"series":{"name":"The Example","year_began":2020},"number":"4","publisher":{"name":"Second"}}`)
+			_, _ = fmt.Fprint(response, `{"id":72,"series":{"name":"The Example","year_began":2020},"number":"4","publisher":{"name":"Second"}}`)
 		default:
 			http.NotFound(response, request)
 		}

@@ -328,7 +328,7 @@ func syncMetronIssueCharactersWithOptions(ctx context.Context, db *sqlx.DB, clie
 	if err != nil {
 		return huma.Error500InternalServerError("failed to start character sync")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM comic_characters WHERE comic_id = ?`, comicID); err != nil {
 		return huma.Error500InternalServerError("failed to clear comic characters")

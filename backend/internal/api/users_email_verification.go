@@ -74,7 +74,7 @@ func verifyEmailToken(ctx context.Context, db *sqlx.DB, token string) (int, erro
 	if err != nil {
 		return 0, huma.Error500InternalServerError("failed to start email verification")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	var row struct {
 		UserID    int    `db:"user_id"`
@@ -149,7 +149,7 @@ func verifyPasswordResetToken(ctx context.Context, db *sqlx.DB, token string) (i
 	if err != nil {
 		return 0, huma.Error500InternalServerError("failed to start password reset")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	var row struct {
 		UserID    int    `db:"user_id"`

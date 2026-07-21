@@ -177,7 +177,7 @@ func fetchReadingOrderEntries(ctx context.Context, db *sqlx.DB, readingOrderID i
 		return nil, huma.Error500InternalServerError("failed to fetch comics")
 	}
 	for i := range comics {
-		hydrateComicTitle(&comics[i].ReadingOrderComic.Comic)
+		hydrateComicTitle(&comics[i].Comic)
 	}
 
 	children := []struct {

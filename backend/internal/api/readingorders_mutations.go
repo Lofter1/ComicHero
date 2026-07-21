@@ -160,7 +160,7 @@ func copyReadingOrder(ctx context.Context, db *sqlx.DB, id int) (*ReadingOrderDe
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start transaction")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	result, err := tx.ExecContext(ctx, `
 		INSERT INTO reading_orders (name, description, image, favorite, is_public, author_user_id)

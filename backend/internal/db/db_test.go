@@ -13,13 +13,13 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	rows, err := database.Query(`PRAGMA table_info(comics)`)
 	if err != nil {
 		t.Fatalf("table info: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	columns := map[string]bool{}
 	for rows.Next() {
@@ -69,7 +69,7 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("comic indexes: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	indexes := map[string]bool{}
 	for rows.Next() {
@@ -102,7 +102,7 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading order columns: %v", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	readingOrderColumns := map[string]bool{}
 	for rows.Next() {
@@ -192,7 +192,7 @@ func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	if _, err := database.Exec(`
 		CREATE TABLE users (
@@ -315,7 +315,7 @@ func TestEnsureUserLoginSchemaAddsSeriesMetronIDToLegacySeries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	if _, err := database.Exec(`
 		CREATE TABLE users (

@@ -36,13 +36,13 @@ func TestComicDiscoveryImportsEveryListPageWithoutIssueDetails(t *testing.T) {
 		requests[r.URL.Path]++
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("page") == "2" {
-			w.Write([]byte(`{"count":2,"next":null,"results":[{"id":102,"series":{"id":202,"name":"Saga","year_began":2026,"publisher":{"name":"Image"}},"number":"2","cover_date":"2026-02-01"}]}`))
+			_, _ = w.Write([]byte(`{"count":2,"next":null,"results":[{"id":102,"series":{"id":202,"name":"Saga","year_began":2026,"publisher":{"name":"Image"}},"number":"2","cover_date":"2026-02-01"}]}`))
 			return
 		}
 		if r.URL.Query().Get("publisher_name") != "Image" || r.URL.Query().Get("series_name") != "Saga" || r.URL.Query().Get("modified_gt") == "" {
 			t.Errorf("query = %v", r.URL.Query())
 		}
-		w.Write([]byte(`{"count":2,"next":"` + server.URL + `/issue/?page=2","results":[{"id":101,"series":{"id":202,"name":"Saga","year_began":2026,"publisher":{"name":"Image"}},"number":"1","cover_date":"2026-01-01"}]}`))
+		_, _ = w.Write([]byte(`{"count":2,"next":"` + server.URL + `/issue/?page=2","results":[{"id":101,"series":{"id":202,"name":"Saga","year_began":2026,"publisher":{"name":"Image"}},"number":"1","cover_date":"2026-01-01"}]}`))
 	}))
 	defer server.Close()
 	discovery := NewMetronComicDiscovery(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
@@ -73,9 +73,9 @@ func TestDiscoveryImportsModifiedReadingListsWhenSelected(t *testing.T) {
 			if r.URL.Query().Get("modified_gt") == "" {
 				t.Errorf("query = %v", r.URL.Query())
 			}
-			w.Write([]byte(`{"count":1,"next":null,"results":[{"id":501,"name":"Newest list","modified":"2026-07-02T00:00:00Z"}]}`))
+			_, _ = w.Write([]byte(`{"count":1,"next":null,"results":[{"id":501,"name":"Newest list","modified":"2026-07-02T00:00:00Z"}]}`))
 		case "/reading_list/501/":
-			w.Write([]byte(`{"id":501,"name":"Newest list","description":"Fresh from Metron"}`))
+			_, _ = w.Write([]byte(`{"id":501,"name":"Newest list","description":"Fresh from Metron"}`))
 		case "/reading_list/501/items/":
 			w.Write([]byte(`{"count":0,"next":null,"results":[]}`))
 		default:

@@ -56,7 +56,7 @@ const searchModel = computed({
     />
     <div
       class="inline-filter-tabs"
-      :class="{ 'grid-cols-4': filterOptions.length === 4 }"
+      :class="{ 'inline-filter-tabs--four': filterOptions.length === 4 }"
       role="tablist"
       aria-label="List filter"
     >
@@ -101,7 +101,7 @@ const searchModel = computed({
       <div>
         <div
           class="inline-filter-tabs"
-          :class="{ 'grid-cols-4': filterOptions.length === 4 }"
+          :class="{ 'inline-filter-tabs--four': filterOptions.length === 4 }"
           role="tablist"
           aria-label="List filter"
         >
@@ -148,6 +148,10 @@ const searchModel = computed({
   @apply min-w-0;
 }
 
+.browse-list-tools {
+  container: browse-tools / inline-size;
+}
+
 .browse-list-tools > input {
   flex: 1 1 280px;
   min-width: min(280px, 100%);
@@ -182,7 +186,11 @@ const searchModel = computed({
   @apply bg-primary text-white;
 }
 
-@media (width <= 720px) {
+.inline-filter-tabs--four {
+  @apply grid-cols-4;
+}
+
+@container browse-tools (width <= 1050px) {
   .browse-list-tools > :is(.inline-filter-tabs, .list-sort-select, .list-direction-select) {
     @apply hidden;
   }

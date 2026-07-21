@@ -16,7 +16,7 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`

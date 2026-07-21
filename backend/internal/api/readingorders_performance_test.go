@@ -18,7 +18,7 @@ func TestListReadingOrdersProductionSizedDataset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	if _, err := database.Exec(`
 		WITH RECURSIVE sequence(value) AS (

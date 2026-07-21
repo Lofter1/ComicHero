@@ -14,7 +14,7 @@ func TestArcCreateEntriesFavoriteAndProgress(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`
@@ -119,7 +119,7 @@ func TestSeriesFavoriteAndProgress(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`
@@ -208,7 +208,7 @@ func TestSeriesSyncDoesNotFailWhenPruneFails(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`

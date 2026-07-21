@@ -1,16 +1,22 @@
 <script setup>
+import { computed, useId } from 'vue'
+
 defineOptions({ inheritAttrs: false })
 
-defineProps({
+const props = defineProps({
   size: {
     type: String,
     default: 'medium',
-    validator: (value) => ['medium', 'large', 'wide'].includes(value),
+    validator: (value) => ['medium', 'large', 'wide', 'extra-wide'].includes(value),
   },
   structured: { type: Boolean, default: false },
+  titleId: { type: String, default: undefined },
 })
 
 defineEmits(['close'])
+
+const generatedTitleId = useId()
+const resolvedTitleId = computed(() => props.titleId || generatedTitleId)
 </script>
 
 <template>
@@ -21,8 +27,9 @@ defineEmits(['close'])
       :class="[`modal-shell--${size}`, { 'modal-shell--structured': structured }]"
       role="dialog"
       aria-modal="true"
+      :aria-labelledby="resolvedTitleId"
     >
-      <slot />
+      <slot :title-id="resolvedTitleId" />
     </section>
   </div>
 </template>
@@ -48,6 +55,10 @@ defineEmits(['close'])
 
 .modal-shell--wide {
   @apply max-w-[760px];
+}
+
+.modal-shell--extra-wide {
+  @apply max-w-[920px];
 }
 
 .modal-shell--structured {

@@ -21,7 +21,7 @@ func TestCreateComicDownloadsRemoteCover(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
-		w.Write(testPNG(t, 1200, 1800))
+		_, _ = w.Write(testPNG(t, 1200, 1800))
 	}))
 	defer server.Close()
 
@@ -51,7 +51,7 @@ func TestCreateComicDownloadsRemoteCover(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open cached cover: %v", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	img, format, err := image.Decode(file)
 	if err != nil {
 		t.Fatalf("decode cached cover: %v", err)
@@ -69,7 +69,7 @@ func TestImportMetronComicDownloadsRemoteCover(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/jpeg")
-		w.Write(testJPEG(t, 300, 450))
+		_, _ = w.Write(testJPEG(t, 300, 450))
 	}))
 	defer server.Close()
 
@@ -114,7 +114,7 @@ func TestSyncMetronCharactersDownloadsRemoteImage(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/png")
-		w.Write(testPNG(t, 400, 600))
+		_, _ = w.Write(testPNG(t, 400, 600))
 	}))
 	defer server.Close()
 

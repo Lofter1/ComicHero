@@ -2,6 +2,7 @@
 import { assetURL } from '@/api/client.js'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
+import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
 import ModalShell from '@/shared/components/overlay/ModalShell.vue'
 
 defineProps({
@@ -37,26 +38,20 @@ function formatDate(value) {
 </script>
 
 <template>
-  <ModalShell
-    size="wide"
-    structured
-    aria-labelledby="reading-list-detail-title"
-    @close="$emit('close')"
-  >
-    <header class="metron-detail-header">
-      <span>
-        <strong id="reading-list-detail-title">{{ readingList?.name || 'Reading list' }}</strong>
+  <ModalShell v-slot="{ titleId }" size="wide" structured @close="$emit('close')">
+    <PanelHeader
+      class="metron-detail-header"
+      :title="readingList?.name || 'Reading list'"
+      :title-id="titleId"
+      divided
+      closable
+      close-label="Close reading list detail"
+      @close="$emit('close')"
+    >
+      <template #description>
         <small>{{ summary }}</small>
-      </span>
-      <BaseButton
-        variant="neutral"
-        size="icon"
-        aria-label="Close reading list detail"
-        @click="$emit('close')"
-      >
-        ×
-      </BaseButton>
-    </header>
+      </template>
+    </PanelHeader>
     <div class="metron-detail-body">
       <img
         v-if="readingList?.image"
@@ -109,7 +104,7 @@ function formatDate(value) {
 @reference '../../../styles.css';
 
 .metron-detail-header {
-  @apply border-b border-line flex items-start justify-between gap-3 py-3.5 px-4 [&_span]:min-w-0 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1;
+  @apply mb-0 py-3.5 px-4 [&_small]:block [&_small]:text-muted [&_small]:mt-1;
 }
 
 .metron-detail-body {
@@ -128,7 +123,7 @@ function formatDate(value) {
   @apply justify-end border-t border-line flex items-start gap-3 py-3.5 px-4;
 }
 
-.metron-detail-header strong {
+.metron-detail-header :deep(h3) {
   overflow-wrap: anywhere;
 }
 
