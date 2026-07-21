@@ -30,7 +30,7 @@ func setupUsers(ctx context.Context, db *sqlx.DB, payload SetupUsersPayload) (*U
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start user setup")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if mode == userModeMulti {
 		name := cleanUserName(payload.Name)
@@ -114,7 +114,7 @@ func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPaylo
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start registration")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if regMode == registrationModeInviteOnly {
 		if err := consumeUserInvite(ctx, tx, payload.InviteToken); err != nil {

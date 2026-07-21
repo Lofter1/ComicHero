@@ -41,7 +41,7 @@ func (c *Client) getConditional(ctx context.Context, path string, values url.Val
 		c.recordRequest(req, 0, started, conditionalHeader, err.Error())
 		return FetchInfo{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	c.recordRequest(req, resp.StatusCode, started, conditionalHeader, "")
 
 	rateLimit := c.updateRateLimit(resp.Header)

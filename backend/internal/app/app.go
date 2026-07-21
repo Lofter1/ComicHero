@@ -17,7 +17,7 @@ func Run(cfg config.Config) error {
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	covers := api.NewCoverCache(cfg.CoverCacheDir, cfg.CoverPublicPath)
 	if err := covers.EnsureDir(); err != nil {

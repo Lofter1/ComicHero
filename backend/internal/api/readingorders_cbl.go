@@ -212,10 +212,6 @@ func importCBLDocumentWithResolver(ctx context.Context, db *sqlx.DB, document cb
 	}, nil
 }
 
-func updateCBLDocument(ctx context.Context, db *sqlx.DB, readingOrderID int, document cblImportDocument) (cblImportResult, error) {
-	return updateCBLDocumentWithResolver(ctx, db, readingOrderID, document, nil)
-}
-
 func updateCBLDocumentWithResolver(ctx context.Context, db *sqlx.DB, readingOrderID int, document cblImportDocument, resolveMissing cblMissingComicResolver) (cblImportResult, error) {
 	entries, unmatched, err := cblDocumentEntriesWithResolver(ctx, db, document.list, resolveMissing)
 	if err != nil {
@@ -236,10 +232,6 @@ func updateCBLDocumentWithResolver(ctx context.Context, db *sqlx.DB, readingOrde
 		unmatchedCount: len(unmatched),
 		unmatched:      unmatched,
 	}, nil
-}
-
-func cblDocumentEntries(ctx context.Context, db *sqlx.DB, cbl cblReadingList) ([]ReadingOrderEntryPayload, []ReadingOrderCBLUnmatchedBook, error) {
-	return cblDocumentEntriesWithResolver(ctx, db, cbl, nil)
 }
 
 func cblDocumentEntriesWithResolver(ctx context.Context, db *sqlx.DB, cbl cblReadingList, resolveMissing cblMissingComicResolver) ([]ReadingOrderEntryPayload, []ReadingOrderCBLUnmatchedBook, error) {

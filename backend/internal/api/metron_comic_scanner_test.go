@@ -20,7 +20,7 @@ func newMetronComicScannerTestDB(t *testing.T) *sqlx.DB {
 		t.Fatal(err)
 	}
 	db.SetMaxOpenConns(1)
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 	if _, err := db.Exec(`CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`); err != nil {
 		t.Fatal(err)
 	}

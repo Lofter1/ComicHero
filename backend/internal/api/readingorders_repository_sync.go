@@ -753,7 +753,7 @@ func (s *cblRepositorySyncer) syncMultipartGroup(ctx context.Context, repository
 
 func (s *cblRepositorySyncer) resolveMissingComicFromMetron(ctx context.Context, book cblBook) (*Comic, error) {
 	if s.metronClient == nil {
-		return nil, errors.New("Metron is not configured")
+		return nil, errors.New("metron is not configured")
 	}
 
 	var candidates []metron.Issue
@@ -854,7 +854,7 @@ func (s *cblRepositorySyncer) waitForMetronIssueResolution(ctx context.Context, 
 	s.mu.Unlock()
 	s.broadcast()
 	if choices == nil {
-		return metron.Issue{}, errors.New("Metron issue selection is unavailable")
+		return metron.Issue{}, errors.New("metron issue selection is unavailable")
 	}
 
 	for {
@@ -881,7 +881,7 @@ func (s *cblRepositorySyncer) resolveMetronIssue(resolutionID string, metronIssu
 	s.mu.Lock()
 	if !s.status.Running || s.status.PendingResolution == nil || s.status.PendingResolution.ID != resolutionID {
 		s.mu.Unlock()
-		return errors.New("Metron issue selection is no longer pending")
+		return errors.New("metron issue selection is no longer pending")
 	}
 	if metronIssueID != 0 {
 		valid := false
@@ -897,7 +897,7 @@ func (s *cblRepositorySyncer) resolveMetronIssue(resolutionID string, metronIssu
 	s.status.PendingResolution = nil
 	s.mu.Unlock()
 	if choices == nil {
-		return errors.New("Metron issue selection is no longer pending")
+		return errors.New("metron issue selection is no longer pending")
 	}
 	choices <- cblMetronResolutionChoice{ResolutionID: resolutionID, MetronIssueID: metronIssueID}
 	s.broadcast()
@@ -996,7 +996,7 @@ func (s *cblRepositorySyncer) getJSON(ctx context.Context, target string, output
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return fmt.Errorf("GitHub returned %s", response.Status)
 	}
@@ -1018,7 +1018,7 @@ func (s *cblRepositorySyncer) fetchCBLDocument(ctx context.Context, repository c
 	if err != nil {
 		return cblImportDocument{}, fmt.Errorf("download %s: %w", filePath, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return cblImportDocument{}, fmt.Errorf("download %s: GitHub returned %s", filePath, response.Status)
 	}

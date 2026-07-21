@@ -16,7 +16,7 @@ func TestAuditMiddlewareRecordsOnlySuccessfulMutations(t *testing.T) {
 		t.Fatal(err)
 	}
 	db.SetMaxOpenConns(1)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 	if _, err := db.Exec(`CREATE TABLE audit_events (id INTEGER PRIMARY KEY, user_id INTEGER, method TEXT, path TEXT, status_code INTEGER, occurred_at TEXT DEFAULT CURRENT_TIMESTAMP)`); err != nil {
 		t.Fatal(err)
 	}

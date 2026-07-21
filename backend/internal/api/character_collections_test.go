@@ -13,7 +13,7 @@ func TestCharacterCollectionsArePrivateAndDeduplicateAppearances(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	if _, err := database.Exec(`
 		INSERT INTO users (id, name) VALUES (2, 'Other');
@@ -71,7 +71,7 @@ func TestCharacterCollectionDashboardUsesReleaseDateAndReadProgress(t *testing.T
 	if err != nil {
 		t.Fatalf("open database: %v", err)
 	}
-	defer database.Close()
+	defer func() { _ = database.Close() }()
 
 	if _, err := database.Exec(`
 		INSERT INTO characters (id, name) VALUES (10, 'Silk'), (11, 'Spider-Gwen');

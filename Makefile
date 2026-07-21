@@ -1,7 +1,9 @@
-.PHONY: dev dev-backend dev-ui test test-backend test-ui build build-backend build-ui install-ui build-standalone docker-build docker-run compose-up compose-down
+.PHONY: dev dev-backend dev-ui test test-backend test-ui build build-backend build-ui install-ui build-standalone docker-build docker-run compose-up compose-down lint lint-backend lint-ui
 
 GOCACHE ?= $(CURDIR)/tmp/go-build
 export GOCACHE
+GOLANGCI_LINT_CACHE ?= $(CURDIR)/tmp/golangci-lint
+export GOLANGCI_LINT_CACHE
 
 BACKEND_URL ?= http://localhost:8080/api/docs
 UI_URL ?= http://localhost:5173
@@ -69,7 +71,10 @@ compose-up:
 compose-down:
 	docker compose down
 
-lint: lint-ui
+lint: lint-backend lint-ui
+
+lint-backend:
+	cd backend && golangci-lint run ./...
 
 lint-ui:
 	npm --prefix ui run lint

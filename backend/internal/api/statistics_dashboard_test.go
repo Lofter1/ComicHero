@@ -15,7 +15,7 @@ func TestUserStatisticsAndAchievements(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`
@@ -220,7 +220,7 @@ func TestDashboardNextComicAdvancesAfterRead(t *testing.T) {
 		t.Fatalf("open db: %v", err)
 	}
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	if _, err := db.Exec(`
@@ -410,7 +410,7 @@ func TestDashboardNextComicUsesAscendingCoverDate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	t.Cleanup(func() { db.Close() })
+	t.Cleanup(func() { _ = db.Close() })
 
 	if _, err := db.Exec(`
 		CREATE TABLE series (id INTEGER PRIMARY KEY, name TEXT NOT NULL, series_year INTEGER NOT NULL DEFAULT 0);

@@ -21,17 +21,17 @@ func TestClientUsesBasicAuthAndDocumentedListPaths(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/reading_list/":
-			w.Write([]byte(`{"results":[{"id":7,"name":"Event"}]}`))
+			_, _ = w.Write([]byte(`{"results":[{"id":7,"name":"Event"}]}`))
 		case "/reading_list/7/":
-			w.Write([]byte(`{"id":7,"name":"Event","desc":"Big event"}`))
+			_, _ = w.Write([]byte(`{"id":7,"name":"Event","desc":"Big event"}`))
 		case "/reading_list/7/items/":
-			w.Write([]byte(`{"results":[{"issue_type":"Main Story","issue":{"id":11,"series":{"name":"Series"},"number":"1","cover_date":"2026-01-01"}}]}`))
+			_, _ = w.Write([]byte(`{"results":[{"issue_type":"Main Story","issue":{"id":11,"series":{"name":"Series"},"number":"1","cover_date":"2026-01-01"}}]}`))
 		case "/arc/":
-			w.Write([]byte(`{"results":[{"id":9,"name":"Zero Year"}]}`))
+			_, _ = w.Write([]byte(`{"results":[{"id":9,"name":"Zero Year"}]}`))
 		case "/arc/9/":
-			w.Write([]byte(`{"id":9,"name":"Zero Year","desc":"Big arc","image":"https://example.test/arc.jpg"}`))
+			_, _ = w.Write([]byte(`{"id":9,"name":"Zero Year","desc":"Big arc","image":"https://example.test/arc.jpg"}`))
 		case "/arc/9/issue_list/":
-			w.Write([]byte(`{"results":[{"id":21,"series":{"name":"Series"},"number":"2","cover_date":"2026-02-01"}]}`))
+			_, _ = w.Write([]byte(`{"results":[{"id":21,"series":{"name":"Series"},"number":"2","cover_date":"2026-02-01"}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -105,13 +105,13 @@ func TestListReadingListsFetchesEveryUnfilteredPage(t *testing.T) {
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("page") == "2" {
-			w.Write([]byte(`{"count":2,"next":null,"results":[{"id":2,"name":"Second"}]}`))
+			_, _ = w.Write([]byte(`{"count":2,"next":null,"results":[{"id":2,"name":"Second"}]}`))
 			return
 		}
 		if len(r.URL.Query()) != 0 {
 			t.Fatalf("first-page query = %v; want no filters", r.URL.Query())
 		}
-		w.Write([]byte(`{"count":2,"next":"` + server.URL + `/reading_list/?page=2","results":[{"id":1,"name":"First"}]}`))
+		_, _ = w.Write([]byte(`{"count":2,"next":"` + server.URL + `/reading_list/?page=2","results":[{"id":1,"name":"First"}]}`))
 	}))
 	defer server.Close()
 
@@ -129,7 +129,7 @@ func TestSearchIssuesByComicVineIDUsesDocumentedFilter(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestURL = r.URL.String()
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"results":[{"id":12,"cv_id":987654,"series":{"name":"Batman"},"number":"6"}]}`))
+		_, _ = w.Write([]byte(`{"results":[{"id":12,"cv_id":987654,"series":{"name":"Batman"},"number":"6"}]}`))
 	}))
 	defer server.Close()
 
@@ -148,7 +148,7 @@ func TestSearchIssuesByComicVineIDUsesDocumentedFilter(t *testing.T) {
 func TestClientPreservesMetronIssueNumberSuffix(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"id":18030,"cv_id":987654,"series":{"name":"The Amazing Spider-Man","year_began":2018},"number":"50.LR","cover_date":"2020-12-01"}`))
+		_, _ = w.Write([]byte(`{"id":18030,"cv_id":987654,"series":{"name":"The Amazing Spider-Man","year_began":2018},"number":"50.LR","cover_date":"2020-12-01"}`))
 	}))
 	defer server.Close()
 
@@ -174,7 +174,7 @@ func TestClientDoesNotSendConditionalRequestHeaders(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Last-Modified", "Wed, 12 Feb 2026 10:30:00 GMT")
-		w.Write([]byte(`{"id":123,"series":{"name":"Series"},"number":"1"}`))
+		_, _ = w.Write([]byte(`{"id":123,"series":{"name":"Series"},"number":"1"}`))
 	}))
 	defer server.Close()
 
@@ -200,7 +200,7 @@ func TestClientTracksMetronRateLimitHeaders(t *testing.T) {
 		w.Header().Set("X-RateLimit-Sustained-Limit", "100")
 		w.Header().Set("X-RateLimit-Sustained-Remaining", "75")
 		w.Header().Set("X-RateLimit-Sustained-Reset", "1782470000")
-		w.Write([]byte(`{"results":[{"id":3,"name":"Series"}]}`))
+		_, _ = w.Write([]byte(`{"results":[{"id":3,"name":"Series"}]}`))
 	}))
 	defer server.Close()
 
@@ -249,10 +249,10 @@ func TestSearchModifiedIssuesUsesFiltersAndAllPages(t *testing.T) {
 		paths = append(paths, r.URL.String())
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Query().Get("page") == "2" {
-			w.Write([]byte(`{"count":2,"next":null,"results":[{"id":2,"series":{"name":"Saga"},"number":"2"}]}`))
+			_, _ = w.Write([]byte(`{"count":2,"next":null,"results":[{"id":2,"series":{"name":"Saga"},"number":"2"}]}`))
 			return
 		}
-		w.Write([]byte(`{"count":2,"next":"` + server.URL + `/issue/?page=2","results":[{"id":1,"series":{"name":"Saga"},"number":"1"}]}`))
+		_, _ = w.Write([]byte(`{"count":2,"next":"` + server.URL + `/issue/?page=2","results":[{"id":1,"series":{"name":"Saga"},"number":"1"}]}`))
 	}))
 	defer server.Close()
 	client := New(Config{BaseURL: server.URL})

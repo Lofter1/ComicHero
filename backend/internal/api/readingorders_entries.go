@@ -45,7 +45,7 @@ func setReadingOrderComicsWithAuth(ctx context.Context, db *sqlx.DB, input *SetR
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start transaction")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `
 		DELETE FROM reading_order_comics WHERE reading_order_id = ?

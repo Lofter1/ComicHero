@@ -123,12 +123,11 @@ func dashboardReadingOrders(ctx context.Context, db *sqlx.DB, userID int) ([]Das
 
 	items := make([]DashboardItem, 0, len(rows))
 	for _, row := range rows {
-		comics := []ReadingOrderComic{}
 		detail, err := getReadingOrder(ctx, db, row.ID)
 		if err != nil {
 			return nil, err
 		}
-		comics = detail.Body.Comics
+		comics := detail.Body.Comics
 
 		next := nextReadingOrderComic(comics)
 		progress := computeProgress(comics)

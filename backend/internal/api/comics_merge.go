@@ -39,7 +39,7 @@ func mergeComic(ctx context.Context, db *sqlx.DB, targetID, sourceID int) (*Comi
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start comic merge")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	target, err := getComicMergeRow(ctx, tx, targetID)
 	if err != nil {

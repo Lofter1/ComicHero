@@ -25,11 +25,11 @@ var (
 
 func DocsConfig() huma.Config {
 	config := huma.DefaultConfig("ComicHero API", "0.1.0")
-	config.OpenAPI.Info.Description = "ComicHero tracks comic reading orders, read progress, and metadata imported from Metron."
-	config.OpenAPI.Servers = []*huma.Server{
+	config.Info.Description = "ComicHero tracks comic reading orders, read progress, and metadata imported from Metron."
+	config.Servers = []*huma.Server{
 		{URL: "/api", Description: "Current server"},
 	}
-	config.OpenAPI.Tags = []*huma.Tag{
+	config.Tags = []*huma.Tag{
 		{Name: tagComics, Description: "Track comic metadata, read status, and reading-order membership."},
 		{Name: tagDashboard, Description: "Summarize active reading queues and achievement highlights."},
 		{Name: tagSeries, Description: "Browse local comic series, their read progress, and favorite state."},

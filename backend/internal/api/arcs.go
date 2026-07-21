@@ -329,7 +329,7 @@ func setArcComics(ctx context.Context, db *sqlx.DB, input *SetArcComicsInput) (*
 	if err != nil {
 		return nil, huma.Error500InternalServerError("failed to start transaction")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if _, err := tx.ExecContext(ctx, `
 		DELETE FROM arc_comics WHERE arc_id = ?
@@ -409,7 +409,7 @@ func syncMetronIssueArcsWithOptions(ctx context.Context, db *sqlx.DB, client *me
 	if err != nil {
 		return huma.Error500InternalServerError("failed to start arc sync")
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	seen := map[int]bool{}
 	arcIDs := make([]int, 0, len(issue.Arcs))
