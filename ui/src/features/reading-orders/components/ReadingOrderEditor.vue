@@ -12,6 +12,7 @@ import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import StatusPill from '@/shared/components/feedback/StatusPill.vue'
+import ReadingOrderEntryPagination from './ReadingOrderEntryPagination.vue'
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -609,59 +610,15 @@ function endDrag() {
           <span>{{ orderEntries.length }} entries</span>
         </div>
 
-        <nav
+        <ReadingOrderEntryPagination
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages"
-          aria-label="Reading order entry pages"
-        >
-          <span>
-            Entries {{ entryPageState.start + 1 }}–{{ entryPageState.end }} of
-            {{ orderEntries.length }}
-          </span>
-          <div>
-            <BaseButton
-              class="down-mobile:w-full"
-              type="button"
-              variant="secondary"
-              size="compact"
-              :disabled="entryPageState.page === 0"
-              @click="goToEntryPage(0)"
-            >
-              First
-            </BaseButton>
-            <BaseButton
-              class="down-mobile:w-full"
-              type="button"
-              variant="secondary"
-              size="compact"
-              :disabled="entryPageState.page === 0"
-              @click="goToEntryPage(entryPageState.page - 1)"
-            >
-              Previous
-            </BaseButton>
-            <strong>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</strong>
-            <BaseButton
-              class="down-mobile:w-full"
-              type="button"
-              variant="secondary"
-              size="compact"
-              :disabled="entryPageState.page === entryPageState.pageCount - 1"
-              @click="goToEntryPage(entryPageState.page + 1)"
-            >
-              Next
-            </BaseButton>
-            <BaseButton
-              class="down-mobile:w-full"
-              type="button"
-              variant="secondary"
-              size="compact"
-              :disabled="entryPageState.page === entryPageState.pageCount - 1"
-              @click="goToEntryPage(entryPageState.pageCount - 1)"
-            >
-              Last
-            </BaseButton>
-          </div>
-        </nav>
+          :page="entryPageState.page"
+          :page-count="entryPageState.pageCount"
+          :start="entryPageState.start"
+          :end="entryPageState.end"
+          :total="orderEntries.length"
+          @go="goToEntryPage"
+        />
 
         <div
           v-if="orderEntries.length === 0"
@@ -870,35 +827,13 @@ function endDrag() {
           />
         </div>
 
-        <nav
+        <ReadingOrderEntryPagination
           v-if="entryPageState.pageCount > 1"
-          class="reading-order-entry-pages reading-order-entry-pages-bottom"
-          aria-label="Reading order entry pages"
-        >
-          <span>Page {{ entryPageState.page + 1 }} of {{ entryPageState.pageCount }}</span>
-          <div>
-            <BaseButton
-              class="down-mobile:w-full"
-              type="button"
-              variant="secondary"
-              size="compact"
-              :disabled="entryPageState.page === 0"
-              @click="goToEntryPage(entryPageState.page - 1)"
-            >
-              Previous
-            </BaseButton>
-            <BaseButton
-              class="down-mobile:w-full"
-              type="button"
-              variant="secondary"
-              size="compact"
-              :disabled="entryPageState.page === entryPageState.pageCount - 1"
-              @click="goToEntryPage(entryPageState.page + 1)"
-            >
-              Next
-            </BaseButton>
-          </div>
-        </nav>
+          :page="entryPageState.page"
+          :page-count="entryPageState.pageCount"
+          compact
+          @go="goToEntryPage"
+        />
       </section>
     </div>
   </form>
@@ -967,10 +902,6 @@ function endDrag() {
   @apply min-w-0 border-t border-line pt-3.5 [&_.section-title_>_span]:text-muted [&_.section-title_>_span]:text-sm [&_.section-title_>_span]:font-ui-bold;
 }
 
-.reading-order-entry-pages {
-  @apply flex items-center justify-between gap-3 mb-2.5 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1;
-}
-
 .empty-state.empty-entry-drop-zone {
   @apply [transition:background-color_120ms_ease,border-color_120ms_ease,color_120ms_ease] [&.active]:border-primary [&.active]:bg-primary-soft [&.active]:text-ink grid gap-3 justify-items-start border border-dashed border-line-strong rounded bg-panel-soft text-muted p-4;
 }
@@ -1009,10 +940,6 @@ function endDrag() {
 
 .entry-drop-zone.end-zone {
   @apply min-h-3 border border-dashed border-transparent rounded [transition:background-color_120ms_ease,border-color_120ms_ease,min-height_120ms_ease] [&.active]:min-h-8 [&.active]:border-primary [&.active]:bg-primary-soft [&.end-zone]:min-h-10 [&.end-zone]:border-line [&.end-zone]:bg-panel-soft;
-}
-
-.reading-order-entry-pages.reading-order-entry-pages-bottom {
-  @apply mt-2.5 mb-0 flex items-center justify-between gap-3 border border-line rounded bg-panel-soft py-2.5 px-3 down-mobile:items-stretch down-mobile:flex-col [&_>_span]:text-muted [&_>_span]:text-sm [&_>_span]:font-ui-bold [&_>_div]:flex [&_>_div]:items-center [&_>_div]:justify-end [&_>_div]:gap-2 [&_strong]:min-w-24 [&_strong]:text-ink [&_strong]:text-center down-mobile:[&_>_div]:grid down-mobile:[&_>_div]:grid-cols-2 down-mobile:[&_strong]:col-span-full down-mobile:[&_strong]:row-start-1;
 }
 
 .entry-source-button {

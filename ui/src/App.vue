@@ -8,6 +8,7 @@ import ArcDetailView from '@/features/arcs/components/ArcDetailView.vue'
 import ArcsBrowseView from '@/features/arcs/components/ArcsBrowseView.vue'
 import AppSidebar from '@/app/components/AppSidebar.vue'
 import AppToolbar from '@/app/components/AppToolbar.vue'
+import InfiniteScrollStatus from '@/app/components/InfiniteScrollStatus.vue'
 import CharactersBrowseView from '@/features/characters/components/CharactersBrowseView.vue'
 import CharacterDetailView from '@/features/characters/components/CharacterDetailView.vue'
 import AddToCollectionDialog from '@/features/collections/components/AddToCollectionDialog.vue'
@@ -742,7 +743,7 @@ function observeLoadMoreSentinel() {
   if (!loadMoreObserver) return
   loadMoreObserver.disconnect()
   if (loadMoreSentinel.value && showInfiniteScrollSentinel.value) {
-    loadMoreObserver.observe(loadMoreSentinel.value)
+    loadMoreObserver.observe(loadMoreSentinel.value.element)
   }
 }
 
@@ -1230,15 +1231,11 @@ onUnmounted(() => {
         />
       </div>
 
-      <div
+      <InfiniteScrollStatus
         v-if="showInfiniteScrollSentinel"
         ref="loadMoreSentinel"
-        class="load-more-sentinel"
-        aria-live="polite"
-      >
-        <span v-if="activeListLoadingMore" class="loading-spinner small" aria-hidden="true"></span>
-        <span>{{ activeListLoadingMore ? 'Loading more...' : 'Scroll for more' }}</span>
-      </div>
+        :loading="activeListLoadingMore"
+      />
 
       <AddToCollectionDialog
         v-if="addDialogCharacter"
@@ -1267,13 +1264,5 @@ onUnmounted(() => {
 
 .primary-button {
   @apply min-h-10 border rounded py-2.5 px-3.5 border-primary bg-primary text-white;
-}
-
-.load-more-sentinel {
-  @apply flex items-center gap-2 w-full min-h-10 text-muted text-sm font-bold;
-}
-
-.loading-spinner.small {
-  @apply w-4 h-4 border-3 border-spinner-track border-t-primary rounded-full animate-loading-spin flex-none [&.small]:w-3.5 [&.small]:h-3.5 [&.small]:[border-width:2px];
 }
 </style>

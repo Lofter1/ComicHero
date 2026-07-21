@@ -7,6 +7,7 @@ import BaseSelect from '@/shared/components/form/BaseSelect.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
 import ModalShell from '@/shared/components/overlay/ModalShell.vue'
+import UserAccessSettings from './UserAccessSettings.vue'
 
 const props = defineProps({
   metronComicScan: { type: Object, default: null },
@@ -451,10 +452,6 @@ function fileSizeLabel(bytes) {
   return `${Math.round(value / 1024)} KB`
 }
 
-function registrationModeLabel(mode) {
-  return mode === 'open' ? 'Open registration' : 'Invite only'
-}
-
 function selectSettingsTab(tab) {
   router.replace({
     name: 'settings',
@@ -483,119 +480,19 @@ function selectSettingsTab(tab) {
       </button>
     </nav>
 
-    <section
+    <UserAccessSettings
       v-show="activeSettingsTab === 'general'"
       id="settings-panel-general"
-      class="user-access-panel settings-tab-panel"
-      role="tabpanel"
-      aria-labelledby="settings-tab-general"
-    >
-      <div class="user-registration-panel">
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Registration</p>
-          <h3>{{ registrationModeLabel(registrationMode) }}</h3>
-          <p class="muted block text-muted">
-            {{
-              registrationMode === 'open'
-                ? 'Anyone who can reach this server can register without an invite, then verify their email.'
-                : 'New accounts need a single-use invite token to register.'
-            }}
-          </p>
-        </div>
-
-        <div class="registration-mode-toggle" role="group" aria-label="Registration mode">
-          <!-- Native buttons: this segmented control has its own selected-state treatment. -->
-          <button
-            type="button"
-            class="access-mode-button"
-            :class="{ active: registrationMode === 'invite_only' }"
-            :disabled="savingRegistrationMode"
-            @click="$emit('update-registration-mode', 'invite_only')"
-          >
-            Invite only
-          </button>
-          <button
-            type="button"
-            class="access-mode-button"
-            :class="{ active: registrationMode === 'open' }"
-            :disabled="savingRegistrationMode"
-            @click="$emit('update-registration-mode', 'open')"
-          >
-            Open registration
-          </button>
-        </div>
-        <p v-if="registrationMode === 'open'" class="access-note">
-          Open registration gives verified new accounts full read/write access to the shared
-          library.
-        </p>
-      </div>
-
-      <div class="user-invite-panel">
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Invites</p>
-          <h3>Invite a user</h3>
-          <p class="muted block text-muted">
-            {{
-              registrationMode === 'open'
-                ? 'Open registration is enabled, so invite tokens are optional right now.'
-                : 'Generate a single-use token for a new account.'
-            }}
-          </p>
-        </div>
-        <BaseButton
-          class="mt-auto justify-self-start"
-          variant="primary"
-          size="dense"
-          :disabled="generatingInvite"
-          @click="$emit('generate-invite')"
-        >
-          {{ generatingInvite ? 'Generating...' : 'Generate invite' }}
-        </BaseButton>
-        <div v-if="invite?.token" class="invite-token-box">
-          <span>Invite token</span>
-          <code>{{ invite.token }}</code>
-          <small>Expires at {{ invite.expiresAt }}</small>
-        </div>
-      </div>
-
-      <div class="user-public-panel">
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Public access</p>
-          <h3>{{ publicAccess ? 'Read-only visitors' : 'Private library' }}</h3>
-          <p class="muted block text-muted">
-            {{
-              publicAccess
-                ? 'Anonymous visitors can browse and export reading orders as CBL.'
-                : 'Anonymous visitors must log in before seeing the library.'
-            }}
-          </p>
-        </div>
-        <div class="registration-mode-toggle" role="group" aria-label="Public access">
-          <!-- Native buttons: this segmented control has its own selected-state treatment. -->
-          <button
-            type="button"
-            class="access-mode-button"
-            :class="{ active: !publicAccess }"
-            :disabled="savingPublicAccess"
-            @click="$emit('update-public-access', false)"
-          >
-            Private
-          </button>
-          <button
-            type="button"
-            class="access-mode-button"
-            :class="{ active: publicAccess }"
-            :disabled="savingPublicAccess"
-            @click="$emit('update-public-access', true)"
-          >
-            Public read-only
-          </button>
-        </div>
-        <p v-if="publicAccess" class="access-note">
-          Public visitors cannot edit data, but they can see your shared library.
-        </p>
-      </div>
-    </section>
+      :registration-mode="registrationMode"
+      :saving-registration-mode="savingRegistrationMode"
+      :public-access="publicAccess"
+      :saving-public-access="savingPublicAccess"
+      :invite="invite"
+      :generating-invite="generatingInvite"
+      @update-registration-mode="$emit('update-registration-mode', $event)"
+      @update-public-access="$emit('update-public-access', $event)"
+      @generate-invite="$emit('generate-invite')"
+    />
 
     <section
       v-if="cblRepositorySync"
@@ -1406,15 +1303,6 @@ function selectSettingsTab(tab) {
   @apply bg-primary text-white;
 }
 
-.access-mode-button {
-  @apply min-h-10 min-w-0 rounded-[7px] border-0 bg-transparent px-2.5 py-2 text-sm leading-tight font-black whitespace-normal text-control;
-  overflow-wrap: anywhere;
-}
-
-.access-mode-button.active {
-  @apply bg-primary text-(--primary-ink);
-}
-
 .cbl-file-picker-path strong {
   overflow-wrap: anywhere;
 }
@@ -1432,34 +1320,6 @@ function selectSettingsTab(tab) {
 
 .settings-tabs {
   @apply grid grid-cols-3 gap-1.5 border border-line-strong rounded-lg bg-panel-soft p-1.5;
-}
-
-.user-access-panel.settings-tab-panel {
-  @apply min-w-0 grid grid-cols-3 gap-4 items-stretch [&_>_div]:h-full down-tablet:grid-cols-1;
-}
-
-.user-registration-panel {
-  @apply grid gap-4 content-start border border-line rounded-xl bg-surface-soft p-5 shadow-float [&_>_.registration-mode-toggle]:mt-auto;
-}
-
-.registration-mode-toggle {
-  @apply grid grid-cols-2 gap-1 border border-line rounded bg-surface p-1;
-}
-
-.access-note {
-  @apply m-0 border border-warning-border rounded bg-warning-soft text-warning py-2.5 px-3 text-sm font-bold leading-ui;
-}
-
-.user-invite-panel {
-  @apply grid gap-4 content-start border border-line rounded-xl bg-surface-soft p-5 shadow-float;
-}
-
-.invite-token-box {
-  @apply grid gap-1 border border-line rounded bg-surface p-3 [&_span]:text-muted [&_span]:text-sm [&_span]:font-bold [&_small]:text-muted [&_small]:text-sm [&_small]:font-bold [&_code]:text-(--heading) [&_code]:font-extrabold;
-}
-
-.user-public-panel {
-  @apply grid gap-4 content-start border border-line rounded-xl bg-surface-soft p-5 shadow-float [&_>_.registration-mode-toggle]:mt-auto;
 }
 
 .account-settings-panel.metron-scan-panel.settings-tab-panel {
@@ -1556,10 +1416,6 @@ function selectSettingsTab(tab) {
 
 .permission-scopes.metron-incomplete-fields {
   @apply border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1;
-}
-
-.invite-token-box code {
-  overflow-wrap: anywhere;
 }
 
 .cbl-metron-candidate-copy strong {
