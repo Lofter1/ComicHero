@@ -152,6 +152,139 @@ func TestLoginUsesEmailAddress(t *testing.T) {
 	}
 }
 
+func TestResendEmailVerificationAuthenticatesBeforeRotatingToken(t *testing.T) {
+	t.Setenv("SMTP_HOST", "")
+	db := setupMountedAuthTestDB(t)
+	hash, err := hashPassword("secret1")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi');
+		UPDATE users
+		SET name = 'Pending', email = 'pending@example.com', email_verified_at = '', password_hash = ?
+		WHERE id = 1;
+	`, hash); err != nil {
+		t.Fatalf("seed pending user: %v", err)
+	}
+
+	oldToken, _, err := createEmailVerification(context.Background(), db, 1)
+	if err != nil {
+		t.Fatalf("createEmailVerification: %v", err)
+	}
+	oldHash := emailVerificationTokenHash(oldToken)
+
+	if _, err := resendEmailVerification(context.Background(), db, ResendEmailVerificationPayload{
+		Email: "pending@example.com", Password: "wrong",
+	}); err == nil {
+		t.Fatal("resendEmailVerification accepted an incorrect password")
+	}
+	var usedAt string
+	if err := db.Get(&usedAt, `SELECT used_at FROM user_email_verifications WHERE token_hash = ?`, oldHash); err != nil {
+		t.Fatalf("fetch original verification token: %v", err)
+	}
+	if usedAt != "" {
+		t.Fatalf("failed authentication consumed the original token at %q", usedAt)
+	}
+
+	output, err := resendEmailVerification(context.Background(), db, ResendEmailVerificationPayload{
+		Email: "Pending@Example.com", Password: "secret1",
+	})
+	if err != nil {
+		t.Fatalf("resendEmailVerification: %v", err)
+	}
+	if !output.Body.EmailVerificationRequired || output.Body.EmailVerificationEmail != "pending@example.com" {
+		t.Fatalf("status = %#v; want pending email verification", output.Body)
+	}
+	if err := db.Get(&usedAt, `SELECT used_at FROM user_email_verifications WHERE token_hash = ?`, oldHash); err != nil {
+		t.Fatalf("fetch rotated verification token: %v", err)
+	}
+	if usedAt == "" {
+		t.Fatal("successful resend did not consume the original token")
+	}
+	var activeTokens int
+	if err := db.Get(&activeTokens, `SELECT COUNT(*) FROM user_email_verifications WHERE user_id = 1 AND used_at = ''`); err != nil {
+		t.Fatalf("count active verification tokens: %v", err)
+	}
+	if activeTokens != 1 {
+		t.Fatalf("active verification tokens = %d; want 1", activeTokens)
+	}
+}
+
+func TestExpiredAccountTokensAreRejected(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	verificationToken := "expired-verification"
+	resetToken := "expired-reset"
+	if _, err := db.Exec(`
+		INSERT INTO user_email_verifications (token_hash, user_id, expires_at)
+		VALUES (?, 1, '2000-01-01T00:00:00Z');
+		INSERT INTO user_password_resets (token_hash, user_id, expires_at)
+		VALUES (?, 1, '2000-01-01T00:00:00Z');
+	`, emailVerificationTokenHash(verificationToken), emailVerificationTokenHash(resetToken)); err != nil {
+		t.Fatalf("seed expired tokens: %v", err)
+	}
+
+	if _, err := verifyEmailToken(context.Background(), db, verificationToken); err == nil {
+		t.Fatal("verifyEmailToken accepted an expired token")
+	}
+	if _, err := verifyPasswordResetToken(context.Background(), db, resetToken); err == nil {
+		t.Fatal("verifyPasswordResetToken accepted an expired token")
+	}
+}
+
+func TestPasswordResetRequestDoesNotRevealUnknownEmail(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`INSERT INTO app_settings (key, value) VALUES ('user_mode', 'multi')`); err != nil {
+		t.Fatalf("seed multi-user mode: %v", err)
+	}
+
+	output, err := requestPasswordReset(context.Background(), db, ForgotPasswordPayload{
+		Email: "missing@example.com",
+	})
+	if err != nil {
+		t.Fatalf("requestPasswordReset for unknown email: %v", err)
+	}
+	if output.Body.Mode != userModeMulti || output.Body.User != nil {
+		t.Fatalf("status = %#v; want anonymous multi-user status", output.Body)
+	}
+	var tokenCount int
+	if err := db.Get(&tokenCount, `SELECT COUNT(*) FROM user_password_resets`); err != nil {
+		t.Fatalf("count password reset tokens: %v", err)
+	}
+	if tokenCount != 0 {
+		t.Fatalf("password reset token count = %d; want 0", tokenCount)
+	}
+}
+
+func TestLogoutDeletesOnlyCurrentSessionAndExpiresCookie(t *testing.T) {
+	db := setupMountedAuthTestDB(t)
+	if _, err := db.Exec(`
+		INSERT INTO user_sessions (token, user_id, expires_at) VALUES
+			('current-session', 1, '2999-01-01T00:00:00Z'),
+			('other-session', 1, '2999-01-01T00:00:00Z');
+	`); err != nil {
+		t.Fatalf("seed sessions: %v", err)
+	}
+
+	output, err := logoutUser(context.Background(), db, "current-session")
+	if err != nil {
+		t.Fatalf("logoutUser: %v", err)
+	}
+	if len(output.SetCookie) != 1 || output.SetCookie[0].MaxAge >= 0 {
+		t.Fatalf("cookies = %#v; want expired session cookie", output.SetCookie)
+	}
+	var currentCount, otherCount int
+	if err := db.Get(&currentCount, `SELECT COUNT(*) FROM user_sessions WHERE token = 'current-session'`); err != nil {
+		t.Fatalf("count current session: %v", err)
+	}
+	if err := db.Get(&otherCount, `SELECT COUNT(*) FROM user_sessions WHERE token = 'other-session'`); err != nil {
+		t.Fatalf("count other session: %v", err)
+	}
+	if currentCount != 0 || otherCount != 1 {
+		t.Fatalf("session counts = current %d, other %d; want 0 and 1", currentCount, otherCount)
+	}
+}
+
 func TestRegistrationRateLimitReturnsTooManyRequests(t *testing.T) {
 	previousLimiter := authRegistrationLimiter
 	authRegistrationLimiter = newLoginRateLimiter(registrationRateLimitMaxAttempts, registrationRateLimitWindow)
