@@ -145,12 +145,6 @@ export default {
         panel: '22rem',
       },
       screens: {
-        'down-phone': { max: '420px' },
-        'down-compact': { max: '620px' },
-        'down-narrow': { max: '760px' },
-        'down-mobile': { max: '720px' },
-        'down-tablet': { max: '960px' },
-        'down-laptop': { max: '1180px' },
         'desktop-compact': { min: '961px', max: '1440px' },
       },
       borderRadius: {

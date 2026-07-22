@@ -1319,7 +1319,11 @@ function selectSettingsTab(tab) {
 }
 
 .settings-tabs {
-  @apply grid grid-cols-3 gap-1.5 border border-line-strong rounded-lg bg-panel-soft p-1.5;
+  @apply grid grid-cols-3 gap-1.5 border border-line-strong rounded-lg bg-panel-soft p-1.5 down-phone:grid-cols-2;
+}
+
+.settings-tab-button:last-child {
+  @apply down-phone:col-span-2;
 }
 
 .account-settings-panel.metron-scan-panel.settings-tab-panel {

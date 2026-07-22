@@ -119,7 +119,14 @@ defineEmits(['update-registration-mode', 'update-public-access', 'generate-invit
 @reference '../../../styles.css';
 
 .user-access-panel {
-  @apply min-w-0 grid grid-cols-3 gap-4 items-stretch down-tablet:grid-cols-1;
+  @apply min-w-0 grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-4 items-stretch;
+  container: user-access / inline-size;
+}
+
+@container user-access (width < 872px) {
+  .access-panel:last-child {
+    @apply col-span-full;
+  }
 }
 
 .access-panel {

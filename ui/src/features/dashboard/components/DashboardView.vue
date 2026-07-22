@@ -161,7 +161,7 @@ function achievementProgress(achievement) {
 }
 
 .dashboard-card {
-  @apply grid gap-3.5 border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0;
+  @apply grid gap-3.5 border border-line rounded-xl bg-panel p-4 shadow-soft [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0;
 }
 
 .dashboard-card-header {
@@ -181,7 +181,7 @@ function achievementProgress(achievement) {
 }
 
 .empty-panel {
-  @apply border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold;
+  @apply border border-dashed border-line-strong rounded-xl bg-panel-soft text-muted p-5 font-extrabold;
 }
 
 .dashboard-achievements {
@@ -189,7 +189,7 @@ function achievementProgress(achievement) {
 }
 
 .achievement-summary-card {
-  @apply border border-line rounded bg-surface p-4 [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0;
+  @apply border border-line rounded-xl bg-panel p-4 shadow-soft [&_h3]:my-1 [&_h3]:mx-2 [&_p]:m-0;
 }
 
 .dashboard-comic strong {

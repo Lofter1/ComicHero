@@ -1,6 +1,14 @@
 @import 'tailwindcss';
 @config '../tailwind.config.js';
 
+/* Keep overlapping max-width variants in cascade order: narrowest wins. */
+@custom-variant down-laptop (@media (width <= 1180px));
+@custom-variant down-tablet (@media (width <= 960px));
+@custom-variant down-narrow (@media (width <= 760px));
+@custom-variant down-mobile (@media (width <= 720px));
+@custom-variant down-compact (@media (width <= 620px));
+@custom-variant down-phone (@media (width <= 420px));
+
 @layer base {
   body {
     @apply m-0 min-w-80 overflow-x-hidden bg-app font-sans text-ink;

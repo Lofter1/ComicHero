@@ -8,7 +8,7 @@
 @reference '../../../styles.css';
 
 .detail-panel {
-  @apply min-h-panel rounded border border-line bg-panel p-5 shadow-detail;
+  @apply min-h-panel rounded-xl border border-line bg-panel p-5 shadow-detail;
 }
 
 @media (width <= 720px) {

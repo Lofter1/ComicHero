@@ -1279,7 +1279,7 @@ onUnmounted(() => {
 }
 
 .content {
-  @apply [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] p-(--content-padding) min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:max-w-none down-tablet:p-(--content-padding) down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:p-(--content-padding) down-phone:p-2.5 *:min-w-0 *:max-w-full [&_>_.sticky-toolbar]:max-w-none;
+  @apply [--content-padding:28px] [--sticky-toolbar-top:0px] [--sticky-toolbar-inline-offset:28px] [--comic-list-sticky-top:82px] p-(--content-padding) min-w-0 w-full down-tablet:[--content-padding:22px] down-tablet:[--sticky-toolbar-top:65px] down-tablet:[--sticky-toolbar-inline-offset:22px] down-tablet:[--comic-list-sticky-top:146px] down-tablet:max-w-none down-tablet:p-(--content-padding) down-mobile:[--content-padding:14px] down-mobile:[--sticky-toolbar-top:0px] down-mobile:[--sticky-toolbar-inline-offset:14px] down-mobile:[--comic-list-sticky-top:0px] down-mobile:p-(--content-padding) down-phone:p-2.5 *:min-w-0 *:max-w-full [&_>_.sticky-toolbar]:max-w-none;
 }
 
 .primary-button {
