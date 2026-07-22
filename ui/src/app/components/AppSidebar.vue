@@ -298,11 +298,23 @@ function toggleMobileMenu() {
 @reference '../../styles.css';
 
 .sidebar {
-  @apply sticky top-0 z-30 h-screen border-r border-line [background:var(--sidebar-bg)] p-7 flex flex-col gap-7 [backdrop-filter:blur(12px)] down-tablet:sticky down-tablet:top-0 down-tablet:z-30 down-tablet:h-auto down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line down-tablet:py-3 down-tablet:px-4 down-tablet:gap-3 down-tablet:[box-shadow:0_6px_18px_var(--shadow-soft)] down-tablet:overflow-visible down-mobile:p-3 down-phone:p-2.5 down-tablet:[&:not(.menu-open)_.nav-tabs]:hidden down-tablet:[&.menu-open_.nav-tabs]:grid down-tablet:[&.menu-open_.nav-tabs]:absolute down-tablet:[&.menu-open_.nav-tabs]:top-[calc(100%+8px)] down-tablet:[&.menu-open_.nav-tabs]:right-4 down-tablet:[&.menu-open_.nav-tabs]:w-[min(360px,calc(100vw-36px))] down-tablet:[&.menu-open_.nav-tabs]:grid-cols-1 down-tablet:[&.menu-open_.nav-tabs]:gap-2 down-tablet:[&.menu-open_.nav-tabs]:border down-tablet:[&.menu-open_.nav-tabs]:border-line-strong down-tablet:[&.menu-open_.nav-tabs]:rounded-lg down-tablet:[&.menu-open_.nav-tabs]:z-40 down-tablet:[&.menu-open_.nav-tabs]:bg-surface down-tablet:[&.menu-open_.nav-tabs]:p-2.5 down-tablet:[&.menu-open_.nav-tabs]:[box-shadow:0_18px_40px_var(--shadow-panel)] down-tablet:[&.menu-open_.nav-tabs]:backdrop-filter-none down-tablet:[&.menu-open_.nav-tabs]:isolate down-mobile:[&_.eyebrow]:m-0 down-mobile:[&.menu-open_.nav-tabs]:right-3 down-mobile:[&.menu-open_.nav-tabs]:w-[min(360px,calc(100vw-24px))] down-mobile:[&.menu-open_.sidebar-actions]:grid-cols-1;
+  @apply sticky top-0 z-30 h-screen border-r border-line [background:var(--sidebar-bg)] p-7 flex flex-col gap-7 [backdrop-filter:blur(12px)] down-tablet:sticky down-tablet:top-0 down-tablet:z-30 down-tablet:h-auto down-tablet:border-r-0 down-tablet:border-b down-tablet:border-line down-tablet:py-3 down-tablet:px-4 down-tablet:gap-3 down-tablet:[box-shadow:0_6px_18px_var(--shadow-soft)] down-tablet:overflow-visible down-mobile:p-3 down-phone:p-2.5 down-tablet:[&:not(.menu-open)_.nav-tabs]:hidden down-tablet:[&.menu-open_.nav-tabs]:grid down-tablet:[&.menu-open_.nav-tabs]:absolute down-tablet:[&.menu-open_.nav-tabs]:top-[calc(100%+8px)] down-tablet:[&.menu-open_.nav-tabs]:right-4 down-tablet:[&.menu-open_.nav-tabs]:w-[min(360px,calc(100vw-36px))] down-tablet:[&.menu-open_.nav-tabs]:max-h-[calc(100dvh-88px)] down-tablet:[&.menu-open_.nav-tabs]:overflow-y-auto down-tablet:[&.menu-open_.nav-tabs]:overscroll-contain down-tablet:[&.menu-open_.nav-tabs]:grid-cols-1 down-tablet:[&.menu-open_.nav-tabs]:gap-2 down-tablet:[&.menu-open_.nav-tabs]:border down-tablet:[&.menu-open_.nav-tabs]:border-line-strong down-tablet:[&.menu-open_.nav-tabs]:rounded-lg down-tablet:[&.menu-open_.nav-tabs]:z-40 down-tablet:[&.menu-open_.nav-tabs]:bg-surface down-tablet:[&.menu-open_.nav-tabs]:p-2.5 down-tablet:[&.menu-open_.nav-tabs]:[box-shadow:0_18px_40px_var(--shadow-panel)] down-tablet:[&.menu-open_.nav-tabs]:backdrop-filter-none down-tablet:[&.menu-open_.nav-tabs]:isolate down-mobile:[&_.eyebrow]:m-0 down-mobile:[&.menu-open_.nav-tabs]:right-3 down-mobile:[&.menu-open_.nav-tabs]:w-[min(360px,calc(100vw-24px))] down-mobile:[&.menu-open_.sidebar-actions]:grid-cols-1;
 }
 
 .version-tag {
-  @apply inline-flex border border-line-strong rounded-full bg-surface text-muted py-0.5 px-2 text-xs font-bold leading-tight;
+  @apply inline-flex border border-line-strong rounded-full bg-surface text-muted py-0.5 px-2 text-xs font-bold leading-tight down-tablet:py-0;
+}
+
+.sidebar-header {
+  @apply down-tablet:min-h-10;
+}
+
+.sidebar-branding {
+  @apply down-tablet:flex down-tablet:min-w-0 down-tablet:items-center down-tablet:gap-2.5;
+}
+
+.sidebar-branding h1 {
+  @apply down-tablet:text-2xl down-mobile:text-lg;
 }
 
 .mobile-menu-button {
@@ -338,7 +350,7 @@ function toggleMobileMenu() {
 }
 
 .account-menu-panel {
-  @apply absolute left-0 bottom-[calc(100%+10px)] z-40 w-[min(320px,calc(100vw-36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:top-[calc(100%+8px)] down-tablet:right-0 down-tablet:bottom-auto down-tablet:left-auto down-tablet:w-[min(320px,calc(100vw-36px))];
+  @apply absolute left-0 bottom-[calc(100%+10px)] z-40 w-[min(320px,calc(100vw-36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:top-[calc(100%+8px)] down-tablet:right-[-64px] down-tablet:bottom-auto down-tablet:left-auto down-tablet:w-[min(320px,calc(100vw-32px))] down-tablet:max-h-[calc(100dvh-88px)] down-tablet:overflow-y-auto down-tablet:overscroll-contain down-mobile:right-[-54px] down-mobile:w-[min(320px,calc(100vw-24px))] down-phone:right-[-54px] down-phone:w-[calc(100vw-20px)];
 }
 
 .account-menu-profile {

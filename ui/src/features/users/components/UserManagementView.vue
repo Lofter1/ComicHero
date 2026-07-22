@@ -589,7 +589,7 @@ function formatTimestamp(value) {
 }
 
 .detail-panel {
-  @apply min-w-0 max-w-full min-h-panel border border-line rounded bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5;
+  @apply min-w-0 max-w-full min-h-panel border border-line rounded-xl bg-panel p-5 shadow-detail down-mobile:min-h-0 down-mobile:p-3.5;
 }
 
 .section-heading {

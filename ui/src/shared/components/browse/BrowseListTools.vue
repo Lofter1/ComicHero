@@ -186,10 +186,6 @@ const searchModel = computed({
   @apply bg-primary text-white;
 }
 
-.inline-filter-tabs--four {
-  @apply grid-cols-4;
-}
-
 @container browse-tools (width <= 1050px) {
   .browse-list-tools > :is(.inline-filter-tabs, .list-sort-select, .list-direction-select) {
     @apply hidden;
@@ -245,5 +241,9 @@ const searchModel = computed({
 
 .inline-filter-tabs {
   @apply inline-grid grid-cols-3 gap-1 rounded border border-line bg-panel-soft p-1 down-mobile:w-full;
+}
+
+.inline-filter-tabs--four {
+  @apply grid-cols-4;
 }
 </style>

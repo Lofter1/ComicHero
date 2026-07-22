@@ -15,7 +15,7 @@ defineProps({
 @reference '../../../styles.css';
 
 .empty-state {
-  @apply grid justify-items-start gap-3 rounded border border-dashed border-line-strong bg-panel-soft p-4 text-muted;
+  @apply grid justify-items-start gap-3 rounded-xl border border-dashed border-line-strong bg-panel-soft p-5 text-muted;
 }
 
 .empty-state--roomy {
