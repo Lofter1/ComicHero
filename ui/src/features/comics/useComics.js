@@ -12,6 +12,8 @@ import {
 } from '@/api/client.js'
 import { comicPayload, emptyComic } from '@/features/comics/model.js'
 
+const METRON_ISSUE_ALREADY_LINKED = 'urn:comichero:problem:metron-issue-already-linked'
+
 export function useComics({
   activeView,
   viewMode,
@@ -37,6 +39,8 @@ export function useComics({
   const metronMetadataApplyingID = ref(null)
   const metronMetadataStatus = ref('')
   const metronMetadataResults = ref([])
+  const metronMergeConflict = ref(null)
+  const metronMergeSaving = ref(false)
   const mergeOpen = ref(false)
   const mergeCandidates = ref([])
   const mergeSearching = ref(false)
@@ -348,6 +352,7 @@ export function useComics({
     metronMetadataApplyingID.value = null
     metronMetadataStatus.value = ''
     metronMetadataResults.value = []
+    metronMergeConflict.value = null
   }
 
   async function searchSelectedComicMetron() {
@@ -395,6 +400,7 @@ export function useComics({
     metronMetadataApplyingID.value = metronIssueID
     metronMetadataStatus.value = 'Updating comic metadata from Metron...'
     error.value = ''
+    metronMergeConflict.value = null
 
     try {
       const { data } = await updateComicFromMetron(selectedComic.value.id, metronIssueID)
@@ -406,9 +412,51 @@ export function useComics({
     } catch (err) {
       error.value = err.message
       metronMetadataStatus.value = err.message
+      if (err.problemType === METRON_ISSUE_ALREADY_LINKED) {
+        metronMergeConflict.value = {
+          message: err.message,
+          comicID: selectedComic.value.id,
+          metronIssueID,
+        }
+      }
     } finally {
       metronMetadataApplyingID.value = null
     }
+  }
+
+  async function mergeMetronConflict() {
+    const conflict = metronMergeConflict.value
+    if (!conflict || metronMergeSaving.value) return
+
+    metronMergeSaving.value = true
+    metronMetadataApplyingID.value = conflict.metronIssueID
+    metronMetadataStatus.value = 'Merging duplicate comics and updating Metron metadata...'
+    error.value = conflict.message
+
+    try {
+      const { data } = await updateComicFromMetron(conflict.comicID, conflict.metronIssueID, {
+        mergeDuplicate: true,
+      })
+      applyComicDetailState(data)
+      await loadComics({ force: true })
+      metronMetadataStatus.value = 'Duplicate merged and metadata updated from Metron.'
+      metronMetadataOpen.value = false
+      metronMetadataResults.value = []
+      metronMergeConflict.value = null
+      error.value = ''
+    } catch (err) {
+      metronMergeConflict.value = null
+      error.value = err.message
+      metronMetadataStatus.value = err.message
+    } finally {
+      metronMergeSaving.value = false
+      metronMetadataApplyingID.value = null
+    }
+  }
+
+  function clearMetronMergeConflict() {
+    if (metronMergeSaving.value) return
+    metronMergeConflict.value = null
   }
 
   return {
@@ -421,6 +469,8 @@ export function useComics({
     metronMetadataApplyingID,
     metronMetadataStatus,
     metronMetadataResults,
+    metronMergeConflict,
+    metronMergeSaving,
     mergeOpen,
     mergeCandidates,
     mergeSearching,
@@ -441,5 +491,7 @@ export function useComics({
     resetMetronMetadata,
     searchSelectedComicMetron,
     applyMetronMetadata,
+    mergeMetronConflict,
+    clearMetronMergeConflict,
   }
 }

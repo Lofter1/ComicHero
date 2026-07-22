@@ -4,23 +4,43 @@ defineProps({
     type: String,
     default: '',
   },
+  actionLabel: {
+    type: String,
+    default: '',
+  },
+  actionBusy: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['dismiss'])
+defineEmits(['action', 'dismiss'])
 </script>
 
 <template>
   <div v-if="message" class="error-toast" role="alert" aria-live="assertive">
     <span>{{ message }}</span>
-    <!-- Native button: toast dismissal inherits the toast's compact contextual styling. -->
-    <button
-      class="dismiss-button"
-      type="button"
-      aria-label="Dismiss error"
-      @click="$emit('dismiss')"
-    >
-      Dismiss
-    </button>
+    <span class="error-toast-actions">
+      <button
+        v-if="actionLabel"
+        class="action-button"
+        type="button"
+        :disabled="actionBusy"
+        @click="$emit('action')"
+      >
+        {{ actionBusy ? 'Merging...' : actionLabel }}
+      </button>
+      <!-- Native button: toast dismissal inherits the toast's compact contextual styling. -->
+      <button
+        class="dismiss-button"
+        type="button"
+        aria-label="Dismiss error"
+        :disabled="actionBusy"
+        @click="$emit('dismiss')"
+      >
+        Dismiss
+      </button>
+    </span>
   </div>
 </template>
 
@@ -36,7 +56,16 @@ defineEmits(['dismiss'])
   overflow-wrap: anywhere;
 }
 
+.error-toast-actions {
+  @apply flex flex-none items-center gap-3;
+}
+
+.action-button,
 .dismiss-button {
   @apply min-h-0 flex-none border-0 bg-transparent p-0 text-sm font-extrabold text-inherit;
+}
+
+.action-button {
+  @apply underline underline-offset-2;
 }
 </style>

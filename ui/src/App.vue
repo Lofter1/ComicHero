@@ -332,6 +332,8 @@ const {
   metronMetadataApplyingID,
   metronMetadataStatus,
   metronMetadataResults,
+  metronMergeConflict,
+  metronMergeSaving,
   mergeOpen: comicMergeOpen,
   mergeCandidates: comicMergeCandidates,
   mergeSearching: comicMergeSearching,
@@ -351,6 +353,8 @@ const {
   resetMetronMetadata,
   searchSelectedComicMetron,
   applyMetronMetadata,
+  mergeMetronConflict,
+  clearMetronMergeConflict,
 } = useComics({
   activeView,
   viewMode,
@@ -691,6 +695,7 @@ function showError(message) {
 
 function clearError() {
   error.value = ''
+  clearMetronMergeConflict()
 }
 
 async function handleMetronImported() {
@@ -856,7 +861,13 @@ onUnmounted(() => {
         :total-count="toolbarTotalCount"
       />
 
-      <ErrorToast :message="error" @dismiss="clearError" />
+      <ErrorToast
+        :message="error"
+        :action-label="isAdmin && metronMergeConflict?.message === error ? 'Merge now' : ''"
+        :action-busy="metronMergeSaving"
+        @action="mergeMetronConflict"
+        @dismiss="clearError"
+      />
 
       <MetronImportMonitor
         v-model:open="metronImportMonitorOpen"
