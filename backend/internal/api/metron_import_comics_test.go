@@ -10,6 +10,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
+	"github.com/danielgtaylor/huma/v2"
 )
 
 func TestSearchMetronIssuesPrefersComicVineID(t *testing.T) {
@@ -62,6 +63,35 @@ func TestUpdateComicFromMetronReportsExistingIssueLink(t *testing.T) {
 	if err.Error() != want {
 		t.Fatalf("error = %q; want %q", err, want)
 	}
+	problem, ok := err.(*huma.ErrorModel)
+	if !ok || problem.Type != metronIssueAlreadyLinkedProblem {
+		t.Fatalf("error problem type = %#v; want %q", problem, metronIssueAlreadyLinkedProblem)
+	}
+}
+
+func TestMergeComicLinkedToMetronIssueKeepsSelectedComic(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		UPDATE users SET is_admin = 1 WHERE id = 1;
+		INSERT INTO comics (id, series, series_year, issue, publisher)
+		VALUES (1, 'Selected', 2026, '1', '');
+		INSERT INTO comics (id, series, series_year, issue, publisher, metron_issue_id)
+		VALUES (2, 'Linked duplicate', 2020, '7', 'Publisher', 77);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	merged, err := mergeComicLinkedToMetronIssue(deletionUserContext(1), db, 1, 77)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if merged == nil || merged.Body.ID != 1 {
+		t.Fatalf("merged comic = %#v; want selected comic 1", merged)
+	}
+	if merged.Body.MetronIssueID == nil || *merged.Body.MetronIssueID != 77 {
+		t.Fatalf("Metron issue ID = %#v; want 77", merged.Body.MetronIssueID)
+	}
+	assertComicMergeCount(t, db, `SELECT COUNT(*) FROM comics WHERE id = 2`, 0)
 }
 
 func TestImportMetronComicReusesExistingMetronComic(t *testing.T) {

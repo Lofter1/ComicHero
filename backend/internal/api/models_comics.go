@@ -97,7 +97,8 @@ type MergeComicInput struct {
 type UpdateComicFromMetronInput struct {
 	ID   int `path:"id" doc:"Local comic identifier." example:"42"`
 	Body struct {
-		MetronIssueID int  `json:"metronIssueId" minimum:"1" doc:"Metron issue identifier to copy metadata from." example:"123456"`
-		Force         bool `json:"force,omitempty" doc:"Bypass Metron conditional requests and download fresh issue metadata." example:"false"`
+		MetronIssueID  int  `json:"metronIssueId" minimum:"1" doc:"Metron issue identifier to copy metadata from." example:"123456"`
+		Force          bool `json:"force,omitempty" doc:"Bypass Metron conditional requests and download fresh issue metadata." example:"false"`
+		MergeDuplicate bool `json:"mergeDuplicate,omitempty" doc:"Merge a comic already linked to this Metron issue into the selected comic before updating it. Admin access is required when a duplicate exists." example:"false"`
 	}
 }

@@ -1,11 +1,12 @@
 const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE)
 
 class ApiError extends Error {
-  constructor(message, { status, rateLimit } = {}) {
+  constructor(message, { status, rateLimit, problemType } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.rateLimit = rateLimit
+    this.problemType = problemType
   }
 }
 
@@ -31,9 +32,11 @@ async function requestWithMeta(path, options = {}) {
 
   if (!response.ok) {
     let message = `Request failed: ${response.status}`
+    let problemType = ''
     try {
       const body = await response.json()
       message = body.detail || body.title || message
+      problemType = body.type || ''
     } catch {
       // Keep the status-based message for empty error responses.
     }
@@ -42,7 +45,7 @@ async function requestWithMeta(path, options = {}) {
         ? `Metron rate limit reached. Try again ${resetLabel(rateLimit)}.`
         : message
     }
-    throw new ApiError(message, { status: response.status, rateLimit })
+    throw new ApiError(message, { status: response.status, rateLimit, problemType })
   }
 
   if (response.status === 204) return { data: null, rateLimit, pagination }
@@ -518,9 +521,10 @@ export function continueMetronImportJob(id) {
   return send(`/metron/imports/${id}/continue`, 'POST', {})
 }
 
-export function updateComicFromMetron(id, metronIssueId) {
+export function updateComicFromMetron(id, metronIssueId, options = {}) {
   return sendWithMeta(`/comics/${id}/metron`, 'PATCH', {
     metronIssueId,
+    ...(options.mergeDuplicate ? { mergeDuplicate: true } : {}),
   })
 }
 

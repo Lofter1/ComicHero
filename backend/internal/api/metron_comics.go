@@ -12,6 +12,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const metronIssueAlreadyLinkedProblem = "urn:comichero:problem:metron-issue-already-linked"
+
 func registerMetronComicRoutes(api huma.API, db *sqlx.DB, client *metron.Client, covers *CoverCache, importJobs *metronImportJobStore) {
 	huma.Register(api, huma.Operation{
 		OperationID: "searchMetronComics",
@@ -80,13 +82,28 @@ func registerMetronComicRoutes(api huma.API, db *sqlx.DB, client *metron.Client,
 		if err := authorizeMetron(ctx, db, metronScopeImport, "PATCH /comics/{id}/metron"); err != nil {
 			return nil, err
 		}
+		if !input.Body.MergeDuplicate {
+			if err := rejectMetronIssueLinkedToAnotherComic(ctx, db, input.ID, input.Body.MetronIssueID); err != nil {
+				return nil, err
+			}
+		}
 		issue, info, err := fetchMetronIssue(ctx, db, client, input.Body.MetronIssueID, input.Body.Force)
 		if err != nil {
 			return nil, metronAPIError(err)
 		}
+		var merged *ComicDetailOutput
+		if input.Body.MergeDuplicate {
+			merged, err = mergeComicLinkedToMetronIssue(ctx, db, input.ID, input.Body.MetronIssueID)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if info.NotModified {
 			if err := markMetronNotModified(ctx, db, metronResourceIssue, input.Body.MetronIssueID); err != nil {
 				return nil, err
+			}
+			if merged != nil {
+				return withMetronRateLimit(merged, client.CurrentRateLimit()), nil
 			}
 			output, err := getComic(ctx, db, input.ID)
 			if err != nil {
@@ -526,12 +543,40 @@ func rejectMetronIssueLinkedToAnotherComic(ctx context.Context, db *sqlx.DB, com
 		return huma.Error500InternalServerError("failed to check whether the Metron issue is already linked")
 	}
 	log.Printf("Metron comic update rejected: comic_id=%d metron_issue_id=%d already_linked_comic_id=%d", comicID, metronIssueID, linked.ID)
-	return huma.Error409Conflict(fmt.Sprintf(
-		"Metron issue %d is already linked to %s (comic %d). Merge the duplicate comics or choose another Metron issue.",
-		metronIssueID,
-		comicTitle(linked),
-		linked.ID,
-	))
+	return metronIssueLinkConflict(metronIssueID, linked)
+}
+
+func mergeComicLinkedToMetronIssue(ctx context.Context, db *sqlx.DB, comicID, metronIssueID int) (*ComicDetailOutput, error) {
+	if metronIssueID <= 0 {
+		return nil, nil
+	}
+	var linkedID int
+	err := db.GetContext(ctx, &linkedID, `
+		SELECT id
+		FROM comics
+		WHERE metron_issue_id = ? AND id <> ?
+	`, metronIssueID, comicID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to find the comic linked to this Metron issue")
+	}
+	return mergeComic(ctx, db, comicID, linkedID)
+}
+
+func metronIssueLinkConflict(metronIssueID int, linked Comic) error {
+	return &huma.ErrorModel{
+		Type:   metronIssueAlreadyLinkedProblem,
+		Title:  http.StatusText(http.StatusConflict),
+		Status: http.StatusConflict,
+		Detail: fmt.Sprintf(
+			"Metron issue %d is already linked to %s (comic %d). Merge the duplicate comics or choose another Metron issue.",
+			metronIssueID,
+			comicTitle(linked),
+			linked.ID,
+		),
+	}
 }
 
 func ensureMetronIssueSeriesRow(ctx context.Context, db *sqlx.DB, issue metron.Issue) (int, error) {
