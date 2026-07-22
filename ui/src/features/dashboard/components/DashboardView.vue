@@ -25,7 +25,7 @@ const props = defineProps({
   },
 })
 
-defineEmits(['open-comic', 'open-reading-order', 'mark-read', 'mark-skipped'])
+defineEmits(['open-comic', 'open-item', 'mark-read', 'mark-skipped'])
 
 const items = computed(() => props.dashboard?.items || [])
 const recentAchievement = computed(() => props.dashboard?.achievements?.recent || null)
@@ -68,13 +68,12 @@ function achievementProgress(achievement) {
           <div class="dashboard-card-summary">
             <strong>{{ formatProgress(item.progress) }}</strong>
             <BaseButton
-              v-if="item.type === 'readingOrder'"
               variant="neutral"
               size="compact-label"
-              :aria-label="`Open reading order ${item.name}`"
-              @click="$emit('open-reading-order', item)"
+              :aria-label="`Open ${itemTypeLabel(item.type).toLowerCase()} ${item.name}`"
+              @click="$emit('open-item', item)"
             >
-              Open order
+              Open
             </BaseButton>
           </div>
         </div>
