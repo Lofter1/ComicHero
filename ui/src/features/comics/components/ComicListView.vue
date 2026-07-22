@@ -3,10 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 import { listComics } from '@/api/client.js'
 import IssueListItem from '@/shared/components/browse/IssueListItem.vue'
-import { useClickOutside } from '@/shared/composables/useClickOutside.js'
-import BaseButton from '@/shared/components/form/BaseButton.vue'
-import BaseSelect from '@/shared/components/form/BaseSelect.vue'
-import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
+import ComicListToolbar from './ComicListToolbar.vue'
 import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 
 const props = defineProps({
@@ -129,16 +126,7 @@ const localDirection = ref('asc')
 const visibleLimit = ref(props.localPageSize)
 const loadMoreSentinel = ref(null)
 const autoLoadSupported = ref(false)
-const comicOptionsOpen = ref(false)
-const comicOptionsTrigger = ref(null)
-const comicFilterControls = ref(null)
 const collapsedSections = ref(new Set())
-
-useClickOutside(
-  [comicOptionsTrigger, comicFilterControls],
-  () => (comicOptionsOpen.value = false),
-  comicOptionsOpen,
-)
 
 let loadMoreObserver = null
 
@@ -410,27 +398,6 @@ function comicStatusCategory(comic, status) {
   return !comic.read && !comic.skipped
 }
 
-function statusActive(status) {
-  return selectedStatuses.value.includes(status)
-}
-
-function setAllStatuses() {
-  statusModel.value = 'all'
-}
-
-function toggleStatus(status) {
-  const current = new Set(selectedStatuses.value.length === 3 ? [] : selectedStatuses.value)
-
-  if (current.has(status)) {
-    current.delete(status)
-  } else {
-    current.add(status)
-  }
-
-  const next = ['unread', 'read', 'skipped'].filter((item) => current.has(item))
-  statusModel.value = next.length === 0 || next.length === 3 ? 'all' : next.join(',')
-}
-
 function loadMoreLocal() {
   if (props.serverSource) {
     fetchServerComics({ append: true })
@@ -529,128 +496,24 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
     class="comic-list-view grid w-full min-w-0 max-w-full gap-3"
     :class="{ 'comic-list-view--embedded': embedded }"
   >
-    <div class="comic-list-sticky">
-      <header class="comic-list-header">
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
-            {{ title }}
-          </p>
-          <small>{{ summaryText }}</small>
-        </div>
-
-        <BaseButton v-if="showNewButton && !readOnly" variant="primary" @click="$emit('new-comic')">
-          New Comic
-        </BaseButton>
-      </header>
-
-      <div v-if="sourceComics.length || serverSource || hasFilters" class="comic-list-tools">
-        <BaseTextInput
-          v-model="searchText"
-          class="flex-[1_1_280px] min-w-[min(280px,100%)] down-mobile:flex-[1_1_280px]"
-          type="search"
-          placeholder="Search issues"
-        />
-
-        <!-- Native button: this DOM ref anchors the bespoke mobile filter popover. -->
-        <button
-          ref="comicOptionsTrigger"
-          class="mobile-comic-options-trigger"
-          type="button"
-          :aria-expanded="comicOptionsOpen"
-          @click="comicOptionsOpen = !comicOptionsOpen"
-        >
-          Filter &amp; sort
-          <span aria-hidden="true">⌄</span>
-        </button>
-
-        <div
-          ref="comicFilterControls"
-          class="comic-filter-controls"
-          :class="{ open: comicOptionsOpen }"
-        >
-          <div
-            class="inline-filter-tabs issue-status-tabs"
-            role="group"
-            aria-label="Issue status filters"
-          >
-            <!-- Native buttons: status filters are a segmented pressed-state control. -->
-            <button
-              type="button"
-              class="status-filter-button"
-              :class="{ active: statusModel === 'all' }"
-              :aria-pressed="statusModel === 'all'"
-              @click="setAllStatuses"
-            >
-              All
-            </button>
-            <button
-              type="button"
-              class="status-filter-button"
-              :class="{ active: statusActive('unread') && statusModel !== 'all' }"
-              :aria-pressed="statusActive('unread') && statusModel !== 'all'"
-              @click="toggleStatus('unread')"
-            >
-              Unread
-            </button>
-            <button
-              type="button"
-              class="status-filter-button"
-              :class="{ active: statusActive('read') && statusModel !== 'all' }"
-              :aria-pressed="statusActive('read') && statusModel !== 'all'"
-              @click="toggleStatus('read')"
-            >
-              Read
-            </button>
-            <button
-              type="button"
-              class="status-filter-button"
-              :class="{ active: statusActive('skipped') && statusModel !== 'all' }"
-              :aria-pressed="statusActive('skipped') && statusModel !== 'all'"
-              @click="toggleStatus('skipped')"
-            >
-              Skipped
-            </button>
-          </div>
-
-          <BaseSelect
-            v-if="!effectiveServerMode && tagOptions.length"
-            v-model="tag"
-            class="filter-select"
-            variant="trailing"
-            aria-label="Filter by tag"
-          >
-            <option value="all">All Tags</option>
-            <option v-for="option in tagOptions" :key="option" :value="option.toLowerCase()">
-              {{ option }}
-            </option>
-          </BaseSelect>
-
-          <BaseSelect
-            v-model="sortModel"
-            class="filter-select"
-            variant="trailing"
-            aria-label="Sort issues"
-          >
-            <option v-if="showReadingOrderSort" value="readingOrder">Reading Order</option>
-            <option value="series">Series</option>
-            <option value="title">Title</option>
-            <option value="date">Date</option>
-            <option value="publisher">Publisher</option>
-            <option value="read">Read Status</option>
-          </BaseSelect>
-
-          <BaseSelect
-            v-model="directionModel"
-            class="filter-select"
-            variant="trailing"
-            aria-label="Sort direction"
-          >
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </BaseSelect>
-        </div>
-      </div>
-    </div>
+    <ComicListToolbar
+      v-model:search="searchText"
+      v-model:status="statusModel"
+      v-model:tag="tag"
+      v-model:sort="sortModel"
+      v-model:direction="directionModel"
+      :title="title"
+      :summary-text="summaryText"
+      :has-content="Boolean(sourceComics.length)"
+      :server-source="serverSource"
+      :has-filters="Boolean(hasFilters)"
+      :effective-server-mode="effectiveServerMode"
+      :tag-options="tagOptions"
+      :show-reading-order-sort="showReadingOrderSort"
+      :show-new-button="showNewButton"
+      :read-only="readOnly"
+      @new-comic="$emit('new-comic')"
+    />
 
     <template v-if="visibleComics.length">
       <div class="issue-list grid w-full min-w-0 max-w-full gap-2.5">
@@ -722,30 +585,6 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 <style scoped>
 @reference '../../../styles.css';
 
-.comic-list-sticky {
-  @apply grid w-full min-w-0 gap-2.5 pb-3 border-b border-sticky-border bg-sticky-bg mt-8 max-w-none down-mobile:static down-mobile:mx-0 down-mobile:pt-0 down-mobile:px-0 down-mobile:pb-3 down-mobile:border-b down-mobile:border-line down-mobile:bg-transparent down-mobile:shadow-none down-mobile:backdrop-filter-none;
-}
-
-.comic-list-header {
-  @apply flex items-center justify-between gap-3 *:min-w-0 [&_.eyebrow]:mb-0.5 [&_small]:text-muted desktop-compact:items-stretch desktop-compact:flex-wrap;
-}
-
-.comic-list-tools {
-  @apply flex w-full min-w-0 max-w-full flex-wrap items-center gap-2 [&_.list-sort-select]:min-w-44 [&_.inline-filter-tabs]:flex-[1_1_230px] [&_.inline-filter-tabs]:min-w-[min(230px,100%)] [&_.issue-status-tabs]:basis-[320px] [&_.issue-status-tabs]:min-w-[min(320px,100%)] [&_.four-filter-tabs]:min-w-96 down-mobile:[&:has(>_.comic-filter-controls)]:relative down-mobile:[&:has(>_.comic-filter-controls)]:flex down-mobile:[&:has(>_.comic-filter-controls)]:flex-wrap down-mobile:[&:has(>_.comic-filter-controls)]:items-center down-mobile:[&:has(>_.comic-filter-controls)]:gap-2 down-mobile:[&_.issue-status-tabs]:min-w-0 down-mobile:w-full;
-}
-
-.mobile-comic-options-trigger {
-  @apply down-mobile:inline-flex down-mobile:items-center down-mobile:justify-between down-mobile:flex-none down-mobile:min-w-48 down-mobile:pr-3 hidden down-mobile:min-h-11 down-mobile:border down-mobile:border-line-strong down-mobile:rounded down-mobile:bg-surface down-mobile:text-control down-mobile:pt-3 down-mobile:pb-3 down-mobile:pl-3 down-mobile:font-bold down-mobile:[&_span]:ml-5 down-mobile:[&_span]:text-muted down-mobile:[&[aria-expanded='true']_span]:transform-[rotate(180deg)];
-}
-
-.comic-filter-controls {
-  @apply contents down-mobile:hidden down-mobile:w-[min(360px,calc(100vw-28px))] down-mobile:absolute down-mobile:z-25 down-mobile:top-[calc(100%+8px)] down-mobile:right-0 down-mobile:left-auto down-mobile:gap-2.5 down-mobile:border down-mobile:border-line-strong down-mobile:rounded-lg down-mobile:bg-surface down-mobile:p-3 down-mobile:[box-shadow:0_18px_40px_var(--shadow-panel)] down-mobile:[&_.inline-filter-tabs]:grid down-mobile:[&_.inline-filter-tabs]:w-full down-mobile:[&_.inline-filter-tabs]:min-w-0 down-mobile:[&.open]:grid;
-}
-
-.inline-filter-tabs.issue-status-tabs {
-  @apply inline-grid gap-1 border border-line rounded bg-panel-soft p-1 grid-cols-4 down-mobile:w-full;
-}
-
 .reading-order-section-heading {
   @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1 w-full [border-bottom:2px_solid_color-mix(in_srgb,var(--primary)_52%,var(--line))] border-t-0 border-r-0 border-l-0 rounded-none bg-transparent text-inherit text-left pt-4 px-1 pb-2.5 cursor-pointer first:pt-1 hover:[background:color-mix(in_srgb,var(--primary)_5%,transparent)] [&.nested-reading-order-heading]:border-b-[color-mix(in_srgb,var(--accent)_52%,var(--line))] [&_.section-description]:text-muted [&_.section-description]:font-medium [&[aria-expanded='false']_.section-collapse-icon]:transform-[rotate(-90deg)];
 }
@@ -772,29 +611,5 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
 
 .comic-list-view--embedded li {
   @apply mb-2.5;
-}
-
-.status-filter-button {
-  @apply min-h-8 rounded-[6px] border-0 bg-transparent px-2 py-1.5 text-sm font-bold text-label;
-}
-
-.status-filter-button.active {
-  @apply bg-primary text-white;
-}
-
-.filter-select {
-  @apply min-w-32 max-w-44 flex-[1_1_140px];
-}
-
-@media (width <= 720px) {
-  .filter-select {
-    @apply block w-full max-w-none;
-  }
-}
-
-@media (width <= 420px) {
-  .status-filter-button {
-    @apply px-1.5 text-xs;
-  }
 }
 </style>

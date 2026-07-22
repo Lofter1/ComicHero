@@ -18,8 +18,7 @@ import MetronImportOptions from '@/features/metron/components/MetronImportOption
 import MetronReadingListDialog from '@/features/metron/components/MetronReadingListDialog.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
-import StatusPill from '@/shared/components/feedback/StatusPill.vue'
-import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
+import MetronSearchResults from '@/features/metron/components/MetronSearchResults.vue'
 
 const props = defineProps({
   importJobs: {
@@ -381,31 +380,6 @@ function toggleFullImportData(value, checked) {
   )
 }
 
-function comicTitle(comic) {
-  if (comic.title) return comic.title
-  const seriesName = comic.series || 'Unknown series'
-  const number = comic.number || comic.issue
-  return number ? `${seriesName} #${number}` : seriesName
-}
-
-function comicMeta(comic) {
-  return [
-    comic.series && comic.title ? comic.series : '',
-    comic.seriesVolume ? `Vol. ${comic.seriesVolume}` : '',
-    comic.seriesYear || '',
-    comic.publisher || '',
-    comic.storeDate ? `Store ${formatDate(comic.storeDate)}` : '',
-    comic.coverDate ? `Cover ${formatDate(comic.coverDate)}` : '',
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
-
-function comicStoryLine(comic) {
-  if (!Array.isArray(comic.storyNames) || comic.storyNames.length === 0) return ''
-  return comic.storyNames.join(', ')
-}
-
 function readingListSummary(list) {
   return [
     list.listType || 'Reading list',
@@ -413,15 +387,6 @@ function readingListSummary(list) {
     list.attributionSource ? `via ${list.attributionSource}` : '',
     list.ratingCount ? `${list.averageRating || 0} avg from ${list.ratingCount} ratings` : '',
     list.modified ? `Modified ${formatDate(list.modified)}` : '',
-  ]
-    .filter(Boolean)
-    .join(' · ')
-}
-
-function arcSummary(item) {
-  return [
-    item.modified ? `Modified ${formatDate(item.modified)}` : '',
-    item.id ? `Metron ID ${item.id}` : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -546,145 +511,23 @@ function formatDate(value) {
       <span>{{ importStatus }}</span>
     </div>
 
-    <section class="metron-results single">
-      <DetailPanel>
-        <!-- Native buttons below are full-card result selection targets. -->
-        <template v-if="activeSearch === 'comics'">
-          <h3>Comics</h3>
-          <p v-if="searching" class="muted block text-muted">Searching Metron comics...</p>
-          <p v-else-if="comicResults.length === 0" class="muted block text-muted">
-            No Metron comic results yet.
-          </p>
-          <!-- Native buttons: comic results are full-card selection targets. -->
-          <button
-            v-for="comic in comicResults"
-            :key="comic.id"
-            class="row"
-            :disabled="rowImporting('comic', comic.id)"
-            @click="importComic(comic)"
-          >
-            <span>
-              <strong>{{ comicTitle(comic) }}</strong>
-              <small v-if="comicMeta(comic)">{{ comicMeta(comic) }}</small>
-              <small v-if="comicStoryLine(comic)">{{ comicStoryLine(comic) }}</small>
-            </span>
-            <StatusPill>{{
-              rowImporting('comic', comic.id) ? 'Importing...' : 'Import'
-            }}</StatusPill>
-          </button>
-        </template>
-
-        <template v-else-if="activeSearch === 'readingLists'">
-          <div class="section-title">
-            <h3>Reading Lists</h3>
-            <BaseButton
-              variant="neutral"
-              :disabled="importingAllReadingLists || rowImporting('readingLists', 0)"
-              @click="importAllReadingLists"
-            >
-              {{
-                importingAllReadingLists || rowImporting('readingLists', 0)
-                  ? 'Pulling all...'
-                  : 'Pull all'
-              }}
-            </BaseButton>
-          </div>
-          <p v-if="searching" class="muted block text-muted">Searching Metron reading lists...</p>
-          <p v-else-if="readingListResults.length === 0" class="muted block text-muted">
-            No Metron reading-list results yet.
-          </p>
-          <!-- Native buttons: reading-list results are full-card selection targets. -->
-          <button
-            v-for="list in readingListResults"
-            :key="list.id"
-            class="row"
-            :disabled="rowImporting('readingList', list.id)"
-            @click="openReadingList(list)"
-          >
-            <span>
-              <strong>{{ list.name || 'Untitled reading list' }}</strong>
-              <small>{{ readingListSummary(list) }}</small>
-            </span>
-            <StatusPill>
-              {{ rowImporting('readingList', list.id) ? 'Importing...' : 'Details' }}
-            </StatusPill>
-          </button>
-        </template>
-
-        <template v-else-if="activeSearch === 'series'">
-          <h3>Series</h3>
-          <p v-if="searching" class="muted block text-muted">Searching Metron series...</p>
-          <p v-else-if="seriesResults.length === 0" class="muted block text-muted">
-            No Metron series results yet.
-          </p>
-          <!-- Native buttons: series results are full-card selection targets. -->
-          <button
-            v-for="item in seriesResults"
-            :key="item.id"
-            class="row"
-            :disabled="rowImporting('series', item.id)"
-            @click="importSeries(item)"
-          >
-            <span>
-              <strong>{{ item.name || 'Untitled series' }}</strong>
-              <small>
-                Vol. {{ item.volume }} · {{ item.yearBegan || 'Unknown year' }} ·
-                {{ item.issueCount }} issues
-              </small>
-            </span>
-            <StatusPill>{{
-              rowImporting('series', item.id) ? 'Importing...' : 'Import'
-            }}</StatusPill>
-          </button>
-        </template>
-
-        <template v-else-if="activeSearch === 'arcs'">
-          <h3>Arcs</h3>
-          <p v-if="searching" class="muted block text-muted">Searching Metron arcs...</p>
-          <p v-else-if="arcResults.length === 0" class="muted block text-muted">
-            No Metron arc results yet.
-          </p>
-          <!-- Native buttons: arc results are full-card selection targets. -->
-          <button
-            v-for="item in arcResults"
-            :key="item.id"
-            class="row"
-            :disabled="rowImporting('arc', item.id)"
-            @click="importArc(item)"
-          >
-            <span>
-              <strong>{{ item.name || 'Untitled arc' }}</strong>
-              <small>{{ arcSummary(item) }}</small>
-            </span>
-            <StatusPill>{{ rowImporting('arc', item.id) ? 'Importing...' : 'Import' }}</StatusPill>
-          </button>
-        </template>
-
-        <template v-else>
-          <h3>Characters</h3>
-          <p v-if="searching" class="muted block text-muted">Searching Metron characters...</p>
-          <p v-else-if="characterResults.length === 0" class="muted block text-muted">
-            No Metron character results yet.
-          </p>
-          <!-- Native buttons: character results are full-card selection targets. -->
-          <button
-            v-for="character in characterResults"
-            :key="character.id"
-            class="row"
-            :disabled="rowImporting('character', character.id)"
-            @click="importCharacter(character)"
-          >
-            <span>
-              <strong>{{ character.name }}</strong>
-              <small>Metron ID {{ character.id }}</small>
-            </span>
-            <StatusPill>
-              {{ rowImporting('character', character.id) ? 'Importing...' : 'Import' }}
-            </StatusPill>
-          </button>
-        </template>
-      </DetailPanel>
-    </section>
+    <MetronSearchResults
+      :active-search="activeSearch"
+      :searching="searching"
+      :comic-results="comicResults"
+      :reading-list-results="readingListResults"
+      :series-results="seriesResults"
+      :arc-results="arcResults"
+      :character-results="characterResults"
+      :importing-all-reading-lists="importingAllReadingLists"
+      :is-importing="rowImporting"
+      @import-comic="importComic"
+      @open-reading-list="openReadingList"
+      @import-all-reading-lists="importAllReadingLists"
+      @import-series="importSeries"
+      @import-arc="importArc"
+      @import-character="importCharacter"
+    />
 
     <MetronReadingListDialog
       v-if="readingListDetailOpen"
@@ -716,26 +559,6 @@ function formatDate(value) {
 
 .metron-status {
   @apply flex items-center flex-wrap gap-y-2 gap-x-3 border border-line-strong rounded bg-surface-soft text-label py-2.5 px-3 text-sm font-bold;
-}
-
-.metron-results.single {
-  @apply grid grid-cols-3 gap-5 items-start [&.single]:grid-cols-[minmax(0,1fr)] [&_.row:disabled]:cursor-wait [&_.row:disabled]:opacity-[0.72] down-mobile:gap-3.5 down-mobile:[&_.detail-panel]:py-3.5 down-mobile:[&_.detail-panel]:px-3 down-tablet:grid-cols-1;
-}
-
-.row {
-  @apply min-h-10 border border-line-strong rounded bg-surface text-control w-full p-3.5 flex justify-between items-start gap-3 text-left hover:bg-surface-soft [&_>_span:first-child]:min-w-0 [&.selected]:border-primary [&.selected]:shadow-selected [&_small]:block [&_small]:text-muted down-mobile:min-h-12 down-mobile:p-3 down-mobile:flex-wrap down-phone:grid down-phone:grid-cols-1;
-}
-
-.section-title {
-  @apply justify-between mb-2.5 down-mobile:items-stretch down-mobile:flex-col down-mobile:gap-2.5 down-mobile:[&_button]:w-full flex items-center gap-3.5;
-}
-
-.row strong {
-  overflow-wrap: anywhere;
-}
-
-.row small {
-  overflow-wrap: anywhere;
 }
 
 .search-mode-button {
