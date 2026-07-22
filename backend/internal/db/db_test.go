@@ -187,6 +187,43 @@ func TestOpenAppliesComicGeneratedTitleMigration(t *testing.T) {
 	}
 }
 
+func TestOpenEnforcesUserEmailUniquenessAndSessionCascade(t *testing.T) {
+	database, err := Open(filepath.Join(t.TempDir(), "user-integrity.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer func() { _ = database.Close() }()
+
+	if _, err := database.Exec(`
+		INSERT INTO users (name, email) VALUES ('Blank Email One', '');
+		INSERT INTO users (name, email) VALUES ('Blank Email Two', '');
+		INSERT INTO users (name, email) VALUES ('Reader', 'reader@example.com');
+	`); err != nil {
+		t.Fatalf("insert users with unique or blank emails: %v", err)
+	}
+	if _, err := database.Exec(`INSERT INTO users (name, email) VALUES ('Duplicate', 'reader@example.com')`); err == nil {
+		t.Fatal("duplicate non-empty email was accepted")
+	}
+
+	var userID int
+	if err := database.Get(&userID, `SELECT id FROM users WHERE email = 'reader@example.com'`); err != nil {
+		t.Fatalf("fetch reader: %v", err)
+	}
+	if _, err := database.Exec(`INSERT INTO user_sessions (token, user_id, expires_at) VALUES ('reader-session', ?, '2999-01-01T00:00:00Z')`, userID); err != nil {
+		t.Fatalf("insert reader session: %v", err)
+	}
+	if _, err := database.Exec(`DELETE FROM users WHERE id = ?`, userID); err != nil {
+		t.Fatalf("delete reader: %v", err)
+	}
+	var sessionCount int
+	if err := database.Get(&sessionCount, `SELECT COUNT(*) FROM user_sessions WHERE token = 'reader-session'`); err != nil {
+		t.Fatalf("count cascaded sessions: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("session count after user deletion = %d; want 0", sessionCount)
+	}
+}
+
 func TestEnsureUserLoginSchemaUpgradesMergedMigrationDrift(t *testing.T) {
 	database, err := sqlx.Open("sqlite", ":memory:")
 	if err != nil {
