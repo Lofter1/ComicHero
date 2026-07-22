@@ -379,6 +379,14 @@ const {
   markComicSkipped: markDashboardComicSkipped,
 } = useDashboard({ error, quickSavingComicId: quickSavingComicID })
 
+function openDashboardItem(item) {
+  if (item?.type === 'readingOrder') return openReadingOrder(item)
+  if (item?.type === 'arc') return openArc(item)
+  if (item?.type === 'character') return openCharacter(item)
+  if (item?.type === 'characterCollection') return openCollection(item)
+  if (item?.type === 'series') return openSeries(item)
+}
+
 const toolbarResultCount = computed(() => {
   if (activeView.value === 'dashboard') return dashboard.value?.items?.length || 0
   if (activeView.value === 'readingOrders') return visibleOrders.value.length
@@ -888,7 +896,7 @@ onUnmounted(() => {
         :read-only="isReadOnlyGuest"
         @refresh="loadDashboard"
         @open-comic="openComic"
-        @open-reading-order="openReadingOrder"
+        @open-item="openDashboardItem"
         @mark-read="markDashboardComicRead"
         @mark-skipped="markDashboardComicSkipped"
       />
