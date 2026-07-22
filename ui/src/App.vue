@@ -1,6 +1,7 @@
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import AppGlobalOverlays from '@/app/components/AppGlobalOverlays.vue'
 import AccountView from '@/features/account/components/AccountView.vue'
 import AuthenticationView from '@/features/auth/components/AuthenticationView.vue'
 import AppSettingsView from '@/features/settings/components/AppSettingsView.vue'
@@ -17,11 +18,9 @@ import CollectionsBrowseView from '@/features/collections/components/Collections
 import ComicDetailView from '@/features/comics/components/ComicDetailView.vue'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import DashboardView from '@/features/dashboard/components/DashboardView.vue'
-import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
 import EmptyState from '@/shared/components/feedback/EmptyState.vue'
 import LoadingState from '@/shared/components/feedback/LoadingState.vue'
 import MetronImport from '@/features/metron/components/MetronImport.vue'
-import MetronImportMonitor from '@/features/metron/components/MetronImportMonitor.vue'
 import ProgressView from '@/features/account/components/ProgressView.vue'
 import ReadingOrderDetailView from '@/features/reading-orders/components/ReadingOrderDetailView.vue'
 import ReadingOrderEditView from '@/features/reading-orders/components/ReadingOrderEditView.vue'
@@ -44,15 +43,9 @@ import { useReadingOrders } from '@/features/reading-orders/useReadingOrders.js'
 import { useSeries } from '@/features/series/useSeries.js'
 import { useTheme } from '@/shared/composables/useTheme.js'
 import { useUserAdministration } from '@/features/users/useUserAdministration.js'
-import {
-  backFallbackRouteLocation,
-  browseRouteLocation,
-  detailRouteLocation,
-  editRouteLocation,
-  routeToAppState,
-} from '@/router/appRouteState.js'
-import { routeAccessRedirect, setRouteAccessContext } from '@/router/index.js'
-import { getSystemInfo } from '@/api/client.js'
+import { useAppController } from '@/app/useAppController.js'
+import { useAppSearchState } from '@/app/useAppSearchState.js'
+import { useInfiniteScroll } from '@/app/useInfiniteScroll.js'
 
 const activeView = ref('dashboard')
 const viewMode = ref('browse')
@@ -60,20 +53,56 @@ const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 const systemInfo = ref(null)
-const searchByView = reactive({
-  readingOrders: '',
-  arcs: '',
-  comics: '',
-  series: '',
-  characters: '',
-})
-const search = computed(() => searchByView[activeView.value] || '')
-const loadMoreSentinel = ref(null)
-let loadMoreObserver = null
-let searchDebounceTimer = null
-let routeSyncPaused = false
 const route = useRoute()
 const router = useRouter()
+const isEditing = computed(() => viewMode.value === 'edit')
+const isDetail = computed(() => viewMode.value === 'detail')
+let appController
+let paginationPageState
+
+function applyCurrentRoute(...args) {
+  return appController?.applyCurrentRoute(...args)
+}
+
+function refreshActiveListData(...args) {
+  return appController?.refreshActiveListData(...args)
+}
+
+function refreshActiveLibraryData(...args) {
+  return appController?.refreshActiveLibraryData(...args)
+}
+
+function handleMetronImported(...args) {
+  return appController?.handleMetronImported(...args)
+}
+
+function loadMoreActiveViewData(...args) {
+  return appController?.loadMoreActiveViewData(...args)
+}
+
+function backToPreviousPage(...args) {
+  return appController?.backToPreviousPage(...args)
+}
+
+function cancelEdit(...args) {
+  return appController?.cancelEdit(...args)
+}
+
+function showError(...args) {
+  return appController?.showError(...args)
+}
+
+function clearError(...args) {
+  return appController?.clearError(...args)
+}
+
+const { search, searchTerm, updateSearch } = useAppSearchState({
+  activeView,
+  isEditing,
+  isDetail,
+  getPageState: () => paginationPageState?.value,
+  onRefresh: refreshActiveListData,
+})
 const { themePreference, setThemePreference } = useTheme()
 const {
   authLoading,
@@ -167,11 +196,6 @@ const { listOptions, activeListParams, updateListOption } = useListOptions({
   onChange: refreshActiveListData,
 })
 
-const searchTerm = computed(() => search.value.trim().toLowerCase())
-const isEditing = computed(() => viewMode.value === 'edit')
-const isDetail = computed(() => viewMode.value === 'detail')
-const currentRouteLocation = computed(() => routeLocationForCurrentState())
-
 const { pageState, showInfiniteScrollSentinel, activeListLoadingMore, listTotal, loadPagedList } =
   usePagination({
     activeView,
@@ -181,6 +205,13 @@ const { pageState, showInfiniteScrollSentinel, activeListLoadingMore, listTotal,
     searchTerm,
     listParams: activeListParams,
   })
+paginationPageState = pageState
+
+const { sentinel: loadMoreSentinel } = useInfiniteScroll({
+  activeView,
+  enabled: showInfiniteScrollSentinel,
+  onLoadMore: loadMoreActiveViewData,
+})
 
 const {
   metronImportJobs,
@@ -425,395 +456,60 @@ function hasMetronScope(scope) {
   return scopes.includes('*') || scopes.includes(scope)
 }
 
-function syncRouteAccessContext() {
-  if (!userStatus.value) return
-  setRouteAccessContext({
-    canAccessMetron: canAccessMetronArea.value,
-    isAdmin: isAdmin.value,
-    hasUser: Boolean(currentUser.value),
-    readOnlyGuest: isReadOnlyGuest.value,
-  })
-}
-
-async function enforceCurrentRouteAccess() {
-  syncRouteAccessContext()
-  const redirect = routeAccessRedirect(route)
-  if (!redirect) return false
-  await router.replace(redirect)
-  return true
-}
-
-function routeLocationForCurrentState() {
-  if (activeView.value === 'notFound') return route.fullPath
-  if (viewMode.value === 'browse') {
-    const query = activeView.value === 'settings' && route.name === 'settings' ? route.query : null
-    return browseRouteLocation(activeView.value, query)
-  }
-  if (viewMode.value === 'detail') {
-    if (activeView.value === 'readingOrders')
-      return detailRouteLocation(activeView.value, selectedOrder.value?.id)
-    if (activeView.value === 'arcs')
-      return detailRouteLocation(activeView.value, selectedArc.value?.id)
-    if (activeView.value === 'comics')
-      return detailRouteLocation(activeView.value, selectedComic.value?.id)
-    if (activeView.value === 'series')
-      return detailRouteLocation(activeView.value, selectedSeries.value?.id)
-    if (activeView.value === 'characters')
-      return detailRouteLocation(activeView.value, selectedCharacter.value?.id)
-    if (activeView.value === 'collections')
-      return detailRouteLocation(activeView.value, selectedCollection.value?.id)
-  }
-  if (viewMode.value === 'edit') {
-    if (activeView.value === 'readingOrders')
-      return editRouteLocation(activeView.value, orderForm.value?.id || selectedOrder.value?.id)
-    if (activeView.value === 'arcs')
-      return editRouteLocation(activeView.value, arcForm.value?.id || selectedArc.value?.id)
-    if (activeView.value === 'comics')
-      return editRouteLocation(activeView.value, comicForm.value?.id || selectedComic.value?.id)
-  }
-  return null
-}
-
-async function syncRouterRoute(location, { replace = false } = {}) {
-  if (routeSyncPaused || !location) return
-  if (router.resolve(location).fullPath === route.fullPath) return
-  routeSyncPaused = true
-  try {
-    await router[replace ? 'replace' : 'push'](location)
-  } finally {
-    await nextTick()
-    routeSyncPaused = false
-  }
-}
-
-async function applyCurrentRoute(options = {}) {
-  await applyRoute(routeToAppState(route), options)
-}
-
-async function applyRoute(route, { replace = false, force = false } = {}) {
-  routeSyncPaused = true
-  error.value = ''
-
-  try {
-    await activateRoute({ ...route, force })
-  } catch (err) {
-    error.value = err.message
-    activeView.value = route.view || 'readingOrders'
-    viewMode.value = 'browse'
-    await loadActiveViewData({ force: true })
-  } finally {
-    await nextTick()
-    routeSyncPaused = false
-  }
-
-  const nextLocation = currentRouteLocation.value ||
-    browseRouteLocation(activeView.value) || { name: 'readingOrders' }
-  await syncRouterRoute(nextLocation, { replace: replace || route.replace })
-}
-
-async function activateRoute(route) {
-  if (route.mode === 'browse') {
-    activeView.value = route.view
-    viewMode.value = 'browse'
-    await loadData(Boolean(route.force))
-    return
-  }
-
-  if (route.view === 'readingOrders') {
-    if (isReadOnlyGuest.value && (route.isNew || route.mode === 'edit')) {
-      viewMode.value = 'browse'
-      await loadData(Boolean(route.force))
-      return
-    }
-    if (route.isNew) {
-      newReadingOrder()
-      return
-    }
-    await openReadingOrder({ id: route.id })
-    if (route.mode === 'edit') editReadingOrder()
-    return
-  }
-
-  if (route.view === 'arcs') {
-    if (isReadOnlyGuest.value && (route.isNew || route.mode === 'edit')) {
-      viewMode.value = 'browse'
-      await loadData(Boolean(route.force))
-      return
-    }
-    if (route.isNew) {
-      newArc()
-      return
-    }
-    await openArc({ id: route.id })
-    if (route.mode === 'edit') editArc()
-    return
-  }
-
-  if (route.view === 'comics') {
-    if (isReadOnlyGuest.value && (route.isNew || route.mode === 'edit')) {
-      viewMode.value = 'browse'
-      await loadData(Boolean(route.force))
-      return
-    }
-    if (route.isNew) {
-      newComic()
-      return
-    }
-    await openComic({ id: route.id })
-    if (route.mode === 'edit') editComic()
-    return
-  }
-
-  if (route.view === 'series') {
-    await openSeries({ id: route.id })
-    return
-  }
-
-  if (route.view === 'characters') {
-    await openCharacter({ id: route.id })
-    return
-  }
-
-  if (route.view === 'collections') {
-    await openCollection({ id: route.id })
-  }
-}
-
-async function backToPreviousPage() {
-  error.value = ''
-  await popHistoryOrReplace(backFallbackRouteLocation(activeView.value))
-}
-
-async function popHistoryOrReplace(fallback) {
-  if (window.history.state?.back) {
-    router.back()
-    return
-  }
-  await router.replace(fallback)
-}
-
-async function loadData(force = false) {
-  loading.value = true
-  error.value = ''
-
-  try {
-    await loadActiveViewData({ force })
-    await ensureMetronImportMonitor()
-  } catch (err) {
-    error.value = err.message
-  } finally {
-    loading.value = false
-  }
-}
-
-async function ensureMetronImportMonitor() {
-  if (!appReady.value || !canMetronMonitor.value || isReadOnlyGuest.value) return
-  await loadMetronImportJobs()
-}
-
-async function loadActiveViewData(options = {}) {
-  if (activeView.value === 'dashboard') {
-    await loadDashboard()
-    return
-  }
-  if (activeView.value === 'readingOrders') {
-    await loadReadingOrders(options)
-    return
-  }
-  if (activeView.value === 'arcs') {
-    await loadArcs(options)
-    return
-  }
-  if (activeView.value === 'comics') {
-    await loadComics(options)
-    return
-  }
-  if (activeView.value === 'series') {
-    await loadSeries(options)
-    return
-  }
-  if (activeView.value === 'characters') {
-    await loadCharacters(options)
-    return
-  }
-  if (activeView.value === 'collections') {
-    await loadCharacterCollections()
-    return
-  }
-  if (activeView.value === 'users') {
-    await loadUserAdminRows()
-    return
-  }
-  if (activeView.value === 'settings') {
-    await Promise.all([
-      loadMetronSettings(),
-      canMetronMonitor.value ? loadMetronQuota() : Promise.resolve(),
-    ])
-    return
-  }
-  if (activeView.value === 'account') {
-    return
-  }
-  if (activeView.value === 'progress') {
-    await loadAccountStatistics()
-    return
-  }
-}
-
-async function refreshActiveLibraryData() {
-  await loadActiveViewData({ force: true })
-}
-
-async function refreshActiveListData() {
-  error.value = ''
-  try {
-    await loadActiveViewData({ force: true })
-  } catch (err) {
-    error.value = err.message
-  }
-}
-
-async function loadMoreActiveViewData() {
-  if (loading.value || isEditing.value || isDetail.value) return
-  try {
-    await loadActiveViewData({ append: true })
-  } catch (err) {
-    error.value = err.message
-  }
-}
-
-async function cancelEdit() {
-  error.value = ''
-  let selectedID = null
-  if (activeView.value === 'readingOrders' && selectedOrder.value) {
-    selectedID = selectedOrder.value.id
-  }
-  if (activeView.value === 'arcs' && selectedArc.value) {
-    selectedID = selectedArc.value.id
-  }
-  if (activeView.value === 'comics' && selectedComic.value) {
-    selectedID = selectedComic.value.id
-  }
-  await popHistoryOrReplace(backFallbackRouteLocation(activeView.value, selectedID))
-}
-
-function showError(message) {
-  error.value = message
-}
-
-function clearError() {
-  error.value = ''
-  clearMetronMergeConflict()
-}
-
-async function handleMetronImported() {
-  error.value = ''
-  await refreshActiveLibraryData()
-  if (activeView.value === 'readingOrders' && viewMode.value === 'detail') {
-    await refreshSelectedReadingOrderDetail()
-  }
-  if (activeView.value === 'characters' && viewMode.value === 'detail') {
-    await refreshSelectedCharacterDetail()
-  }
-  if (activeView.value === 'series' && viewMode.value === 'detail') {
-    await refreshSelectedSeriesDetail()
-  }
-}
-
-function updateSearch(value) {
-  const view = activeView.value
-  if (!(view in searchByView)) return
-
-  searchByView[view] = value
-  if (pageState.value[view]) {
-    pageState.value[view].initialized = false
-  }
-
-  if (searchDebounceTimer) {
-    window.clearTimeout(searchDebounceTimer)
-  }
-  searchDebounceTimer = window.setTimeout(() => {
-    if (activeView.value === view && !isEditing.value && !isDetail.value) {
-      refreshActiveListData()
-    }
-  }, 250)
-}
-
-function setupLoadMoreObserver() {
-  if (typeof IntersectionObserver === 'undefined') return
-  loadMoreObserver = new IntersectionObserver(
-    (entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        loadMoreActiveViewData()
-      }
-    },
-    { rootMargin: '360px 0px' },
-  )
-  observeLoadMoreSentinel()
-}
-
-function observeLoadMoreSentinel() {
-  if (!loadMoreObserver) return
-  loadMoreObserver.disconnect()
-  if (loadMoreSentinel.value && showInfiniteScrollSentinel.value) {
-    loadMoreObserver.observe(loadMoreSentinel.value.element)
-  }
-}
-
-onMounted(async () => {
-  setupLoadMoreObserver()
-  const [, info] = await Promise.all([loadUserStatus(), getSystemInfo().catch(() => null)])
-  systemInfo.value = info
-  if (route.name === 'verifyEmail') {
-    await verifyEmailFromRouteToken()
-  } else if (route.name === 'resetPassword') {
-    preparePasswordResetFromRouteToken()
-  }
-  if (appReady.value) {
-    if (!(await enforceCurrentRouteAccess())) {
-      await applyCurrentRoute({ replace: true, force: true })
-    }
-    await ensureMetronImportMonitor()
-  }
-})
-
-watch(showInfiniteScrollSentinel, () => {
-  nextTick(observeLoadMoreSentinel)
-})
-
-watch(activeView, () => {
-  nextTick(observeLoadMoreSentinel)
-})
-
-watch(currentRouteLocation, (location) => {
-  if (!appReady.value) return
-  syncRouterRoute(location)
-})
-
-watch(
-  () => route.fullPath,
-  () => {
-    if (!appReady.value || routeSyncPaused) return
-    applyCurrentRoute()
+appController = useAppController({
+  state: { activeView, viewMode, loading, error, systemInfo, isEditing, isDetail },
+  routing: { route, router },
+  auth: {
+    userStatus,
+    isAdmin,
+    currentUser,
+    isReadOnlyGuest,
+    appReady,
+    loadUserStatus,
+    verifyEmailFromRouteToken,
+    preparePasswordResetFromRouteToken,
   },
-)
-
-watch([canAccessMetronArea, isAdmin, currentUser, isReadOnlyGuest], () => {
-  syncRouteAccessContext()
-  if (appReady.value) {
-    enforceCurrentRouteAccess()
-    ensureMetronImportMonitor()
-  }
-})
-
-onUnmounted(() => {
-  closeMetronImportEvents()
-  if (searchDebounceTimer) {
-    window.clearTimeout(searchDebounceTimer)
-  }
-  if (loadMoreObserver) {
-    loadMoreObserver.disconnect()
-  }
+  access: { canAccessMetronArea, canMetronMonitor },
+  entities: {
+    selectedOrder,
+    selectedArc,
+    selectedComic,
+    selectedSeries,
+    selectedCharacter,
+    selectedCollection,
+  },
+  forms: { orderForm, arcForm, comicForm },
+  actions: {
+    newReadingOrder,
+    openReadingOrder,
+    editReadingOrder,
+    newArc,
+    openArc,
+    editArc,
+    newComic,
+    openComic,
+    editComic,
+    openSeries,
+    openCharacter,
+    openCollection,
+    clearMetronMergeConflict,
+    refreshSelectedReadingOrderDetail,
+    refreshSelectedCharacterDetail,
+    refreshSelectedSeriesDetail,
+  },
+  loaders: {
+    dashboard: loadDashboard,
+    readingOrders: loadReadingOrders,
+    arcs: loadArcs,
+    comics: loadComics,
+    series: loadSeries,
+    characters: loadCharacters,
+    collections: loadCharacterCollections,
+    users: loadUserAdminRows,
+    settings: loadMetronSettings,
+    progress: loadAccountStatistics,
+  },
+  metron: { loadMetronImportJobs, loadMetronQuota, closeMetronImportEvents },
 })
 </script>
 
@@ -869,21 +565,19 @@ onUnmounted(() => {
         :total-count="toolbarTotalCount"
       />
 
-      <ErrorToast
-        :message="error"
-        :action-label="isAdmin && metronMergeConflict?.message === error ? 'Merge now' : ''"
-        :action-busy="metronMergeSaving"
-        @action="mergeMetronConflict"
-        @dismiss="clearError"
-      />
-
-      <MetronImportMonitor
+      <AppGlobalOverlays
         v-model:open="metronImportMonitorOpen"
+        :error="error"
+        :is-admin="isAdmin"
+        :conflict-message="metronMergeConflict?.message || ''"
+        :merge-saving="metronMergeSaving"
         :jobs="metronImportJobs"
+        @merge="mergeMetronConflict"
+        @dismiss-error="clearError"
         @retry="retryMetronJob"
         @continue="continueMetronJob"
         @cancel="cancelMetronJob"
-        @dismiss="dismissMetronJob"
+        @dismiss-job="dismissMetronJob"
       />
 
       <LoadingState v-if="showBlockingLoading" />
