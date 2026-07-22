@@ -48,7 +48,7 @@ defineEmits(['action', 'dismiss'])
 @reference '../../../styles.css';
 
 .error-toast {
-  @apply fixed right-6 bottom-6 z-50 flex w-[min(420px,calc(100vw-32px))] items-start gap-3 rounded border border-danger-border bg-danger-soft px-3.5 py-3 text-danger shadow-monitor;
+  @apply fixed right-6 bottom-6 z-50 flex w-[min(420px,calc(100vw-32px))] flex-col items-stretch gap-3 rounded border border-danger-border bg-danger-soft px-3.5 py-3 text-danger shadow-monitor;
 }
 
 .error-toast > span {
@@ -57,7 +57,7 @@ defineEmits(['action', 'dismiss'])
 }
 
 .error-toast-actions {
-  @apply flex flex-none items-center gap-3;
+  @apply flex flex-none items-center justify-end gap-3;
 }
 
 .action-button,
