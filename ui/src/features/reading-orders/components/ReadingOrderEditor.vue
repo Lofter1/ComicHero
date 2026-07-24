@@ -36,6 +36,13 @@ const comicSearch = ref('')
 const comicSearchResults = ref([])
 const comicSearchLoading = ref(false)
 const comicSearchError = ref('')
+const comicSearchPage = ref(0)
+const comicSearchPagination = ref({
+  limit: 8,
+  offset: 0,
+  total: 0,
+  hasMore: false,
+})
 const readingOrderSearch = ref('')
 const sectionTitle = ref('')
 const sectionDescription = ref('')
@@ -48,6 +55,9 @@ let comicSearchRequestId = 0
 
 const orderEntries = computed(() => props.form.entries || props.form.comics || [])
 const entryPageState = computed(() => readingOrderEditorPage(orderEntries.value, entryPage.value))
+const comicSearchPageCount = computed(() =>
+  Math.max(1, Math.ceil(comicSearchPagination.value.total / comicSearchPagination.value.limit)),
+)
 const coverPreview = computed(() => {
   if (props.form.coverImageData) return props.form.coverImageData
   if (props.form.image) return assetURL(props.form.image)
@@ -72,6 +82,7 @@ watch(
 watch(
   comicSearch,
   () => {
+    comicSearchPage.value = 0
     queueComicSearch()
   },
   { immediate: true },
@@ -97,16 +108,28 @@ async function searchComicsForReadingOrder() {
   try {
     const page = await listComics({
       q,
-      limit: 8,
-      offset: 0,
+      limit: comicSearchPagination.value.limit,
+      offset: comicSearchPage.value * comicSearchPagination.value.limit,
     })
 
     if (requestId === comicSearchRequestId) {
       comicSearchResults.value = page.items
+      comicSearchPagination.value = {
+        limit: page.limit,
+        offset: page.offset,
+        total: page.total,
+        hasMore: page.hasMore,
+      }
     }
   } catch (error) {
     if (requestId === comicSearchRequestId) {
       comicSearchResults.value = []
+      comicSearchPagination.value = {
+        ...comicSearchPagination.value,
+        offset: 0,
+        total: 0,
+        hasMore: false,
+      }
       comicSearchError.value = error?.message || 'Could not search comics.'
     }
   } finally {
@@ -325,6 +348,15 @@ function clearComicSearch() {
   comicSearch.value = ''
 }
 
+function goToComicSearchPage(page) {
+  const nextPage = Math.min(Math.max(0, page), comicSearchPageCount.value - 1)
+  if (nextPage === comicSearchPage.value) return
+
+  clearTimeout(comicSearchTimer)
+  comicSearchPage.value = nextPage
+  searchComicsForReadingOrder()
+}
+
 function removeEntry(index) {
   collapseRemovedEntry(index)
 
@@ -520,6 +552,19 @@ function endDrag() {
             </div>
 
             <p v-else class="muted block text-muted">No comics match that search.</p>
+
+            <ReadingOrderEntryPagination
+              v-if="!comicSearchLoading && comicSearchPageCount > 1"
+              class="comic-search-pagination"
+              :page="comicSearchPage"
+              :page-count="comicSearchPageCount"
+              :start="comicSearchPagination.offset"
+              :end="comicSearchPagination.offset + comicSearchResults.length"
+              :total="comicSearchPagination.total"
+              aria-label="Issue search result pages"
+              item-label="Results"
+              @go="goToComicSearchPage"
+            />
           </div>
 
           <div
@@ -855,7 +900,7 @@ function endDrag() {
 }
 
 .reading-order-editor-layout {
-  @apply grid grid-cols-[minmax(320px,420px)_minmax(620px,1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:pt-0;
+  @apply grid grid-cols-[minmax(320px,420px)_minmax(0,1fr)] items-start gap-4 border-t border-line pt-3.5 down-laptop:grid-cols-1 [&_.entry-section]:border-t-0 [&_.entry-section]:pt-0;
 }
 
 .reading-order-search-column {
@@ -892,6 +937,10 @@ function endDrag() {
 
 .comic-add-result.reading-order-add-result {
   @apply flex items-start justify-between gap-3 min-h-20 border border-line rounded bg-surface text-ink py-2.5 px-3 text-left [[draggable='true']]:cursor-grab [&[draggable='true']:active]:cursor-grabbing hover:border-[color-mix(in_srgb,var(--primary)_46%,var(--line-strong))] hover:bg-primary-soft [&_span:first-child]:min-w-0 [&_strong]:[display:-webkit-box] [&_strong]:overflow-hidden [&_strong]:text-ellipsis [&_strong]:whitespace-normal [&_strong]:[-webkit-box-orient:vertical] [&_small]:[display:-webkit-box] [&_small]:overflow-hidden [&_small]:text-ellipsis [&_small]:whitespace-normal [&_small]:[-webkit-box-orient:vertical] [&_strong]:[line-clamp:2] [&_strong]:[-webkit-line-clamp:2] [&_small]:[line-clamp:2] [&_small]:[-webkit-line-clamp:1] [&_small]:text-muted [&_small]:mt-1 [&_.status-pill]:flex-none [&_.status-pill]:mt-0.5;
+}
+
+.comic-search-pagination {
+  @apply mt-0 mb-0;
 }
 
 .section-add-panel {

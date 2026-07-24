@@ -92,3 +92,22 @@ func TestComicListQuery(t *testing.T) {
 		}
 	}
 }
+
+func TestComicListQueryNormalizesTitleStyleYear(t *testing.T) {
+	_, args, err := comicListQuery(&ComicListInput{Query: "Ultimates (2016) #4"}, 1)
+	if err != nil {
+		t.Fatalf("comicListQuery returned error: %v", err)
+	}
+
+	if len(args) != 12 {
+		t.Fatalf("args = %#v; want user, issue, and two five-column search terms", args)
+	}
+	if args[1] != "4" {
+		t.Fatalf("issue arg = %#v; want 4", args[1])
+	}
+	for index, arg := range args[7:] {
+		if arg != "%2016%" {
+			t.Fatalf("year arg %d = %#v; want %%2016%%", index, arg)
+		}
+	}
+}

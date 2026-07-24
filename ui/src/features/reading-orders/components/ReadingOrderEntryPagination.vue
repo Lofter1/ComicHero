@@ -8,6 +8,8 @@ defineProps({
   end: { type: Number, default: 0 },
   total: { type: Number, default: 0 },
   compact: { type: Boolean, default: false },
+  ariaLabel: { type: String, default: 'Reading order entry pages' },
+  itemLabel: { type: String, default: 'Entries' },
 })
 
 defineEmits(['go'])
@@ -17,10 +19,10 @@ defineEmits(['go'])
   <nav
     class="entry-pagination"
     :class="{ 'entry-pagination--compact': compact }"
-    aria-label="Reading order entry pages"
+    :aria-label="ariaLabel"
   >
     <span v-if="compact">Page {{ page + 1 }} of {{ pageCount }}</span>
-    <span v-else>Entries {{ start + 1 }}–{{ end }} of {{ total }}</span>
+    <span v-else>{{ itemLabel }} {{ start + 1 }}–{{ end }} of {{ total }}</span>
     <div>
       <BaseButton
         v-if="!compact"
