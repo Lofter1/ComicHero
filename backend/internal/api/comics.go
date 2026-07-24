@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jmoiron/sqlx"
@@ -157,6 +158,10 @@ func comicListQuery(input *ComicListInput, userID int) (string, []any, error) {
 		terms := strings.Fields(textQuery)
 
 		for _, term := range terms {
+			term = strings.TrimFunc(term, unicode.IsPunct)
+			if term == "" {
+				continue
+			}
 			search := "%" + term + "%"
 			query.where(`(
 				c.series LIKE ?
