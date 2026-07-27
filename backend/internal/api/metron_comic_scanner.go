@@ -398,7 +398,7 @@ func (s *metronComicScanner) trigger(reason string) error {
 		return err
 	}
 	if !settings.Enabled {
-		return errors.New("Metron maintenance is disabled")
+		return errors.New("metron maintenance is disabled")
 	}
 	s.mu.Lock()
 	if s.status.Running {
