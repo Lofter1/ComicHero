@@ -31,14 +31,55 @@ const incompleteFieldOptions = [
   { value: 'coverDate', label: 'Cover date' },
   { value: 'description', label: 'Description' },
 ]
+const characterIncompleteFieldOptions = [
+  { value: 'description', label: 'Description' },
+  { value: 'image', label: 'Image' },
+  { value: 'aliases', label: 'Aliases' },
+]
+const seriesIncompleteFieldOptions = [
+  { value: 'publisher', label: 'Publisher' },
+  { value: 'seriesYear', label: 'Start year' },
+  { value: 'volume', label: 'Volume' },
+  { value: 'yearEnd', label: 'End year' },
+  { value: 'issueCount', label: 'Issue count' },
+  { value: 'description', label: 'Description' },
+]
+const arcIncompleteFieldOptions = [
+  { value: 'description', label: 'Description' },
+  { value: 'image', label: 'Image' },
+]
+const maintenanceResourceOptions = [
+  { value: 'comics', label: 'Comics' },
+  { value: 'characters', label: 'Characters' },
+  { value: 'series', label: 'Series' },
+  { value: 'arcs', label: 'Arcs' },
+]
 
 watch(
   () => props.metronComicScan?.settings,
   (settings) => {
     Object.assign(draft, settings || {})
-    if (!Array.isArray(draft.incompleteFields)) {
-      draft.incompleteFields = incompleteFieldOptions.map((option) => option.value)
+    const fieldDefaults = [
+      ['incompleteFields', incompleteFieldOptions],
+      ['characterIncompleteFields', characterIncompleteFieldOptions],
+      ['seriesIncompleteFields', seriesIncompleteFieldOptions],
+      ['arcIncompleteFields', arcIncompleteFieldOptions],
+    ]
+    for (const [field, options] of fieldDefaults) {
+      if (!Array.isArray(draft[field])) {
+        draft[field] = options.map((option) => option.value)
+      }
     }
+    const knownResources = new Set(maintenanceResourceOptions.map((option) => option.value))
+    const resourceOrder = Array.isArray(draft.resourceOrder)
+      ? draft.resourceOrder.filter((resource, index, values) => {
+          return knownResources.has(resource) && values.indexOf(resource) === index
+        })
+      : []
+    for (const option of maintenanceResourceOptions) {
+      if (!resourceOrder.includes(option.value)) resourceOrder.push(option.value)
+    }
+    draft.resourceOrder = resourceOrder
   },
   { immediate: true },
 )
@@ -56,17 +97,72 @@ function toggleWeekday(day, checked) {
   draft.weekdays = [...selected]
 }
 
-function toggleIncompleteField(field, checked) {
-  const selected = new Set(draft.incompleteFields || [])
+function toggleIncompleteField(group, field, checked) {
+  const selected = new Set(draft[group] || [])
   if (checked) selected.add(field)
   else selected.delete(field)
-  draft.incompleteFields = [...selected]
+  draft[group] = [...selected]
+}
+
+function moveMaintenanceResource(index, direction) {
+  const target = index + direction
+  if (target < 0 || target >= draft.resourceOrder.length) return
+  const order = [...draft.resourceOrder]
+  const selected = order[index]
+  order[index] = order[target]
+  order[target] = selected
+  draft.resourceOrder = order
+}
+
+function maintenanceResourceLabel(resource) {
+  return maintenanceResourceOptions.find((option) => option.value === resource)?.label || resource
+}
+
+function maintenanceResourceEnabled(resource) {
+  return Boolean(
+    {
+      comics: draft.scanComics,
+      characters: draft.scanCharacters,
+      series: draft.scanSeries,
+      arcs: draft.scanArcs,
+    }[resource],
+  )
+}
+
+function maintenanceResourcePullDescription(resource) {
+  if (!maintenanceResourceEnabled(resource)) return 'Disabled — skipped'
+  if (resource === 'comics') return 'Missing issue metadata'
+  const pullsFullList = {
+    characters: draft.pullCharacterComics,
+    series: draft.pullSeriesComics,
+    arcs: draft.pullArcComics,
+  }[resource]
+  return pullsFullList ? 'Metadata, then full comic list' : 'Metadata only'
+}
+
+function maintenanceSettingsValid() {
+  const groups = [
+    [draft.scanComics, draft.incompleteFields],
+    [draft.scanCharacters, draft.characterIncompleteFields],
+    [draft.scanSeries, draft.seriesIncompleteFields],
+    [draft.scanArcs, draft.arcIncompleteFields],
+  ]
+  return (
+    groups.some(([enabled]) => enabled) &&
+    groups.every(([enabled, fields]) => !enabled || fields?.length)
+  )
 }
 
 function comicScanPayload() {
   return {
     enabled: Boolean(draft.enabled),
-    scanComics: true,
+    scanComics: Boolean(draft.scanComics),
+    scanCharacters: Boolean(draft.scanCharacters),
+    scanSeries: Boolean(draft.scanSeries),
+    scanArcs: Boolean(draft.scanArcs),
+    pullCharacterComics: Boolean(draft.pullCharacterComics),
+    pullSeriesComics: Boolean(draft.pullSeriesComics),
+    pullArcComics: Boolean(draft.pullArcComics),
     schedule: draft.schedule || 'daily',
     weekdays: draft.schedule === 'weekly' ? draft.weekdays || [] : [],
     startTime: draft.startTime || '02:00',
@@ -74,6 +170,10 @@ function comicScanPayload() {
     minIntervalSeconds: Math.max(0, Number(draft.minIntervalSeconds) || 0),
     recheckCooldownDays: Math.max(0, Number(draft.recheckCooldownDays) || 0),
     incompleteFields: draft.incompleteFields || [],
+    characterIncompleteFields: draft.characterIncompleteFields || [],
+    seriesIncompleteFields: draft.seriesIncompleteFields || [],
+    arcIncompleteFields: draft.arcIncompleteFields || [],
+    resourceOrder: draft.resourceOrder || maintenanceResourceOptions.map((option) => option.value),
   }
 }
 
@@ -270,10 +370,10 @@ function startComicDiscovery() {
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">
             Metron maintenance
           </p>
-          <h3>Incomplete comic data</h3>
+          <h3>Incomplete Metron data</h3>
           <p class="muted block text-muted">
-            Choose which missing fields make a comic incomplete. Issue responses also create missing
-            arc and character links without extra detail calls.
+            Fill missing metadata for comics, characters, series, and arcs. For linked resource
+            types, choose whether maintenance should also pull their complete comic lists.
           </p>
         </div>
         <label class="compact-toggle metron-scan-toggle">
@@ -282,19 +382,218 @@ function startComicDiscovery() {
         </label>
       </header>
 
-      <fieldset class="permission-scopes metron-incomplete-fields">
-        <legend>Consider a comic incomplete when it has no</legend>
-        <label v-for="option in incompleteFieldOptions" :key="option.value">
-          <input
-            type="checkbox"
-            :checked="(draft.incompleteFields || []).includes(option.value)"
-            @change="toggleIncompleteField(option.value, $event.target.checked)"
-          />
-          <span>{{ option.label }}</span>
-        </label>
-      </fieldset>
-      <p v-if="!(draft.incompleteFields || []).length" class="access-note">
-        Select at least one field before saving or running this scan.
+      <section class="metron-maintenance-order" aria-labelledby="metron-maintenance-order-title">
+        <header>
+          <div>
+            <h4 id="metron-maintenance-order-title">Pull order</h4>
+            <p class="muted block text-muted">
+              Move resource types into the priority order used by every scheduled or manual run.
+            </p>
+          </div>
+        </header>
+        <ol>
+          <li
+            v-for="(resource, index) in draft.resourceOrder || []"
+            :key="resource"
+            :class="{ 'is-disabled': !maintenanceResourceEnabled(resource) }"
+          >
+            <span class="metron-order-position">{{ index + 1 }}</span>
+            <span class="metron-order-copy">
+              <strong>{{ maintenanceResourceLabel(resource) }}</strong>
+              <small>{{ maintenanceResourcePullDescription(resource) }}</small>
+            </span>
+            <span class="metron-order-actions">
+              <BaseButton
+                variant="neutral"
+                size="compact"
+                :disabled="index === 0"
+                :aria-label="`Move ${maintenanceResourceLabel(resource)} earlier`"
+                @click="moveMaintenanceResource(index, -1)"
+              >
+                Move up
+              </BaseButton>
+              <BaseButton
+                variant="neutral"
+                size="compact"
+                :disabled="index === draft.resourceOrder.length - 1"
+                :aria-label="`Move ${maintenanceResourceLabel(resource)} later`"
+                @click="moveMaintenanceResource(index, 1)"
+              >
+                Move down
+              </BaseButton>
+            </span>
+          </li>
+        </ol>
+        <div class="metron-maintenance-order-help">
+          <strong>How the order works</strong>
+          <ul>
+            <li>
+              At the start of a run, ComicHero finds all eligible incomplete records. Disabled
+              resource types and types with no eligible records are skipped.
+            </li>
+            <li>
+              Resource types run from top to bottom. Within each type, existing records are pulled
+              by local ID, oldest IDs first.
+            </li>
+            <li>
+              Comics pull issue metadata. Characters, series, and arcs pull metadata first; when
+              “full comic list” is selected, that record’s paginated comic list is pulled
+              immediately afterward before moving to the next record.
+            </li>
+            <li>
+              Each metadata request and comic-list page uses the shared call budget and request
+              interval. If the budget runs out, later records and resource types wait for the next
+              run. Successfully checked records observe the re-check cooldown.
+            </li>
+            <li>
+              The eligible queues are a start-of-run snapshot, so comics newly imported from a full
+              list are considered by incomplete-comic maintenance on the next run.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <div class="metron-maintenance-resources">
+        <section class="metron-maintenance-resource">
+          <header>
+            <label class="compact-toggle">
+              <input v-model="draft.scanComics" type="checkbox" />
+              <span>Comics</span>
+            </label>
+          </header>
+          <fieldset v-if="draft.scanComics" class="permission-scopes metron-incomplete-fields">
+            <legend>Incomplete when missing</legend>
+            <label v-for="option in incompleteFieldOptions" :key="option.value">
+              <input
+                type="checkbox"
+                :checked="(draft.incompleteFields || []).includes(option.value)"
+                @change="
+                  toggleIncompleteField('incompleteFields', option.value, $event.target.checked)
+                "
+              />
+              <span>{{ option.label }}</span>
+            </label>
+          </fieldset>
+          <p v-if="draft.scanComics && !(draft.incompleteFields || []).length" class="access-note">
+            Select at least one comic field.
+          </p>
+        </section>
+
+        <section class="metron-maintenance-resource">
+          <header>
+            <label class="compact-toggle">
+              <input v-model="draft.scanCharacters" type="checkbox" />
+              <span>Characters</span>
+            </label>
+            <label v-if="draft.scanCharacters" class="metron-resource-depth">
+              <span>Pull</span>
+              <BaseSelect v-model="draft.pullCharacterComics">
+                <option :value="false">Metadata only</option>
+                <option :value="true">Metadata + full comic list</option>
+              </BaseSelect>
+            </label>
+          </header>
+          <fieldset v-if="draft.scanCharacters" class="permission-scopes metron-incomplete-fields">
+            <legend>Incomplete when missing</legend>
+            <label v-for="option in characterIncompleteFieldOptions" :key="option.value">
+              <input
+                type="checkbox"
+                :checked="(draft.characterIncompleteFields || []).includes(option.value)"
+                @change="
+                  toggleIncompleteField(
+                    'characterIncompleteFields',
+                    option.value,
+                    $event.target.checked,
+                  )
+                "
+              />
+              <span>{{ option.label }}</span>
+            </label>
+          </fieldset>
+          <p
+            v-if="draft.scanCharacters && !(draft.characterIncompleteFields || []).length"
+            class="access-note"
+          >
+            Select at least one character field.
+          </p>
+        </section>
+
+        <section class="metron-maintenance-resource">
+          <header>
+            <label class="compact-toggle">
+              <input v-model="draft.scanSeries" type="checkbox" />
+              <span>Series</span>
+            </label>
+            <label v-if="draft.scanSeries" class="metron-resource-depth">
+              <span>Pull</span>
+              <BaseSelect v-model="draft.pullSeriesComics">
+                <option :value="false">Metadata only</option>
+                <option :value="true">Metadata + full comic list</option>
+              </BaseSelect>
+            </label>
+          </header>
+          <fieldset v-if="draft.scanSeries" class="permission-scopes metron-incomplete-fields">
+            <legend>Incomplete when missing</legend>
+            <label v-for="option in seriesIncompleteFieldOptions" :key="option.value">
+              <input
+                type="checkbox"
+                :checked="(draft.seriesIncompleteFields || []).includes(option.value)"
+                @change="
+                  toggleIncompleteField(
+                    'seriesIncompleteFields',
+                    option.value,
+                    $event.target.checked,
+                  )
+                "
+              />
+              <span>{{ option.label }}</span>
+            </label>
+          </fieldset>
+          <p
+            v-if="draft.scanSeries && !(draft.seriesIncompleteFields || []).length"
+            class="access-note"
+          >
+            Select at least one series field.
+          </p>
+        </section>
+
+        <section class="metron-maintenance-resource">
+          <header>
+            <label class="compact-toggle">
+              <input v-model="draft.scanArcs" type="checkbox" />
+              <span>Arcs</span>
+            </label>
+            <label v-if="draft.scanArcs" class="metron-resource-depth">
+              <span>Pull</span>
+              <BaseSelect v-model="draft.pullArcComics">
+                <option :value="false">Metadata only</option>
+                <option :value="true">Metadata + full comic list</option>
+              </BaseSelect>
+            </label>
+          </header>
+          <fieldset v-if="draft.scanArcs" class="permission-scopes metron-incomplete-fields">
+            <legend>Incomplete when missing</legend>
+            <label v-for="option in arcIncompleteFieldOptions" :key="option.value">
+              <input
+                type="checkbox"
+                :checked="(draft.arcIncompleteFields || []).includes(option.value)"
+                @change="
+                  toggleIncompleteField('arcIncompleteFields', option.value, $event.target.checked)
+                "
+              />
+              <span>{{ option.label }}</span>
+            </label>
+          </fieldset>
+          <p v-if="draft.scanArcs && !(draft.arcIncompleteFields || []).length" class="access-note">
+            Select at least one arc field.
+          </p>
+        </section>
+      </div>
+      <p
+        v-if="!draft.scanComics && !draft.scanCharacters && !draft.scanSeries && !draft.scanArcs"
+        class="access-note"
+      >
+        Select at least one data type before saving or running maintenance.
       </p>
 
       <div class="metron-scan-fields">
@@ -341,10 +640,10 @@ function startComicDiscovery() {
         </label>
       </div>
       <p class="muted metron-scan-hint block text-muted">
-        Some issues have no publisher, cover date, or synopsis on Metron itself, so they can stay
-        "incomplete" no matter how often they're checked. The cooldown skips a comic for this many
-        days after it was last checked, so those rows stop using up the whole daily call budget. Set
-        to 0 to recheck everything every run.
+        Some records have fields that are also blank on Metron, so they can stay "incomplete" after
+        a check. The cooldown prevents those records from consuming the daily call budget on every
+        run. Full comic lists use additional Metron calls and import missing comics with list
+        metadata. Set the cooldown to 0 to recheck everything every run.
       </p>
 
       <fieldset v-if="draft.schedule === 'weekly'" class="permission-scopes">
@@ -366,6 +665,9 @@ function startComicDiscovery() {
         </div>
         <div v-if="metronComicScan.running">
           <strong>{{ metronComicScan.updated }}</strong>
+          <span v-if="metronComicScan.currentResource">
+            Now pulling {{ maintenanceResourceLabel(metronComicScan.currentResource) }}
+          </span>
           <span
             >updated ({{ metronComicScan.failed }} failed) from
             {{ metronComicScan.scanned }} scanned</span
@@ -387,7 +689,7 @@ function startComicDiscovery() {
         <BaseButton
           variant="primary"
           size="large"
-          :disabled="saving || !(draft.incompleteFields || []).length"
+          :disabled="saving || !maintenanceSettingsValid()"
           @click="save"
         >
           {{ saving ? 'Saving...' : 'Save settings' }}
@@ -396,7 +698,7 @@ function startComicDiscovery() {
           v-if="!metronComicScan.running"
           variant="neutral"
           size="large"
-          :disabled="saving || !draft.enabled || !(draft.incompleteFields || []).length"
+          :disabled="saving || !draft.enabled || !maintenanceSettingsValid()"
           @click="startComicScan"
         >
           {{ saving ? 'Saving and starting...' : 'Scan now' }}
@@ -478,5 +780,78 @@ function startComicDiscovery() {
 .permission-scopes.metron-discovery-types,
 .permission-scopes.metron-incomplete-fields {
   @apply border-0 p-0 m-0 grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-2 min-w-0 disabled:opacity-55 down-mobile:grid-cols-1;
+}
+
+.metron-maintenance-resources {
+  @apply grid gap-3;
+}
+
+.metron-maintenance-order {
+  @apply grid gap-4 rounded-lg border border-line bg-surface p-4;
+}
+
+.metron-maintenance-order h4,
+.metron-maintenance-order p {
+  @apply m-0;
+}
+
+.metron-maintenance-order > ol {
+  @apply m-0 grid list-none gap-2 p-0;
+}
+
+.metron-maintenance-order > ol > li {
+  @apply grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 rounded border border-line bg-surface-soft p-3 down-mobile:grid-cols-[2rem_minmax(0,1fr)];
+}
+
+.metron-maintenance-order > ol > li.is-disabled {
+  @apply opacity-60;
+}
+
+.metron-order-position {
+  @apply inline-flex size-8 items-center justify-center rounded-full bg-primary-soft text-sm font-black text-control;
+}
+
+.metron-order-copy {
+  @apply grid gap-0.5;
+}
+
+.metron-order-copy small {
+  @apply text-xs font-bold text-muted;
+}
+
+.metron-order-actions {
+  @apply flex gap-2 down-mobile:col-span-2 down-mobile:pl-11;
+}
+
+.metron-maintenance-order-help {
+  @apply rounded border border-line bg-surface-soft p-3 text-sm text-muted;
+}
+
+.metron-maintenance-order-help > strong {
+  @apply text-ink;
+}
+
+.metron-maintenance-order-help ul {
+  @apply mb-0 mt-2 grid gap-1.5 pl-5;
+}
+
+.metron-maintenance-resource {
+  @apply grid gap-3 rounded-lg border border-line bg-surface p-4;
+}
+
+.metron-maintenance-resource > header {
+  @apply flex items-center justify-between gap-4 down-mobile:items-stretch down-mobile:flex-col;
+}
+
+.metron-maintenance-resource .compact-toggle {
+  @apply inline-flex min-h-10 items-center gap-2 font-extrabold text-label;
+}
+
+.metron-resource-depth {
+  @apply flex min-w-72 items-center gap-2 text-sm font-extrabold text-muted down-mobile:min-w-0 down-mobile:items-stretch down-mobile:flex-col;
+}
+
+.metron-resource-depth select {
+  @apply min-w-56 down-mobile:w-full;
 }
 </style>
