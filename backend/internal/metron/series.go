@@ -66,3 +66,29 @@ func (c *Client) GetSeriesIssues(ctx context.Context, id int) ([]Issue, error) {
 	}
 	return issues, nil
 }
+
+func (c *Client) EachSeriesIssuePageWithRequest(ctx context.Context, id int, beforeRequest func() error, handle func([]Issue, int) error) error {
+	next := fmt.Sprintf("/series/%d/issue_list/", id)
+	var values url.Values
+	for next != "" {
+		if beforeRequest != nil {
+			if err := beforeRequest(); err != nil {
+				return err
+			}
+		}
+		page, err := c.getListPage(ctx, next, values)
+		if err != nil {
+			return err
+		}
+		issues := make([]Issue, 0, len(page.results))
+		for _, raw := range page.results {
+			issues = append(issues, issueFromMap(raw))
+		}
+		if err := handle(issues, page.count); err != nil {
+			return err
+		}
+		next = page.next
+		values = nil
+	}
+	return nil
+}

@@ -20,7 +20,7 @@ Join the Discord to ask questions, share feedback and reading orders, and follow
 - Continue active reading from the dashboard and review statistics and achievements.
 - Search and import comics, reading lists, series, arcs, and characters from Metron.
 - Run scheduled Metron discovery jobs for new comics and reading lists.
-- Fill incomplete comic metadata automatically while respecting configurable call limits and retry cooldowns.
+- Fill incomplete comic, character, series, and arc metadata automatically, with optional full comic-list pulls for linked resources.
 - Choose single-user or multi-user setup, invite users, or enable open registration.
 - Optionally give visitors read-only access to shared ComicHero content.
 - Run as a single container or standalone binary backed by SQLite.
@@ -131,7 +131,9 @@ Public read-only access can be enabled separately. Because comics, reading order
 - search for and import individual records;
 - import complete Metron series and reading lists in background jobs;
 - discover newly modified comics and reading lists on a daily, weekly, or monthly schedule;
-- repair missing publisher, cover, cover-date, and description fields on a schedule;
+- repair configurable missing fields on comics, characters, series, and arcs on one shared schedule;
+- optionally pull complete character appearance, series issue, and arc issue lists during maintenance;
+- prioritize the order in which maintenance processes comics, characters, series, and arcs;
 - apply call limits, minimum request intervals, and cooldowns for incomplete records.
 
 Imports and scans are rate-limited upstream. Use your own Metron account, choose conservative schedules, and review Metron’s terms before enabling automation.

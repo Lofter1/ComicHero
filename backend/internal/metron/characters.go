@@ -59,9 +59,18 @@ func (c *Client) GetCharacterIssues(ctx context.Context, id int) ([]Issue, error
 }
 
 func (c *Client) EachCharacterIssuePage(ctx context.Context, id int, handle func([]Issue, int) error) error {
+	return c.EachCharacterIssuePageWithRequest(ctx, id, nil, handle)
+}
+
+func (c *Client) EachCharacterIssuePageWithRequest(ctx context.Context, id int, beforeRequest func() error, handle func([]Issue, int) error) error {
 	next := fmt.Sprintf("/character/%d/issue_list/", id)
 	var values url.Values
 	for next != "" {
+		if beforeRequest != nil {
+			if err := beforeRequest(); err != nil {
+				return err
+			}
+		}
 		page, err := c.getListPage(ctx, next, values)
 		if err != nil {
 			return err

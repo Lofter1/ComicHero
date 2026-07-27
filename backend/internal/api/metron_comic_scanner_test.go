@@ -29,7 +29,17 @@ func newMetronComicScannerTestDB(t *testing.T) *sqlx.DB {
 
 func TestMetronComicScanSettingsRoundTrip(t *testing.T) {
 	db := newMetronComicScannerTestDB(t)
-	settings := MetronComicScanSettings{Enabled: true, ScanComics: true, Schedule: "weekly", Weekdays: []string{"friday", "monday"}, StartTime: "03:15", DailyCallLimit: 12, MinIntervalSeconds: 20, IncompleteFields: []string{"publisher", "comicVineId"}}
+	settings := MetronComicScanSettings{
+		Enabled: true, ScanComics: true, ScanCharacters: true, ScanSeries: true, ScanArcs: true,
+		PullCharacterComics: true, PullSeriesComics: true, PullArcComics: true,
+		Schedule: "weekly", Weekdays: []string{"friday", "monday"}, StartTime: "03:15",
+		DailyCallLimit: 12, MinIntervalSeconds: 20,
+		IncompleteFields:          []string{"publisher", "comicVineId"},
+		CharacterIncompleteFields: []string{"description"},
+		SeriesIncompleteFields:    []string{"publisher"},
+		ArcIncompleteFields:       []string{"image"},
+		ResourceOrder:             []string{"arcs", "characters", "series", "comics"},
+	}
 	if err := validateMetronComicScanSettings(&settings); err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +50,11 @@ func TestMetronComicScanSettingsRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !got.Enabled || got.DailyCallLimit != 12 || got.MinIntervalSeconds != 20 || len(got.Weekdays) != 2 || len(got.IncompleteFields) != 2 {
+	if !got.Enabled || !got.ScanCharacters || !got.ScanSeries || !got.ScanArcs ||
+		!got.PullCharacterComics || !got.PullSeriesComics || !got.PullArcComics ||
+		got.DailyCallLimit != 12 || got.MinIntervalSeconds != 20 ||
+		len(got.Weekdays) != 2 || len(got.IncompleteFields) != 2 ||
+		len(got.ResourceOrder) != 4 || got.ResourceOrder[0] != "arcs" {
 		t.Fatalf("unexpected settings: %+v", got)
 	}
 }
@@ -57,6 +71,14 @@ func TestMetronComicScanLegacySettingsKeepDefaultIncompleteFields(t *testing.T) 
 	if len(settings.IncompleteFields) != len(metronComicIncompleteFields) {
 		t.Fatalf("legacy incomplete fields = %v; want defaults %v", settings.IncompleteFields, metronComicIncompleteFields)
 	}
+	if len(settings.CharacterIncompleteFields) != len(metronCharacterIncompleteFields) ||
+		len(settings.SeriesIncompleteFields) != len(metronSeriesIncompleteFields) ||
+		len(settings.ArcIncompleteFields) != len(metronArcIncompleteFields) {
+		t.Fatalf("legacy resource defaults were not preserved: %+v", settings)
+	}
+	if strings.Join(settings.ResourceOrder, ",") != strings.Join(metronMaintenanceResourceOrder, ",") {
+		t.Fatalf("legacy resource order = %v; want %v", settings.ResourceOrder, metronMaintenanceResourceOrder)
+	}
 }
 
 func TestMetronComicScanSettingsRequireKnownIncompleteFields(t *testing.T) {
@@ -70,6 +92,35 @@ func TestMetronComicScanSettingsRequireKnownIncompleteFields(t *testing.T) {
 	settings.IncompleteFields = append(settings.IncompleteFields, "unknown")
 	if err := validateMetronComicScanSettings(&settings); err == nil {
 		t.Fatal("unknown incomplete field returned nil error")
+	}
+}
+
+func TestMetronMaintenanceCanScanLinkedResourcesWithoutComics(t *testing.T) {
+	settings := defaultMetronComicScanSettings()
+	settings.ScanComics = false
+	settings.ScanCharacters = true
+	settings.CharacterIncompleteFields = []string{"description", "aliases"}
+	if err := validateMetronComicScanSettings(&settings); err != nil {
+		t.Fatalf("validate character-only maintenance: %v", err)
+	}
+
+	settings.CharacterIncompleteFields = nil
+	if err := validateMetronComicScanSettings(&settings); err == nil {
+		t.Fatal("enabled character maintenance accepted no incomplete fields")
+	}
+}
+
+func TestMetronMaintenanceResourceOrderIsNormalized(t *testing.T) {
+	order, err := normalizeMetronMaintenanceResourceOrder([]string{" ARCS ", "comics", "arcs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"arcs", "comics", "characters", "series"}
+	if strings.Join(order, ",") != strings.Join(want, ",") {
+		t.Fatalf("order = %v; want %v", order, want)
+	}
+	if _, err := normalizeMetronMaintenanceResourceOrder([]string{"publishers"}); err == nil {
+		t.Fatal("unknown maintenance resource was accepted")
 	}
 }
 
@@ -234,6 +285,343 @@ func TestMetronComicScanUsesSelectedIncompleteFields(t *testing.T) {
 	}
 	if len(rows) != 2 || rows[0].MetronID.Int64 != 102 || rows[1].MetronID.Int64 != 103 {
 		t.Fatalf("selected rows = %+v; want Metron issues 102 and 103", rows)
+	}
+}
+
+func TestMetronMaintenanceSelectsIncompleteLinkedResourcesAndRespectsCooldown(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	now := time.Now().UTC()
+	recent := now.Add(-time.Hour).Format(time.RFC3339)
+	if _, err := db.Exec(`
+		INSERT INTO characters (id, name, description, image, metron_character_id)
+		VALUES (1, 'Missing aliases', 'Complete', '/character.jpg', 101);
+		INSERT INTO series (id, name, series_year, publisher, volume, year_end, issue_count, description, metron_series_id)
+		VALUES (1, 'Missing publisher', 2020, '', 2, 2024, 12, 'Complete', 201);
+		INSERT INTO arcs (id, name, description, image, metron_arc_id)
+		VALUES (1, 'Missing image', 'Complete', '', 301);
+		INSERT INTO metron_sync_states (resource_type, metron_id, fully_synced, synced_at)
+		VALUES ('series', 201, 1, ?);
+	`, recent); err != nil {
+		t.Fatalf("seed linked resources: %v", err)
+	}
+
+	settings := defaultMetronComicScanSettings()
+	settings.RecheckCooldownDays = 30
+	settings.CharacterIncompleteFields = []string{"aliases"}
+	settings.SeriesIncompleteFields = []string{"publisher"}
+	settings.ArcIncompleteFields = []string{"image"}
+
+	characters, err := selectIncompleteCharacters(context.Background(), db, settings, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(characters) != 1 || characters[0].MetronID != 101 {
+		t.Fatalf("characters = %+v; want Metron character 101", characters)
+	}
+	series, err := selectIncompleteSeries(context.Background(), db, settings, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(series) != 0 {
+		t.Fatalf("recently checked series = %+v; want none during cooldown", series)
+	}
+	arcs, err := selectIncompleteArcs(context.Background(), db, settings, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(arcs) != 1 || arcs[0].MetronID != 301 {
+		t.Fatalf("arcs = %+v; want Metron arc 301", arcs)
+	}
+
+	series, err = selectIncompleteSeries(context.Background(), db, settings, now.Add(31*24*time.Hour))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(series) != 1 || series[0].MetronID != 201 {
+		t.Fatalf("series after cooldown = %+v; want Metron series 201", series)
+	}
+}
+
+func TestMetronMaintenanceEnrichesLinkedResourceMetadataWithoutOverwritingLocalValues(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	ctx := testUserContext()
+	if _, err := db.Exec(`
+		INSERT INTO characters (id, name, description, image, metron_character_id)
+		VALUES (1, 'Local Character', '', '/keep-character.jpg', 101);
+		INSERT INTO series (id, name, series_year, publisher, volume, year_end, issue_count, description, metron_series_id)
+		VALUES (1, 'Local Series', 2020, 'Keep Publisher', 0, 0, 0, '', 201);
+		INSERT INTO arcs (id, name, description, image, metron_arc_id)
+		VALUES (1, 'Local Arc', '', '/keep-arc.jpg', 301);
+	`); err != nil {
+		t.Fatalf("seed linked resources: %v", err)
+	}
+
+	if err := enrichIncompleteCharacterFromMetron(ctx, db, nil, 1, metron.MetronCharacter{
+		ID: 101, Name: "Remote Character", Description: "Remote description",
+		Image: "/replace-character.jpg", Aliases: []string{"Hero"},
+	}); err != nil {
+		t.Fatalf("enrich character: %v", err)
+	}
+	if err := enrichIncompleteSeriesFromMetron(ctx, db, 1, metron.Series{
+		ID: 201, Name: "Remote Series", Publisher: "Replace Publisher", YearBegan: 2021,
+		Volume: 2, YearEnd: 2025, IssueCount: 24, Description: "Remote description",
+	}); err != nil {
+		t.Fatalf("enrich series: %v", err)
+	}
+	if err := enrichIncompleteArcFromMetron(ctx, db, 1, metron.MetronArc{
+		ID: 301, Name: "Remote Arc", Description: "Remote description", Image: "/replace-arc.jpg",
+	}); err != nil {
+		t.Fatalf("enrich arc: %v", err)
+	}
+
+	var character Character
+	if err := db.Get(&character, `SELECT * FROM characters WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if character.Name != "Local Character" || character.Description != "Remote description" ||
+		character.Image != "/keep-character.jpg" {
+		t.Fatalf("character = %+v; want missing description only", character)
+	}
+	var aliases int
+	if err := db.Get(&aliases, `SELECT COUNT(*) FROM character_aliases WHERE character_id = 1 AND alias = 'Hero'`); err != nil || aliases != 1 {
+		t.Fatalf("character aliases = %d, err=%v; want Hero", aliases, err)
+	}
+
+	var gotSeries ComicSeries
+	if err := db.Get(&gotSeries, `SELECT * FROM series WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if gotSeries.Name != "Local Series" || gotSeries.Publisher != "Keep Publisher" ||
+		gotSeries.SeriesYear != 2020 || gotSeries.Volume != 2 || gotSeries.YearEnd != 2025 ||
+		gotSeries.IssueCount != 24 || gotSeries.Description != "Remote description" {
+		t.Fatalf("series = %+v; missing metadata was not filled safely", gotSeries)
+	}
+
+	var arc Arc
+	if err := db.Get(&arc, `SELECT * FROM arcs WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if arc.Name != "Local Arc" || arc.Description != "Remote description" || arc.Image != "/keep-arc.jpg" {
+		t.Fatalf("arc = %+v; want missing description only", arc)
+	}
+}
+
+func TestMetronMaintenanceProcessesResourcesInConfiguredOrder(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		INSERT INTO comics (id, series, issue, publisher, metron_issue_id)
+		VALUES (1, 'Local Series', '1', '', 101);
+		INSERT INTO characters (id, name, description, image, metron_character_id)
+		VALUES (1, 'Local Character', '', '', 201);
+		INSERT INTO series (id, name, series_year, publisher, metron_series_id)
+		VALUES (1, 'Local Series', 2020, '', 301);
+		INSERT INTO arcs (id, name, description, image, metron_arc_id)
+		VALUES (1, 'Local Arc', '', '', 401);
+	`); err != nil {
+		t.Fatalf("seed maintenance resources: %v", err)
+	}
+
+	requests := []string{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/arc/401/":
+			_, _ = w.Write([]byte(`{"id":401,"name":"Remote Arc","desc":"Arc description"}`))
+		case "/series/301/":
+			_, _ = w.Write([]byte(`{"id":301,"name":"Remote Series","publisher":{"name":"Publisher"},"year_began":2020}`))
+		case "/character/201/":
+			_, _ = w.Write([]byte(`{"id":201,"name":"Remote Character","desc":"Character description"}`))
+		case "/issue/101/":
+			_, _ = w.Write([]byte(`{"id":101,"number":"1","series":{"name":"Local Series","year_began":2020,"publisher":{"name":"Publisher"}}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.ScanCharacters = true
+	settings.ScanSeries = true
+	settings.ScanArcs = true
+	settings.IncompleteFields = []string{"publisher"}
+	settings.CharacterIncompleteFields = []string{"description"}
+	settings.SeriesIncompleteFields = []string{"publisher"}
+	settings.ArcIncompleteFields = []string{"description"}
+	settings.ResourceOrder = []string{"arcs", "series", "characters", "comics"}
+	settings.DailyCallLimit = 10
+	settings.MinIntervalSeconds = 0
+
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	want := []string{"/arc/401/", "/series/301/", "/character/201/", "/issue/101/"}
+	if strings.Join(requests, ",") != strings.Join(want, ",") {
+		t.Fatalf("request order = %v; want %v", requests, want)
+	}
+}
+
+func TestMetronMaintenanceCanPullFullArcComicList(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		INSERT INTO arcs (id, name, description, image, metron_arc_id)
+		VALUES (1, 'Local Arc', '', '', 301);
+	`); err != nil {
+		t.Fatalf("seed arc: %v", err)
+	}
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/arc/301/":
+			_, _ = w.Write([]byte(`{"id":301,"name":"Remote Arc","desc":"Remote description"}`))
+		case "/arc/301/issue_list/":
+			_, _ = w.Write([]byte(`{"results":[{"issue":{"id":401,"number":"1","series":{"id":501,"name":"Series","year_began":2026,"publisher":{"name":"Publisher"}}}}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.ScanComics = false
+	settings.ScanArcs = true
+	settings.PullArcComics = true
+	settings.ArcIncompleteFields = []string{"description"}
+	settings.DailyCallLimit = 10
+	settings.MinIntervalSeconds = 0
+	settings.RecheckCooldownDays = 30
+
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	var description string
+	if err := db.Get(&description, `SELECT description FROM arcs WHERE id = 1`); err != nil {
+		t.Fatal(err)
+	}
+	if description != "Remote description" {
+		t.Fatalf("arc description = %q; want remote metadata", description)
+	}
+	var linked int
+	if err := db.Get(&linked, `
+		SELECT COUNT(*)
+		FROM arc_comics ac
+		JOIN comics c ON c.id = ac.comic_id
+		WHERE ac.arc_id = 1 AND c.metron_issue_id = 401
+	`); err != nil {
+		t.Fatal(err)
+	}
+	if linked != 1 {
+		t.Fatalf("linked arc comics = %d; want one imported comic", linked)
+	}
+	if requests["/arc/301/"] != 1 || requests["/arc/301/issue_list/"] != 1 {
+		t.Fatalf("requests = %#v; want metadata and full comic list", requests)
+	}
+	usage := currentMetronComicScanUsage(context.Background(), db, time.Now())
+	if usage.Calls != 2 {
+		t.Fatalf("Metron calls = %d; want metadata plus comic list", usage.Calls)
+	}
+}
+
+func TestMetronMaintenanceMetadataOnlySkipsArcComicList(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		INSERT INTO arcs (id, name, description, image, metron_arc_id)
+		VALUES (1, 'Local Arc', '', '', 301);
+	`); err != nil {
+		t.Fatalf("seed arc: %v", err)
+	}
+
+	requests := map[string]int{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.Path]++
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/arc/301/" {
+			_, _ = w.Write([]byte(`{"id":301,"name":"Remote Arc","desc":"Remote description"}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.ScanComics = false
+	settings.ScanArcs = true
+	settings.PullArcComics = false
+	settings.ArcIncompleteFields = []string{"description"}
+	settings.DailyCallLimit = 10
+	settings.MinIntervalSeconds = 0
+
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	if requests["/arc/301/"] != 1 || requests["/arc/301/issue_list/"] != 0 {
+		t.Fatalf("requests = %#v; metadata-only maintenance must not pull the comic list", requests)
+	}
+	var comics int
+	if err := db.Get(&comics, `SELECT COUNT(*) FROM comics`); err != nil {
+		t.Fatal(err)
+	}
+	if comics != 0 {
+		t.Fatalf("comics = %d; metadata-only maintenance imported comics", comics)
+	}
+	usage := currentMetronComicScanUsage(context.Background(), db, time.Now())
+	if usage.Calls != 1 {
+		t.Fatalf("Metron calls = %d; want metadata only", usage.Calls)
+	}
+}
+
+func TestMetronMaintenanceQuotaAppliesToEveryComicListPage(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`
+		CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		INSERT INTO arcs (id, name, description, image, metron_arc_id)
+		VALUES (1, 'Local Arc', '', '', 301);
+	`); err != nil {
+		t.Fatalf("seed arc: %v", err)
+	}
+
+	requests := map[string]int{}
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests[r.URL.String()]++
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.String() {
+		case "/arc/301/":
+			_, _ = w.Write([]byte(`{"id":301,"name":"Remote Arc","desc":"Remote description"}`))
+		case "/arc/301/issue_list/":
+			_, _ = w.Write([]byte(`{"count":2,"next":"` + server.URL + `/arc/301/issue_list/?page=2","results":[{"issue":{"id":401,"number":"1","series":{"name":"Series"}}}]}`))
+		case "/arc/301/issue_list/?page=2":
+			_, _ = w.Write([]byte(`{"count":2,"next":null,"results":[{"issue":{"id":402,"number":"2","series":{"name":"Series"}}}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.ScanComics = false
+	settings.ScanArcs = true
+	settings.PullArcComics = true
+	settings.ArcIncompleteFields = []string{"description"}
+	settings.DailyCallLimit = 2
+	settings.MinIntervalSeconds = 0
+
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	if requests["/arc/301/"] != 1 || requests["/arc/301/issue_list/"] != 1 ||
+		requests["/arc/301/issue_list/?page=2"] != 0 {
+		t.Fatalf("requests = %#v; quota should stop before the second list page", requests)
+	}
+	status := scanner.snapshot(context.Background())
+	if status.StopReason != "daily quota used" || status.CallsUsedToday != 2 {
+		t.Fatalf("status = %+v; want exhausted two-call quota", status)
 	}
 }
 
