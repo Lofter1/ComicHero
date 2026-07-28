@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { assetURL } from '@/api/client.js'
 import ComicListView from '@/features/comics/components/ComicListView.vue'
 import { formatProgress } from '@/features/reading-orders/model.js'
@@ -8,14 +8,22 @@ import CharacterPickerDialog from './CharacterPickerDialog.vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import ProgressBar from '@/shared/components/feedback/ProgressBar.vue'
 import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
+import { useComicListFilterState } from '@/shared/composables/useComicListFilterState.js'
 
-defineProps({
+const props = defineProps({
   collection: { type: Object, default: null },
   selectedComicId: { type: Number, default: null },
   quickSavingComicId: { type: Number, default: null },
   saving: { type: Boolean, default: false },
   startSaving: { type: Boolean, default: false },
 })
+
+const listState = computed(() =>
+  useComicListFilterState(props.collection ? `collection:${props.collection.id}` : null, {
+    sort: 'date',
+  }),
+)
+
 defineEmits([
   'back',
   'toggle-started',
@@ -143,10 +151,17 @@ function monogram(name) {
           :comics="collection.comics || []"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
-          initial-sort="date"
+          :search="listState.search"
+          :status="listState.status"
+          :sort="listState.sort"
+          :direction="listState.direction"
           paginate-local
           empty-message="Add characters to build this reading queue."
           filtered-empty-message="No appearances match these filters."
+          @update:search="listState.search = $event"
+          @update:status="listState.status = $event"
+          @update:sort="listState.sort = $event"
+          @update:direction="listState.direction = $event"
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
           @toggle-skipped="$emit('toggle-skipped', $event)"

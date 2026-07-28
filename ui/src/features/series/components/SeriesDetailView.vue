@@ -9,8 +9,10 @@ import BaseButton from '@/shared/components/form/BaseButton.vue'
 import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
 import MetadataGrid from '@/shared/components/layout/MetadataGrid.vue'
 import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
+import { computed } from 'vue'
+import { useComicListFilterState } from '@/shared/composables/useComicListFilterState.js'
 
-defineProps({
+const props = defineProps({
   selectedSeries: {
     type: Object,
     default: null,
@@ -35,6 +37,10 @@ defineProps({
   deleting: { type: Boolean, default: false },
   startSaving: { type: Boolean, default: false },
 })
+
+const listState = computed(() =>
+  useComicListFilterState(props.selectedSeries ? `series:${props.selectedSeries.id}` : null),
+)
 
 defineEmits([
   'back',
@@ -142,11 +148,19 @@ function seriesPublisherLabel(series) {
           :comics="selectedSeries.comics || []"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
+          :search="listState.search"
+          :status="listState.status"
+          :sort="listState.sort"
+          :direction="listState.direction"
           show-cover
           paginate-local
           :read-only="readOnly"
           empty-message="No comics in this series yet."
           filtered-empty-message="No series entries match these filters."
+          @update:search="listState.search = $event"
+          @update:status="listState.status = $event"
+          @update:sort="listState.sort = $event"
+          @update:direction="listState.direction = $event"
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
           @toggle-skipped="$emit('toggle-skipped', $event)"
