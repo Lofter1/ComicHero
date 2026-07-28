@@ -190,6 +190,7 @@ const serverTotal = ref(0)
 const serverOffset = ref(0)
 const serverHasMore = ref(false)
 const serverLoading = ref(false)
+const serverError = ref(false)
 
 const effectiveServerMode = computed(() => props.serverSearch || props.serverSource)
 const sourceComics = computed(() => (props.serverSource ? serverComics.value : props.comics))
@@ -432,6 +433,16 @@ async function fetchServerComics({ append = false } = {}) {
     serverTotal.value = page.total
     serverHasMore.value = page.hasMore
     serverOffset.value = offset + page.items.length
+    serverError.value = false
+  } catch (error) {
+    console.error('Failed to load comics from server source', error)
+    serverError.value = true
+    // Stop the infinite-scroll observer from retrying against a broken request.
+    serverHasMore.value = false
+    if (!append) {
+      serverComics.value = []
+      serverTotal.value = 0
+    }
   } finally {
     serverLoading.value = false
   }
@@ -576,6 +587,7 @@ watch([visibleComics, canLoadMoreLocal, canLoadMoreServer], () => {
       </button>
     </template>
 
+    <EmptyState v-else-if="serverError"> Couldn't load comics. Try again later. </EmptyState>
     <EmptyState v-else>
       {{ hasFilters ? filteredEmptyMessage : emptyMessage }}
     </EmptyState>

@@ -119,12 +119,10 @@ defineEmits([
           embedded
           title="Comics"
           :comics="selectedArc.comics"
-          :source-params="{ arcId: selectedArc.id }"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
           show-comment
           paginate-local
-          server-source
           :read-only="readOnly"
           empty-message="No comics in this arc yet."
           filtered-empty-message="No comics match these filters."
