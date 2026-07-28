@@ -10,6 +10,7 @@ import BaseButton from '@/shared/components/form/BaseButton.vue'
 import DetailPanel from '@/shared/components/layout/DetailPanel.vue'
 import MetadataGrid from '@/shared/components/layout/MetadataGrid.vue'
 import PanelHeader from '@/shared/components/layout/PanelHeader.vue'
+import { useComicListFilterState } from '@/shared/composables/useComicListFilterState.js'
 import {
   formatProgress,
   formatRating,
@@ -68,6 +69,11 @@ const emit = defineEmits([
 const ratingValues = [1, 2, 3, 4, 5]
 
 const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrder))
+const listState = computed(() =>
+  useComicListFilterState(props.selectedOrder ? `readingOrder:${props.selectedOrder.id}` : null, {
+    sort: 'readingOrder',
+  }),
+)
 </script>
 
 <template>
@@ -210,7 +216,10 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           :comics="displayComics"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
-          initial-sort="readingOrder"
+          :search="listState.search"
+          :status="listState.status"
+          :sort="listState.sort"
+          :direction="listState.direction"
           show-reading-order-sort
           show-sections
           show-comment
@@ -219,6 +228,10 @@ const displayComics = computed(() => readingOrderDisplayComics(props.selectedOrd
           paginate-local
           empty-message="No comics in this reading order yet."
           filtered-empty-message="No comics match these filters."
+          @update:search="listState.search = $event"
+          @update:status="listState.status = $event"
+          @update:sort="listState.sort = $event"
+          @update:direction="listState.direction = $event"
           @open-comic="$emit('open-comic', $event)"
           @toggle-read="$emit('toggle-read', $event)"
           @toggle-skipped="$emit('toggle-skipped', $event)"
