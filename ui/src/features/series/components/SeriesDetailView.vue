@@ -140,12 +140,10 @@ function seriesPublisherLabel(series) {
           embedded
           title="Entries"
           :comics="selectedSeries.comics || []"
-          :source-params="{ seriesId: selectedSeries.id }"
           :selected-comic-id="selectedComicId"
           :quick-saving-comic-id="quickSavingComicId"
           show-cover
           paginate-local
-          server-source
           :read-only="readOnly"
           empty-message="No comics in this series yet."
           filtered-empty-message="No series entries match these filters."
