@@ -7,7 +7,7 @@ ComicHero is a self-hosted reading-order tracker for comics. Build curated readi
 
 [![Latest release](https://img.shields.io/github/v/release/Lofter1/ComicHero?label=release)](https://github.com/Lofter1/ComicHero/releases/latest)
 [![Container image](https://img.shields.io/badge/container-ghcr.io-2496ED?logo=docker&logoColor=white)](https://github.com/Lofter1/ComicHero/pkgs/container/comichero)
-[![Join the ComicHero community on Discord](https://img.shields.io/badge/Join_the_community-Discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/GebUwAVP)
+[![Join the ComicHero community on Discord](https://img.shields.io/badge/Join_the_community-Discord-5865F2?logo=discord&logoColor=white)](https://discord.gg/qdP59Cqupx)
 
 Join the Discord to ask questions, share feedback and reading orders, and follow development.
 
