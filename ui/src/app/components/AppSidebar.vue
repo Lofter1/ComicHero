@@ -252,7 +252,7 @@ function toggleMobileMenu() {
           </router-link>
           <a
             class="account-menu-item"
-            href="https://discord.gg/GebUwAVP"
+            href="https://discord.gg/qdP59Cqupx"
             target="_blank"
             rel="noreferrer"
             @click="closeMenus"

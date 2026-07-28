@@ -124,7 +124,7 @@ function handleCBLFile(event) {
             <template #actions>
               <div v-if="!readOnly" ref="orderActions" class="browse-header-actions">
                 <BaseButton
-                  variant="secondary"
+                  variant="neutral"
                   size="icon"
                   :aria-expanded="orderActionsOpen"
                   aria-label="Actions"

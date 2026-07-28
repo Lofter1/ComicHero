@@ -93,23 +93,23 @@ This builds the Vue frontend, embeds it in the Go application, and writes a stan
 
 ComicHero reads the process environment and `.env` files in the current or parent directory. Process environment variables take precedence.
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `8080` | HTTP port used by the server. |
-| `DB_PATH` | `./data/comicorder.db` | SQLite database file. Parent directories are created automatically. |
-| `COVER_CACHE_DIR` | `./public/covers` | Storage directory for downloaded and optimized cover images. |
-| `ACCESS_LOG_PATH` | `./data/access.log` | Append-only JSON Lines HTTP access log. Set it explicitly to an empty value to disable file logging. |
-| `STATIC_DIR` | embedded frontend | Optional directory from which to serve frontend files instead of the embedded build. |
-| `METRON_BASE_URL` | `https://metron.cloud/api` | Metron API base URL. |
-| `METRON_USERNAME` | empty | Metron username used for search, import, and maintenance jobs. |
-| `METRON_PASSWORD` | empty | Metron password. |
-| `APP_BASE_URL` | `http://localhost:<PORT>` | Public origin used in verification and password-reset links. |
-| `COOKIE_SECURE` | auto-detected | Force session cookies to use or omit `Secure` with `true` or `false`. Otherwise TLS and `X-Forwarded-Proto` are detected. |
-| `SMTP_HOST` | empty | SMTP server for verification and password-reset emails. Links are logged when SMTP is unset. |
-| `SMTP_PORT` | `587` | SMTP server port. |
-| `SMTP_USERNAME` | empty | Optional SMTP username. |
-| `SMTP_PASSWORD` | empty | Optional SMTP password. |
-| `SMTP_FROM` | SMTP username or `noreply@localhost` | Sender address for account email. |
+| Variable          | Default                              | Description                                                                                                               |
+| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `PORT`            | `8080`                               | HTTP port used by the server.                                                                                             |
+| `DB_PATH`         | `./data/comicorder.db`               | SQLite database file. Parent directories are created automatically.                                                       |
+| `COVER_CACHE_DIR` | `./public/covers`                    | Storage directory for downloaded and optimized cover images.                                                              |
+| `ACCESS_LOG_PATH` | `./data/access.log`                  | Append-only JSON Lines HTTP access log. Set it explicitly to an empty value to disable file logging.                      |
+| `STATIC_DIR`      | embedded frontend                    | Optional directory from which to serve frontend files instead of the embedded build.                                      |
+| `METRON_BASE_URL` | `https://metron.cloud/api`           | Metron API base URL.                                                                                                      |
+| `METRON_USERNAME` | empty                                | Metron username used for search, import, and maintenance jobs.                                                            |
+| `METRON_PASSWORD` | empty                                | Metron password.                                                                                                          |
+| `APP_BASE_URL`    | `http://localhost:<PORT>`            | Public origin used in verification and password-reset links.                                                              |
+| `COOKIE_SECURE`   | auto-detected                        | Force session cookies to use or omit `Secure` with `true` or `false`. Otherwise TLS and `X-Forwarded-Proto` are detected. |
+| `SMTP_HOST`       | empty                                | SMTP server for verification and password-reset emails. Links are logged when SMTP is unset.                              |
+| `SMTP_PORT`       | `587`                                | SMTP server port.                                                                                                         |
+| `SMTP_USERNAME`   | empty                                | Optional SMTP username.                                                                                                   |
+| `SMTP_PASSWORD`   | empty                                | Optional SMTP password.                                                                                                   |
+| `SMTP_FROM`       | SMTP username or `noreply@localhost` | Sender address for account email.                                                                                         |
 
 For a public deployment, put ComicHero behind HTTPS, set `APP_BASE_URL` to its public HTTPS origin, and configure SMTP. Ensure the reverse proxy sends `X-Forwarded-Proto: https`, or set `COOKIE_SECURE=true` explicitly.
 
@@ -193,7 +193,7 @@ The standard container stores the log at `/data/access.log` alongside other pers
 
 ## Community and support
 
-Questions, feedback, and reading-order discussion are welcome in the [ComicHero Discord community](https://discord.gg/GebUwAVP). For reproducible bugs and feature requests, open a [GitHub issue](https://github.com/Lofter1/ComicHero/issues).
+Questions, feedback, and reading-order discussion are welcome in the [ComicHero Discord community](https://discord.gg/qdP59Cqupx). For reproducible bugs and feature requests, open a [GitHub issue](https://github.com/Lofter1/ComicHero/issues).
 
 ## Contributing
 
