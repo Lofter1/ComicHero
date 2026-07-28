@@ -7,6 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/pressly/goose/v3 v3.27.2
+	golang.org/x/image v0.44.0
 	modernc.org/sqlite v1.53.0
 )
 
