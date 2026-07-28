@@ -75,6 +75,7 @@ function toggleStatus(value) {
       <BaseTextInput
         v-model="search"
         class="flex-[1_1_280px] min-w-[min(280px,100%)] down-mobile:flex-[1_1_280px]"
+        size="toolbar"
         type="search"
         placeholder="Search issues"
       />
@@ -124,6 +125,7 @@ function toggleStatus(value) {
           v-if="!effectiveServerMode && tagOptions.length"
           v-model="tag"
           class="filter-select"
+          size="toolbar"
           variant="trailing"
           aria-label="Filter by tag"
         >
@@ -136,6 +138,7 @@ function toggleStatus(value) {
         <BaseSelect
           v-model="sort"
           class="filter-select"
+          size="toolbar"
           variant="trailing"
           aria-label="Sort issues"
         >
@@ -150,6 +153,7 @@ function toggleStatus(value) {
         <BaseSelect
           v-model="direction"
           class="filter-select"
+          size="toolbar"
           variant="trailing"
           aria-label="Sort direction"
         >
@@ -189,7 +193,7 @@ function toggleStatus(value) {
 }
 
 .status-filter-button {
-  @apply min-h-8 rounded-[6px] border-0 bg-transparent px-2 py-1.5 text-sm font-bold text-label;
+  @apply min-h-8 rounded-ui-sm border-0 bg-transparent px-2 py-1.5 text-sm font-bold text-label;
 }
 
 .status-filter-button.active {

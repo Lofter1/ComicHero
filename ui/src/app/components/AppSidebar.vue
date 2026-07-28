@@ -330,7 +330,7 @@ function toggleMobileMenu() {
 }
 
 .sidebar-actions {
-  @apply grid gap-2.5 mt-auto down-tablet:absolute down-tablet:top-[50%] down-tablet:right-20 down-tablet:block down-tablet:mt-0 down-tablet:w-auto down-tablet:transform-[translateY(-50%)] down-mobile:right-[66px] down-phone:right-16;
+  @apply grid gap-2.5 mt-auto down-tablet:absolute down-tablet:top-[50%] down-tablet:right-20 down-tablet:block down-tablet:mt-0 down-tablet:w-auto down-tablet:transform-[translateY(-50%)] down-mobile:right-16.5 down-phone:right-16;
 }
 
 .account-menu {
@@ -350,7 +350,7 @@ function toggleMobileMenu() {
 }
 
 .account-menu-panel {
-  @apply absolute left-0 bottom-[calc(100%+10px)] z-40 w-[min(320px,calc(100vw-36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:top-[calc(100%+8px)] down-tablet:right-[-64px] down-tablet:bottom-auto down-tablet:left-auto down-tablet:w-[min(320px,calc(100vw-32px))] down-tablet:max-h-[calc(100dvh-88px)] down-tablet:overflow-y-auto down-tablet:overscroll-contain down-mobile:right-[-54px] down-mobile:w-[min(320px,calc(100vw-24px))] down-phone:right-[-54px] down-phone:w-[calc(100vw-20px)];
+  @apply absolute left-0 bottom-[calc(100%+10px)] z-40 w-[min(320px,calc(100vw-36px))] border border-line rounded bg-surface shadow-panel p-2.5 grid gap-2 down-tablet:absolute down-tablet:top-[calc(100%+8px)] down-tablet:-right-16 down-tablet:bottom-auto down-tablet:left-auto down-tablet:w-[min(320px,calc(100vw-32px))] down-tablet:max-h-[calc(100dvh-88px)] down-tablet:overflow-y-auto down-tablet:overscroll-contain down-mobile:-right-13.5 down-mobile:w-[min(320px,calc(100vw-24px))] down-phone:-right-13.5 down-phone:w-[calc(100vw-20px)];
 }
 
 .account-menu-profile {
