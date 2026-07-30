@@ -59,7 +59,17 @@ func getReadingOrderRow(ctx context.Context, db *sqlx.DB, id int) (ReadingOrder,
 				WHEN ro.author_user_id = ?
 					OR EXISTS (SELECT 1 FROM users current_user WHERE current_user.id = ? AND current_user.is_admin = 1)
 				THEN 1 ELSE 0
-			END AS can_edit
+			END AS can_edit,
+			(
+				SELECT crf.collection FROM cbl_repository_files crf
+				WHERE crf.reading_order_id = ro.id AND TRIM(crf.collection) <> ''
+				ORDER BY crf.imported_at DESC LIMIT 1
+			) AS collection,
+			(
+				SELECT crf.collection_sequence FROM cbl_repository_files crf
+				WHERE crf.reading_order_id = ro.id AND crf.collection_sequence IS NOT NULL
+				ORDER BY crf.imported_at DESC LIMIT 1
+			) AS collection_sequence
 		FROM reading_orders ro
 		LEFT JOIN users author ON author.id = ro.author_user_id
 		LEFT JOIN (

@@ -196,6 +196,12 @@ function handleCBLFile(event) {
               @toggle-favorite="$emit('toggle-favorite', order)"
             >
               <template #byline>
+                <span v-if="order.collection" class="author-pill">
+                  {{ order.collection
+                  }}<template v-if="order.collectionSequence != null">
+                    · #{{ order.collectionSequence }}</template
+                  >
+                </span>
                 <span v-if="order.authorName" class="author-pill">
                   Author: {{ order.authorName }}
                 </span>
