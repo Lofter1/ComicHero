@@ -702,6 +702,50 @@ func TestMetronComicScanFindsAndCoolsDownComicVineOnlyComics(t *testing.T) {
 	}
 }
 
+func TestMetronComicScanSkipsComicVineMismatch(t *testing.T) {
+	db := newMetronImportTestDB(t)
+	if _, err := db.Exec(`CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+		INSERT INTO comics (series, issue, publisher, metron_issue_id, comic_vine_id)
+		VALUES ('Local', '1', '', 77, 9001)
+	`); err != nil {
+		t.Fatalf("seed comic: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.String() == "/issue/77/" {
+			_, _ = w.Write([]byte(`{"id":77,"cv_id":9999,"number":"1","series":{"name":"Metron","publisher":{"name":"Publisher"}}}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	settings := defaultMetronComicScanSettings()
+	settings.DailyCallLimit = 10
+	settings.MinIntervalSeconds = 0
+	settings.IncompleteFields = []string{"publisher"}
+	scanner := NewMetronComicScanner(db, metron.New(metron.Config{BaseURL: server.URL}), nil)
+	scanner.run(context.Background(), settings)
+
+	var comic struct {
+		Publisher string `db:"publisher"`
+		SyncedAt  string `db:"metron_synced_at"`
+	}
+	if err := db.Get(&comic, `SELECT publisher, metron_synced_at FROM comics WHERE metron_issue_id = 77`); err != nil {
+		t.Fatal(err)
+	}
+	if comic.Publisher != "" {
+		t.Fatalf("mismatched comic was enriched with publisher %q", comic.Publisher)
+	}
+	if comic.SyncedAt == "" {
+		t.Fatal("mismatched comic was not marked as checked")
+	}
+}
+
 func TestEnrichIncompleteComicStoresComicVineID(t *testing.T) {
 	db := newMetronImportTestDB(t)
 	ctx := testUserContext()
