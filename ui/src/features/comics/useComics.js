@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import {
+  ApiError,
   createComic,
   deleteComic as removeComic,
   getComic,
@@ -177,17 +178,28 @@ export function useComics({
   async function toggleComicRead(comic) {
     if (!comic?.id || quickSavingComicID.value) return
 
+    const wasRead = comic.read
+    const wasSkipped = comic.skipped
+    applyComicReadState({ id: comic.id, read: !wasRead, skipped: wasSkipped })
+
     quickSavingComicID.value = comic.id
     error.value = ''
 
     try {
-      const detail = await updateComicReadStatus(comic.id, { read: !comic.read })
+      const detail = await updateComicReadStatus(comic.id, { read: !wasRead })
       applyComicReadState(detail)
       refreshActiveLibraryData().catch((err) => {
-        error.value = err.message
+        if (err instanceof ApiError) error.value = err.message
       })
     } catch (err) {
-      error.value = err.message
+      if (err instanceof ApiError) {
+        applyComicReadState({ id: comic.id, read: wasRead, skipped: wasSkipped })
+        error.value = err.message
+      }
+      // Otherwise this is a network failure (most likely offline). The
+      // service worker's background sync has queued the request and will
+      // replay it once connectivity returns — keep the optimistic state
+      // instead of rolling it back or showing an error.
     } finally {
       quickSavingComicID.value = null
     }
@@ -196,17 +208,26 @@ export function useComics({
   async function toggleComicSkipped(comic) {
     if (!comic?.id || quickSavingComicID.value) return
 
+    const wasRead = comic.read
+    const wasSkipped = comic.skipped
+    applyComicReadState({ id: comic.id, read: wasRead, skipped: !wasSkipped })
+
     quickSavingComicID.value = comic.id
     error.value = ''
 
     try {
-      const detail = await updateComicReadStatus(comic.id, { skipped: !comic.skipped })
+      const detail = await updateComicReadStatus(comic.id, { skipped: !wasSkipped })
       applyComicReadState(detail)
       refreshActiveLibraryData().catch((err) => {
-        error.value = err.message
+        if (err instanceof ApiError) error.value = err.message
       })
     } catch (err) {
-      error.value = err.message
+      if (err instanceof ApiError) {
+        applyComicReadState({ id: comic.id, read: wasRead, skipped: wasSkipped })
+        error.value = err.message
+      }
+      // See toggleComicRead above: a non-ApiError failure here means the
+      // request is queued for background sync, not lost.
     } finally {
       quickSavingComicID.value = null
     }

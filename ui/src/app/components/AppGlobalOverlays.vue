@@ -1,5 +1,6 @@
 <script setup>
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
+import OfflineBanner from '@/shared/components/feedback/OfflineBanner.vue'
 import MetronImportMonitor from '@/features/metron/components/MetronImportMonitor.vue'
 
 defineProps({
@@ -16,6 +17,8 @@ defineEmits(['merge', 'dismiss-error', 'retry', 'continue', 'cancel', 'dismiss-j
 </script>
 
 <template>
+  <OfflineBanner />
+
   <ErrorToast
     :message="error"
     :action-label="isAdmin && conflictMessage === error ? 'Merge now' : ''"
