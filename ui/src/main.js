@@ -10,7 +10,7 @@ const updateSW = registerSW({
       updateSW(true)
     }
   },
-  onOfflineReady() { },
+  onOfflineReady() {},
 })
 
 createApp(App).use(router).mount('#app')
