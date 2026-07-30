@@ -20,6 +20,9 @@ type ReadingOrder struct {
 	Progress      float64  `json:"progress"    db:"progress"    doc:"Fraction of entries marked read, from 0 to 1." minimum:"0" maximum:"1" example:"0.5"`
 	AuthorName    string   `json:"authorName"  db:"author_name" doc:"Display name of the reading-order author." example:"Default"`
 	CanEdit       bool     `json:"canEdit"     db:"can_edit"    doc:"Whether the current user may edit this reading order." example:"true"`
+
+	Collection         *string `json:"collection,omitempty"         db:"collection"          doc:"Curated collection this reading order belongs to, derived from its source folder when imported from a CBL repository. Distinguishes similarly-named lists sourced from different curators/collections." example:"Spider-Man Complete 616 Chronology (reddit)"`
+	CollectionSequence *int    `json:"collectionSequence,omitempty" db:"collection_sequence" doc:"Position within its collection, when the source filename follows a numbered naming convention (e.g. \"01 - ...\")." example:"1"`
 }
 
 type ReadingOrderPayload struct {

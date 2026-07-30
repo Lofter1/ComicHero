@@ -150,7 +150,7 @@ func (s *cblRepositorySyncer) fetchCBLDocument(ctx context.Context, repository c
 
 func (s *cblRepositorySyncer) repositoryFileStates(ctx context.Context, repositoryURL string) (map[string]cblRepositoryFileState, error) {
 	rows := []cblRepositoryFileState{}
-	if err := s.db.SelectContext(ctx, &rows, `SELECT repository_url, file_path, content_sha, reading_order_id, group_key FROM cbl_repository_files WHERE repository_url = ?`, repositoryURL); err != nil {
+	if err := s.db.SelectContext(ctx, &rows, `SELECT repository_url, file_path, content_sha, reading_order_id, group_key, collection, collection_sequence FROM cbl_repository_files WHERE repository_url = ?`, repositoryURL); err != nil {
 		return nil, err
 	}
 	states := make(map[string]cblRepositoryFileState, len(rows))
@@ -160,15 +160,17 @@ func (s *cblRepositorySyncer) repositoryFileStates(ctx context.Context, reposito
 	return states, nil
 }
 
-func (s *cblRepositorySyncer) saveRepositoryFileState(ctx context.Context, repositoryURL string, file cblGitHubFile, readingOrderID int, groupKey string) error {
+func (s *cblRepositorySyncer) saveRepositoryFileState(ctx context.Context, repositoryURL string, file cblGitHubFile, readingOrderID int, groupKey, collection string, collectionSequence *int) error {
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO cbl_repository_files (repository_url, file_path, content_sha, reading_order_id, group_key, imported_at)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO cbl_repository_files (repository_url, file_path, content_sha, reading_order_id, group_key, collection, collection_sequence, imported_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(repository_url, file_path) DO UPDATE SET
 			content_sha = excluded.content_sha,
 			reading_order_id = excluded.reading_order_id,
 			group_key = excluded.group_key,
+			collection = excluded.collection,
+			collection_sequence = excluded.collection_sequence,
 			imported_at = excluded.imported_at
-	`, repositoryURL, file.Path, file.SHA, readingOrderID, groupKey, currentTimestamp())
+	`, repositoryURL, file.Path, file.SHA, readingOrderID, groupKey, collection, collectionSequence, currentTimestamp())
 	return err
 }

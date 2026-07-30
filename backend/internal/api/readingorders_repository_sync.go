@@ -131,11 +131,13 @@ type cblGitHubFile struct {
 }
 
 type cblRepositoryFileState struct {
-	RepositoryURL  string `db:"repository_url"`
-	FilePath       string `db:"file_path"`
-	ContentSHA     string `db:"content_sha"`
-	ReadingOrderID int    `db:"reading_order_id"`
-	GroupKey       string `db:"group_key"`
+	RepositoryURL      string `db:"repository_url"`
+	FilePath           string `db:"file_path"`
+	ContentSHA         string `db:"content_sha"`
+	ReadingOrderID     int    `db:"reading_order_id"`
+	GroupKey           string `db:"group_key"`
+	Collection         string `db:"collection"`
+	CollectionSequence *int   `db:"collection_sequence"`
 }
 
 func NewCBLRepositorySyncer(db *sqlx.DB, metronClient *metron.Client, covers *CoverCache) *cblRepositorySyncer {
@@ -396,11 +398,12 @@ func (s *cblRepositorySyncer) syncRepositoryWithResolver(ctx context.Context, re
 		}
 	}
 	sort.Slice(singles, func(i, j int) bool { return strings.ToLower(singles[i].Path) < strings.ToLower(singles[j].Path) })
+	readmeCache := map[string]string{}
 	for _, file := range singles {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		s.syncSingleFile(ctx, repository, branch, file, states[file.Path], resolveMissing)
+		s.syncSingleFile(ctx, repository, branch, file, states[file.Path], resolveMissing, readmeCache)
 	}
 	groupKeys := make([]string, 0, len(groups))
 	for key := range groups {
@@ -418,7 +421,7 @@ func (s *cblRepositorySyncer) syncRepositoryWithResolver(ctx context.Context, re
 			}
 			return strings.ToLower(group[i].Path) < strings.ToLower(group[j].Path)
 		})
-		s.syncMultipartGroup(ctx, repository, branch, key, parentNames[key], group, states, resolveMissing)
+		s.syncMultipartGroup(ctx, repository, branch, key, parentNames[key], group, states, resolveMissing, readmeCache)
 	}
 	return nil
 }
@@ -482,10 +485,23 @@ func selectedRepositoryFiles(files []cblGitHubFile, selectedPaths map[string]boo
 	return selected, nil
 }
 
-func (s *cblRepositorySyncer) syncSingleFile(ctx context.Context, repository cblGitHubRepository, branch string, file cblGitHubFile, state cblRepositoryFileState, resolveMissing cblMissingComicResolver) {
+func (s *cblRepositorySyncer) syncSingleFile(ctx context.Context, repository cblGitHubRepository, branch string, file cblGitHubFile, state cblRepositoryFileState, resolveMissing cblMissingComicResolver, readmeCache map[string]string) {
 	s.setCurrentFile(file.Path)
+	collection, sequence := deriveCollectionMetadata(file.Path)
+
 	if state.ReadingOrderID > 0 && state.ContentSHA == file.SHA {
 		s.increment("unchanged")
+		// Content is unchanged, but this file may have been synced before
+		// collection/sequence tracking or description backfill existed —
+		// refresh both so re-running a sync also updates previously
+		// imported reading orders, not just brand-new ones.
+		_, _ = s.db.ExecContext(ctx, `
+			UPDATE cbl_repository_files SET collection = ?, collection_sequence = ?
+			WHERE repository_url = ? AND file_path = ?
+		`, collection, sequence, repository.URL, file.Path)
+		if description, err := s.fetchFolderReadme(ctx, repository, branch, path.Dir(file.Path), readmeCache); err == nil {
+			_ = s.backfillReadingOrderDescription(ctx, state.ReadingOrderID, description)
+		}
 		return
 	}
 	document, err := s.fetchCBLDocument(ctx, repository, branch, file.Path)
@@ -510,12 +526,15 @@ func (s *cblRepositorySyncer) syncSingleFile(ctx context.Context, repository cbl
 		s.recordFailure(fmt.Errorf("%s: %w", file.Path, err))
 		return
 	}
-	if err := s.saveRepositoryFileState(ctx, repository.URL, file, readingOrderID, state.GroupKey); err != nil {
+	if err := s.saveRepositoryFileState(ctx, repository.URL, file, readingOrderID, state.GroupKey, collection, sequence); err != nil {
 		s.recordFailure(err)
+	}
+	if description, err := s.fetchFolderReadme(ctx, repository, branch, path.Dir(file.Path), readmeCache); err == nil {
+		_ = s.backfillReadingOrderDescription(ctx, readingOrderID, description)
 	}
 }
 
-func (s *cblRepositorySyncer) syncMultipartGroup(ctx context.Context, repository cblGitHubRepository, branch, groupKey, parentName string, files []cblGitHubFile, states map[string]cblRepositoryFileState, resolveMissing cblMissingComicResolver) {
+func (s *cblRepositorySyncer) syncMultipartGroup(ctx context.Context, repository cblGitHubRepository, branch, groupKey, parentName string, files []cblGitHubFile, states map[string]cblRepositoryFileState, resolveMissing cblMissingComicResolver, readmeCache map[string]string) {
 	readingOrderID := 0
 	changed := false
 	legacyOrderIDs := map[int]bool{}
@@ -539,7 +558,26 @@ func (s *cblRepositorySyncer) syncMultipartGroup(ctx context.Context, repository
 			}
 		}
 	}
+	// A multipart group's files are merged into one combined reading order,
+	// so "collection" is the shared containing folder (all parts live in
+	// it), but a per-file sequence position isn't meaningful here — the
+	// merged reading order already represents the whole set in order.
+	collection := ""
+	if len(files) > 0 {
+		collection, _ = deriveCollectionMetadata(files[0].Path)
+	}
 	if !changed && readingOrderID > 0 {
+		for _, file := range files {
+			_, _ = s.db.ExecContext(ctx, `
+				UPDATE cbl_repository_files SET collection = ?, collection_sequence = NULL
+				WHERE repository_url = ? AND file_path = ?
+			`, collection, repository.URL, file.Path)
+		}
+		if len(files) > 0 {
+			if description, err := s.fetchFolderReadme(ctx, repository, branch, path.Dir(files[0].Path), readmeCache); err == nil {
+				_ = s.backfillReadingOrderDescription(ctx, readingOrderID, description)
+			}
+		}
 		for range files {
 			s.increment("unchanged")
 		}
@@ -571,8 +609,13 @@ func (s *cblRepositorySyncer) syncMultipartGroup(ctx context.Context, repository
 	}
 	readingOrderID = result.readingOrder.ID
 	for _, file := range files {
-		if err := s.saveRepositoryFileState(ctx, repository.URL, file, readingOrderID, groupKey); err != nil {
+		if err := s.saveRepositoryFileState(ctx, repository.URL, file, readingOrderID, groupKey, collection, nil); err != nil {
 			s.recordFailure(err)
+		}
+	}
+	if len(files) > 0 {
+		if description, err := s.fetchFolderReadme(ctx, repository, branch, path.Dir(files[0].Path), readmeCache); err == nil {
+			_ = s.backfillReadingOrderDescription(ctx, readingOrderID, description)
 		}
 	}
 	for legacyID := range legacyOrderIDs {

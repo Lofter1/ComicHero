@@ -74,6 +74,12 @@ const listState = computed(() =>
     sort: 'readingOrder',
   }),
 )
+const orderEyebrow = computed(() => {
+  const collection = props.selectedOrder?.collection
+  if (!collection) return 'Reading order'
+  const sequence = props.selectedOrder?.collectionSequence
+  return `Reading order · ${collection}${sequence != null ? ` #${sequence}` : ''}`
+})
 </script>
 
 <template>
@@ -114,7 +120,7 @@ const listState = computed(() =>
 
     <DetailPanel>
       <div v-if="selectedOrder" class="read-only-detail grid gap-4">
-        <PanelHeader eyebrow="Reading order" :title="selectedOrder.name" />
+        <PanelHeader :eyebrow="orderEyebrow" :title="selectedOrder.name" />
 
         <div class="reading-order-summary">
           <div v-if="readingOrderCover(selectedOrder)" class="reading-order-thumbnail">
