@@ -1,6 +1,6 @@
 const API_BASE = normalizeApiBase(import.meta.env.VITE_API_BASE)
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(message, { status, rateLimit, problemType } = {}) {
     super(message)
     this.name = 'ApiError'
