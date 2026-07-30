@@ -579,6 +579,13 @@ func (s *metronComicScanner) scanIncompleteComics(ctx context.Context, rows []in
 			s.recordFailure("comic", row.ID, fmt.Errorf("fetch Metron issue: %w", fetchErr))
 			continue
 		}
+		if comicVineIDsDiffer(row.ComicVineID, issue.ComicVineID) {
+			log.Printf("Metron comic pull skipped: comic_id=%d local_comic_vine_id=%d metron_comic_vine_id=%d", row.ID, row.ComicVineID.Int64, issue.ComicVineID)
+			if err := markIncompleteComicChecked(ctx, s.db, row.ID, time.Now()); err != nil {
+				s.recordFailure("comic", row.ID, fmt.Errorf("mark Comic Vine mismatch as checked: %w", err))
+			}
+			continue
+		}
 		if enrichErr := enrichIncompleteComicFromMetron(ctx, s.db, s.covers, row.ID, *issue); enrichErr != nil {
 			s.recordFailure("comic", row.ID, enrichErr)
 		} else {
@@ -1082,6 +1089,10 @@ func enrichIncompleteComicFromMetron(ctx context.Context, db *sqlx.DB, covers *C
 		return fmt.Errorf("mark comic as synced: %w", err)
 	}
 	return nil
+}
+
+func comicVineIDsDiffer(local sql.NullInt64, metronID int) bool {
+	return local.Valid && local.Int64 > 0 && metronID > 0 && local.Int64 != int64(metronID)
 }
 
 func markIncompleteComicChecked(ctx context.Context, db *sqlx.DB, comicID int, checkedAt time.Time) error {

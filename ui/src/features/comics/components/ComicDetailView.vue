@@ -82,6 +82,18 @@ const comicVineIssueURL = computed(() => {
   return Number.isInteger(id) && id > 0 ? `https://comicvine.gamespot.com/wd/4000-${id}/` : ''
 })
 
+function comicVineIDMismatch(issue) {
+  const localID = Number(props.selectedComic?.comicVineId)
+  const metronID = Number(issue?.comicVineId)
+  return (
+    Number.isInteger(localID) &&
+    localID > 0 &&
+    Number.isInteger(metronID) &&
+    metronID > 0 &&
+    localID !== metronID
+  )
+}
+
 function runMetronAction() {
   if (!props.selectedComic) return
   if (props.selectedComic.metronIssueId) {
@@ -249,6 +261,10 @@ function seriesLabel(comic) {
                   >{{ issue.publisher || 'Unknown publisher' }} ·
                   {{ issue.coverDate || 'Unknown date' }}</small
                 >
+                <small v-if="comicVineIDMismatch(issue)" class="text-warning font-bold">
+                  Warning: Comic Vine ID differs (local {{ selectedComic.comicVineId }}, Metron
+                  {{ issue.comicVineId }})
+                </small>
               </span>
               <StatusPill>
                 {{ metronMetadataApplyingId === issue.id ? 'Applying...' : 'Apply' }}
