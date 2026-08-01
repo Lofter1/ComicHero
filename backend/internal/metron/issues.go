@@ -51,7 +51,7 @@ func (c *Client) GetIssue(ctx context.Context, id int) (*Issue, error) {
 
 func (c *Client) GetIssueConditional(ctx context.Context, id int, conditional ConditionalRequest) (*Issue, FetchInfo, error) {
 	var raw map[string]any
-	info, err := c.getConditional(ctx, fmt.Sprintf("/issue/%d/", id), nil, conditional, &raw)
+	info, err := c.getConditional(ctx, fmt.Sprintf("/issue/%d/", id), nil, &raw)
 	if err != nil {
 		return nil, info, err
 	}

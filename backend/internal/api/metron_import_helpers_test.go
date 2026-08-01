@@ -35,6 +35,17 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 		CREATE UNIQUE INDEX idx_reading_orders_metron_reading_list_id
 		ON reading_orders(metron_reading_list_id)
 		WHERE metron_reading_list_id IS NOT NULL;
+		CREATE TABLE cbl_repository_files (
+			repository_url TEXT NOT NULL,
+			file_path TEXT NOT NULL,
+			content_sha TEXT NOT NULL,
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			group_key TEXT NOT NULL DEFAULT '',
+			collection TEXT NOT NULL DEFAULT '',
+			collection_sequence INTEGER,
+			imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (repository_url, file_path)
+		);
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,

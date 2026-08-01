@@ -59,7 +59,7 @@ func (c *Client) GetReadingList(ctx context.Context, id int) (*ReadingList, erro
 
 func (c *Client) GetReadingListConditional(ctx context.Context, id int, conditional ConditionalRequest) (*ReadingList, FetchInfo, error) {
 	var raw map[string]any
-	info, err := c.getConditional(ctx, fmt.Sprintf("/reading_list/%d/", id), nil, conditional, &raw)
+	info, err := c.getConditional(ctx, fmt.Sprintf("/reading_list/%d/", id), nil, &raw)
 	if err != nil {
 		return nil, info, err
 	}

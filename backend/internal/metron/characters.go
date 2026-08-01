@@ -13,7 +13,7 @@ func (c *Client) GetCharacter(ctx context.Context, id int) (*MetronCharacter, er
 
 func (c *Client) GetCharacterConditional(ctx context.Context, id int, conditional ConditionalRequest) (*MetronCharacter, FetchInfo, error) {
 	var raw map[string]any
-	info, err := c.getConditional(ctx, fmt.Sprintf("/character/%d/", id), nil, conditional, &raw)
+	info, err := c.getConditional(ctx, fmt.Sprintf("/character/%d/", id), nil, &raw)
 	if err != nil {
 		return nil, info, err
 	}
