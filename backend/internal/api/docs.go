@@ -14,6 +14,7 @@ const (
 	tagUsers         = "Users"
 	tagStatistics    = "Statistics"
 	tagSystem        = "System"
+	tagAPITokens     = "API Tokens"
 )
 
 var (
@@ -41,6 +42,7 @@ func DocsConfig() huma.Config {
 		{Name: tagUsers, Description: "Choose single-user or multi-user mode and manage login sessions."},
 		{Name: tagStatistics, Description: "Summarize per-user reading progress and achievements."},
 		{Name: tagSystem, Description: "Inspect public information about the running ComicHero build."},
+		{Name: tagAPITokens, Description: "Create and manage scoped API tokens for external services to integrate with a user's reading activity."},
 	}
 	return config
 }

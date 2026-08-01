@@ -26,6 +26,7 @@ func buildHandler(cfg config.Config, database *sqlx.DB, covers *api.CoverCache) 
 	router.Use(accessLog.Middleware)
 
 	apiRouter := chi.NewRouter()
+	apiRouter.Use(api.APITokenMiddleware(database))
 	apiRouter.Use(api.UserMiddleware(database))
 	apiRouter.Use(api.AuditMiddleware(database))
 	router.Mount("/api", apiRouter)

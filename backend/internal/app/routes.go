@@ -23,6 +23,7 @@ func registerRoutes(cfg config.Config, humaAPI huma.API, database *sqlx.DB, metr
 	api.RegisterReadingOrderRoutes(humaAPI, database, covers)
 	api.RegisterCBLRepositorySyncRoutes(humaAPI, database, cblRepositorySyncer)
 	api.RegisterUserRoutes(humaAPI, database)
+	api.RegisterAPITokenRoutes(humaAPI, database)
 	api.RegisterDashboardRoutes(humaAPI, database)
 	api.RegisterStatisticsRoutes(humaAPI, database)
 	api.RegisterArcRoutes(humaAPI, database)

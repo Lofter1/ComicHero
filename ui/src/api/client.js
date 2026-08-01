@@ -282,6 +282,18 @@ export function updateComicReadStatus(id, payload) {
   return send(`/comic/${id}/read`, 'PATCH', payload)
 }
 
+export function listApiTokens() {
+  return request('/tokens')
+}
+
+export function createApiToken(payload) {
+  return send('/tokens', 'POST', payload)
+}
+
+export function revokeApiToken(id) {
+  return request(`/tokens/${id}`, { method: 'DELETE' })
+}
+
 export function getUserStatus() {
   return request('/auth/status')
 }
