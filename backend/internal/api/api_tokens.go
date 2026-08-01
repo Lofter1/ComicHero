@@ -80,22 +80,22 @@ func apiTokenRouteScope(method, path string) (scope string, allowed bool) {
 	switch {
 	case method == http.MethodGet && len(parts) == 1 && parts[0] == "readingOrders":
 		// Search/list reading orders (?q=... for text search).
-		return apiTokenScopeReadingRead, true
+		return apiTokenScopeReadingOrdersSearch, true
 	case method == http.MethodGet && len(parts) == 2 && parts[0] == "readingOrders" && positivePathID(parts[1]):
 		// Reading order detail, including computed progress.
-		return apiTokenScopeReadingRead, true
+		return apiTokenScopeReadingOrdersRead, true
 	case method == http.MethodGet && len(parts) == 3 && parts[0] == "readingOrders" && positivePathID(parts[1]) && parts[2] == "next":
 		// Next unread comic in a reading order.
-		return apiTokenScopeReadingRead, true
+		return apiTokenScopeReadingOrdersNext, true
 	case method == http.MethodPost && len(parts) == 3 && parts[0] == "readingOrders" && positivePathID(parts[1]) && parts[2] == "start":
-		return apiTokenScopeReadingWrite, true
+		return apiTokenScopeReadingOrdersStart, true
 	case method == http.MethodDelete && len(parts) == 3 && parts[0] == "readingOrders" && positivePathID(parts[1]) && parts[2] == "start":
 		// Stop reading, the counterpart of start above.
-		return apiTokenScopeReadingWrite, true
+		return apiTokenScopeReadingOrdersStart, true
 	case method == http.MethodPatch && len(parts) == 3 && parts[0] == "comic" && positivePathID(parts[1]) && parts[2] == "read":
 		// Mark a comic read/unread/skipped. Path is singular "comic" to
 		// match the existing updateComicReadStatus route.
-		return apiTokenScopeReadingWrite, true
+		return apiTokenScopeComicsMarkRead, true
 	default:
 		return "", false
 	}

@@ -9,14 +9,29 @@ import { useApiTokens } from '../useApiTokens.js'
 
 const SCOPE_OPTIONS = [
   {
-    value: 'reading:read',
-    label: 'Read',
-    description: 'Search reading orders, view details, and get the next comic to read.',
+    value: 'readingOrders:search',
+    label: 'Search reading orders',
+    description: 'List and search reading orders.',
   },
   {
-    value: 'reading:write',
-    label: 'Write',
-    description: 'Start reading orders and mark comics as read.',
+    value: 'readingOrders:read',
+    label: 'View reading order details',
+    description: 'View a single reading order, including its comics and progress.',
+  },
+  {
+    value: 'readingOrders:next',
+    label: 'Get the next comic',
+    description: 'Fetch the next unread comic in a reading order.',
+  },
+  {
+    value: 'readingOrders:start',
+    label: 'Start / stop reading orders',
+    description: 'Mark a reading order as started or stopped.',
+  },
+  {
+    value: 'comics:markRead',
+    label: 'Mark comics read',
+    description: 'Mark, unmark, or skip a comic as read.',
   },
 ]
 
