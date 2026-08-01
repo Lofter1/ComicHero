@@ -43,7 +43,7 @@ func (c *Client) GetSeries(ctx context.Context, id int) (*Series, error) {
 
 func (c *Client) GetSeriesConditional(ctx context.Context, id int, conditional ConditionalRequest) (*Series, FetchInfo, error) {
 	var raw map[string]any
-	info, err := c.getConditional(ctx, fmt.Sprintf("/series/%d/", id), nil, conditional, &raw)
+	info, err := c.getConditional(ctx, fmt.Sprintf("/series/%d/", id), nil, &raw)
 	if err != nil {
 		return nil, info, err
 	}

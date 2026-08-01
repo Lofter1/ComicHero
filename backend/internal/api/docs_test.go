@@ -31,8 +31,8 @@ func TestDocsConfigAndRouteMetadata(t *testing.T) {
 	if openAPI.Info.Description == "" {
 		t.Fatal("OpenAPI description is empty")
 	}
-	if len(openAPI.Tags) != 11 {
-		t.Fatalf("len(tags) = %d; want 11", len(openAPI.Tags))
+	if len(openAPI.Tags) != 12 {
+		t.Fatalf("len(tags) = %d; want 12", len(openAPI.Tags))
 	}
 
 	listComics := openAPI.Paths["/comics"].Get

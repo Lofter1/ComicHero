@@ -130,15 +130,6 @@ func TestCBLRepositorySyncUpdatesChangedMultipartFileInOneOrder(t *testing.T) {
 	db := setupReadingOrderCBLTestDB(t)
 	if _, err := db.Exec(`
 		CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-		CREATE TABLE cbl_repository_files (
-			repository_url TEXT NOT NULL,
-			file_path TEXT NOT NULL,
-			content_sha TEXT NOT NULL,
-			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
-			group_key TEXT NOT NULL DEFAULT '',
-			imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			PRIMARY KEY (repository_url, file_path)
-		);
 	`); err != nil {
 		t.Fatalf("create repository sync schema: %v", err)
 	}

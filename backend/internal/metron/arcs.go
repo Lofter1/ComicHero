@@ -52,7 +52,7 @@ func (c *Client) GetArcMetadata(ctx context.Context, id int) (*MetronArc, error)
 
 func (c *Client) GetArcMetadataConditional(ctx context.Context, id int, conditional ConditionalRequest) (*MetronArc, FetchInfo, error) {
 	var raw map[string]any
-	info, err := c.getConditional(ctx, fmt.Sprintf("/arc/%d/", id), nil, conditional, &raw)
+	info, err := c.getConditional(ctx, fmt.Sprintf("/arc/%d/", id), nil, &raw)
 	if err != nil {
 		return nil, info, err
 	}

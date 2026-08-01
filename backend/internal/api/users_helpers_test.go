@@ -56,6 +56,17 @@ func setupMountedAuthTestDB(t *testing.T) *sqlx.DB {
 			rating_count INTEGER NOT NULL DEFAULT 0,
 			author_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
 		);
+		CREATE TABLE cbl_repository_files (
+			repository_url TEXT NOT NULL,
+			file_path TEXT NOT NULL,
+			content_sha TEXT NOT NULL,
+			reading_order_id INTEGER NOT NULL REFERENCES reading_orders(id) ON DELETE CASCADE,
+			group_key TEXT NOT NULL DEFAULT '',
+			collection TEXT NOT NULL DEFAULT '',
+			collection_sequence INTEGER,
+			imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (repository_url, file_path)
+		);
 		CREATE TABLE user_reading_orders (
 			reading_order_id INTEGER NOT NULL,
 			user_id INTEGER NOT NULL,

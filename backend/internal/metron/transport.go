@@ -13,11 +13,11 @@ import (
 )
 
 func (c *Client) get(ctx context.Context, path string, values url.Values, target any) error {
-	_, err := c.getConditional(ctx, path, values, ConditionalRequest{}, target)
+	_, err := c.getConditional(ctx, path, values, target)
 	return err
 }
 
-func (c *Client) getConditional(ctx context.Context, path string, values url.Values, conditional ConditionalRequest, target any) (FetchInfo, error) {
+func (c *Client) getConditional(ctx context.Context, path string, values url.Values, target any) (FetchInfo, error) {
 	if err := c.waitForRateLimit(ctx); err != nil {
 		return FetchInfo{}, err
 	}
