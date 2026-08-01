@@ -23,6 +23,7 @@ Join the Discord to ask questions, share feedback and reading orders, and follow
 - Fill incomplete comic, character, series, and arc metadata automatically, with optional full comic-list pulls for linked resources.
 - Choose single-user or multi-user setup, invite users, or enable open registration.
 - Optionally give visitors read-only access to shared ComicHero content.
+- Connect external services (readers, collection managers) with scoped, revocable API tokens.
 - Run as a single container or standalone binary backed by SQLite.
 
 ComicHero shares comics, reading orders, arcs, series, and characters across the instance, while reading state, favorites, ratings, and progress are associated with individual users.
@@ -137,6 +138,78 @@ Public read-only access can be enabled separately. Because comics, reading order
 - apply call limits, minimum request intervals, and cooldowns for incomplete records.
 
 Imports and scans are rate-limited upstream. Use your own Metron account, choose conservative schedules, and review Metron’s terms before enabling automation.
+
+## External integrations (API tokens)
+
+ComicHero can be driven by other software — a reading app, a collection manager, a home-server dashboard — through a small, scoped REST API that sits alongside the main web UI. Access is granted per user through API tokens rather than sharing a login session.
+
+### Creating a token
+
+1. Sign in and open **Account** in the ComicHero UI.
+2. In the **API tokens** panel, select **Create token**.
+3. Give it a name (e.g. the name of the service you're connecting), choose the scopes it needs, and optionally set an expiry date.
+4. Copy the token immediately. It's shown once, in full, and cannot be retrieved again — if you lose it, revoke it and create a new one.
+
+Send it on every request as a bearer token:
+
+```sh
+curl http://localhost:8080/api/readingOrders \
+  -H "Authorization: Bearer ch_pat_..."
+```
+
+### Scopes
+
+A token can only reach the specific capabilities it was granted — everything else (account management, deleting content, creating more tokens, the rest of the general API, etc.) is unreachable with a token regardless of scope, even if the underlying account has admin rights.
+
+| Scope                   | Grants                                                             |
+| ------------------------ | ------------------------------------------------------------------ |
+| `readingOrders:search`   | List and search reading orders (`GET /api/readingOrders`)          |
+| `readingOrders:read`     | View a reading order's details, comics, and progress               |
+| `readingOrders:next`     | Fetch the next unread comic in a reading order                     |
+| `readingOrders:start`    | Start or stop a reading order                                      |
+| `comics:markRead`        | Mark, unmark, or skip a comic as read                              |
+
+Grant only what an integration actually needs — a read-only tracker, for example, only needs `readingOrders:search`, `readingOrders:read`, and `readingOrders:next`.
+
+### Endpoints
+
+All paths are relative to `/api` and require the `Authorization: Bearer <token>` header shown above.
+
+| Method   | Path                          | Scope                  | Description                                   |
+| -------- | ------------------------------ | ----------------------- | ---------------------------------------------- |
+| `GET`    | `/readingOrders?q=<query>`     | `readingOrders:search`  | Search/list reading orders                     |
+| `GET`    | `/readingOrders/{id}`          | `readingOrders:read`    | Reading order detail (comics, progress)        |
+| `GET`    | `/readingOrders/{id}/next`     | `readingOrders:next`    | Next unread comic in the reading order          |
+| `POST`   | `/readingOrders/{id}/start`    | `readingOrders:start`   | Start reading                                   |
+| `DELETE` | `/readingOrders/{id}/start`    | `readingOrders:start`   | Stop reading                                    |
+| `PATCH`  | `/comic/{id}/read`             | `comics:markRead`       | Mark a comic read, unread, or skipped           |
+
+The full request/response schemas are in the interactive API docs at `/api/docs` (see [API and health checks](#api-and-health-checks)) — every operation above is tagged **API Tokens** or **Reading Orders**.
+
+### Example: a minimal reading client
+
+```sh
+TOKEN="ch_pat_..."
+BASE="http://localhost:8080/api"
+
+# 1. Find a reading order
+curl -s "$BASE/readingOrders?q=Watchmen" -H "Authorization: Bearer $TOKEN"
+
+# 2. Start it
+curl -s -X POST "$BASE/readingOrders/7/start" -H "Authorization: Bearer $TOKEN"
+
+# 3. Ask what to read next
+curl -s "$BASE/readingOrders/7/next" -H "Authorization: Bearer $TOKEN"
+# => {"readingOrderId":7,"done":false,"comic":{"id":42,"title":"Batman (2011) #6", ...}}
+
+# 4. Mark that comic read once the user finishes it
+curl -s -X PATCH "$BASE/comic/42/read" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"read": true}'
+```
+
+Revoking a token (from the same **Account** panel) takes effect immediately — any service using it loses access on its next request.
 
 ## Data, backups, and upgrades
 
