@@ -2,6 +2,7 @@
 import { reactive, watch } from 'vue'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
+import ApiTokensPanel from './ApiTokensPanel.vue'
 
 const props = defineProps({
   user: {
@@ -179,6 +180,8 @@ function deleteAccount() {
         </BaseButton>
       </article>
     </form>
+
+    <ApiTokensPanel v-if="user" class="mt-3.5 block" />
   </section>
 </template>
 
