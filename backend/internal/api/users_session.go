@@ -273,6 +273,14 @@ func randomToken(size int) (string, error) {
 func UserMiddleware(db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// A valid API token already identifies a user directly and is
+			// checked independently of session cookies and single/multi
+			// user mode, so it bypasses the rest of this gate entirely.
+			if r.Context().Value(contextAPITokenAuthenticatedKey{}) != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			secure := r.TLS != nil || strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
 			r = r.WithContext(context.WithValue(r.Context(), contextSecureRequestKey{}, secure))
 

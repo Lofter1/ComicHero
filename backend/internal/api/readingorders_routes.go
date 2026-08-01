@@ -47,6 +47,18 @@ func RegisterReadingOrderRoutes(api huma.API, db *sqlx.DB, covers *CoverCache) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "nextComicInReadingOrder",
+		Tags:        []string{tagReadingOrders},
+		Summary:     "Get the next comic to read",
+		Description: "Returns the first not-yet-read comic in a reading order's position order. Intended for external readers/collection managers integrating via a scoped API token.",
+		Method:      http.MethodGet,
+		Path:        "/readingOrders/{id}/next",
+		Errors:      errsRead,
+	}, func(ctx context.Context, input *ReadingOrderInput) (*NextComicOutput, error) {
+		return nextUnreadComicInReadingOrder(ctx, db, input.ID)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "exportReadingOrderCBL",
 		Tags:        []string{tagReadingOrders},
 		Summary:     "Export a reading order as CBL",
