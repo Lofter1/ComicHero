@@ -71,82 +71,87 @@ function deleteAccount() {
 </script>
 
 <template>
-  <section class="browse-view account-view max-w-[960px] min-w-0 w-full">
+  <section class="browse-view account-view max-w-240 min-w-0 w-full grid gap-5 pt-5">
     <div v-if="!user" class="empty-panel">No active account.</div>
 
-    <form v-else class="account-settings grid gap-3.5" @submit.prevent="save">
-      <article class="account-settings-panel">
-        <div class="account-settings-heading">
-          <span class="account-avatar large" aria-hidden="true">{{
-            (user.name || '?').slice(0, 1).toUpperCase()
-          }}</span>
-          <div>
-            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Profile</p>
-            <h3>{{ user.name }}</h3>
+    <div v-else class="account-settings grid gap-5">
+      <form class="grid gap-5" @submit.prevent="save">
+        <article class="account-settings-panel">
+          <div class="account-settings-heading">
+            <span class="account-avatar large" aria-hidden="true">{{
+              (user.name || '?').slice(0, 1).toUpperCase()
+            }}</span>
+            <div>
+              <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Profile</p>
+              <h3>{{ user.name }}</h3>
+            </div>
           </div>
-        </div>
 
-        <div class="metadata-grid account-metadata">
-          <span>
-            <strong>{{ user.isAdmin ? 'Admin' : 'User' }}</strong>
-            <small>Role</small>
-          </span>
-        </div>
-      </article>
+          <div class="metadata-grid account-metadata">
+            <span>
+              <strong>{{ user.isAdmin ? 'Admin' : 'User' }}</strong>
+              <small>Role</small>
+            </span>
+          </div>
+        </article>
 
-      <article class="account-settings-panel">
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Account Data</p>
-          <h3>Manage account</h3>
-        </div>
+        <article class="account-settings-panel">
+          <div>
+            <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Account data</p>
+            <h3>Manage account</h3>
+          </div>
 
-        <div class="auth-fields">
-          <label>
-            <span>Display name</span>
-            <BaseTextInput v-model.trim="form.name" type="text" autocomplete="name" required />
-          </label>
-        </div>
-      </article>
+          <div class="auth-fields">
+            <label>
+              <span>Display name</span>
+              <BaseTextInput v-model.trim="form.name" type="text" autocomplete="name" required />
+            </label>
+          </div>
 
-      <article v-if="userMode === 'multi'" class="account-settings-panel">
-        <div>
-          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Password</p>
-          <h3>Change password</h3>
-        </div>
+          <template v-if="userMode === 'multi'">
+            <hr class="panel-divider" />
+            <div>
+              <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Password</p>
+              <h3>Change password</h3>
+            </div>
 
-        <div class="auth-fields">
-          <label>
-            <span>Current password</span>
-            <BaseTextInput
-              v-model="form.currentPassword"
-              type="password"
-              autocomplete="current-password"
-            />
-          </label>
-          <label>
-            <span>New password</span>
-            <BaseTextInput
-              v-model="form.newPassword"
-              type="password"
-              autocomplete="new-password"
-              minlength="6"
-            />
-          </label>
-          <label>
-            <span>Confirm new password</span>
-            <BaseTextInput
-              v-model="form.confirmPassword"
-              type="password"
-              autocomplete="new-password"
-              minlength="6"
-            />
-          </label>
-        </div>
-      </article>
+            <div class="auth-fields">
+              <label>
+                <span>Current password</span>
+                <BaseTextInput
+                  v-model="form.currentPassword"
+                  type="password"
+                  autocomplete="current-password"
+                />
+              </label>
+              <label>
+                <span>New password</span>
+                <BaseTextInput
+                  v-model="form.newPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="6"
+                />
+              </label>
+              <label>
+                <span>Confirm new password</span>
+                <BaseTextInput
+                  v-model="form.confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  minlength="6"
+                />
+              </label>
+            </div>
+          </template>
 
-      <BaseButton class="justify-self-start" variant="primary" type="submit" :disabled="saving">
-        {{ saving ? 'Saving...' : 'Save account' }}
-      </BaseButton>
+          <BaseButton class="justify-self-start" variant="primary" type="submit" :disabled="saving">
+            {{ saving ? 'Saving...' : 'Save account' }}
+          </BaseButton>
+        </article>
+      </form>
+
+      <ApiTokensPanel />
 
       <article v-if="userMode === 'multi'" class="account-settings-panel danger-panel">
         <div>
@@ -179,9 +184,7 @@ function deleteAccount() {
           {{ deleting ? 'Deleting...' : 'Delete account' }}
         </BaseButton>
       </article>
-    </form>
-
-    <ApiTokensPanel v-if="user" class="mt-3.5 block" />
+    </div>
   </section>
 </template>
 
@@ -189,11 +192,15 @@ function deleteAccount() {
 @reference '../../../styles.css';
 
 .empty-panel {
-  @apply border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold;
+  @apply border border-dashed border-line-strong rounded-xl bg-surface-soft text-muted p-6 down-mobile:p-4 font-extrabold;
 }
 
 .account-settings-panel {
-  @apply grid gap-3.5 border border-line rounded bg-surface-soft p-4;
+  @apply grid gap-4 rounded-xl border border-line bg-surface-soft p-6 down-mobile:p-4;
+}
+
+.panel-divider {
+  @apply border-0 border-t border-line my-1;
 }
 
 .account-avatar.large {
@@ -201,15 +208,15 @@ function deleteAccount() {
 }
 
 .metadata-grid.account-metadata {
-  @apply grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface-soft [&_span]:p-3 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1;
+  @apply grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid gap-2.5 [&_span]:border [&_span]:border-line [&_span]:rounded [&_span]:bg-surface [&_span]:p-3 [&_strong]:block [&_small]:block [&_small]:text-muted [&_small]:mt-1 down-tablet:grid-cols-1;
 }
 
 .auth-fields {
-  @apply grid gap-1.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold;
+  @apply grid gap-2.5 min-w-0 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-label [&_label]:font-extrabold;
 }
 
 .account-settings-panel.danger-panel {
-  @apply border-danger-border bg-danger-soft grid gap-3.5 border rounded p-4;
+  @apply border-danger-border bg-danger-soft grid gap-4 rounded-xl border p-6 down-mobile:p-4;
 }
 
 .metadata-grid.account-metadata strong {

@@ -253,7 +253,7 @@ function isExpired(token) {
 @reference '../../../styles.css';
 
 .account-settings-panel {
-  @apply grid gap-3.5 border border-line rounded bg-surface-soft p-4;
+  @apply grid gap-4 rounded-xl border border-line bg-surface-soft p-6 down-mobile:p-4;
 }
 
 .section-heading {
@@ -261,7 +261,7 @@ function isExpired(token) {
 }
 
 .empty-panel {
-  @apply border border-dashed border-line-strong rounded bg-surface-soft text-muted p-5 font-extrabold;
+  @apply border border-dashed border-line-strong rounded-xl bg-surface-soft text-muted p-6 down-mobile:p-4 font-extrabold;
 }
 
 .error-text {
@@ -269,7 +269,7 @@ function isExpired(token) {
 }
 
 .created-token-banner {
-  @apply grid gap-2.5 border border-primary rounded bg-primary-soft p-3.5;
+  @apply grid gap-2.5 rounded-lg border border-primary bg-primary-soft p-4;
 }
 
 .created-token-title {
@@ -289,7 +289,7 @@ function isExpired(token) {
 }
 
 .token-row {
-  @apply flex min-w-0 items-start justify-between gap-3 border border-line rounded bg-surface p-3.5 down-mobile:flex-col;
+  @apply flex min-w-0 items-start justify-between gap-3 rounded-lg border border-line bg-surface p-4 down-mobile:flex-col;
 }
 
 .token-row-main {
