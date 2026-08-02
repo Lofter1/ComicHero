@@ -30,7 +30,7 @@ ComicHero shares comics, reading orders, arcs, series, and characters across the
 
 ## Quick start with Docker
 
-Metron credentials are optional. Omit the two `METRON_*` variables if you only want to manage data manually.
+Metron credentials are optional. Omit the `METRON_*` variables if you only want to manage data manually. A Metron [API token](https://metron-project.github.io/blog/token-authentication) is preferred over username/password, which still works as a fallback.
 
 ```sh
 docker run -d \
@@ -38,8 +38,7 @@ docker run -d \
   --restart unless-stopped \
   -p 8080:8080 \
   -v comichero-data:/data \
-  -e METRON_USERNAME=your-metron-username \
-  -e METRON_PASSWORD=your-metron-password \
+  -e METRON_TOKEN=your-metron-api-token \
   ghcr.io/lofter1/comichero:latest
 ```
 
@@ -102,8 +101,9 @@ ComicHero reads the process environment and `.env` files in the current or paren
 | `ACCESS_LOG_PATH` | `./data/access.log`                  | Append-only JSON Lines HTTP access log. Set it explicitly to an empty value to disable file logging.                      |
 | `STATIC_DIR`      | embedded frontend                    | Optional directory from which to serve frontend files instead of the embedded build.                                      |
 | `METRON_BASE_URL` | `https://metron.cloud/api`           | Metron API base URL.                                                                                                      |
-| `METRON_USERNAME` | empty                                | Metron username used for search, import, and maintenance jobs.                                                            |
-| `METRON_PASSWORD` | empty                                | Metron password.                                                                                                          |
+| `METRON_TOKEN`    | empty                                | Metron [API token](https://metron-project.github.io/blog/token-authentication). Preferred over username/password when set - Basic Auth still works as a fallback. |
+| `METRON_USERNAME` | empty                                | Metron username used for search, import, and maintenance jobs (Basic Auth, used only when `METRON_TOKEN` is unset).      |
+| `METRON_PASSWORD` | empty                                | Metron password (Basic Auth, used only when `METRON_TOKEN` is unset).                                                    |
 | `APP_BASE_URL`    | `http://localhost:<PORT>`            | Public origin used in verification and password-reset links.                                                              |
 | `COOKIE_SECURE`   | auto-detected                        | Force session cookies to use or omit `Secure` with `true` or `false`. Otherwise TLS and `X-Forwarded-Proto` are detected. |
 | `SMTP_HOST`       | empty                                | SMTP server for verification and password-reset emails. Links are logged when SMTP is unset.                              |

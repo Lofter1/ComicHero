@@ -100,6 +100,52 @@ func TestClientUsesBasicAuthAndDocumentedListPaths(t *testing.T) {
 	}
 }
 
+func TestClientUsesTokenAuthWhenConfigured(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.Header.Get("Authorization"), "Bearer test-token"; got != want {
+			t.Fatalf("Authorization = %q, want %q", got, want)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"results":[{"id":7,"name":"Event"}]}`))
+	}))
+	defer server.Close()
+
+	// Username/Password are also set here to confirm a token takes priority
+	// over Basic Auth rather than requiring one or the other.
+	client := New(Config{
+		BaseURL:  server.URL,
+		Username: "user",
+		Password: "pass",
+		Token:    "test-token",
+	})
+
+	if _, err := client.SearchReadingLists(context.Background(), "Event"); err != nil {
+		t.Fatalf("SearchReadingLists: %v", err)
+	}
+}
+
+func TestClientFallsBackToBasicAuthWithoutToken(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		wantAuth := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:pass"))
+		if got := r.Header.Get("Authorization"); got != wantAuth {
+			t.Fatalf("Authorization = %q, want %q", got, wantAuth)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"results":[{"id":7,"name":"Event"}]}`))
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		BaseURL:  server.URL,
+		Username: "user",
+		Password: "pass",
+	})
+
+	if _, err := client.SearchReadingLists(context.Background(), "Event"); err != nil {
+		t.Fatalf("SearchReadingLists: %v", err)
+	}
+}
+
 func TestListReadingListsFetchesEveryUnfilteredPage(t *testing.T) {
 	var server *httptest.Server
 	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
