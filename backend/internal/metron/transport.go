@@ -180,7 +180,17 @@ func (c *Client) getListPage(ctx context.Context, path string, values url.Values
 	return listPage{results: results, count: len(results)}, nil
 }
 
+// authorize applies Metron authentication to an outgoing request. A token
+// takes priority when configured - it's the credential Metron recommends
+// for anything other than quick interactive use, since it's independently
+// revocable and isn't the account password. Basic Auth remains supported as
+// a fallback for accounts that haven't migrated yet; Metron has not removed
+// it (see https://metron-project.github.io/blog/token-authentication).
 func (c *Client) authorize(req *http.Request) {
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+		return
+	}
 	if c.username != "" || c.password != "" {
 		credentials := base64.StdEncoding.EncodeToString([]byte(c.username + ":" + c.password))
 		req.Header.Set("Authorization", "Basic "+credentials)

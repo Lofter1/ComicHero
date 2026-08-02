@@ -39,6 +39,7 @@ func buildHandler(cfg config.Config, database *sqlx.DB, covers *api.CoverCache) 
 		BaseURL:  cfg.MetronBaseURL,
 		Username: cfg.MetronUsername,
 		Password: cfg.MetronPassword,
+		Token:    cfg.MetronToken,
 	})
 	stopWorkers := registerRoutes(cfg, humaAPI, database, metronClient, covers)
 

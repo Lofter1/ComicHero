@@ -14,6 +14,7 @@ type Client struct {
 	httpClient *http.Client
 	username   string
 	password   string
+	token      string
 	rateLimit  RateLimit
 	rateMu     sync.RWMutex
 	requestMu  sync.RWMutex
@@ -24,6 +25,12 @@ type Config struct {
 	BaseURL  string
 	Username string
 	Password string
+	// Token is a Metron API token (see
+	// https://metron-project.github.io/blog/token-authentication), sent as
+	// `Authorization: Bearer <token>`. It takes priority over
+	// Username/Password when set - Basic Auth remains supported as a
+	// fallback since Metron has not removed it.
+	Token string
 }
 
 func (r RateLimit) NextReset() int64 {
@@ -68,5 +75,6 @@ func New(config Config) *Client {
 		},
 		username: config.Username,
 		password: config.Password,
+		token:    config.Token,
 	}
 }
