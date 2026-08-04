@@ -47,7 +47,14 @@ const seriesIncompleteFieldOptions = [
 const arcIncompleteFieldOptions = [
   { value: 'description', label: 'Description' },
   { value: 'image', label: 'Image' },
+  { value: 'comicOrder', label: 'Comic order' },
 ]
+// "comicOrder" is only meaningful once pullArcComics is also enabled - see
+// the matching gate in the backend's validateMetronComicScanSettings -
+// so it's left out of the field-default fallback below.
+const arcIncompleteFieldDefaults = arcIncompleteFieldOptions.filter(
+  (option) => option.value !== 'comicOrder',
+)
 const maintenanceResourceOptions = [
   { value: 'comics', label: 'Comics' },
   { value: 'characters', label: 'Characters' },
@@ -63,7 +70,7 @@ watch(
       ['incompleteFields', incompleteFieldOptions],
       ['characterIncompleteFields', characterIncompleteFieldOptions],
       ['seriesIncompleteFields', seriesIncompleteFieldOptions],
-      ['arcIncompleteFields', arcIncompleteFieldOptions],
+      ['arcIncompleteFields', arcIncompleteFieldDefaults],
     ]
     for (const [field, options] of fieldDefaults) {
       if (!Array.isArray(draft[field])) {
@@ -88,6 +95,14 @@ watch(
   () => props.metronComicDiscovery?.settings,
   (settings) => Object.assign(discoveryDraft, settings || {}),
   { immediate: true },
+)
+
+watch(
+  () => draft.pullArcComics,
+  (enabled) => {
+    if (enabled || !Array.isArray(draft.arcIncompleteFields)) return
+    draft.arcIncompleteFields = draft.arcIncompleteFields.filter((field) => field !== 'comicOrder')
+  },
 )
 
 function toggleWeekday(day, checked) {
@@ -577,6 +592,7 @@ function startComicDiscovery() {
               <input
                 type="checkbox"
                 :checked="(draft.arcIncompleteFields || []).includes(option.value)"
+                :disabled="option.value === 'comicOrder' && !draft.pullArcComics"
                 @change="
                   toggleIncompleteField('arcIncompleteFields', option.value, $event.target.checked)
                 "
@@ -584,6 +600,9 @@ function startComicDiscovery() {
               <span>{{ option.label }}</span>
             </label>
           </fieldset>
+          <p v-if="draft.scanArcs && !draft.pullArcComics" class="access-note">
+            Comic order requires "Metadata + full comic list" pulling.
+          </p>
           <p v-if="draft.scanArcs && !(draft.arcIncompleteFields || []).length" class="access-note">
             Select at least one arc field.
           </p>

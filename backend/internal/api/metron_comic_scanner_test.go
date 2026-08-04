@@ -73,7 +73,7 @@ func TestMetronComicScanLegacySettingsKeepDefaultIncompleteFields(t *testing.T) 
 	}
 	if len(settings.CharacterIncompleteFields) != len(metronCharacterIncompleteFields) ||
 		len(settings.SeriesIncompleteFields) != len(metronSeriesIncompleteFields) ||
-		len(settings.ArcIncompleteFields) != len(metronArcIncompleteFields) {
+		len(settings.ArcIncompleteFields) != len(metronArcDefaultIncompleteFields) {
 		t.Fatalf("legacy resource defaults were not preserved: %+v", settings)
 	}
 	if strings.Join(settings.ResourceOrder, ",") != strings.Join(metronMaintenanceResourceOrder, ",") {
@@ -92,6 +92,42 @@ func TestMetronComicScanSettingsRequireKnownIncompleteFields(t *testing.T) {
 	settings.IncompleteFields = append(settings.IncompleteFields, "unknown")
 	if err := validateMetronComicScanSettings(&settings); err == nil {
 		t.Fatal("unknown incomplete field returned nil error")
+	}
+}
+
+func TestValidateMetronComicScanSettingsGatesComicOrderOnPullArcComics(t *testing.T) {
+	settings := defaultMetronComicScanSettings()
+	settings.ScanArcs = true
+	settings.PullArcComics = false
+	settings.ArcIncompleteFields = []string{"description", "comicOrder"}
+	if err := validateMetronComicScanSettings(&settings); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, field := range settings.ArcIncompleteFields {
+		if field == "comicOrder" {
+			t.Fatalf("comicOrder should be stripped without pullArcComics: %v", settings.ArcIncompleteFields)
+		}
+	}
+
+	settings = defaultMetronComicScanSettings()
+	settings.ScanArcs = true
+	settings.PullArcComics = true
+	settings.ArcIncompleteFields = []string{"comicOrder"}
+	if err := validateMetronComicScanSettings(&settings); err != nil {
+		t.Fatalf("unexpected error with pullArcComics enabled: %v", err)
+	}
+	if len(settings.ArcIncompleteFields) != 1 || settings.ArcIncompleteFields[0] != "comicOrder" {
+		t.Fatalf("expected comicOrder to be kept with pullArcComics enabled, got %v", settings.ArcIncompleteFields)
+	}
+}
+
+func TestValidateMetronComicScanSettingsRequiresFieldWhenComicOrderAloneIsStripped(t *testing.T) {
+	settings := defaultMetronComicScanSettings()
+	settings.ScanArcs = true
+	settings.PullArcComics = false
+	settings.ArcIncompleteFields = []string{"comicOrder"}
+	if err := validateMetronComicScanSettings(&settings); err == nil {
+		t.Fatal("expected an error when comicOrder was the only selected field and pullArcComics is disabled")
 	}
 }
 
