@@ -414,6 +414,7 @@ func syncMetronIssueArcsWithOptions(ctx context.Context, db *sqlx.DB, client *me
 	seen := map[int]bool{}
 	arcIDs := make([]int, 0, len(issue.Arcs))
 	for _, arc := range issue.Arcs {
+		var orderedIssues []metron.Issue
 		if options.includesArcs() && client != nil && arc.ID > 0 {
 			detail, err := client.GetArcMetadata(ctx, arc.ID)
 			if err != nil {
@@ -423,6 +424,20 @@ func syncMetronIssueArcsWithOptions(ctx context.Context, db *sqlx.DB, client *me
 				return metronAPIError(err)
 			}
 			arc = *detail
+
+			// The arc reference attached to an issue carries no ordering,
+			// but Metron's own arc issue-list endpoint already returns
+			// issues in correct reading order, so fetch it to learn this
+			// issue's - and any other already-owned comic's - position
+			// within the arc.
+			issues, err := client.GetArcIssues(ctx, arc.ID)
+			if err != nil {
+				if isContextCanceledError(err) {
+					return err
+				}
+				return metronAPIError(err)
+			}
+			orderedIssues = issues
 		}
 		id, err := upsertMetronIssueArc(ctx, tx, arc)
 		if err != nil {
@@ -433,14 +448,20 @@ func syncMetronIssueArcsWithOptions(ctx context.Context, db *sqlx.DB, client *me
 		}
 		seen[id] = true
 		arcIDs = append(arcIDs, id)
+		position := arcIssuePosition(orderedIssues, issue.ID)
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO arc_comics (arc_id, comic_id, position)
-			SELECT ?, ?, 0
+			SELECT ?, ?, ?
 			WHERE NOT EXISTS (
 				SELECT 1 FROM arc_comics WHERE arc_id = ? AND comic_id = ?
 			)
-		`, id, comicID, id, comicID); err != nil {
+		`, id, comicID, position, id, comicID); err != nil {
 			return huma.Error500InternalServerError("failed to link comic arc")
+		}
+		if len(orderedIssues) > 0 {
+			if err := applyArcIssueOrder(ctx, tx, id, orderedIssues); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -460,6 +481,44 @@ func syncMetronIssueArcsWithOptions(ctx context.Context, db *sqlx.DB, client *me
 
 	if err := tx.Commit(); err != nil {
 		return huma.Error500InternalServerError("failed to save comic arcs")
+	}
+	return nil
+}
+
+// arcIssuePosition returns the one-based position of metronIssueID within
+// issues - the order Metron itself returns from an arc's issue-list
+// endpoint - or 0 (unknown/unset) when the issue isn't present in it.
+func arcIssuePosition(issues []metron.Issue, metronIssueID int) int {
+	if metronIssueID == 0 {
+		return 0
+	}
+	for i, candidate := range issues {
+		if candidate.ID == metronIssueID {
+			return i + 1
+		}
+	}
+	return 0
+}
+
+// applyArcIssueOrder updates the position of every locally-owned comic
+// that appears in issues (Metron's correctly-ordered arc issue list), so
+// comics discovered through a per-issue arc reference end up ordered the
+// same way as comics imported directly from the arc (see
+// importMetronArcWithOptions / setArcComics).
+func applyArcIssueOrder(ctx context.Context, tx *sqlx.Tx, arcID int, issues []metron.Issue) error {
+	for i, candidate := range issues {
+		if candidate.ID == 0 {
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE arc_comics
+			SET position = ?
+			WHERE arc_id = ? AND comic_id = (
+				SELECT id FROM comics WHERE metron_issue_id = ?
+			)
+		`, i+1, arcID, candidate.ID); err != nil {
+			return huma.Error500InternalServerError("failed to update arc comic order")
+		}
 	}
 	return nil
 }

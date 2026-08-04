@@ -80,11 +80,28 @@ var metronSeriesIncompleteConditions = map[string]string{
 var metronArcIncompleteFields = []string{
 	"description",
 	"image",
+	"comicOrder",
 }
+
+// metronArcDefaultIncompleteFields is the conservative, opt-in-safe subset
+// used for new/default settings. "comicOrder" is excluded by default
+// because it's only meaningful once story-arc maintenance is also
+// configured to pull the full Metron comic list (PullArcComics) - see
+// arcIncompleteFieldComicOrder below.
+var metronArcDefaultIncompleteFields = []string{
+	"description",
+	"image",
+}
+
+const arcIncompleteFieldComicOrder = "comicOrder"
 
 var metronArcIncompleteConditions = map[string]string{
 	"description": "TRIM(a.description) = ''",
 	"image":       "TRIM(a.image) = ''",
+	// A comic linked to this arc without a known position - i.e. one
+	// discovered via a per-issue arc reference rather than a full arc
+	// import - has arc_comics.position left at its unset default of 0.
+	"comicOrder": "EXISTS (SELECT 1 FROM arc_comics WHERE arc_id = a.id AND position = 0)",
 }
 
 var metronMaintenanceResourceOrder = []string{
@@ -112,7 +129,7 @@ type MetronComicScanSettings struct {
 	IncompleteFields          []string `json:"incompleteFields" doc:"Comic fields whose absence makes a comic eligible for enrichment."`
 	CharacterIncompleteFields []string `json:"characterIncompleteFields" doc:"Character fields whose absence makes a Metron-linked character eligible for enrichment."`
 	SeriesIncompleteFields    []string `json:"seriesIncompleteFields" doc:"Series fields whose absence makes a Metron-linked series eligible for enrichment."`
-	ArcIncompleteFields       []string `json:"arcIncompleteFields" doc:"Story-arc fields whose absence makes a Metron-linked arc eligible for enrichment."`
+	ArcIncompleteFields       []string `json:"arcIncompleteFields" doc:"Story-arc fields whose absence makes a Metron-linked arc eligible for enrichment. The \"comicOrder\" field is only honored when pullArcComics is also enabled."`
 	ResourceOrder             []string `json:"resourceOrder" doc:"Maintenance resource processing order. Contains comics, characters, series, and arcs exactly once."`
 }
 
@@ -186,7 +203,7 @@ func defaultMetronComicScanSettings() MetronComicScanSettings {
 			metronCharacterIncompleteFields...,
 		),
 		SeriesIncompleteFields: append([]string(nil), metronSeriesIncompleteFields...),
-		ArcIncompleteFields:    append([]string(nil), metronArcIncompleteFields...),
+		ArcIncompleteFields:    append([]string(nil), metronArcDefaultIncompleteFields...),
 		ResourceOrder:          append([]string(nil), metronMaintenanceResourceOrder...),
 	}
 }
@@ -251,6 +268,15 @@ func validateMetronComicScanSettings(settings *MetronComicScanSettings) error {
 	); err != nil {
 		return err
 	}
+	// "comicOrder" only makes sense when story-arc maintenance also pulls
+	// the full Metron comic list; without that, an arc could be flagged as
+	// incomplete for a missing comic order but nothing would ever fetch
+	// the ordering needed to fix it. Strip it first so normalization's
+	// "at least one field" check below sees the same list the setting
+	// will actually be saved with.
+	if !settings.PullArcComics {
+		settings.ArcIncompleteFields = removeIncompleteField(settings.ArcIncompleteFields, arcIncompleteFieldComicOrder)
+	}
 	if settings.ArcIncompleteFields, err = normalizeIncompleteFields(
 		settings.ArcIncompleteFields,
 		metronArcIncompleteFields,
@@ -310,6 +336,22 @@ func normalizeIncompleteFields(
 		}
 	}
 	return normalized, nil
+}
+
+// removeIncompleteField returns fields with every occurrence of remove
+// dropped, preserving the order of the rest.
+func removeIncompleteField(fields []string, remove string) []string {
+	if len(fields) == 0 {
+		return fields
+	}
+	filtered := make([]string, 0, len(fields))
+	for _, field := range fields {
+		if field == remove {
+			continue
+		}
+		filtered = append(filtered, field)
+	}
+	return filtered
 }
 
 func normalizeMetronMaintenanceResourceOrder(values []string) ([]string, error) {
