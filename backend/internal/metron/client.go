@@ -1,26 +1,34 @@
 package metron
 
 import (
-	"net/http"
 	"strings"
 	"sync"
-	"time"
+
+	metronapi "github.com/Lofter1/ComicHero/backend/metron"
 )
 
-const DefaultBaseURL = "https://metron.cloud/api"
+// DefaultBaseURL is re-exported from backend/metron so existing callers
+// that referenced this package's own constant keep compiling.
+const DefaultBaseURL = metronapi.DefaultBaseURL
 
+// userAgent identifies ComicHero to Metron.
+const userAgent = "ComicHero/0.1"
+
+// Client is ComicHero's Metron client. It wraps the general-purpose
+// backend/metron SDK - which handles authentication, the base URL, and raw
+// HTTP transport - with the application-specific behavior ComicHero needs
+// on top: proactive rate-limit backoff before issuing a request, a rolling
+// diagnostics log of recent requests, and decoding into the loosely-typed
+// map[string]any shapes that mapping.go's Metron-to-ComicHero conversions
+// are built around.
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
-	username   string
-	password   string
-	token      string
-	rateLimit  RateLimit
-	rateMu     sync.RWMutex
+	raw *metronapi.Client
+
 	requestMu  sync.RWMutex
 	requestLog []RequestLogEntry
 }
 
+// Config configures a Client returned by New.
 type Config struct {
 	BaseURL  string
 	Username string
@@ -48,12 +56,14 @@ func (r RateLimit) Empty() bool {
 	return r == RateLimit{}
 }
 
+// CurrentRateLimit returns the most recently observed Metron rate-limit
+// state.
 func (c *Client) CurrentRateLimit() RateLimit {
-	c.rateMu.RLock()
-	defer c.rateMu.RUnlock()
-	return c.rateLimit
+	return RateLimit(c.raw.CurrentRateLimit())
 }
 
+// RecentRequests returns a snapshot of the most recent Metron requests
+// this client has made, most-recent first, for diagnostics.
 func (c *Client) RecentRequests() []RequestLogEntry {
 	c.requestMu.RLock()
 	defer c.requestMu.RUnlock()
@@ -62,19 +72,17 @@ func (c *Client) RecentRequests() []RequestLogEntry {
 	return requests
 }
 
+// New creates a Metron client for the given configuration.
 func New(config Config) *Client {
-	baseURL := strings.TrimRight(config.BaseURL, "/")
-	if baseURL == "" {
-		baseURL = DefaultBaseURL
+	opts := []metronapi.ClientOption{metronapi.WithUserAgent(userAgent)}
+	if baseURL := strings.TrimRight(config.BaseURL, "/"); baseURL != "" {
+		opts = append(opts, metronapi.WithBaseURL(baseURL))
+	}
+	if config.Token != "" {
+		opts = append(opts, metronapi.WithToken(config.Token))
+	} else if config.Username != "" || config.Password != "" {
+		opts = append(opts, metronapi.WithBasicAuth(config.Username, config.Password))
 	}
 
-	return &Client{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 20 * time.Second,
-		},
-		username: config.Username,
-		password: config.Password,
-		token:    config.Token,
-	}
+	return &Client{raw: metronapi.NewClient(opts...)}
 }

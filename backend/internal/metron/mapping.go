@@ -3,7 +3,6 @@ package metron
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 )
@@ -327,20 +326,4 @@ func intValue(raw map[string]any, keys ...string) int {
 		}
 	}
 	return 0
-}
-
-func headerInt(header http.Header, key string) int {
-	value, err := strconv.Atoi(header.Get(key))
-	if err != nil {
-		return 0
-	}
-	return value
-}
-
-func headerInt64(header http.Header, key string) int64 {
-	value, err := strconv.ParseInt(header.Get(key), 10, 64)
-	if err != nil {
-		return 0
-	}
-	return value
 }
