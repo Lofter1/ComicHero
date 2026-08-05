@@ -78,18 +78,22 @@ func TestParseID(t *testing.T) {
 
 func TestFormatID(t *testing.T) {
 	tests := []struct {
-		input    int
-		expected string
+		resourceType ResourceType
+		input        int
+		expected     string
 	}{
-		{1443, "4000-1443"},
-		{0, "4000-0"},
-		{999999, "4000-999999"},
+		{ResourceIssue, 1443, "4000-1443"},
+		{ResourceIssue, 0, "4000-0"},
+		{ResourceIssue, 999999, "4000-999999"},
+		{ResourceVolume, 12345, "4050-12345"},
+		{ResourceCharacter, 1443, "4005-1443"},
+		{ResourcePublisher, 10, "4010-10"},
 	}
 
 	for _, tt := range tests {
-		result := FormatID(tt.input)
+		result := FormatID(tt.resourceType, tt.input)
 		if result != tt.expected {
-			t.Errorf("FormatID(%d) = %s, want %s", tt.input, result, tt.expected)
+			t.Errorf("FormatID(%s, %d) = %s, want %s", tt.resourceType, tt.input, result, tt.expected)
 		}
 	}
 }
@@ -105,7 +109,12 @@ func TestURLBuilder(t *testing.T) {
 		{
 			name:         "resource url",
 			url:          builder.ResourceURL(ResourceCharacter, 1443),
-			expectedPart: "/character/4000-1443/",
+			expectedPart: "/character/4005-1443/",
+		},
+		{
+			name:         "volume resource url",
+			url:          builder.ResourceURL(ResourceVolume, 12345),
+			expectedPart: "/volume/4050-12345/",
 		},
 		{
 			name:         "search url",

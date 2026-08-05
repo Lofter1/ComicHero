@@ -17,6 +17,7 @@ services:
       METRON_TOKEN: ${METRON_TOKEN:-}
       METRON_USERNAME: ${METRON_USERNAME:-}
       METRON_PASSWORD: ${METRON_PASSWORD:-}
+      COMICVINE_API_KEY: ${COMICVINE_API_KEY:-}
 
 volumes:
   comichero-data:

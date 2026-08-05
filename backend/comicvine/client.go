@@ -136,6 +136,10 @@ func (c *Client) Volumes() *VolumeService       { return c.volumes }
 func (c *Client) Promos() *PromoService         { return c.promos }
 func (c *Client) Videos() *VideoService         { return c.videos }
 
+// HasAPIKey reports whether the client was configured with a non-empty API key.
+// Callers can use this to distinguish "not configured" from a genuine API error.
+func (c *Client) HasAPIKey() bool { return c.apiKey != "" }
+
 // do performs an HTTP request with retries and rate limiting
 func (c *Client) do(ctx context.Context, req *http.Request) (*http.Response, error) {
 	if c.rateLimiter != nil {

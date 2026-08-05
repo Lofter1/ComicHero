@@ -104,6 +104,7 @@ ComicHero reads the process environment and `.env` files in the current or paren
 | `METRON_TOKEN`    | empty                                | Metron [API token](https://metron-project.github.io/blog/token-authentication). Preferred over username/password when set - Basic Auth still works as a fallback. |
 | `METRON_USERNAME` | empty                                | Metron username used for search, import, and maintenance jobs (Basic Auth, used only when `METRON_TOKEN` is unset).      |
 | `METRON_PASSWORD` | empty                                | Metron password (Basic Auth, used only when `METRON_TOKEN` is unset).                                                    |
+| `COMICVINE_API_KEY` | empty                              | [Comic Vine API key](https://comicvine.gamespot.com/api/) used for Comic Vine comic maintenance scans.                   |
 | `APP_BASE_URL`    | `http://localhost:<PORT>`            | Public origin used in verification and password-reset links.                                                              |
 | `COOKIE_SECURE`   | auto-detected                        | Force session cookies to use or omit `Secure` with `true` or `false`. Otherwise TLS and `X-Forwarded-Proto` are detected. |
 | `SMTP_HOST`       | empty                                | SMTP server for verification and password-reset emails. Links are logged when SMTP is unset.                              |

@@ -382,6 +382,26 @@ export function stopMetronComicScan() {
   return send('/metron/scans/comics/stop', 'POST', {})
 }
 
+export function getComicVineComicScan() {
+  return request('/comicvine/scans/comics')
+}
+
+export function comicVineComicScanEventsURL() {
+  return `${API_BASE}/comicvine/scans/comics/events`
+}
+
+export function updateComicVineComicScan(payload) {
+  return send('/comicvine/scans/comics', 'PUT', payload)
+}
+
+export function triggerComicVineComicScan() {
+  return send('/comicvine/scans/comics/trigger', 'POST', {})
+}
+
+export function stopComicVineComicScan() {
+  return send('/comicvine/scans/comics/stop', 'POST', {})
+}
+
 export function getMetronComicDiscovery() {
   return request('/metron/discovery/comics')
 }

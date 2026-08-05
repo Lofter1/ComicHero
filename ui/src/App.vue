@@ -165,10 +165,12 @@ const {
 const {
   comicScan: metronComicScan,
   comicDiscovery: metronComicDiscovery,
+  comicVineScan,
   cblRepositorySync,
   cblRepositoryFiles,
   savingComicScan: savingMetronComicScan,
   savingComicDiscovery: savingMetronComicDiscovery,
+  savingComicVineScan,
   savingCBLRepositorySync,
   loadingCBLRepositoryFiles,
   generatedInvite,
@@ -182,6 +184,9 @@ const {
   saveComicDiscovery: saveMetronComicDiscovery,
   runComicDiscovery: runMetronComicDiscovery,
   cancelComicDiscovery: cancelMetronComicDiscovery,
+  saveComicVineScan,
+  runComicVineScan,
+  cancelComicVineScan,
   saveCBLRepositorySync,
   loadCBLRepositoryFiles,
   runCBLRepositorySync,
@@ -615,10 +620,12 @@ appController = useAppController({
         v-else-if="activeView === 'settings'"
         :metron-comic-scan="metronComicScan"
         :metron-comic-discovery="metronComicDiscovery"
+        :comic-vine-scan="comicVineScan"
         :cbl-repository-sync="cblRepositorySync"
         :cbl-repository-files="cblRepositoryFiles"
         :saving="savingMetronComicScan"
         :saving-discovery="savingMetronComicDiscovery"
+        :saving-comic-vine-scan="savingComicVineScan"
         :saving-cbl-repository-sync="savingCBLRepositorySync"
         :loading-cbl-repository-files="loadingCBLRepositoryFiles"
         :registration-mode="registrationMode"
@@ -633,6 +640,9 @@ appController = useAppController({
         @save-discovery="saveMetronComicDiscovery"
         @trigger-discovery="runMetronComicDiscovery"
         @stop-discovery="cancelMetronComicDiscovery"
+        @save-comicvine-scan="saveComicVineScan"
+        @trigger-comicvine-scan="runComicVineScan"
+        @stop-comicvine-scan="cancelComicVineScan"
         @save-cbl-repository-sync="saveCBLRepositorySync"
         @load-cbl-repository-files="loadCBLRepositoryFiles"
         @trigger-cbl-repository-sync="runCBLRepositorySync"

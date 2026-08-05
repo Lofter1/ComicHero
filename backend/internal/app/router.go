@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/Lofter1/ComicHero/backend/comicvine"
 	"github.com/Lofter1/ComicHero/backend/internal/api"
 	"github.com/Lofter1/ComicHero/backend/internal/config"
 	"github.com/Lofter1/ComicHero/backend/internal/metron"
@@ -41,7 +42,8 @@ func buildHandler(cfg config.Config, database *sqlx.DB, covers *api.CoverCache) 
 		Password: cfg.MetronPassword,
 		Token:    cfg.MetronToken,
 	})
-	stopWorkers := registerRoutes(cfg, humaAPI, database, metronClient, covers)
+	comicVineClient := comicvine.NewClient(cfg.ComicVineAPIKey)
+	stopWorkers := registerRoutes(cfg, humaAPI, database, metronClient, comicVineClient, covers)
 
 	serveCovers(router, cfg.CoverPublicPath, covers.Dir())
 	if err := serveStatic(router, cfg.StaticDir); err != nil {

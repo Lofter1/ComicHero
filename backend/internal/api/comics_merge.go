@@ -10,18 +10,19 @@ import (
 )
 
 type comicMergeRow struct {
-	ID             int    `db:"id"`
-	SeriesID       *int   `db:"series_id"`
-	Series         string `db:"series"`
-	SeriesYear     int    `db:"series_year"`
-	Issue          string `db:"issue"`
-	Publisher      string `db:"publisher"`
-	CoverDate      string `db:"cover_date"`
-	CoverImage     string `db:"cover_image"`
-	Description    string `db:"description"`
-	MetronIssueID  *int   `db:"metron_issue_id"`
-	ComicVineID    *int   `db:"comic_vine_id"`
-	MetronSyncedAt string `db:"metron_synced_at"`
+	ID                int    `db:"id"`
+	SeriesID          *int   `db:"series_id"`
+	Series            string `db:"series"`
+	SeriesYear        int    `db:"series_year"`
+	Issue             string `db:"issue"`
+	Publisher         string `db:"publisher"`
+	CoverDate         string `db:"cover_date"`
+	CoverImage        string `db:"cover_image"`
+	Description       string `db:"description"`
+	MetronIssueID     *int   `db:"metron_issue_id"`
+	ComicVineID       *int   `db:"comic_vine_id"`
+	MetronSyncedAt    string `db:"metron_synced_at"`
+	ComicVineSyncedAt string `db:"comic_vine_synced_at"`
 }
 
 func mergeComic(ctx context.Context, db *sqlx.DB, targetID, sourceID int) (*ComicDetailOutput, error) {
@@ -107,12 +108,18 @@ func mergeComic(ctx context.Context, db *sqlx.DB, targetID, sourceID int) (*Comi
 				WHEN metron_synced_at = '' THEN ?
 				WHEN ? > metron_synced_at THEN ?
 				ELSE metron_synced_at
+			END,
+			comic_vine_synced_at = CASE
+				WHEN comic_vine_synced_at = '' THEN ?
+				WHEN ? > comic_vine_synced_at THEN ?
+				ELSE comic_vine_synced_at
 			END
 		WHERE id = ?
 	`, source.SeriesID, strings.TrimSpace(source.Series), source.SeriesYear, strings.TrimSpace(source.Issue),
 		strings.TrimSpace(source.Publisher), source.CoverDate, source.CoverImage, source.Description,
 		source.MetronIssueID, source.ComicVineID, source.MetronSyncedAt, source.MetronSyncedAt,
-		source.MetronSyncedAt, target.ID); err != nil {
+		source.MetronSyncedAt, source.ComicVineSyncedAt, source.ComicVineSyncedAt, source.ComicVineSyncedAt,
+		target.ID); err != nil {
 		return nil, huma.Error500InternalServerError("failed to merge comic metadata")
 	}
 
@@ -126,7 +133,7 @@ func getComicMergeRow(ctx context.Context, tx *sqlx.Tx, id int) (comicMergeRow, 
 	var comic comicMergeRow
 	err := tx.GetContext(ctx, &comic, `
 		SELECT id, series_id, series, series_year, issue, publisher, cover_date, cover_image,
-			description, metron_issue_id, comic_vine_id, metron_synced_at
+			description, metron_issue_id, comic_vine_id, metron_synced_at, comic_vine_synced_at
 		FROM comics
 		WHERE id = ?
 	`, id)

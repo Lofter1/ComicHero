@@ -32,9 +32,10 @@ func ParseID(id string) (int, error) {
 	return strconv.Atoi(id)
 }
 
-// FormatID formats a numeric ID into the Comic Vine "4000-XXXX" format
-func FormatID(id int) string {
-	return fmt.Sprintf("4000-%d", id)
+// FormatID formats a numeric ID into Comic Vine's "<prefix>-<id>" format for the
+// given resource type (e.g. FormatID(ResourceVolume, 12345) -> "4050-12345").
+func FormatID(resourceType ResourceType, id int) string {
+	return fmt.Sprintf("%s-%d", idPrefixFor(resourceType), id)
 }
 
 // URLBuilder helps construct Comic Vine URLs
@@ -51,7 +52,7 @@ func NewURLBuilder() *URLBuilder {
 
 // ResourceURL builds a URL for a specific resource
 func (b *URLBuilder) ResourceURL(resourceType ResourceType, id int) string {
-	return fmt.Sprintf("%s/%s/4000-%d/", b.BaseURL, resourceType, id)
+	return fmt.Sprintf("%s/%s/%s/", b.BaseURL, resourceType, FormatID(resourceType, id))
 }
 
 // SearchURL builds a search URL

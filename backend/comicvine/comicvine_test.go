@@ -124,6 +124,9 @@ func TestCharacterService_Search(t *testing.T) {
 
 func TestIssueService_GetByID(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/issue/4000-12345/" {
+			t.Errorf("Expected path /issue/4000-12345/, got %s", r.URL.Path)
+		}
 		resp := SingleIssueResponse{
 			Error:      "OK",
 			StatusCode: 1,
@@ -156,13 +159,19 @@ func TestIssueService_GetByID(t *testing.T) {
 
 func TestVolumeService_GetByID(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Volumes use the "4050-" ID prefix, distinct from the "4000-" issue
+		// prefix; a shared/hardcoded prefix across resource types was the root
+		// cause of a prior "Error in URL Format" bug for non-issue lookups.
+		if r.URL.Path != "/volume/4050-40531/" {
+			t.Errorf("Expected path /volume/4050-40531/, got %s", r.URL.Path)
+		}
 		resp := SingleVolumeResponse{
 			Error:      "OK",
 			StatusCode: 1,
 			Version:    "1.0",
 			Results: Volume{
-				ID:           40531,
-				Name:         "Amazing Spider-Man",
+				ID:            40531,
+				Name:          "Amazing Spider-Man",
 				CountOfIssues: 700,
 			},
 		}
@@ -183,6 +192,32 @@ func TestVolumeService_GetByID(t *testing.T) {
 
 	if volume.CountOfIssues != 700 {
 		t.Errorf("Expected 700 issues, got %d", volume.CountOfIssues)
+	}
+}
+
+func TestPublisherService_GetByID(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/publisher/4010-10/" {
+			t.Errorf("Expected path /publisher/4010-10/, got %s", r.URL.Path)
+		}
+		resp := SinglePublisherResponse{
+			Error:      "OK",
+			StatusCode: 1,
+			Version:    "1.0",
+			Results:    Publisher{ID: 10, Name: "Marvel"},
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	client := NewClient("test-key", WithBaseURL(server.URL))
+	publisher, err := client.Publishers().GetByID(context.Background(), 10, nil)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if publisher.Name != "Marvel" {
+		t.Errorf("Expected name Marvel, got %q", publisher.Name)
 	}
 }
 

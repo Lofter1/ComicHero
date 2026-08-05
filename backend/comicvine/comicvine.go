@@ -61,9 +61,43 @@ type ListResponse struct {
 	Version         string      `json:"version"`
 }
 
+// idPrefixes maps each Comic Vine resource type to the numeric prefix Comic Vine
+// requires in front of an object's numeric ID when fetching it directly (e.g.
+// "4050-12345" for a volume, "4000-12345" for an issue). These prefixes are fixed
+// and documented by Comic Vine itself (see the resource list at
+// https://comicvine.gamespot.com/api/documentation, or /api/types/ with an API key)
+// and do not vary by request.
+var idPrefixes = map[ResourceType]string{
+	ResourceCharacter: "4005",
+	ResourceConcept:   "4015",
+	ResourceEpisode:   "4070",
+	ResourceIssue:     "4000",
+	ResourceLocation:  "4020",
+	ResourceMovie:     "4025",
+	ResourceObject:    "4055",
+	ResourceOrigin:    "4065",
+	ResourcePower:     "4035",
+	ResourcePromo:     "4090",
+	ResourcePublisher: "4010",
+	ResourceSeries:    "4075",
+	ResourceStoryArc:  "4045",
+	ResourceTeam:      "4060",
+	ResourceVolume:    "4050",
+	ResourceVideo:     "4085",
+}
+
+// idPrefixFor returns the Comic Vine ID prefix for a resource type, falling back
+// to the issue prefix ("4000") for any resource type not in idPrefixes.
+func idPrefixFor(resourceType ResourceType) string {
+	if prefix, ok := idPrefixes[resourceType]; ok {
+		return prefix
+	}
+	return idPrefixes[ResourceIssue]
+}
+
 // GetByID fetches a single resource by its ID
 func (s *BaseService) GetByID(ctx context.Context, id int, fields []string, v interface{}) error {
-	path := "/" + string(s.resourceType) + "/4000-" + strconv.Itoa(id) + "/"
+	path := "/" + string(s.resourceType) + "/" + idPrefixFor(s.resourceType) + "-" + strconv.Itoa(id) + "/"
 	params := url.Values{}
 	
 	if len(fields) > 0 {

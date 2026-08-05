@@ -1,20 +1,25 @@
 import { onUnmounted, ref, watch } from 'vue'
 import {
   cblRepositorySyncEventsURL,
+  comicVineComicScanEventsURL,
   createUserInvite,
   getCBLRepositorySync,
+  getComicVineComicScan,
   listCBLRepositoryFiles,
   getMetronComicDiscovery,
   getMetronComicScan,
   metronComicDiscoveryEventsURL,
   metronComicScanEventsURL,
   resolveCBLRepositoryMetronIssue,
+  stopComicVineComicScan,
   stopMetronComicDiscovery,
   stopMetronComicScan,
   stopCBLRepositorySync,
   triggerCBLRepositorySync,
+  triggerComicVineComicScan,
   triggerMetronComicDiscovery,
   triggerMetronComicScan,
+  updateComicVineComicScan,
   updateMetronComicDiscovery,
   updateMetronComicScan,
   updateCBLRepositorySync,
@@ -31,10 +36,12 @@ export function useMetronSettings({
 }) {
   const comicScan = ref(null)
   const comicDiscovery = ref(null)
+  const comicVineScan = ref(null)
   const cblRepositorySync = ref(null)
   const cblRepositoryFiles = ref([])
   const savingComicScan = ref(false)
   const savingComicDiscovery = ref(false)
+  const savingComicVineScan = ref(false)
   const savingCBLRepositorySync = ref(false)
   const loadingCBLRepositoryFiles = ref(false)
   const generatedInvite = ref(null)
@@ -43,11 +50,13 @@ export function useMetronSettings({
   const savingPublicAccess = ref(false)
   let comicScanEvents = null
   let comicDiscoveryEvents = null
+  let comicVineScanEvents = null
   let cblRepositorySyncEvents = null
 
   async function loadSettings() {
     if (!connectComicScanEvents()) comicScan.value = await getMetronComicScan()
     if (!connectComicDiscoveryEvents()) comicDiscovery.value = await getMetronComicDiscovery()
+    if (!connectComicVineScanEvents()) comicVineScan.value = await getComicVineComicScan()
     if (!connectCBLRepositorySyncEvents()) {
       cblRepositorySync.value = await getCBLRepositorySync()
     }
@@ -92,6 +101,27 @@ export function useMetronSettings({
   async function cancelComicDiscovery() {
     await run(async () => {
       comicDiscovery.value = await stopMetronComicDiscovery()
+    })
+  }
+
+  async function saveComicVineScan(settings) {
+    await withSaving(savingComicVineScan, async () => {
+      comicVineScan.value = await updateComicVineComicScan(settings)
+    })
+  }
+
+  async function runComicVineScan(settings) {
+    savingComicVineScan.value = true
+    await run(async () => {
+      comicVineScan.value = await updateComicVineComicScan(settings)
+      comicVineScan.value = await triggerComicVineComicScan()
+    })
+    savingComicVineScan.value = false
+  }
+
+  async function cancelComicVineScan() {
+    await run(async () => {
+      comicVineScan.value = await stopComicVineComicScan()
     })
   }
 
@@ -206,6 +236,19 @@ export function useMetronSettings({
     return true
   }
 
+  function connectComicVineScanEvents() {
+    if (comicVineScanEvents || typeof EventSource === 'undefined') return false
+    comicVineScanEvents = connectEvents({
+      url: comicVineComicScanEventsURL(),
+      eventName: 'scan',
+      payloadKey: 'scan',
+      target: comicVineScan,
+      close: closeComicVineScanEvents,
+      fallback: getComicVineComicScan,
+    })
+    return true
+  }
+
   function connectCBLRepositorySyncEvents() {
     if (cblRepositorySyncEvents || typeof EventSource === 'undefined') return false
     cblRepositorySyncEvents = connectEvents({
@@ -253,6 +296,11 @@ export function useMetronSettings({
     comicDiscoveryEvents = null
   }
 
+  function closeComicVineScanEvents() {
+    comicVineScanEvents?.close()
+    comicVineScanEvents = null
+  }
+
   function closeCBLRepositorySyncEvents() {
     cblRepositorySyncEvents?.close()
     cblRepositorySyncEvents = null
@@ -277,22 +325,26 @@ export function useMetronSettings({
     if (view === 'settings') return
     closeComicScanEvents()
     closeComicDiscoveryEvents()
+    closeComicVineScanEvents()
     closeCBLRepositorySyncEvents()
   })
 
   onUnmounted(() => {
     closeComicScanEvents()
     closeComicDiscoveryEvents()
+    closeComicVineScanEvents()
     closeCBLRepositorySyncEvents()
   })
 
   return {
     comicScan,
     comicDiscovery,
+    comicVineScan,
     cblRepositorySync,
     cblRepositoryFiles,
     savingComicScan,
     savingComicDiscovery,
+    savingComicVineScan,
     savingCBLRepositorySync,
     loadingCBLRepositoryFiles,
     generatedInvite,
@@ -306,6 +358,9 @@ export function useMetronSettings({
     saveComicDiscovery,
     runComicDiscovery,
     cancelComicDiscovery,
+    saveComicVineScan,
+    runComicVineScan,
+    cancelComicVineScan,
     saveCBLRepositorySync,
     loadCBLRepositoryFiles,
     runCBLRepositorySync,

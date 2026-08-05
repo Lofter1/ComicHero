@@ -11,6 +11,7 @@ const (
 	tagArcs          = "Arcs"
 	tagReadingOrders = "Reading Orders"
 	tagMetron        = "Metron"
+	tagComicVine     = "Comic Vine"
 	tagUsers         = "Users"
 	tagStatistics    = "Statistics"
 	tagSystem        = "System"
@@ -39,6 +40,7 @@ func DocsConfig() huma.Config {
 		{Name: tagArcs, Description: "Manage story arcs and their ordered comic entries."},
 		{Name: tagReadingOrders, Description: "Manage reading orders and their ordered comic entries."},
 		{Name: tagMetron, Description: "Search, inspect, and import metadata from Metron."},
+		{Name: tagComicVine, Description: "Automatically fill missing comic metadata using Comic Vine."},
 		{Name: tagUsers, Description: "Choose single-user or multi-user mode and manage login sessions."},
 		{Name: tagStatistics, Description: "Summarize per-user reading progress and achievements."},
 		{Name: tagSystem, Description: "Inspect public information about the running ComicHero build."},

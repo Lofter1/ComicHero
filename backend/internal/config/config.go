@@ -22,6 +22,7 @@ type Config struct {
 	MetronUsername  string
 	MetronPassword  string
 	MetronToken     string
+	ComicVineAPIKey string
 }
 
 // FromEnv reads runtime configuration after any .env files have been loaded.
@@ -43,6 +44,7 @@ func FromEnv(version string) Config {
 		MetronUsername:  os.Getenv("METRON_USERNAME"),
 		MetronPassword:  os.Getenv("METRON_PASSWORD"),
 		MetronToken:     os.Getenv("METRON_TOKEN"),
+		ComicVineAPIKey: os.Getenv("COMICVINE_API_KEY"),
 	}
 }
 
