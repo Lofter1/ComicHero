@@ -560,6 +560,10 @@ export function updateComicFromMetron(id, metronIssueId, options = {}) {
   })
 }
 
+export function refreshComicFromComicVine(id) {
+  return send(`/comics/${id}/comicvine`, 'PATCH', {})
+}
+
 export function searchMetronReadingLists(params) {
   return requestWithMeta(`/metron/readingLists${queryString(params)}`)
 }

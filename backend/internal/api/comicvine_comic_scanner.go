@@ -415,11 +415,18 @@ func (s *comicVineComicScanner) scanIncompleteComicVineComics(ctx context.Contex
 	return nil
 }
 
-func enrichIncompleteComicFromComicVine(ctx context.Context, db *sqlx.DB, covers *CoverCache, comicID int, issue comicvine.Issue, publisher string) error {
-	cover := issue.Image.OriginalURL
-	if cover == "" {
-		cover = issue.Image.MediumURL
+// comicVineIssueCoverSource returns the best available cover image URL for a
+// Comic Vine issue, preferring the full-resolution original over the medium
+// thumbnail.
+func comicVineIssueCoverSource(issue comicvine.Issue) string {
+	if issue.Image.OriginalURL != "" {
+		return issue.Image.OriginalURL
 	}
+	return issue.Image.MediumURL
+}
+
+func enrichIncompleteComicFromComicVine(ctx context.Context, db *sqlx.DB, covers *CoverCache, comicID int, issue comicvine.Issue, publisher string) error {
+	cover := comicVineIssueCoverSource(issue)
 	if cover != "" {
 		var current string
 		if err := db.GetContext(ctx, &current, `SELECT cover_image FROM comics WHERE id = ?`, comicID); err != nil {

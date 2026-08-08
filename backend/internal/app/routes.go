@@ -37,6 +37,7 @@ func registerRoutes(cfg config.Config, humaAPI huma.API, database *sqlx.DB, metr
 	api.RegisterMetronRoutes(humaAPI, database, metronClient, covers, importJobs, comicScanner)
 	api.RegisterMetronComicDiscoveryRoutes(humaAPI, database, comicDiscovery)
 	api.RegisterComicVineRoutes(humaAPI, database, comicVineScanner)
+	api.RegisterComicVineComicRoutes(humaAPI, database, comicVineClient, covers)
 
 	return func() {
 		cblRepositorySyncer.Stop()

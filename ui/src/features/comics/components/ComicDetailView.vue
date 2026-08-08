@@ -49,6 +49,7 @@ const props = defineProps({
   mergeCandidates: { type: Array, default: () => [] },
   mergeSearching: { type: Boolean, default: false },
   mergeSaving: { type: Boolean, default: false },
+  comicVineRefreshingId: { type: Number, default: null },
 })
 
 const emit = defineEmits([
@@ -56,6 +57,7 @@ const emit = defineEmits([
   'search-metron',
   'apply-metron',
   'reset-metron',
+  'refresh-comicvine',
   'toggle-read',
   'toggle-skipped',
   'open-character',
@@ -101,6 +103,13 @@ function runMetronAction() {
     return
   }
   emit('search-metron')
+}
+
+const comicVineRefreshing = computed(() => props.comicVineRefreshingId === props.selectedComic?.id)
+
+function runComicVineRefresh() {
+  if (!props.selectedComic?.comicVineId) return
+  emit('refresh-comicvine', props.selectedComic.id)
 }
 
 function seriesLabel(comic) {
@@ -153,6 +162,13 @@ function seriesLabel(comic) {
         @click="runMetronAction"
       >
         {{ metronActionLabel }}
+      </BaseButton>
+      <BaseButton
+        v-if="selectedComic && !readOnly"
+        :disabled="!selectedComic.comicVineId"
+        @click="runComicVineRefresh"
+      >
+        {{ comicVineRefreshing ? 'Refreshing Comic Vine...' : 'Refresh Comic Vine' }}
       </BaseButton>
     </DetailNavigation>
 

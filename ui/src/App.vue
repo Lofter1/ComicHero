@@ -391,6 +391,8 @@ const {
   applyMetronMetadata,
   mergeMetronConflict,
   clearMetronMergeConflict,
+  comicVineRefreshingID,
+  refreshComicVine,
 } = useComics({
   activeView,
   viewMode,
@@ -910,10 +912,12 @@ appController = useAppController({
         :merge-candidates="comicMergeCandidates"
         :merge-searching="comicMergeSearching"
         :merge-saving="comicMergeSaving"
+        :comic-vine-refreshing-id="comicVineRefreshingID"
         @back="backToPreviousPage"
         @search-metron="searchSelectedComicMetron"
         @apply-metron="applyMetronMetadata"
         @reset-metron="resetMetronMetadata"
+        @refresh-comicvine="refreshComicVine"
         @toggle-read="toggleComicRead"
         @toggle-skipped="toggleComicSkipped"
         @edit="editComic"

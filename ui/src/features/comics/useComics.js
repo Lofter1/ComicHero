@@ -6,6 +6,7 @@ import {
   getComic,
   listComics,
   mergeComic as mergeComicRequest,
+  refreshComicFromComicVine,
   searchMetronComics,
   updateComic,
   updateComicFromMetron,
@@ -40,6 +41,7 @@ export function useComics({
   const metronMetadataApplyingID = ref(null)
   const metronMetadataStatus = ref('')
   const metronMetadataResults = ref([])
+  const comicVineRefreshingID = ref(null)
   const metronMergeConflict = ref(null)
   const metronMergeSaving = ref(false)
   const mergeOpen = ref(false)
@@ -445,6 +447,24 @@ export function useComics({
     }
   }
 
+  async function refreshComicVine(comicID) {
+    const targetID = comicID ?? selectedComic.value?.id
+    if (!targetID || comicVineRefreshingID.value) return
+
+    comicVineRefreshingID.value = targetID
+    error.value = ''
+
+    try {
+      const { data } = await refreshComicFromComicVine(targetID)
+      applyComicDetailState(data)
+      await loadComics({ force: true })
+    } catch (err) {
+      error.value = err.message
+    } finally {
+      comicVineRefreshingID.value = null
+    }
+  }
+
   async function mergeMetronConflict() {
     const conflict = metronMergeConflict.value
     if (!conflict || metronMergeSaving.value) return
@@ -490,6 +510,7 @@ export function useComics({
     metronMetadataApplyingID,
     metronMetadataStatus,
     metronMetadataResults,
+    comicVineRefreshingID,
     metronMergeConflict,
     metronMergeSaving,
     mergeOpen,
@@ -514,5 +535,6 @@ export function useComics({
     applyMetronMetadata,
     mergeMetronConflict,
     clearMetronMergeConflict,
+    refreshComicVine,
   }
 }

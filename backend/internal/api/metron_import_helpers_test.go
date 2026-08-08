@@ -75,7 +75,8 @@ func newMetronImportTestDB(t *testing.T) *sqlx.DB {
 			read INTEGER NOT NULL DEFAULT 0,
 			metron_issue_id INTEGER,
 			comic_vine_id INTEGER,
-			metron_synced_at TEXT NOT NULL DEFAULT ''
+			metron_synced_at TEXT NOT NULL DEFAULT '',
+			comic_vine_synced_at TEXT NOT NULL DEFAULT ''
 		);
 		CREATE UNIQUE INDEX idx_comics_metron_issue_id
 		ON comics(metron_issue_id)
