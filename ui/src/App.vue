@@ -175,6 +175,7 @@ const {
   generatingInvite,
   savingRegistrationMode,
   savingPublicAccess,
+  switchingToMultiUser,
   loadSettings: loadMetronSettings,
   saveComicScan: saveMetronComicScan,
   runComicScan: runMetronComicScan,
@@ -190,6 +191,7 @@ const {
   generateInvite: generateUserInvite,
   saveRegistration: saveRegistrationMode,
   savePublic: savePublicAccess,
+  switchToMulti: switchToMultiUserMode,
 } = useMetronSettings({ activeView, error, userStatus, registrationMode, publicAccess })
 const { listOptions, activeListParams, updateListOption } = useListOptions({
   activeView,
@@ -621,12 +623,14 @@ appController = useAppController({
         :saving-discovery="savingMetronComicDiscovery"
         :saving-cbl-repository-sync="savingCBLRepositorySync"
         :loading-cbl-repository-files="loadingCBLRepositoryFiles"
+        :user-mode="userMode"
         :registration-mode="registrationMode"
         :saving-registration-mode="savingRegistrationMode"
         :public-access="publicAccess"
         :saving-public-access="savingPublicAccess"
         :invite="generatedInvite"
         :generating-invite="generatingInvite"
+        :switching-to-multi-user="switchingToMultiUser"
         @save="saveMetronComicScan"
         @trigger="runMetronComicScan"
         @stop="cancelMetronComicScan"
@@ -641,6 +645,7 @@ appController = useAppController({
         @update-registration-mode="saveRegistrationMode"
         @update-public-access="savePublicAccess"
         @generate-invite="generateUserInvite"
+        @switch-to-multi-user="switchToMultiUserMode"
       >
         <template #metron-import>
           <MetronImport

@@ -20,6 +20,7 @@ import {
   updateCBLRepositorySync,
   updatePublicAccess,
   updateRegistrationMode,
+  switchToMultiUser,
 } from '@/api/client.js'
 
 export function useMetronSettings({
@@ -29,6 +30,7 @@ export function useMetronSettings({
   registrationMode,
   publicAccess,
 }) {
+  const switchingToMultiUser = ref(false)
   const comicScan = ref(null)
   const comicDiscovery = ref(null)
   const cblRepositorySync = ref(null)
@@ -258,6 +260,12 @@ export function useMetronSettings({
     cblRepositorySyncEvents = null
   }
 
+  async function switchToMulti(payload) {
+    await withSaving(switchingToMultiUser, async () => {
+      userStatus.value = await switchToMultiUser(payload)
+    })
+  }
+
   async function withSaving(savingRef, action) {
     savingRef.value = true
     await run(action)
@@ -299,6 +307,7 @@ export function useMetronSettings({
     generatingInvite,
     savingRegistrationMode,
     savingPublicAccess,
+    switchingToMultiUser,
     loadSettings,
     saveComicScan,
     runComicScan,
@@ -314,5 +323,6 @@ export function useMetronSettings({
     generateInvite,
     saveRegistration,
     savePublic,
+    switchToMulti,
   }
 }
