@@ -354,6 +354,10 @@ export function createUserInvite() {
   return send('/users/invites', 'POST', {})
 }
 
+export function switchToMultiUser(payload) {
+  return send('/users/mode', 'PUT', payload)
+}
+
 export function updateRegistrationMode(payload) {
   return send('/users/registration-mode', 'PUT', payload)
 }

@@ -14,12 +14,14 @@ defineProps({
   savingDiscovery: { type: Boolean, default: false },
   savingCblRepositorySync: { type: Boolean, default: false },
   loadingCblRepositoryFiles: { type: Boolean, default: false },
+  userMode: { type: String, default: 'single' },
   registrationMode: { type: String, default: 'invite_only' },
   savingRegistrationMode: { type: Boolean, default: false },
   publicAccess: { type: Boolean, default: false },
   savingPublicAccess: { type: Boolean, default: false },
   invite: { type: Object, default: null },
   generatingInvite: { type: Boolean, default: false },
+  switchingToMultiUser: { type: Boolean, default: false },
 })
 
 defineEmits([
@@ -37,6 +39,7 @@ defineEmits([
   'update-registration-mode',
   'update-public-access',
   'generate-invite',
+  'switch-to-multi-user',
 ])
 
 const route = useRoute()
@@ -82,15 +85,18 @@ function selectSettingsTab(tab) {
     <UserAccessSettings
       v-show="activeSettingsTab === 'general'"
       id="settings-panel-general"
+      :user-mode="userMode"
       :registration-mode="registrationMode"
       :saving-registration-mode="savingRegistrationMode"
       :public-access="publicAccess"
       :saving-public-access="savingPublicAccess"
       :invite="invite"
       :generating-invite="generatingInvite"
+      :switching-to-multi-user="switchingToMultiUser"
       @update-registration-mode="$emit('update-registration-mode', $event)"
       @update-public-access="$emit('update-public-access', $event)"
       @generate-invite="$emit('generate-invite')"
+      @switch-to-multi-user="$emit('switch-to-multi-user', $event)"
     />
 
     <CBLRepositorySettings

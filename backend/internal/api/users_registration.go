@@ -76,6 +76,68 @@ func setupUsers(ctx context.Context, db *sqlx.DB, payload SetupUsersPayload) (*U
 	return userStatusForUser(ctx, db, mode, userID, cookie)
 }
 
+func switchToMultiUser(ctx context.Context, db *sqlx.DB, payload SwitchToMultiUserPayload) (*UserStatusOutput, error) {
+	userID, err := requireAdminUser(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+
+	mode, configured, err := userMode(ctx, db)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to fetch user setup")
+	}
+	if !configured {
+		return nil, huma.Error400BadRequest("user setup is not complete")
+	}
+	if mode != userModeSingle {
+		return nil, huma.Error409Conflict("already in multi-user mode")
+	}
+
+	name := cleanUserName(payload.Name)
+	if name == "" {
+		return nil, huma.Error400BadRequest("name is required")
+	}
+	email, err := cleanEmailAddress(payload.Email)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	if len(payload.Password) < 6 {
+		return nil, huma.Error400BadRequest("password must be at least 6 characters")
+	}
+	passwordHash, err := hashPassword(payload.Password)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to hash password")
+	}
+
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("failed to start user mode switch")
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE users
+		SET name = ?, email = ?, email_verified_at = CURRENT_TIMESTAMP, password_hash = ?, is_default = 0
+		WHERE id = ?
+	`, name, email, passwordHash, userID); err != nil {
+		return nil, huma.Error409Conflict("user name or email already exists")
+	}
+	if _, err := tx.ExecContext(ctx, `
+		UPDATE app_settings SET value = ? WHERE key = 'user_mode'
+	`, userModeMulti); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save user mode")
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, huma.Error500InternalServerError("failed to save user mode")
+	}
+
+	cookie, err := createSession(ctx, db, userID)
+	if err != nil {
+		return nil, err
+	}
+	return userStatusForUser(ctx, db, userModeMulti, userID, cookie)
+}
+
 func registerUser(ctx context.Context, db *sqlx.DB, payload UserCredentialsPayload) (*UserStatusOutput, error) {
 	mode, configured, err := userMode(ctx, db)
 	if err != nil {

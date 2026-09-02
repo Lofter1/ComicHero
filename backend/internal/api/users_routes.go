@@ -75,6 +75,18 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	})
 
 	huma.Register(api, huma.Operation{
+		OperationID: "switchToMultiUser",
+		Tags:        []string{tagUsers},
+		Summary:     "Switch to multi-user mode",
+		Description: "Upgrades a single-user instance to multi-user mode: the current admin account gets the given name, email, and password, and a session is started. Admin users only. Has no effect once already in multi-user mode.",
+		Method:      http.MethodPut,
+		Path:        "/users/mode",
+		Errors:      []int{400, 401, 403, 409, 500},
+	}, func(ctx context.Context, input *SwitchToMultiUserInput) (*UserStatusOutput, error) {
+		return switchToMultiUser(ctx, db, input.Body)
+	})
+
+	huma.Register(api, huma.Operation{
 		OperationID: "registerUser",
 		Tags:        []string{tagUsers},
 		Summary:     "Register a user",

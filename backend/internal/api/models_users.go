@@ -71,6 +71,16 @@ type RegistrationModeOutput struct {
 	Body UserStatus
 }
 
+type SwitchToMultiUserPayload struct {
+	Name     string `json:"name" minLength:"1" doc:"Display name to keep using after switching to multi-user mode." example:"Justin"`
+	Email    string `json:"email" minLength:"1" format:"email" doc:"Email address to use for logging in after switching to multi-user mode." example:"reader@example.com"`
+	Password string `json:"password" minLength:"6" doc:"Password to use for logging in after switching to multi-user mode." example:"correct horse battery staple"`
+}
+
+type SwitchToMultiUserInput struct {
+	Body SwitchToMultiUserPayload
+}
+
 type UpdatePublicAccessPayload struct {
 	Enabled bool `json:"enabled" doc:"Whether anonymous read-only public access is enabled." example:"true"`
 }
