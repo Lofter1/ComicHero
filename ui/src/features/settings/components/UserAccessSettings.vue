@@ -70,17 +70,22 @@ function switchToMultiUser() {
         <p class="eyebrow">User mode</p>
         <h3>Switch to multi-user mode</h3>
         <p class="muted">
-          ComicHero is currently running in single-user mode with no login. Switching to
-          multi-user mode turns this account into a login-protected admin account and lets you
-          invite other people. Your existing reading history stays attached to this account. This
-          cannot be undone from within the app.
+          ComicHero is currently running in single-user mode with no login. Switching to multi-user
+          mode turns this account into a login-protected admin account and lets you invite other
+          people. Your existing reading history stays attached to this account. This cannot be
+          undone from within the app.
         </p>
       </div>
 
       <form class="auth-fields" @submit.prevent="switchToMultiUser">
         <label>
           <span>Display name</span>
-          <BaseTextInput v-model.trim="multiUserForm.name" type="text" autocomplete="name" required />
+          <BaseTextInput
+            v-model.trim="multiUserForm.name"
+            type="text"
+            autocomplete="name"
+            required
+          />
         </label>
         <label>
           <span>Email</span>
