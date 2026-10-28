@@ -133,6 +133,8 @@ func isPublicReadRequest(r *http.Request) bool {
 		switch parts[0] {
 		case "readingOrders", "comics", "series", "characters", "arcs":
 			return true
+		case "announcement":
+			return true
 		default:
 			return false
 		}
@@ -176,7 +178,7 @@ func isResetPasswordRequest(r *http.Request) bool {
 func isUserRouteAllowedWithoutSession(path string) bool {
 	path = strings.TrimPrefix(path, "/api")
 	switch path {
-	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/verify-email/resend", "/auth/forgot-password", "/auth/reset-password", "/openapi.json", "/openapi.yaml", "/docs":
+	case "/auth/status", "/auth/setup", "/auth/register", "/auth/login", "/auth/verify-email", "/auth/verify-email/resend", "/auth/forgot-password", "/auth/reset-password", "/announcement", "/openapi.json", "/openapi.yaml", "/docs":
 		return true
 	default:
 		return false

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppGlobalOverlays from '@/app/components/AppGlobalOverlays.vue'
 import AccountView from '@/features/account/components/AccountView.vue'
@@ -38,6 +38,7 @@ import { useDashboard } from '@/features/dashboard/useDashboard.js'
 import { useListOptions } from '@/shared/composables/useListOptions.js'
 import { useMetronJobs } from '@/features/metron/useMetronJobs.js'
 import { useMetronSettings } from '@/features/settings/useMetronSettings.js'
+import { useAnnouncement } from '@/features/settings/useAnnouncement.js'
 import { usePagination } from '@/shared/composables/usePagination.js'
 import { useReadingOrders } from '@/features/reading-orders/useReadingOrders.js'
 import { useSeries } from '@/features/series/useSeries.js'
@@ -193,6 +194,22 @@ const {
   savePublic: savePublicAccess,
   switchToMulti: switchToMultiUserMode,
 } = useMetronSettings({ activeView, error, userStatus, registrationMode, publicAccess })
+const {
+  announcement,
+  announcementSettings,
+  savingAnnouncement,
+  loadAnnouncement,
+  loadAnnouncementSettings,
+  saveAnnouncement,
+} = useAnnouncement({ error })
+
+watch(
+  appReady,
+  (ready) => {
+    if (ready) loadAnnouncement()
+  },
+  { immediate: true },
+)
 const { listOptions, activeListParams, updateListOption } = useListOptions({
   activeView,
   onChange: refreshActiveListData,
@@ -509,6 +526,7 @@ appController = useAppController({
     collections: loadCharacterCollections,
     users: loadUserAdminRows,
     settings: loadMetronSettings,
+    announcementSettings: loadAnnouncementSettings,
     progress: loadAccountStatistics,
   },
   metron: { loadMetronImportJobs, loadMetronQuota, closeMetronImportEvents },
@@ -574,6 +592,7 @@ appController = useAppController({
         :conflict-message="metronMergeConflict?.message || ''"
         :merge-saving="metronMergeSaving"
         :jobs="metronImportJobs"
+        :announcement="announcement"
         @merge="mergeMetronConflict"
         @dismiss-error="clearError"
         @retry="retryMetronJob"
@@ -631,6 +650,8 @@ appController = useAppController({
         :invite="generatedInvite"
         :generating-invite="generatingInvite"
         :switching-to-multi-user="switchingToMultiUser"
+        :announcement-settings="announcementSettings"
+        :saving-announcement="savingAnnouncement"
         @save="saveMetronComicScan"
         @trigger="runMetronComicScan"
         @stop="cancelMetronComicScan"
@@ -646,6 +667,7 @@ appController = useAppController({
         @update-public-access="savePublicAccess"
         @generate-invite="generateUserInvite"
         @switch-to-multi-user="switchToMultiUserMode"
+        @save-announcement="saveAnnouncement"
       >
         <template #metron-import>
           <MetronImport

@@ -1,6 +1,7 @@
 <script setup>
 import ErrorToast from '@/shared/components/feedback/ErrorToast.vue'
 import OfflineBanner from '@/shared/components/feedback/OfflineBanner.vue'
+import AnnouncementBanner from '@/shared/components/feedback/AnnouncementBanner.vue'
 import MetronImportMonitor from '@/features/metron/components/MetronImportMonitor.vue'
 
 defineProps({
@@ -9,6 +10,7 @@ defineProps({
   conflictMessage: { type: String, default: '' },
   mergeSaving: { type: Boolean, default: false },
   jobs: { type: Array, default: () => [] },
+  announcement: { type: Object, default: null },
 })
 
 const open = defineModel('open', { type: Boolean, default: false })
@@ -18,6 +20,7 @@ defineEmits(['merge', 'dismiss-error', 'retry', 'continue', 'cancel', 'dismiss-j
 
 <template>
   <OfflineBanner />
+  <AnnouncementBanner :announcement="announcement" />
 
   <ErrorToast
     :message="error"

@@ -346,6 +346,17 @@ export function importReadHistory(payload) {
   return send('/account/read-history/import', 'POST', payload)
 }
 
+export function getAnnouncement() {
+  return request('/announcement')
+}
+
+export function getAdminAnnouncement() {
+  return request('/users/announcement')
+}
+
+export function updateAnnouncement(payload) {
+  return send('/users/announcement', 'PUT', payload)
+}
 export function getDashboard() {
   return request('/dashboard')
 }
