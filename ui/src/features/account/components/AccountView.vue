@@ -1,5 +1,6 @@
 <script setup>
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
+import { exportReadHistory, importReadHistory } from '@/api/client.js'
 import BaseButton from '@/shared/components/form/BaseButton.vue'
 import BaseTextInput from '@/shared/components/form/BaseTextInput.vue'
 import ApiTokensPanel from './ApiTokensPanel.vue'
@@ -24,6 +25,10 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['save', 'delete-account'])
+const historyFile = ref(null)
+const historyBusy = ref(false)
+const historyMessage = ref('')
+const historyError = ref('')
 const form = reactive({
   name: '',
   currentPassword: '',
@@ -67,6 +72,44 @@ function deleteAccount() {
   }
   if (!window.confirm('Delete this account permanently? This cannot be undone.')) return
   emit('delete-account', { currentPassword: deleteForm.currentPassword })
+}
+
+async function downloadReadHistory() {
+  historyBusy.value = true
+  historyMessage.value = ''
+  historyError.value = ''
+  try {
+    const data = await exportReadHistory()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `comichero-read-history-${new Date().toISOString().slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+    historyMessage.value = `${data.comics.length} read comics exported.`
+  } catch (err) {
+    historyError.value = err.message
+  } finally {
+    historyBusy.value = false
+  }
+}
+
+async function uploadReadHistory() {
+  const file = historyFile.value?.files?.[0]
+  if (!file) return
+  historyBusy.value = true
+  historyMessage.value = ''
+  historyError.value = ''
+  try {
+    const result = await importReadHistory(JSON.parse(await file.text()))
+    historyMessage.value = `${result.imported} comics marked as read. ${result.unmatched.length} unmatched.`
+    historyFile.value.value = ''
+  } catch (err) {
+    historyError.value = err.message
+  } finally {
+    historyBusy.value = false
+  }
 }
 </script>
 
@@ -153,6 +196,34 @@ function deleteAccount() {
 
       <ApiTokensPanel />
 
+      <article class="account-settings-panel">
+        <div>
+          <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Library data</p>
+          <h3>Transfer read history</h3>
+          <p class="muted block text-muted">
+            Export the comics you have read and import them into another ComicHero instance.
+            Matching uses Metron or Comic Vine IDs, so local database IDs do not need to match.
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <BaseButton variant="secondary" :disabled="historyBusy" @click="downloadReadHistory">
+            {{ historyBusy ? 'Working...' : 'Export read history' }}
+          </BaseButton>
+          <label class="history-import-button">
+            Import JSON
+            <input
+              ref="historyFile"
+              type="file"
+              accept="application/json,.json"
+              :disabled="historyBusy"
+              @change="uploadReadHistory"
+            />
+          </label>
+        </div>
+        <p v-if="historyMessage" class="text-muted text-sm">{{ historyMessage }}</p>
+        <p v-if="historyError" class="text-danger text-sm">{{ historyError }}</p>
+      </article>
+
       <article v-if="userMode === 'multi'" class="account-settings-panel danger-panel">
         <div>
           <p class="eyebrow mt-0 mb-1.5 text-eyebrow text-xs font-bold uppercase">Danger Zone</p>
@@ -187,6 +258,18 @@ function deleteAccount() {
     </div>
   </section>
 </template>
+
+<style scoped>
+@reference '../../../styles.css';
+
+.history-import-button {
+  @apply inline-flex cursor-pointer items-center rounded border border-line bg-surface-soft px-3 py-2 text-sm font-semibold text-control hover:border-primary;
+}
+
+.history-import-button input {
+  @apply sr-only;
+}
+</style>
 
 <style scoped>
 @reference '../../../styles.css';

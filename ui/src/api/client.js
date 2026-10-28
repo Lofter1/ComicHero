@@ -338,6 +338,14 @@ export function getAccountStatistics() {
   return request('/account/statistics')
 }
 
+export function exportReadHistory() {
+  return request('/account/read-history')
+}
+
+export function importReadHistory(payload) {
+  return send('/account/read-history/import', 'POST', payload)
+}
+
 export function getDashboard() {
   return request('/dashboard')
 }
