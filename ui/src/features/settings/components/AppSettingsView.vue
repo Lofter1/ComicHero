@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import CBLRepositorySettings from './CBLRepositorySettings.vue'
 import MetronSchedulingSettings from './MetronSchedulingSettings.vue'
 import UserAccessSettings from './UserAccessSettings.vue'
+import AnnouncementSettings from './AnnouncementSettings.vue'
 
 defineProps({
   metronComicScan: { type: Object, default: null },
@@ -22,6 +23,8 @@ defineProps({
   invite: { type: Object, default: null },
   generatingInvite: { type: Boolean, default: false },
   switchingToMultiUser: { type: Boolean, default: false },
+  announcementSettings: { type: Object, default: null },
+  savingAnnouncement: { type: Boolean, default: false },
 })
 
 defineEmits([
@@ -40,6 +43,7 @@ defineEmits([
   'update-public-access',
   'generate-invite',
   'switch-to-multi-user',
+  'save-announcement',
 ])
 
 const route = useRoute()
@@ -97,6 +101,13 @@ function selectSettingsTab(tab) {
       @update-public-access="$emit('update-public-access', $event)"
       @generate-invite="$emit('generate-invite')"
       @switch-to-multi-user="$emit('switch-to-multi-user', $event)"
+    />
+
+    <AnnouncementSettings
+      v-show="activeSettingsTab === 'general'"
+      :settings="announcementSettings"
+      :saving="savingAnnouncement"
+      @save="$emit('save-announcement', $event)"
     />
 
     <CBLRepositorySettings

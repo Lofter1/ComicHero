@@ -58,6 +58,27 @@ func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 		return importReadHistory(ctx, db, input.Body)
 	})
 	huma.Register(api, huma.Operation{
+		OperationID: "getActiveAnnouncement", Tags: []string{tagUsers}, Summary: "Get active user announcement",
+		Description: "Returns the currently active administrator announcement, if one has been published.",
+		Method:      http.MethodGet, Path: "/announcement", Errors: []int{500},
+	}, func(ctx context.Context, input *struct{}) (*AnnouncementOutput, error) {
+		return getActiveAnnouncement(ctx, db)
+	})
+	huma.Register(api, huma.Operation{
+		OperationID: "getAdminAnnouncement", Tags: []string{tagUsers}, Summary: "Get announcement settings",
+		Description: "Returns the announcement draft and schedule. Admin users only.",
+		Method:      http.MethodGet, Path: "/users/announcement", Errors: []int{401, 403, 500},
+	}, func(ctx context.Context, input *struct{}) (*AnnouncementOutput, error) {
+		return getAdminAnnouncement(ctx, db)
+	})
+	huma.Register(api, huma.Operation{
+		OperationID: "updateAnnouncement", Tags: []string{tagUsers}, Summary: "Update user announcement",
+		Description: "Creates or updates the announcement shown to users. Admin users only.",
+		Method:      http.MethodPut, Path: "/users/announcement", Errors: []int{400, 401, 403, 500},
+	}, func(ctx context.Context, input *UpdateAnnouncementInput) (*AnnouncementOutput, error) {
+		return updateAnnouncement(ctx, db, input.Body)
+	})
+	huma.Register(api, huma.Operation{
 		OperationID: "listAuditEvents", Tags: []string{tagUsers}, Summary: "List user audit events",
 		Description: "Searches, filters, sorts, and paginates successful state-changing API requests. Admin users only.",
 		Method:      http.MethodGet, Path: "/audit-events", Errors: []int{401, 403, 500},

@@ -43,6 +43,23 @@ type ReadHistoryImportOutput struct {
 	Body ReadHistoryImportResult
 }
 
+type AnnouncementSettings struct {
+	Enabled   bool   `json:"enabled" doc:"Whether the announcement is enabled."`
+	Message   string `json:"message" maxLength:"4000" doc:"Message shown to users."`
+	Level     string `json:"level" enum:"info,warning,critical" doc:"Visual urgency of the announcement."`
+	StartsAt  string `json:"startsAt,omitempty" format:"date-time" doc:"Optional RFC3339 start time."`
+	EndsAt    string `json:"endsAt,omitempty" format:"date-time" doc:"Optional RFC3339 end time."`
+	UpdatedAt string `json:"updatedAt,omitempty" format:"date-time" doc:"When the announcement was last changed."`
+}
+
+type AnnouncementOutput struct {
+	Body *AnnouncementSettings
+}
+
+type UpdateAnnouncementInput struct {
+	Body AnnouncementSettings
+}
+
 type User struct {
 	ID              int    `json:"id"              db:"id"                doc:"Local user identifier." example:"1"`
 	Name            string `json:"name"            db:"name"              doc:"Display name." example:"Justin"`

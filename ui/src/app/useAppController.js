@@ -206,6 +206,7 @@ export function useAppController({
     if (activeView.value === 'settings') {
       await Promise.all([
         loaders.settings(),
+        loaders.announcementSettings(),
         access.canMetronMonitor.value ? metron.loadMetronQuota() : Promise.resolve(),
       ])
       return
