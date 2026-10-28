@@ -211,7 +211,13 @@ async function uploadReadHistory() {
           </BaseButton>
           <label class="history-import-button">
             Import JSON
-            <input ref="historyFile" type="file" accept="application/json,.json" :disabled="historyBusy" @change="uploadReadHistory" />
+            <input
+              ref="historyFile"
+              type="file"
+              accept="application/json,.json"
+              :disabled="historyBusy"
+              @change="uploadReadHistory"
+            />
           </label>
         </div>
         <p v-if="historyMessage" class="text-muted text-sm">{{ historyMessage }}</p>
