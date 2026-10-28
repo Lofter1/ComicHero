@@ -44,6 +44,20 @@ type contextPublicAccessKey struct{}
 
 func RegisterUserRoutes(api huma.API, db *sqlx.DB) {
 	huma.Register(api, huma.Operation{
+		OperationID: "exportReadHistory", Tags: []string{tagUsers}, Summary: "Export read history",
+		Description: "Exports comics marked as read for the current user using portable Metron or Comic Vine identifiers.",
+		Method:      http.MethodGet, Path: "/account/read-history", Errors: errsRead,
+	}, func(ctx context.Context, input *struct{}) (*ReadHistoryExportOutput, error) {
+		return exportReadHistory(ctx, db)
+	})
+	huma.Register(api, huma.Operation{
+		OperationID: "importReadHistory", Tags: []string{tagUsers}, Summary: "Import read history",
+		Description: "Imports read status and matches comics by Metron issue ID, Comic Vine issue ID, or conservative metadata fallback. Local comic IDs are ignored.",
+		Method:      http.MethodPost, Path: "/account/read-history/import", Errors: []int{400, 401, 500},
+	}, func(ctx context.Context, input *ReadHistoryImportInput) (*ReadHistoryImportOutput, error) {
+		return importReadHistory(ctx, db, input.Body)
+	})
+	huma.Register(api, huma.Operation{
 		OperationID: "listAuditEvents", Tags: []string{tagUsers}, Summary: "List user audit events",
 		Description: "Searches, filters, sorts, and paginates successful state-changing API requests. Admin users only.",
 		Method:      http.MethodGet, Path: "/audit-events", Errors: []int{401, 403, 500},

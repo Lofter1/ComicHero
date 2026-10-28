@@ -2,6 +2,47 @@ package api
 
 import "net/http"
 
+type ReadHistoryComic struct {
+	// ID is included for diagnostics only. It is never used while importing.
+	ID            int    `json:"id,omitempty" doc:"Source-instance comic identifier, informational only."`
+	MetronIssueID *int   `json:"metronIssueId,omitempty" doc:"Metron issue identifier used to match comics across instances."`
+	ComicVineID   *int   `json:"comicVineId,omitempty" doc:"Comic Vine issue identifier used to match comics across instances."`
+	Series        string `json:"series" doc:"Series name used as a secondary fallback identity."`
+	SeriesYear    int    `json:"seriesYear" doc:"Series year used as a secondary fallback identity."`
+	Issue         string `json:"issue" doc:"Issue number used as a secondary fallback identity."`
+	Publisher     string `json:"publisher" doc:"Publisher used as a secondary fallback identity."`
+	CoverDate     string `json:"coverDate,omitempty"`
+	ReadAt        string `json:"readAt,omitempty"`
+}
+
+type ReadHistoryExport struct {
+	FormatVersion int                `json:"formatVersion" doc:"Portable read-history format version."`
+	ExportedAt    string             `json:"exportedAt" format:"date-time"`
+	Comics        []ReadHistoryComic `json:"comics"`
+}
+
+type ReadHistoryExportOutput struct {
+	Body ReadHistoryExport
+}
+
+type ReadHistoryImportInput struct {
+	Body ReadHistoryExport
+}
+
+type ReadHistoryUnmatched struct {
+	Comic  ReadHistoryComic `json:"comic"`
+	Reason string           `json:"reason"`
+}
+
+type ReadHistoryImportResult struct {
+	Imported  int                    `json:"imported"`
+	Unmatched []ReadHistoryUnmatched `json:"unmatched"`
+}
+
+type ReadHistoryImportOutput struct {
+	Body ReadHistoryImportResult
+}
+
 type User struct {
 	ID              int    `json:"id"              db:"id"                doc:"Local user identifier." example:"1"`
 	Name            string `json:"name"            db:"name"              doc:"Display name." example:"Justin"`
